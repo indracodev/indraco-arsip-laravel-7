@@ -12,4 +12,5 @@ npm-debug.log
 yarn-error.log
 
 public/images/images.zip
+/public/images
 *.zip

@@ -234,7 +234,7 @@
                     <div class="w-full pt-4 border-t border-slate-300 dark:border-slate-800 space-y-1.5 font-mono text-[10px] text-slate-600 dark:text-slate-400">
                         <div class="flex items-center justify-between px-2 py-1 bg-white/60 dark:bg-slate-950/60 rounded border border-slate-200 dark:border-slate-800">
                             <span>Framework:</span>
-                            <strong class="text-slate-800 dark:text-slate-200">Laravel v10.x</strong>
+                            <strong class="text-slate-800 dark:text-slate-200">Laravel v{{ \Illuminate\Foundation\Application::VERSION }}</strong>
                         </div>
                         <div class="flex items-center justify-between px-2 py-1 bg-white/60 dark:bg-slate-950/60 rounded border border-slate-200 dark:border-slate-800">
                             <span>UI Standard:</span>
