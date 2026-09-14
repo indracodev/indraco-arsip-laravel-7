@@ -22,7 +22,7 @@ class WarehouseController extends Controller
             Warehouse::firstOrCreate(
                 ['code' => $code],
                 [
-                    'name' => str_starts_with(strtoupper($code), 'GUDANG') ? $code : "Gudang " . $code,
+                    'name' => \Illuminate\Support\Str::startsWith(strtoupper($code), 'GUDANG') ? $code : "Gudang " . $code,
                     'address' => "Kawasan Industri Indraco - Sektor " . $sector,
                 ]
             );

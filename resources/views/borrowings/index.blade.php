@@ -23,7 +23,7 @@
     <!-- Filter & Search Card -->
     <div class="bg-white dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm">
         <form action="{{ route('borrowings.index') }}" method="GET" class="grid grid-cols-1 sm:grid-cols-3 gap-4" @submit="submitting = true">
-            <input type="hidden" name="sort" value="{{ request('sort', 'borrowed_at') }}">
+            <input type="hidden" name="sort" value="{{ request('sort', 'created_at') }}">
             <input type="hidden" name="direction" value="{{ request('direction', 'desc') }}">
 
             <!-- Search Keyword -->
@@ -71,16 +71,16 @@
                 <thead>
                     <tr class="border-b border-slate-200 dark:border-slate-800 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 select-none">
                         @php
-                            $curSort = request('sort', 'borrowed_at');
+                            $curSort = request('sort', 'created_at');
                             $curDir = request('direction', 'desc');
                             $nextDir = $curDir === 'asc' ? 'desc' : 'asc';
                         @endphp
                         <th class="py-3.5 px-4">No. Box & Judul Berkas</th>
                         <th class="py-3.5 px-4">Peminjam</th>
                         <th class="py-3.5 px-4">
-                            <a href="{{ request()->fullUrlWithQuery(['sort' => 'borrowed_at', 'direction' => $curSort === 'borrowed_at' ? $nextDir : 'asc']) }}" class="flex items-center gap-1.5 hover:text-emerald-500 transition">
+                            <a href="{{ request()->fullUrlWithQuery(['sort' => 'borrow_date', 'direction' => $curSort === 'borrow_date' ? $nextDir : 'asc']) }}" class="flex items-center gap-1.5 hover:text-emerald-500 transition">
                                 Tgl Pinjam / Est. Kembali
-                                @if($curSort === 'borrowed_at')
+                                @if($curSort === 'borrow_date')
                                     <i data-lucide="{{ $curDir === 'asc' ? 'arrow-up' : 'arrow-down' }}" class="w-3.5 h-3.5 text-emerald-500"></i>
                                 @else
                                     <i data-lucide="arrow-up-down" class="w-3.5 h-3.5 opacity-40"></i>

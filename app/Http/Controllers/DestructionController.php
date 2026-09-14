@@ -16,7 +16,9 @@ class DestructionController extends Controller
         // Expired or expiring soon archives
         $expiredArchives = Archive::whereNotNull('retention_expiry_date')
             ->where('status', '!=', 'destroyed')
-            ->when($user->isPicDept(), fn($q) => $q->where('department_id', $user->department_id))
+            ->when($user->isPicDept(), function ($q) use ($user) {
+                return $q->where('department_id', $user->department_id);
+            })
             ->with(['department', 'location.warehouse'])
             ->orderBy('retention_expiry_date', 'asc')
             ->get();

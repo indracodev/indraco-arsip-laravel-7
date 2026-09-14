@@ -37,9 +37,12 @@ class BorrowingController extends Controller
         }
 
         // Sorting
-        $sortColumn = $request->get('sort', 'borrowed_at');
+        $sortColumn = $request->get('sort', 'created_at');
+        if ($sortColumn === 'borrowed_at') {
+            $sortColumn = 'borrow_date';
+        }
         $sortDirection = strtolower($request->get('direction', 'desc')) === 'asc' ? 'asc' : 'desc';
-        $allowedSorts = ['borrowed_at', 'expected_return_date', 'status'];
+        $allowedSorts = ['created_at', 'borrow_date', 'request_date', 'expected_return_date', 'status'];
 
         if (in_array($sortColumn, $allowedSorts)) {
             $query->orderBy($sortColumn, $sortDirection);

@@ -25,7 +25,7 @@
              search: '',
              selectedArchive: null,
              isOpen: false,
-             archives: {{ Js::from($archives) }},
+             archives: {!! json_encode($archives) !!},
              init() {
                  const initialId = {{ $selectedArchiveId ?? 'null' }};
                  if (initialId) {

@@ -31,7 +31,7 @@
                   @php
                      $titleText = $banner->title_id ?? $banner->title_en ?? 'INDRACO';
                      $descText  = $banner->subtitle_id ?? $banner->subtitle_en ?? '';
-                     $linkUrl   = $banner->link ? (str_starts_with($banner->link, 'http') ? $banner->link : url($banner->link)) : route('products.index');
+                     $linkUrl   = $banner->link ? (\Illuminate\Support\Str::startsWith($banner->link, 'http') ? $banner->link : url($banner->link)) : route('products.index');
                   @endphp
                   <div class="slide" data-index="{{ $index }}" data-title="{{ $titleText }}" data-desc="{{ $descText }}">
                      <div class="bg-title">{{ strtoupper($titleText) }}</div>
@@ -348,7 +348,7 @@
                {{-- COFFEE TAB --}}
                <div class="tab-pane fade" id="pills-coffee" role="tabpanel" aria-labelledby="pills-coffee-tab" tabindex="0">
                   <ul class="brands-logo-list list-unstyled row row-cols-2 row-cols-md-3 row-cols-xl-4 row-cols-xxl-5 g-5 py-4">
-                     @foreach($mereks->filter(fn($m) => in_array($m->slug, ['supresso', 'balicafe', 'ucafe', 'rasa-sayang', 'tugu-buaya', 'uang-emas', 'haocafe'])) as $merek)
+                     @foreach($mereks->filter(function($m) { return in_array($m->slug, ['supresso', 'balicafe', 'ucafe', 'rasa-sayang', 'tugu-buaya', 'uang-emas', 'haocafe']); }) as $merek)
                         <li class="col">
                            <a href="{{ route('products.index') }}?brand={{ $merek->slug }}" class="link d-block ratio ratio-1x1 brands-logo mx-auto">
                               <img src="{{ asset($merek->logo_path) }}" data-light="{{ asset($merek->logo_path) }}" data-dark="{{ asset(str_replace('.png', '-invert.png', $merek->logo_path)) }}" alt="{{ $merek->nama_merek }}" loading="lazy" class="theme-image object-fit-contain top-50 start-50 translate-middle">
@@ -361,7 +361,7 @@
                {{-- GINGER TAB --}}
                <div class="tab-pane fade" id="pills-ginger" role="tabpanel" aria-labelledby="pills-ginger-tab" tabindex="0">
                   <ul class="brands-logo-list list-unstyled row row-cols-2 row-cols-md-3 row-cols-xl-4 row-cols-xxl-5 g-5 py-4">
-                     @foreach($mereks->filter(fn($m) => $m->slug === 'jaheku') as $merek)
+                     @foreach($mereks->filter(function($m) { return $m->slug === 'jaheku'; }) as $merek)
                         <li class="col">
                            <a href="{{ route('products.index') }}?brand={{ $merek->slug }}" class="link d-block ratio ratio-1x1 brands-logo mx-auto">
                               <img src="{{ asset($merek->logo_path) }}" data-light="{{ asset($merek->logo_path) }}" data-dark="{{ asset($merek->logo_path) }}" alt="{{ $merek->nama_merek }}" loading="lazy" class="theme-image object-fit-contain top-50 start-50 translate-middle">
@@ -374,7 +374,7 @@
                {{-- CHOCOLATE DRINK TAB --}}
                <div class="tab-pane fade" id="pills-chocolate" role="tabpanel" aria-labelledby="pills-chocolate-tab" tabindex="0">
                   <ul class="brands-logo-list list-unstyled row row-cols-2 row-cols-md-3 row-cols-xl-4 row-cols-xxl-5 g-5 py-4">
-                     @foreach($mereks->filter(fn($m) => $m->slug === 'brochoco') as $merek)
+                     @foreach($mereks->filter(function($m) { return $m->slug === 'brochoco'; }) as $merek)
                         <li class="col">
                            <a href="{{ route('products.index') }}?brand={{ $merek->slug }}" class="link d-block ratio ratio-1x1 brands-logo mx-auto">
                               <img src="{{ asset($merek->logo_path) }}" data-light="{{ asset($merek->logo_path) }}" data-dark="{{ asset($merek->logo_path) }}" alt="{{ $merek->nama_merek }}" loading="lazy" class="theme-image object-fit-contain top-50 start-50 translate-middle">
@@ -387,7 +387,7 @@
                {{-- COCONUT MILK TAB --}}
                <div class="tab-pane fade" id="pills-coconut" role="tabpanel" aria-labelledby="pills-coconut-tab" tabindex="0">
                   <ul class="brands-logo-list list-unstyled row row-cols-2 row-cols-md-3 row-cols-xl-4 row-cols-xxl-5 g-5 py-4">
-                     @foreach($mereks->filter(fn($m) => $m->slug === 'intirasa') as $merek)
+                     @foreach($mereks->filter(function($m) { return $m->slug === 'intirasa'; }) as $merek)
                         <li class="col">
                            <a href="{{ route('products.index') }}?brand={{ $merek->slug }}" class="link d-block ratio ratio-1x1 brands-logo mx-auto">
                               <img src="{{ asset($merek->logo_path) }}" data-light="{{ asset($merek->logo_path) }}" data-dark="{{ asset($merek->logo_path) }}" alt="{{ $merek->nama_merek }}" loading="lazy" class="theme-image object-fit-contain top-50 start-50 translate-middle">

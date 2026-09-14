@@ -1,12 +1,18 @@
 <!DOCTYPE html>
 @php
     $configuredFontSize = config('app.font_size', 'medium');
-    $fontSizeScale = match(strtolower($configuredFontSize)) {
-        'small', 'sm' => '90%',
-        'large', 'lg' => '110%',
-        'xlarge', 'xl' => '120%',
-        default => (str_contains($configuredFontSize, 'px') || str_contains($configuredFontSize, '%') || str_contains($configuredFontSize, 'rem')) ? $configuredFontSize : '100%',
-    };
+    $lowerFontSize = strtolower($configuredFontSize);
+    if (in_array($lowerFontSize, ['small', 'sm'])) {
+        $fontSizeScale = '90%';
+    } elseif (in_array($lowerFontSize, ['large', 'lg'])) {
+        $fontSizeScale = '110%';
+    } elseif (in_array($lowerFontSize, ['xlarge', 'xl'])) {
+        $fontSizeScale = '120%';
+    } elseif (\Illuminate\Support\Str::contains($configuredFontSize, 'px') || \Illuminate\Support\Str::contains($configuredFontSize, '%') || \Illuminate\Support\Str::contains($configuredFontSize, 'rem')) {
+        $fontSizeScale = $configuredFontSize;
+    } else {
+        $fontSizeScale = '100%';
+    }
 @endphp
 <html lang="id" 
       x-data="loginDesktopApp()" 

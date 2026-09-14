@@ -26,7 +26,9 @@ class DashboardController extends Controller
         $totalArchives = (clone $archivesQuery)->count();
         $inWarehouseCount = (clone $archivesQuery)->where('status', 'in_warehouse')->count();
         $pendingVerificationCount = Archive::where('status', 'pending_verification')
-            ->when($user->isPicDept(), fn($q) => $q->where('department_id', $user->department_id))
+            ->when($user->isPicDept(), function ($q) use ($user) {
+                return $q->where('department_id', $user->department_id);
+            })
             ->count();
         $borrowedCount = (clone $archivesQuery)->where('status', 'borrowed')->count();
 
@@ -109,15 +111,7 @@ class DashboardController extends Controller
                     'dept_code' => $archive->department->code ?? 'GEN',
                     'location' => $archive->location->full_location ?? 'Belum Ditentukan',
                     'status' => $archive->status,
-                    'status_label' => match($archive->status) {
-                        'draft' => 'Draft',
-                        'pending_verification' => 'Antrean Verifikasi',
-                        'approved_booked' => 'Approved / Booking',
-                        'in_warehouse' => 'Di Gudang',
-                        'borrowed' => 'Dipinjam',
-                        'destroyed' => 'Dimusnahkan',
-                        default => ucfirst($archive->status)
-                    },
+                    'status_label' => $this->getStatusLabel($archive->status),
                     'url' => route('archives.show', $archive->id),
                 ];
             });
@@ -153,15 +147,7 @@ class DashboardController extends Controller
                     'dept_code' => $archive->department->code ?? 'GEN',
                     'location' => $archive->location->full_location ?? 'Belum Ditentukan',
                     'status' => $archive->status,
-                    'status_label' => match($archive->status) {
-                        'draft' => 'Draft',
-                        'pending_verification' => 'Antrean Verifikasi',
-                        'approved_booked' => 'Approved / Booking',
-                        'in_warehouse' => 'Di Gudang',
-                        'borrowed' => 'Dipinjam',
-                        'destroyed' => 'Dimusnahkan',
-                        default => ucfirst($archive->status)
-                    },
+                    'status_label' => $this->getStatusLabel($archive->status),
                     'url' => route('archives.show', $archive->id),
                 ];
             });
@@ -170,5 +156,25 @@ class DashboardController extends Controller
             'type' => 'results',
             'items' => $archives
         ]);
+    }
+
+    private function getStatusLabel($status)
+    {
+        switch ($status) {
+            case 'draft':
+                return 'Draft';
+            case 'pending_verification':
+                return 'Antrean Verifikasi';
+            case 'approved_booked':
+                return 'Approved / Booking';
+            case 'in_warehouse':
+                return 'Di Gudang';
+            case 'borrowed':
+                return 'Dipinjam';
+            case 'destroyed':
+                return 'Dimusnahkan';
+            default:
+                return ucfirst($status);
+        }
     }
 }
