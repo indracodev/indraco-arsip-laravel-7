@@ -5,7 +5,7 @@
 @section('content')
 <div class="space-y-6">
     <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div class="flex items-center justify-between gap-4">
         <div>
             <h1 class="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
                 <i data-lucide="history" class="w-7 h-7 text-cyan-600 dark:text-cyan-400"></i>
@@ -33,7 +33,7 @@
         </div>
 
         <!-- Filter Form -->
-        <form action="{{ route('logs.index') }}" method="GET" class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2" x-data="{ submitting: false }" @submit="submitting = true">
+        <form action="{{ route('logs.index') }}" method="GET" class="grid grid-cols-3 gap-4 pt-2" x-data="{ submitting: false }" @submit="submitting = true">
             <input type="hidden" name="tab" value="{{ $tab }}">
             
             <div>

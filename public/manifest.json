@@ -1,0 +1,24 @@
+{
+  "name": "DMS PT Indraco - Workstation Desktop Edition",
+  "short_name": "Indraco DMS",
+  "description": "Document Management System PT Indraco - Desktop Workstation Edition",
+  "start_url": "/login",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0f172a",
+  "theme_color": "#d97706",
+  "icons": [
+    {
+      "src": "/images/logo-indraco-invert.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/logo-indraco.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png"
+    }
+  ]
+}

@@ -15,17 +15,16 @@
     }
 @endphp
 <html lang="id" 
-      x-data="loginDesktopApp()" 
-      x-init="initApp()"
-      @keydown.window="handleGlobalHotkeys($event)"
-      @mousemove.window="onDrag($event)"
-      @mouseup.window="stopDrag()"
-      :class="theme === 'dark' ? 'dark' : ''"
-      style="font-size: {{ $fontSizeScale }};">
+      style="min-width: 800px; min-height: 600px; font-size: {{ $fontSizeScale }};"
+      class="h-full select-none overflow-x-auto">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=800">
     <title>DMS PT Indraco - Desktop Edition</title>
+    
+    <!-- PWA Manifest & Theme -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#d97706">
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -49,6 +48,7 @@
     </script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="{{ asset('js/seamless-desktop.js') }}"></script>
 
     <style>
         [x-cloak] { display: none !important; }
@@ -81,7 +81,13 @@
         }
     </style>
 </head>
-<body class="h-screen w-screen overflow-hidden bg-slate-200 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans select-none desktop-bg-pattern relative">
+<body x-data="loginDesktopApp()" 
+      x-init="initApp()" 
+      @keydown.window="handleGlobalHotkeys($event)" 
+      @mousemove.window="onDrag($event)" 
+      @mouseup.window="stopDrag()" 
+      :class="theme === 'dark' ? 'dark' : ''"
+      class="h-screen w-screen overflow-hidden bg-slate-200 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans select-none desktop-bg-pattern relative min-w-[800px] min-h-[600px]">
 
     <!-- Interactive Polygonal Mesh Background Canvas -->
     <canvas id="meshCanvas" class="fixed inset-0 pointer-events-none opacity-40 dark:opacity-30" style="z-index: 1;"></canvas>
@@ -96,34 +102,22 @@
 
         </div>
         
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2.5">
             <!-- Theme Toggle Button -->
-            <button 
-                @click="toggleTheme()" 
-                type="button" 
-                title="Ganti Mode Tampilan (Alt+T)"
-                class="px-2 py-0.5 bg-slate-700 hover:bg-slate-600 text-slate-200 border border-slate-600 rounded text-[11px] font-mono flex items-center gap-1.5 transition"
-            >
-                <template x-if="theme === 'dark'">
-                    <span class="flex items-center gap-1 text-amber-300"><i data-lucide="sun" class="w-3 h-3"></i> Light Mode (Alt+T)</span>
-                </template>
-                <template x-if="theme !== 'dark'">
-                    <span class="flex items-center gap-1 text-sky-300"><i data-lucide="moon" class="w-3 h-3"></i> Dark Mode (Alt+T)</span>
-                </template>
-            </button>
+            @include('components.theme-toggle')
 
             <!-- Fullscreen / Maximize Toggle Button -->
             <button 
                 @click="toggleFullscreen()" 
                 type="button" 
-                :title="isFullscreen ? 'Keluar Full Screen (Esc / F11)' : 'Layar Penuh (Full Screen / Maximize)'"
+                :title="isFullscreen ? 'Keluar Mode Layar Penuh' : 'Mode Layar Penuh'"
                 class="w-6 h-6 flex items-center justify-center bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded text-amber-400 font-bold transition active:scale-95 shrink-0"
             >
                 <template x-if="isFullscreen">
-                    <span class="text-[13px] font-black leading-none select-none">❐</span>
+                    <span data-fullscreen-icon class="text-[13px] font-black leading-none select-none">❐</span>
                 </template>
                 <template x-if="!isFullscreen">
-                    <span class="text-[13px] font-black leading-none select-none">🗖</span>
+                    <span data-fullscreen-icon class="text-[13px] font-black leading-none select-none">🗖</span>
                 </template>
             </button>
 
@@ -213,14 +207,16 @@
             </div>
 
             <!-- 3. FORM BODY AREA (Split Layout: Left Logo Banner & Right GroupBox Form) -->
-            <div class="p-4 flex-1 grid grid-cols-1 md:grid-cols-12 gap-4 overflow-y-auto">
+            <div class="p-4 flex-1 grid grid-cols-12 gap-4 overflow-y-auto">
                 
                 <!-- Left Banner Panel (TPanel Desktop Graphics & Branding) -->
-                <div class="md:col-span-5 bg-gradient-to-br from-slate-200 via-slate-100 to-amber-500/10 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-5 flex flex-col items-center justify-between text-center shadow-inner">
+                <div class="col-span-5 bg-gradient-to-br from-slate-200 via-slate-100 to-amber-500/10 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-5 flex flex-col items-center justify-between text-center shadow-inner">
                     <div class="space-y-4 w-full flex flex-col items-center pt-2">
-                        <!-- Company Logo in Beveled Box -->
-                        <div class="p-4 bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 rounded-xl shadow-lg w-full flex justify-center items-center">
-                            <img src="{{ asset('images/logo-indraco-est.png') }}" alt="PT Indraco Logo" class="h-14 w-auto object-contain">
+                        <!-- Company Logo in Beveled Box (Adaptive to Light/Dark Mode) -->
+                        <div class="p-4 bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 rounded-xl shadow-lg w-full flex justify-center items-center min-h-[80px] transition-colors">
+                            <img :src="theme === 'dark' ? '{{ asset('images/logo-indraco-invert.png') }}' : '{{ asset('images/logo-indraco.png') }}'" 
+                                 alt="PT Indraco Logo" 
+                                 class="h-12 w-auto object-contain transition-opacity duration-150">
                         </div>
 
                         <div>
@@ -238,7 +234,7 @@
                         </div>
                         <div class="flex items-center justify-between px-2 py-1 bg-white/60 dark:bg-slate-950/60 rounded border border-slate-200 dark:border-slate-800">
                             <span>UI Standard:</span>
-                            <strong class="text-amber-600 dark:text-amber-400">Dekstop</strong>
+                            <strong class="text-amber-600 dark:text-amber-400">Desktop</strong>
                         </div>
                         <div class="flex items-center justify-between px-2 py-1 bg-white/60 dark:bg-slate-950/60 rounded border border-slate-200 dark:border-slate-800">
                             <span>DB Engine:</span>
@@ -250,7 +246,7 @@
                 </div>
 
                 <!-- Right Credentials GroupBox (TGroupBox Delphi Desktop Style) -->
-                <div class="md:col-span-7 flex flex-col justify-between">
+                <div class="col-span-7 flex flex-col justify-between">
                     
                     @if (session('info'))
                     <div class="mb-3 p-2.5 rounded bg-blue-500/10 border border-blue-500/30 text-blue-800 dark:text-blue-300 text-xs font-semibold font-mono flex items-center gap-2">
@@ -266,7 +262,7 @@
                             Kredensial Pengguna
                         </legend>
 
-                        <form action="{{ route('login.post') }}" method="POST" id="loginForm" class="space-y-4 pt-1">
+                        <form action="{{ route('login.post') }}" method="POST" id="loginForm" @submit="if(isFullscreen || document.fullscreenElement) sessionStorage.setItem('app_fullscreen', 'true')" class="space-y-4 pt-1">
                             @csrf
 
                             <!-- Email / Username Input (TEdit) -->
@@ -428,7 +424,7 @@
 
         <!-- System Tray Info -->
         <div class="flex items-center gap-4 text-[11px] text-slate-400 font-mono">
-            <span class="hidden sm:inline-flex items-center gap-1.5">
+            <span class="inline-flex items-center gap-1.5">
                 <i data-lucide="wifi" class="w-3.5 h-3.5 text-emerald-400 animate-pulse"></i>
                 <span>URL: <strong class="text-slate-200" x-text="connectionUrl">http://127.0.0.1:8000</strong></span>
             </span>
@@ -545,17 +541,29 @@
                     this.updateTime();
                     setInterval(() => this.updateTime(), 1000);
 
-                    // Default login page is NOT full screen
-                    sessionStorage.setItem('app_fullscreen', 'false');
-                    this.isFullscreen = false;
-                    if (document.fullscreenElement && document.exitFullscreen) {
-                        document.exitFullscreen().catch(() => {});
-                    }
+                    let isNavigating = false;
+                    window.addEventListener('beforeunload', () => { isNavigating = true; });
+                    window.addEventListener('pagehide', () => { isNavigating = true; });
+                    document.addEventListener('submit', () => { isNavigating = true; }, true);
+                    document.addEventListener('click', (e) => {
+                        const link = e.target.closest('a');
+                        if (link && link.href && !link.href.startsWith('javascript:') && !link.getAttribute('target')) {
+                            isNavigating = true;
+                        }
+                    }, true);
 
                     document.addEventListener('fullscreenchange', () => {
                         this.isFullscreen = !!document.fullscreenElement;
-                        sessionStorage.setItem('app_fullscreen', this.isFullscreen ? 'true' : 'false');
+                        if (this.isFullscreen) {
+                            sessionStorage.setItem('app_fullscreen', 'true');
+                        } else {
+                            if (!isNavigating) {
+                                sessionStorage.setItem('app_fullscreen', 'false');
+                            }
+                        }
                     });
+
+                    this.checkFullscreenPersistence();
 
                     if (window.desktopApi) {
                         window.desktopApi.getConfig().then(cfg => {
@@ -568,25 +576,40 @@
                     }
                 },
 
+                checkFullscreenPersistence() {
+                    const silentRestore = () => {
+                        if (sessionStorage.getItem('app_fullscreen') === 'true' && !document.fullscreenElement) {
+                            if (document.documentElement.requestFullscreen) {
+                                document.documentElement.requestFullscreen().then(() => {
+                                    this.isFullscreen = true;
+                                }).catch(() => {});
+                            }
+                        }
+                    };
+
+                    silentRestore();
+                    window.addEventListener('pointerdown', silentRestore, true);
+                    window.addEventListener('keydown', silentRestore, true);
+                    window.addEventListener('click', silentRestore, true);
+                },
+
                 toggleFullscreen() {
                     this.playClickSound();
-                    if (!document.fullscreenElement) {
+                    if (typeof window.toggleDesktopFullscreen === 'function') {
+                        window.toggleDesktopFullscreen();
+                    } else if (!document.fullscreenElement) {
                         if (document.documentElement.requestFullscreen) {
                             document.documentElement.requestFullscreen().then(() => {
                                 this.isFullscreen = true;
                                 sessionStorage.setItem('app_fullscreen', 'true');
-                            }).catch(() => {
-                                sessionStorage.setItem('app_fullscreen', 'true');
-                            });
+                            }).catch(() => {});
                         }
                     } else {
                         if (document.exitFullscreen) {
                             document.exitFullscreen().then(() => {
                                 this.isFullscreen = false;
                                 sessionStorage.setItem('app_fullscreen', 'false');
-                            }).catch(() => {
-                                sessionStorage.setItem('app_fullscreen', 'false');
-                            });
+                            }).catch(() => {});
                         }
                     }
                 },

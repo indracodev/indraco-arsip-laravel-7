@@ -18,12 +18,32 @@
 <html lang="id" class="h-full select-none">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=800">
     <title>@yield('title', 'DMS PT Indraco - Workstation Form')</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Instant Embed Theme Sync Script to Prevent Theme Flashbang -->
+    <script>
+        (function() {
+            try {
+                var savedTheme = localStorage.getItem('theme');
+                var isDark = false;
+                if (savedTheme) {
+                    isDark = (savedTheme === 'dark');
+                } else if (window.parent && window.parent.document && window.parent.document.documentElement) {
+                    isDark = window.parent.document.documentElement.classList.contains('dark');
+                }
+                if (isDark) {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
+            } catch (e) {}
+        })();
+    </script>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -50,8 +70,43 @@
         main table td { border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; padding-top: 7px; padding-bottom: 7px; }
         .dark main table td { border-right: 1px solid #1e293b; border-bottom: 1px solid #1e293b; }
     </style>
+    
+    <script>
+        // Live Embed Theme Synchronization Listener
+        function applyEmbedTheme(theme) {
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        }
+        window.addEventListener('message', function(event) {
+            if (event.data && event.data.type === 'THEME_CHANGE') {
+                applyEmbedTheme(event.data.theme);
+            }
+        });
+        function tryRestoreParentFullscreen() {
+            try {
+                if (sessionStorage.getItem('app_fullscreen') === 'true' && window.parent && window.parent !== window) {
+                    if (!window.parent.document.fullscreenElement && window.parent.document.documentElement.requestFullscreen) {
+                        window.parent.document.documentElement.requestFullscreen().catch(function(){});
+                    }
+                }
+            } catch(e) {}
+        }
+        window.addEventListener('pointerdown', tryRestoreParentFullscreen, true);
+        window.addEventListener('keydown', tryRestoreParentFullscreen, true);
+        window.addEventListener('click', function() {
+            try {
+                tryRestoreParentFullscreen();
+                if (window.parent && window.parent !== window) {
+                    window.parent.postMessage({ type: 'IFRAME_CLICK' }, '*');
+                }
+            } catch(e) {}
+        }, true);
+    </script>
 </head>
-<body class="h-full bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 p-3 sm:p-4 overflow-y-auto font-sans text-xs">
+<body class="h-full bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 p-3 overflow-y-auto font-sans text-xs">
     <!-- Flash Banners -->
     @if (session('success'))
     <div class="mb-3 p-2.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 flex items-start gap-2.5 text-xs font-mono shadow-sm">
@@ -86,16 +141,11 @@
 </html>
 @else
 <html lang="id" 
-      x-data="desktopAppLayout()" 
-      x-init="initMdi()"
-      @mousemove.window="onDrag($event)"
-      @mouseup.window="stopDrag()"
-      :class="theme === 'dark' ? 'dark' : ''"
-      style="font-size: {{ $fontSizeScale }};"
-      class="h-full select-none">
+      style="min-width: 800px; min-height: 600px; font-size: {{ $fontSizeScale }};"
+      class="h-full select-none overflow-x-auto">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=800">
     <title>@yield('title', 'DMS PT Indraco - Workstation Desktop Edition')</title>
     
     <!-- PWA Manifest & Theme -->
@@ -128,6 +178,7 @@
 
     <!-- Alpine.js CDN -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="{{ asset('js/seamless-desktop.js') }}"></script>
 
     <style>
         [x-cloak] { display: none !important; }
@@ -184,7 +235,12 @@
         }
     </style>
 </head>
-<body class="h-full bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 flex flex-col overflow-hidden font-sans text-xs">
+<body x-data="desktopAppLayout()" 
+      x-init="initMdi()" 
+      @mousemove.window="onDrag($event)" 
+      @mouseup.window="stopDrag()" 
+      :class="theme === 'dark' ? 'dark' : ''" 
+      class="h-full bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 flex flex-col overflow-hidden font-sans text-xs min-w-[800px] min-h-[600px]">
 
     <!-- IMPERSONATION BANNER (If Active) -->
     @if(session()->has('impersonator_id'))
@@ -199,7 +255,7 @@
             <div>
                 <span>Mode Impersonasi Aktif: Anda sedang login sebagai <strong class="underline font-black text-slate-950">{{ auth()->user()->name }}</strong> ({{ auth()->user()->role_label }} {{ auth()->user()->department ? '- ' . auth()->user()->department->code : '' }})</span>
                 @if($impersonator)
-                    <span class="opacity-80 block sm:inline text-[11px] sm:ml-2">| Akun Asli: <strong>{{ $impersonator->name }}</strong> (Super Admin)</span>
+                    <span class="opacity-80 inline text-[11px] ml-2">| Akun Asli: <strong>{{ $impersonator->name }}</strong> (Super Admin)</span>
                 @endif
             </div>
         </div>
@@ -217,46 +273,33 @@
     <!-- 1. WINDOW TITLE BAR & WORKSTATION HEADER -->
     <header class="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white px-3 py-1.5 flex items-center justify-between border-b border-slate-700 shadow-sm shrink-0 font-mono z-30">
         <div class="flex items-center gap-3">
-            <a href="{{ route('dashboard') }}" class="flex items-center gap-2 group">
-                <div class="p-1 bg-white rounded shadow-sm">
-                    <img src="{{ asset('images/logo-indraco-est.png') }}" alt="PT Indraco Logo" class="h-5 w-auto object-contain">
-                </div>
+            <a href="{{ route('dashboard') }}" class="flex items-center gap-2.5 group" title="DMS PT Indraco Desktop">
+                <img src="{{ asset('images/logo-indraco-invert.png') }}" alt="PT INDRACO" class="h-6 w-auto object-contain opacity-95 group-hover:opacity-100 transition">
+                <div class="h-4 w-px bg-slate-700 block"></div>
                 <span class="font-extrabold tracking-tight text-white flex items-center gap-1.5 text-xs">
                     DMS <span class="text-amber-400 font-black">PT INDRACO</span>
-                    <span class="px-1.5 py-0.5 bg-amber-500/20 text-amber-300 text-[10px] rounded border border-amber-400/30">Desktop Edition</span>
+                    <span class="px-1.5 py-0.5 bg-amber-500/20 text-amber-300 text-[10px] rounded border border-amber-400/30 font-mono">Desktop Edition</span>
                 </span>
             </a>
         </div>
 
         <!-- Right System Info Controls -->
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2.5">
             <!-- Theme Toggle Button -->
-            <button 
-                @click="theme = (theme === 'dark' ? 'light' : 'dark'); localStorage.setItem('theme', theme)" 
-                type="button" 
-                class="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded text-[11px] font-mono flex items-center gap-1.5 transition" 
-                title="Ganti Mode Tampilan (Alt+T)"
-            >
-                <template x-if="theme === 'dark'">
-                    <span class="flex items-center gap-1 text-amber-300"><i data-lucide="sun" class="w-3 h-3"></i> Light Mode</span>
-                </template>
-                <template x-if="theme !== 'dark'">
-                    <span class="flex items-center gap-1 text-sky-300"><i data-lucide="moon" class="w-3 h-3"></i> Dark Mode</span>
-                </template>
-            </button>
+            @include('components.theme-toggle')
 
             <!-- Fullscreen / Maximize Toggle Button -->
             <button 
                 @click="toggleFullscreen()" 
                 type="button" 
-                :title="isFullscreen ? 'Keluar Full Screen (Esc / F11)' : 'Layar Penuh (Full Screen / Maximize)'"
+                :title="isFullscreen ? 'Keluar Mode Layar Penuh' : 'Mode Layar Penuh'"
                 class="w-6 h-6 flex items-center justify-center bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded text-amber-400 font-bold transition active:scale-95 shrink-0"
             >
                 <template x-if="isFullscreen">
-                    <span class="text-[13px] font-black leading-none select-none">❐</span>
+                    <span data-fullscreen-icon class="text-[13px] font-black leading-none select-none">❐</span>
                 </template>
                 <template x-if="!isFullscreen">
-                    <span class="text-[13px] font-black leading-none select-none">🗖</span>
+                    <span data-fullscreen-icon class="text-[13px] font-black leading-none select-none">🗖</span>
                 </template>
             </button>
 
@@ -267,7 +310,7 @@
                     {{ auth()->user()->role_label }}
                 </span>
 
-                <form action="{{ route('logout') }}" method="POST" class="inline ml-1">
+                <form action="{{ route('logout') }}" method="POST" @submit="if(isFullscreen || document.fullscreenElement) sessionStorage.setItem('app_fullscreen', 'true')" class="inline ml-1">
                     @csrf
                     <button type="submit" class="p-1 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded transition" title="Keluar Aplikasi">
                         <i data-lucide="log-out" class="w-4 h-4"></i>
@@ -298,7 +341,7 @@
     </div>
 
     <!-- 3. MAIN VIEWPORT CONTAINER (MDI Workstation Desktop Canvas) -->
-    <main class="flex-1 bg-slate-200 dark:bg-slate-950 p-2 sm:p-4 overflow-hidden relative min-w-0 desktop-bg-pattern flex items-center justify-center font-sans">
+    <main class="flex-1 bg-slate-200 dark:bg-slate-950 p-3 overflow-hidden relative min-w-0 desktop-bg-pattern flex items-center justify-center font-sans">
         
         <!-- Empty Workspace Placeholder (When all windows closed) -->
         <div x-show="openWindows.length === 0" class="my-auto text-center space-y-3 font-mono">
@@ -315,7 +358,7 @@
                 x-show="!win.minimized" 
                 @mousedown="focusWindow(win.id)"
                 :class="win.maximized ? 'fixed inset-0 z-[60] w-full h-full rounded-none my-0' : 'absolute rounded-t-lg rounded-b-sm border-2 border-slate-400 dark:border-slate-700 shadow-2xl resize overflow-hidden'"
-                :style="getWindowStyle(win) + (win.maximized ? '' : 'width: 820px; max-width: 90vw; height: 530px; max-height: 75vh; min-width: 420px; min-height: 280px;')"
+                :style="getWindowStyle(win) + (win.maximized ? '' : 'width: 780px; max-width: calc(100% - 20px); height: 490px; max-height: calc(100% - 20px); min-width: 460px; min-height: 300px;')"
                 class="delphi-window bg-slate-100 dark:bg-slate-900 flex flex-col transition-shadow duration-150"
             >
                 <!-- WINDOW TITLE BAR (Draggable Desktop Caption & Controls) -->
@@ -378,6 +421,7 @@
                 <div class="flex-1 bg-white dark:bg-slate-900 relative overflow-hidden">
                     <iframe 
                         :src="win.url" 
+                        @load="broadcastTheme(theme)"
                         :class="activeDragWin ? 'pointer-events-none' : ''"
                         class="w-full h-full border-0 block"
                     ></iframe>
@@ -452,8 +496,8 @@
                 </span>
             </div>
 
-            <div class="hidden md:flex items-center gap-3 text-slate-400 border-l border-slate-800 pl-3">
-                <span>SUPER ADMIN: <strong class="text-white">{{ auth()->user()->name }}</strong> (Global)</span>
+            <div class="flex items-center gap-3 text-slate-400 border-l border-slate-800 pl-3">
+                <span>SUPER ADMIN: <strong class="text-white">{{ auth()->check() ? auth()->user()->name : 'Admin' }}</strong> (Global)</span>
                 <span class="text-slate-500">|</span>
                 <span>develope by Web Dev Indraco</span>
             </div>
@@ -470,9 +514,30 @@
                 maxZIndex: 10,
                 activeDragWin: null,
                 showAddMenu: false,
-                isFullscreen: false,
-                cpuUsage: 12,
+                isFullscreen: !!document.fullscreenElement,
+                cpuUsage: 14,
                 memUsage: 38,
+
+                toggleTheme() {
+                    this.theme = (this.theme === 'dark' ? 'light' : 'dark');
+                    localStorage.setItem('theme', this.theme);
+                    this.broadcastTheme(this.theme);
+                },
+
+                broadcastTheme(theme) {
+                    document.querySelectorAll('iframe').forEach(iframe => {
+                        try {
+                            iframe.contentWindow.postMessage({ type: 'THEME_CHANGE', theme: theme }, '*');
+                            if (iframe.contentDocument && iframe.contentDocument.documentElement) {
+                                if (theme === 'dark') {
+                                    iframe.contentDocument.documentElement.classList.add('dark');
+                                } else {
+                                    iframe.contentDocument.documentElement.classList.remove('dark');
+                                }
+                            }
+                        } catch(e) {}
+                    });
+                },
 
                 availableForms: [
                     { id: 'dashboard', title: 'Dashboard Overview', icon: 'layout-dashboard', url: '{{ route("dashboard") }}?embed=1' },
@@ -501,10 +566,25 @@
                     this.openFormWindow(initialId);
                     this.startSystemMonitor();
 
+                    let isNavigating = false;
+                    window.addEventListener('beforeunload', () => { isNavigating = true; });
+                    window.addEventListener('pagehide', () => { isNavigating = true; });
+                    document.addEventListener('submit', () => { isNavigating = true; }, true);
+                    document.addEventListener('click', (e) => {
+                        const link = e.target.closest('a');
+                        if (link && link.href && !link.href.startsWith('javascript:') && !link.getAttribute('target')) {
+                            isNavigating = true;
+                        }
+                    }, true);
+
                     document.addEventListener('fullscreenchange', () => {
                         this.isFullscreen = !!document.fullscreenElement;
                         if (this.isFullscreen) {
                             sessionStorage.setItem('app_fullscreen', 'true');
+                        } else {
+                            if (!isNavigating) {
+                                sessionStorage.setItem('app_fullscreen', 'false');
+                            }
                         }
                     });
 
@@ -528,43 +608,43 @@
                 },
 
                 checkFullscreenPersistence() {
-                    if (sessionStorage.getItem('app_fullscreen') === 'true') {
-                        const attemptFullscreen = () => {
-                            if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+                    const silentRestore = () => {
+                        if (sessionStorage.getItem('app_fullscreen') === 'true' && !document.fullscreenElement) {
+                            if (document.documentElement.requestFullscreen) {
                                 document.documentElement.requestFullscreen().then(() => {
                                     this.isFullscreen = true;
                                 }).catch(() => {});
                             }
-                        };
-                        attemptFullscreen();
-                        const autoRestore = () => {
-                            attemptFullscreen();
-                            document.removeEventListener('click', autoRestore);
-                            document.removeEventListener('keydown', autoRestore);
-                        };
-                        document.addEventListener('click', autoRestore);
-                        document.addEventListener('keydown', autoRestore);
-                    }
+                        }
+                    };
+
+                    silentRestore();
+                    window.addEventListener('pointerdown', silentRestore, true);
+                    window.addEventListener('keydown', silentRestore, true);
+                    window.addEventListener('click', silentRestore, true);
+                    window.addEventListener('message', (e) => {
+                        if (e.data && e.data.type === 'IFRAME_CLICK') {
+                            silentRestore();
+                        }
+                    });
                 },
 
                 toggleFullscreen() {
-                    if (!document.fullscreenElement) {
+                    if (typeof window.toggleDesktopFullscreen === 'function') {
+                        window.toggleDesktopFullscreen();
+                    } else if (!document.fullscreenElement) {
                         if (document.documentElement.requestFullscreen) {
                             document.documentElement.requestFullscreen().then(() => {
                                 this.isFullscreen = true;
                                 sessionStorage.setItem('app_fullscreen', 'true');
-                            }).catch(() => {
-                                sessionStorage.setItem('app_fullscreen', 'true');
-                            });
+                            }).catch(() => {});
                         }
                     } else {
                         if (document.exitFullscreen) {
                             document.exitFullscreen().then(() => {
                                 this.isFullscreen = false;
                                 sessionStorage.setItem('app_fullscreen', 'false');
-                            }).catch(() => {
-                                sessionStorage.setItem('app_fullscreen', 'false');
-                            });
+                            }).catch(() => {});
                         }
                     }
                 },
@@ -712,6 +792,15 @@
                 if (e.key === 'F5') {
                     e.preventDefault();
                     window.location.reload();
+                } else if (e.altKey && (e.key === 't' || e.key === 'T')) {
+                    e.preventDefault();
+                    const alpineRoot = document.querySelector('[x-data]');
+                    if (window.Alpine && alpineRoot) {
+                        const alpineData = Alpine.$data(alpineRoot);
+                        if (alpineData && typeof alpineData.toggleTheme === 'function') {
+                            alpineData.toggleTheme();
+                        }
+                    }
                 }
             });
         });

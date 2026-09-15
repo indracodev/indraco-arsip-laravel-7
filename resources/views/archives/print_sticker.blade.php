@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=800">
     <title>Cetak Label Box Arsip Custom - DMS PT Indraco</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
@@ -176,13 +176,16 @@
 
                 <!-- Header: Logo & Company -->
                 <div x-show="showLogo" class="flex items-center justify-between border-b-2 border-slate-900 pb-2 mb-2">
-                    <div>
-                        <span class="font-black tracking-widest text-amber-600 uppercase block" :class="fontScale == 'sm' ? 'text-[9px]' : (fontScale == 'lg' ? 'text-xs' : 'text-[10px]')">
-                            LABEL CONTAINER ARSIP
-                        </span>
-                        <h2 class="font-extrabold text-slate-900 tracking-tight" :class="fontScale == 'sm' ? 'text-sm' : (fontScale == 'lg' ? 'text-2xl' : 'text-lg')">
-                            {{ $item->company_name ?? 'PT INDRACO' }}
-                        </h2>
+                    <div class="flex items-center gap-3">
+                        <img src="{{ asset('images/logo-indraco.png') }}" alt="PT Indraco" class="h-7 w-auto object-contain shrink-0">
+                        <div>
+                            <span class="font-black tracking-widest text-amber-600 uppercase block" :class="fontScale == 'sm' ? 'text-[9px]' : (fontScale == 'lg' ? 'text-xs' : 'text-[10px]')">
+                                LABEL CONTAINER ARSIP
+                            </span>
+                            <h2 class="font-extrabold text-slate-900 tracking-tight" :class="fontScale == 'sm' ? 'text-sm' : (fontScale == 'lg' ? 'text-2xl' : 'text-lg')">
+                                {{ $item->company_name ?? 'PT INDRACO' }}
+                            </h2>
+                        </div>
                     </div>
                     <div class="text-right">
                         <span class="font-bold text-slate-500 block uppercase" :class="fontScale == 'sm' ? 'text-[8px]' : 'text-[9px]'">DEPARTEMEN</span>

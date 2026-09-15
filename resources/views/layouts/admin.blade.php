@@ -2,7 +2,7 @@
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" data-bs-theme="light">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=800">
     <title>@yield('title', 'Admin Panel - INDRACO')</title>
     <link rel="shortcut icon" href="{{ asset('images/icon-indraco.ico') }}" type="image/x-icon">
 

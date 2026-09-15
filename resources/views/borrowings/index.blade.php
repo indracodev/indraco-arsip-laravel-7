@@ -22,7 +22,7 @@
 
     <!-- Filter & Search Card -->
     <div class="bg-white dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm">
-        <form action="{{ route('borrowings.index') }}" method="GET" class="grid grid-cols-1 sm:grid-cols-3 gap-4" @submit="submitting = true">
+        <form action="{{ route('borrowings.index') }}" method="GET" class="grid grid-cols-3 gap-4" @submit="submitting = true">
             <input type="hidden" name="sort" value="{{ request('sort', 'created_at') }}">
             <input type="hidden" name="direction" value="{{ request('direction', 'desc') }}">
 

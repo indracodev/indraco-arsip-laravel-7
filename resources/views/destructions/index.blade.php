@@ -66,7 +66,7 @@
 
     <!-- Expired or Expiring Archives Panel -->
     <div class="bg-white dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="flex items-center justify-between gap-4">
             <div>
                 <h2 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
                     <i data-lucide="hourglass" class="w-5 h-5 text-amber-600 dark:text-amber-400"></i>
@@ -76,7 +76,7 @@
             </div>
 
             <!-- Search Input -->
-            <div class="relative w-full sm:w-72">
+            <div class="relative w-72">
                 <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-3 text-slate-400"></i>
                 <input 
                     type="text" 
@@ -169,7 +169,7 @@
 
     <!-- Completed Destruction History Panel -->
     <div class="bg-white dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="flex items-center justify-between gap-4">
             <div>
                 <h2 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
                     <i data-lucide="check-check" class="w-5 h-5 text-emerald-600 dark:text-emerald-400"></i>
@@ -179,7 +179,7 @@
             </div>
 
             <!-- Search Input for BAP -->
-            <div class="relative w-full sm:w-72">
+            <div class="relative w-72">
                 <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-3 text-slate-400"></i>
                 <input 
                     type="text" 

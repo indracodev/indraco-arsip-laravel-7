@@ -5,7 +5,7 @@
 @section('content')
 <div class="space-y-3">
     <!-- DELPHI ACTION RIBBON TOOLBAR & WORKSTATION HEADER -->
-    <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-3 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-3 font-mono">
+    <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-3 shadow-sm flex items-center justify-between gap-3 font-mono">
         <div class="flex items-center gap-2">
             <span class="p-1.5 bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 rounded">
                 <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
@@ -26,7 +26,7 @@
             </div>
         </div>
 
-        <div class="flex items-center gap-2 w-full md:w-auto justify-end">
+        <div class="flex items-center gap-2 justify-end shrink-0">
             <!-- Refresh (F5) Button -->
             <button @click="window.location.reload()" type="button" class="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-400 dark:border-slate-600 rounded text-xs font-mono font-bold transition flex items-center gap-1 shadow-sm shrink-0" title="Segarkan Data (F5)">
                 <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
@@ -213,7 +213,7 @@
     </div>
 
     <!-- STAT CARDS GRID (DELPHI TSTATISTICS PANELS) -->
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 font-mono">
+    <div class="grid grid-cols-5 gap-3 font-mono">
         <!-- Total Active Archives -->
         <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-3 shadow-sm hover:border-blue-500 transition">
             <div class="flex items-center justify-between text-slate-500 dark:text-slate-400 text-[11px] font-bold">
@@ -263,7 +263,7 @@
         </div>
 
         <!-- Retention Expiry Alert -->
-        <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-3 shadow-sm hover:border-rose-500 transition col-span-2 sm:col-span-1">
+        <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-3 shadow-sm hover:border-rose-500 transition">
             <div class="flex items-center justify-between text-slate-500 dark:text-slate-400 text-[11px] font-bold">
                 <span>ALERT EXPIRED</span>
                 <i data-lucide="alert-circle" class="w-4 h-4 text-rose-500"></i>
@@ -276,7 +276,7 @@
     </div>
 
     <!-- MIDDLE GRID: WAREHOUSE METER & EXPIRY ALERTS -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 font-mono">
+    <div class="grid grid-cols-3 gap-3 font-mono">
         <!-- Warehouse Capacity Meter Box -->
         <fieldset class="border border-slate-300 dark:border-slate-800 p-3 rounded bg-white dark:bg-slate-950 shadow-sm flex flex-col justify-between">
             <legend class="px-2 font-mono text-xs font-bold text-amber-600 dark:text-amber-400 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded shadow-xs flex items-center gap-1.5">
@@ -319,7 +319,7 @@
         </fieldset>
 
         <!-- Retention Expiry Alert Box -->
-        <fieldset class="lg:col-span-2 border border-slate-300 dark:border-slate-800 p-3 rounded bg-white dark:bg-slate-950 shadow-sm flex flex-col justify-between">
+        <fieldset class="col-span-2 border border-slate-300 dark:border-slate-800 p-3 rounded bg-white dark:bg-slate-950 shadow-sm flex flex-col justify-between">
             <legend class="px-2 font-mono text-xs font-bold text-rose-600 dark:text-rose-400 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded shadow-xs flex items-center gap-1.5">
                 <i data-lucide="hourglass" class="w-3.5 h-3.5"></i>
                 PEMBERITAHUAN RETENTION EXPIRY (MASA SIMPAN)
@@ -333,7 +333,7 @@
             @else
             <div class="space-y-2">
                 @foreach($expiringArchives->take(3) as $exp)
-                <div class="p-2 rounded bg-rose-500/10 border border-rose-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs font-mono">
+                <div class="p-2 rounded bg-rose-500/10 border border-rose-500/20 flex items-center justify-between gap-2 text-xs font-mono">
                     <div>
                         <div class="flex items-center gap-1.5">
                             <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-300">{{ $exp->department->code ?? 'GEN' }}</span>

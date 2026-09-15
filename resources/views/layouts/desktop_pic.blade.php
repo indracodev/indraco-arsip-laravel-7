@@ -3,12 +3,32 @@
 <html lang="id" class="h-full select-none">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=800">
     <title>@yield('title', 'DMS PT Indraco - Workstation Form')</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Instant Embed Theme Sync Script to Prevent Theme Flashbang -->
+    <script>
+        (function() {
+            try {
+                var savedTheme = localStorage.getItem('theme');
+                var isDark = false;
+                if (savedTheme) {
+                    isDark = (savedTheme === 'dark');
+                } else if (window.parent && window.parent.document && window.parent.document.documentElement) {
+                    isDark = window.parent.document.documentElement.classList.contains('dark');
+                }
+                if (isDark) {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
+            } catch (e) {}
+        })();
+    </script>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -35,8 +55,43 @@
         main table td { border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; padding-top: 7px; padding-bottom: 7px; }
         .dark main table td { border-right: 1px solid #1e293b; border-bottom: 1px solid #1e293b; }
     </style>
+    
+    <script>
+        // Live Embed Theme Synchronization Listener
+        function applyEmbedTheme(theme) {
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        }
+        window.addEventListener('message', function(event) {
+            if (event.data && event.data.type === 'THEME_CHANGE') {
+                applyEmbedTheme(event.data.theme);
+            }
+        });
+        function tryRestoreParentFullscreen() {
+            try {
+                if (sessionStorage.getItem('app_fullscreen') === 'true' && window.parent && window.parent !== window) {
+                    if (!window.parent.document.fullscreenElement && window.parent.document.documentElement.requestFullscreen) {
+                        window.parent.document.documentElement.requestFullscreen().catch(function(){});
+                    }
+                }
+            } catch(e) {}
+        }
+        window.addEventListener('pointerdown', tryRestoreParentFullscreen, true);
+        window.addEventListener('keydown', tryRestoreParentFullscreen, true);
+        window.addEventListener('click', function() {
+            try {
+                tryRestoreParentFullscreen();
+                if (window.parent && window.parent !== window) {
+                    window.parent.postMessage({ type: 'IFRAME_CLICK' }, '*');
+                }
+            } catch(e) {}
+        }, true);
+    </script>
 </head>
-<body class="h-full bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 p-3 sm:p-4 overflow-y-auto font-sans text-xs">
+<body class="h-full bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 p-3 overflow-y-auto font-sans text-xs">
     @if (session('success'))
     <div class="mb-3 p-2.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 flex items-start gap-2.5 text-xs font-mono shadow-sm">
         <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5"></i>
@@ -86,15 +141,11 @@
     }
 @endphp
 <html lang="id" 
-      x-data="desktopAppLayout()" 
-      @mousemove.window="onDrag($event)"
-      @mouseup.window="stopDrag()"
-      :class="theme === 'dark' ? 'dark' : ''"
-      style="font-size: {{ $fontSizeScale }};"
-      class="h-full select-none">
+      style="min-width: 800px; min-height: 600px; font-size: {{ $fontSizeScale }};"
+      class="h-full select-none overflow-x-auto">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=800">
     <title>@yield('title', 'DMS PT Indraco - Workstation Desktop Edition')</title>
     
     <!-- PWA Manifest & Theme -->
@@ -127,6 +178,7 @@
 
     <!-- Alpine.js CDN -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="{{ asset('js/seamless-desktop.js') }}"></script>
 
     <style>
         [x-cloak] { display: none !important; }
@@ -174,7 +226,12 @@
         }
     </style>
 </head>
-<body class="h-full bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 flex flex-col overflow-hidden font-sans text-xs">
+<body x-data="desktopAppLayout()" 
+      x-init="init()" 
+      @mousemove.window="onDrag($event)" 
+      @mouseup.window="stopDrag()" 
+      :class="theme === 'dark' ? 'dark' : ''" 
+      class="h-full bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 flex flex-col overflow-hidden font-sans text-xs min-w-[800px] min-h-[600px]">
 
     <!-- IMPERSONATION BANNER (If Active) -->
     @if(session()->has('impersonator_id'))
@@ -189,7 +246,7 @@
             <div>
                 <span>Mode Impersonasi Aktif: Anda sedang login sebagai <strong class="underline font-black text-slate-950">{{ auth()->user()->name }}</strong> ({{ auth()->user()->role_label }} {{ auth()->user()->department ? '- ' . auth()->user()->department->code : '' }})</span>
                 @if($impersonator)
-                    <span class="opacity-80 block sm:inline text-[11px] sm:ml-2">| Akun Asli: <strong>{{ $impersonator->name }}</strong> (Super Admin)</span>
+                    <span class="opacity-80 inline text-[11px] ml-2">| Akun Asli: <strong>{{ $impersonator->name }}</strong> (Super Admin)</span>
                 @endif
             </div>
         </div>
@@ -208,17 +265,17 @@
     <header class="bg-slate-950 text-white flex items-center justify-between px-3 py-1.5 border-b border-slate-800 shrink-0 shadow-sm z-30">
         <div class="flex items-center gap-4">
             <!-- Brand & Desktop Logo -->
-            <a href="{{ route('archives.index') }}" class="flex items-center gap-2 font-black tracking-tight text-white group">
-                <div class="p-1 bg-amber-500 text-slate-950 rounded-lg font-extrabold text-xs shadow">
-                    <i data-lucide="monitor" class="w-4 h-4"></i>
-                </div>
-                <span class="text-sm font-extrabold">
-                    INDRACO DMS <span class="text-amber-400 text-xs font-mono font-bold">[Desktop Workstation]</span>
+            <a href="{{ route('archives.index') }}" class="flex items-center gap-2.5 font-black tracking-tight text-white group" title="DMS PT Indraco">
+                <img src="{{ asset('images/logo-indraco-invert.png') }}" alt="PT INDRACO" class="h-6 w-auto object-contain opacity-95 group-hover:opacity-100 transition">
+                <div class="h-4 w-px bg-slate-700 block"></div>
+                <span class="text-xs font-extrabold flex items-center gap-1.5">
+                    DMS <span class="text-amber-400 font-black">PT INDRACO</span>
+                    <span class="text-amber-400 text-[10px] font-mono font-bold">[Workstation]</span>
                 </span>
             </a>
 
             <!-- Delphi Style Top Menu Dropdowns -->
-            <nav class="hidden md:flex items-center gap-3 text-slate-300 text-xs font-medium border-l border-slate-800 pl-4">
+            <nav class="flex items-center gap-3 text-slate-300 text-xs font-medium border-l border-slate-800 pl-4">
                 <a href="{{ route('archives.index') }}" class="hover:text-amber-400 transition {{ request()->routeIs('archives.index') ? 'text-amber-400 font-bold' : '' }}">Catalog</a>
                 <a href="{{ route('borrowings.index') }}" class="hover:text-amber-400 transition {{ request()->routeIs('borrowings.*') ? 'text-amber-400 font-bold' : '' }}">Borrowings</a>
                 <a href="{{ route('destructions.index') }}" class="hover:text-amber-400 transition {{ request()->routeIs('destructions.*') ? 'text-amber-400 font-bold' : '' }}">Retention</a>
@@ -227,19 +284,22 @@
         </div>
 
         <!-- Right User Info & Controls -->
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2.5">
             <!-- Light/Dark Mode Switcher -->
+            @include('components.theme-toggle')
+
+            <!-- Fullscreen / Maximize Toggle Button -->
             <button 
-                @click="theme = (theme === 'dark' ? 'light' : 'dark'); localStorage.setItem('theme', theme)" 
+                @click="toggleFullscreen()" 
                 type="button" 
-                class="p-1.5 rounded-lg bg-slate-900 text-slate-400 hover:text-amber-400 border border-slate-800 transition"
-                title="Ganti Tema"
+                :title="isFullscreen ? 'Keluar Mode Layar Penuh' : 'Mode Layar Penuh'"
+                class="w-6 h-6 flex items-center justify-center bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded text-amber-400 font-bold transition active:scale-95 shrink-0"
             >
-                <template x-if="theme === 'dark'">
-                    <i data-lucide="sun" class="w-4 h-4 text-amber-400"></i>
+                <template x-if="isFullscreen">
+                    <span data-fullscreen-icon class="text-[13px] font-black leading-none select-none">❐</span>
                 </template>
-                <template x-if="theme !== 'dark'">
-                    <i data-lucide="moon" class="w-4 h-4 text-slate-300"></i>
+                <template x-if="!isFullscreen">
+                    <span data-fullscreen-icon class="text-[13px] font-black leading-none select-none">🗖</span>
                 </template>
             </button>
 
@@ -250,7 +310,7 @@
                     <span class="text-[10px] text-amber-400 font-mono block">PIC DEPT: {{ auth()->user()->department->code ?? 'UMUM' }}</span>
                 </div>
 
-                <form action="{{ route('logout') }}" method="POST" class="inline">
+                <form action="{{ route('logout') }}" method="POST" @submit="if(isFullscreen || document.fullscreenElement) sessionStorage.setItem('app_fullscreen', 'true')" class="inline">
                     @csrf
                     <button type="submit" class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-900 rounded-lg transition" title="Logout">
                         <i data-lucide="power" class="w-4 h-4"></i>
@@ -394,7 +454,7 @@
             </div>
 
             <!-- FORM CONTENT BODY -->
-            <div class="p-3 sm:p-4 flex-1 overflow-y-auto max-h-[calc(100vh-140px)]">
+            <div class="p-3 flex-1 overflow-y-auto max-h-[calc(100vh-140px)]">
                 <!-- Flash Banners -->
                 @if (session('success'))
                 <div class="mb-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 flex items-start gap-2.5 text-xs shadow-sm">
@@ -454,9 +514,9 @@
                 </span>
             </div>
             <span class="text-slate-400">|</span>
-            <span>USER: <strong class="text-white">{{ auth()->user()->name }}</strong> ({{ auth()->user()->department->code ?? 'DEPT' }})</span>
+            <span>USER: <strong class="text-white">{{ auth()->check() ? auth()->user()->name : 'PIC' }}</strong> ({{ auth()->check() && auth()->user()->department ? auth()->user()->department->code : 'DEPT' }})</span>
         </div>
-        <div class="hidden sm:flex items-center gap-4 text-slate-400">
+        <div class="flex items-center gap-4 text-slate-400">
             <span>HOTKEYS: F2:Baru | F5:Refresh | F8:Pinjam | F9:Cetak Label | Ctrl+F:Cari</span>
             <span class="text-slate-400">|</span>
             <span>develope by Web Dev Indraco</span>
@@ -475,11 +535,83 @@
                 startY: 0,
                 maximized: false,
                 minimized: false,
+                isFullscreen: !!document.fullscreenElement,
                 cpuUsage: 12,
                 memUsage: 38,
 
+                toggleTheme() {
+                    this.theme = (this.theme === 'dark' ? 'light' : 'dark');
+                    localStorage.setItem('theme', this.theme);
+                },
+
                 init() {
                     this.startSystemMonitor();
+
+                    let isNavigating = false;
+                    window.addEventListener('beforeunload', () => { isNavigating = true; });
+                    window.addEventListener('pagehide', () => { isNavigating = true; });
+                    document.addEventListener('submit', () => { isNavigating = true; }, true);
+                    document.addEventListener('click', (e) => {
+                        const link = e.target.closest('a');
+                        if (link && link.href && !link.href.startsWith('javascript:') && !link.getAttribute('target')) {
+                            isNavigating = true;
+                        }
+                    }, true);
+
+                    document.addEventListener('fullscreenchange', () => {
+                        this.isFullscreen = !!document.fullscreenElement;
+                        if (this.isFullscreen) {
+                            sessionStorage.setItem('app_fullscreen', 'true');
+                        } else {
+                            if (!isNavigating) {
+                                sessionStorage.setItem('app_fullscreen', 'false');
+                            }
+                        }
+                    });
+
+                    this.checkFullscreenPersistence();
+                },
+
+                checkFullscreenPersistence() {
+                    const silentRestore = () => {
+                        if (sessionStorage.getItem('app_fullscreen') === 'true' && !document.fullscreenElement) {
+                            if (document.documentElement.requestFullscreen) {
+                                document.documentElement.requestFullscreen().then(() => {
+                                    this.isFullscreen = true;
+                                }).catch(() => {});
+                            }
+                        }
+                    };
+
+                    silentRestore();
+                    window.addEventListener('pointerdown', silentRestore, true);
+                    window.addEventListener('keydown', silentRestore, true);
+                    window.addEventListener('click', silentRestore, true);
+                    window.addEventListener('message', (e) => {
+                        if (e.data && e.data.type === 'IFRAME_CLICK') {
+                            silentRestore();
+                        }
+                    });
+                },
+
+                toggleFullscreen() {
+                    if (typeof window.toggleDesktopFullscreen === 'function') {
+                        window.toggleDesktopFullscreen();
+                    } else if (!document.fullscreenElement) {
+                        if (document.documentElement.requestFullscreen) {
+                            document.documentElement.requestFullscreen().then(() => {
+                                this.isFullscreen = true;
+                                sessionStorage.setItem('app_fullscreen', 'true');
+                            }).catch(() => {});
+                        }
+                    } else {
+                        if (document.exitFullscreen) {
+                            document.exitFullscreen().then(() => {
+                                this.isFullscreen = false;
+                                sessionStorage.setItem('app_fullscreen', 'false');
+                            }).catch(() => {});
+                        }
+                    }
                 },
 
                 startSystemMonitor() {
@@ -560,6 +692,17 @@
                     e.preventDefault();
                     const searchInput = document.querySelector('input[name="search"], input[type="text"][placeholder*="Cari"]');
                     if (searchInput) searchInput.focus();
+                }
+                // Alt + T: Toggle Theme
+                else if (e.altKey && (e.key === 't' || e.key === 'T')) {
+                    e.preventDefault();
+                    const alpineRoot = document.querySelector('[x-data]');
+                    if (window.Alpine && alpineRoot) {
+                        const alpineData = Alpine.$data(alpineRoot);
+                        if (alpineData && typeof alpineData.toggleTheme === 'function') {
+                            alpineData.toggleTheme();
+                        }
+                    }
                 }
             });
         });

@@ -12,7 +12,7 @@
     } 
 }">
     <!-- DELPHI ACTION RIBBON TOOLBAR & HEADER (TPanel / TToolBar) -->
-    <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-2.5 sm:p-3 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3 font-mono">
+    <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-3 shadow-sm flex items-center justify-between gap-3 font-mono">
         <div class="flex items-center gap-2.5">
             <span class="p-1.5 bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 rounded">
                 <i data-lucide="folder-archive" class="w-4 h-4"></i>
@@ -26,7 +26,7 @@
             </div>
         </div>
 
-        <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
+        <div class="flex items-center gap-2 justify-end shrink-0">
             <!-- Refresh (F5) -->
             <button onclick="window.location.reload()" type="button" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 rounded text-xs font-mono font-bold transition flex items-center gap-1 shadow-sm shrink-0" title="Refresh Data (F5)">
                 <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-blue-500"></i>
@@ -54,7 +54,7 @@
             Filter & Pencarian Data Katalog (TSpeedFilter)
         </legend>
 
-        <form action="{{ route('archives.index') }}" method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 pt-1" @submit="submitting = true">
+        <form action="{{ route('archives.index') }}" method="GET" class="grid grid-cols-5 gap-3 pt-1" @submit="submitting = true">
             <input type="hidden" name="sort" value="{{ request('sort', 'created_at') }}">
             <input type="hidden" name="direction" value="{{ request('direction', 'desc') }}">
 
@@ -131,7 +131,7 @@
     </fieldset>
 
     <!-- BATCH ACTIONS RIBBON (When items checked) -->
-    <div x-show="selected.length > 0" x-transition class="bg-amber-500/10 border border-amber-500/40 rounded p-2.5 flex flex-wrap items-center justify-between gap-2 font-mono text-xs shadow-sm">
+    <div x-show="selected.length > 0" x-transition class="bg-amber-500/10 border border-amber-500/40 rounded p-2.5 flex items-center justify-between gap-2 font-mono text-xs shadow-sm">
         <div class="flex items-center gap-2">
             <span class="p-1 bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded">
                 <i data-lucide="check-square" class="w-4 h-4"></i>
@@ -311,7 +311,7 @@
         </div>
 
         <!-- DELPHI DBNAVIGATOR / TSTATUSBAR PAGINATION FOOTER -->
-        <div class="bg-slate-100 dark:bg-slate-900 border-t border-slate-300 dark:border-slate-800 px-3 py-2 flex flex-col sm:flex-row items-center justify-between gap-2 font-mono text-xs text-slate-600 dark:text-slate-400">
+        <div class="bg-slate-100 dark:bg-slate-900 border-t border-slate-300 dark:border-slate-800 px-3 py-2 flex items-center justify-between gap-2 font-mono text-xs text-slate-600 dark:text-slate-400">
             <div class="flex items-center gap-2 text-[11px]">
                 <i data-lucide="database" class="w-3.5 h-3.5 text-amber-500"></i>
                 <span>Menampilkan <strong>{{ $archives->firstItem() ?? 0 }}</strong> - <strong>{{ $archives->lastItem() ?? 0 }}</strong> dari <strong>{{ $archives->total() }}</strong> total berkas arsip</span>
