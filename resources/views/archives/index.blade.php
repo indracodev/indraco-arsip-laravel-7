@@ -25,7 +25,7 @@
             @endif
         </div>
         <div class="text-[10px] text-slate-400 font-mono flex items-center gap-[8px]">
-            <span>Gunakan shortcut <kbd class="px-[4px] py-[1px] bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-[2px] font-bold text-slate-700 dark:text-slate-300">F2</kbd> (Baru), <kbd class="px-[4px] py-[1px] bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-[2px] font-bold text-slate-700 dark:text-slate-300">F8</kbd> (Pinjam), <kbd class="px-[4px] py-[1px] bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-[2px] font-bold text-slate-700 dark:text-slate-300">F9</kbd> (Label)</span>
+            <span>Pencarian & Manajemen Arsip Dokumen</span>
         </div>
     </div>
 

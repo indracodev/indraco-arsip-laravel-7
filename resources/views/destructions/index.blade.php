@@ -222,7 +222,7 @@
                                 <td class="py-[6px] px-[10px] text-right whitespace-nowrap">
                                     <a :href="'{{ url('/destructions/bap') }}/' + dLog.id" target="_blank" class="px-[8px] py-[2px] rounded-[3px] bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 text-amber-700 dark:text-amber-400 font-bold text-[10px] transition inline-flex items-center gap-[4px] shadow-2xs">
                                         <i data-lucide="printer" class="w-[11px] h-[11px]"></i>
-                                        <span>BAP (F9)</span>
+                                        <span>Cetak BAP</span>
                                     </a>
                                 </td>
                             </tr>

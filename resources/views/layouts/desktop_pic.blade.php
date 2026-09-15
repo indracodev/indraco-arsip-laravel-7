@@ -310,29 +310,37 @@
     <!-- 2. DELPHI ACTION RIBBON TOOLBAR -->
     <div class="bg-white dark:bg-slate-950 border-b border-slate-300 dark:border-slate-800 px-[12px] py-[6px] flex flex-wrap items-center justify-between gap-[8px] shrink-0 shadow-xs z-30 font-mono">
         <div class="flex flex-wrap items-center gap-[6px]">
-            <!-- F2: Draft Baru -->
+            <!-- Baru -->
             <a href="{{ route('archives.create') }}" class="px-[10px] py-[4px] bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-[4px] text-slate-900 dark:text-white font-bold text-[11px] transition flex items-center gap-[6px] shadow-2xs">
                 <i data-lucide="plus-circle" class="w-[14px] h-[14px] text-emerald-600 dark:text-emerald-400"></i>
-                <span>Baru (F2)</span>
+                <span>Baru</span>
             </a>
 
-            <!-- F8: Pinjam Dokumen -->
+            <!-- Pinjam -->
             <a href="{{ route('borrowings.create') }}" class="px-[10px] py-[4px] bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-[4px] text-slate-900 dark:text-white font-bold text-[11px] transition flex items-center gap-[6px] shadow-2xs">
                 <i data-lucide="file-symlink" class="w-[14px] h-[14px] text-purple-600 dark:text-purple-400"></i>
-                <span>Pinjam (F8)</span>
+                <span>Pinjam</span>
             </a>
 
-            <!-- F9: Cetak Custom Label -->
+            <!-- Cetak Label -->
             <a href="{{ route('archives.print_labels') }}" target="_blank" class="px-[10px] py-[4px] bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-[4px] text-amber-700 dark:text-amber-300 font-bold text-[11px] transition flex items-center gap-[6px] shadow-2xs">
                 <i data-lucide="printer" class="w-[14px] h-[14px] text-amber-600 dark:text-amber-400"></i>
-                <span>Cetak Label (F9)</span>
+                <span>Cetak Label</span>
             </a>
 
-            <!-- F5: Refresh Data -->
+            <!-- Refresh Data -->
             <button onclick="window.location.reload()" type="button" class="px-[10px] py-[4px] bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-[4px] text-slate-900 dark:text-white font-bold text-[11px] transition flex items-center gap-[6px] shadow-2xs">
                 <i data-lucide="refresh-cw" class="w-[14px] h-[14px] text-blue-600 dark:text-blue-400"></i>
-                <span>Refresh (F5)</span>
+                <span>Refresh</span>
             </button>
+
+            @if(request()->routeIs('archives.create') || request()->routeIs('borrowings.create'))
+            <!-- Tutup Form / Kembali -->
+            <a href="{{ route('archives.index') }}" class="px-[10px] py-[4px] bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 rounded-[4px] text-rose-700 dark:text-rose-300 font-bold text-[11px] transition flex items-center gap-[6px] shadow-2xs" title="Tutup / Kembali ke Katalog">
+                <i data-lucide="x" class="w-[14px] h-[14px] text-rose-600 dark:text-rose-400"></i>
+                <span>Tutup Form</span>
+            </a>
+            @endif
         </div>
 
         <div class="flex items-center gap-[12px] text-[11px] font-mono text-slate-500 dark:text-slate-400">
@@ -377,7 +385,10 @@
     </div>
 
     <!-- 4. MAIN VIEWPORT (MAIN CONTENT CONTAINER) -->
-    <main class="flex-1 bg-slate-200 dark:bg-slate-950 p-[12px] overflow-auto relative min-w-0 desktop-bg-pattern flex items-start justify-center font-sans">
+    <main 
+        :class="maximized ? 'p-0 overflow-hidden' : 'p-[12px] overflow-auto'" 
+        class="flex-1 bg-slate-200 dark:bg-slate-950 relative min-w-0 desktop-bg-pattern flex items-start justify-center font-sans"
+    >
         <!-- DELPHI TFORM WINDOW CONTAINER (Draggable Desktop Form Window) -->
         <div 
             x-show="!minimized" 
@@ -387,60 +398,73 @@
             x-transition:leave="transition ease-in duration-100 transform"
             x-transition:leave-start="opacity-100 scale-100"
             x-transition:leave-end="opacity-0 scale-90"
-            :class="maximized ? 'w-full h-full max-w-none rounded-none my-0' : 'w-full max-w-[1200px] rounded-[4px] my-auto'"
+            :class="maximized ? 'w-full h-full max-w-none rounded-none border-0 my-0 shadow-none' : 'w-full max-w-[1200px] rounded-[4px] border-2 border-slate-400 dark:border-slate-700 my-auto shadow-2xl'"
             :style="getWindowStyle()"
-            class="delphi-window bg-slate-100 dark:bg-slate-900 border-2 border-slate-400 dark:border-slate-700 flex flex-col relative overflow-hidden shadow-2xl"
+            class="delphi-window bg-slate-100 dark:bg-slate-900 flex flex-col relative overflow-hidden"
         >
-            <!-- WINDOW TITLE BAR (Draggable Desktop Caption & Window Controls) -->
+            <!-- 1. WINDOW TITLE BAR (Draggable Desktop Caption & Control Buttons) -->
             <div 
                 @mousedown="startDrag($event)"
                 @dblclick="maximized = !maximized"
                 :class="maximized ? 'cursor-default' : (isDragging ? 'cursor-grabbing select-none' : 'cursor-grab')"
                 title="Klik & tahan untuk menggeser/reposisi posisi jendela form (Drag to move)"
-                class="bg-gradient-to-r from-slate-800 via-slate-700 to-indigo-950 text-white px-3 py-1.5 flex items-center justify-between border-b border-slate-600 font-mono text-xs select-none shrink-0"
+                class="bg-gradient-to-r from-slate-800 via-slate-700 to-indigo-950 text-white px-[12px] py-[6px] flex items-center justify-between border-b border-slate-600 font-mono text-[11px] select-none shrink-0"
             >
                 <!-- Left Title & Icon -->
-                <div class="flex items-center gap-2 font-bold truncate pointer-events-none">
-                    <span class="p-0.5 bg-amber-500/20 border border-amber-400/40 rounded">
-                        <i data-lucide="layout" class="w-3.5 h-3.5 text-amber-400"></i>
+                <div class="flex items-center gap-[8px] font-bold truncate pointer-events-none">
+                    <span class="p-[2px] bg-amber-500/20 border border-amber-400/40 rounded-[3px]">
+                        <i data-lucide="layout" class="w-[14px] h-[14px] text-amber-400"></i>
                     </span>
                     <span class="tracking-wide uppercase">@yield('title', 'DMS PT Indraco - Workstation Form')</span>
                 </div>
 
-                <!-- Right Window Controls [ 🎯 Center ] [ _ ] [ 🗖 ] -->
-                <div class="flex items-center gap-1 shrink-0" @mousedown.stop>
+                <!-- Right Window Controls [ 🎯 Center ] [ 🗖 ] [ ✕ ] -->
+                <div class="flex items-center gap-[4px] shrink-0" @mousedown.stop>
                     <button 
-                        x-show="posX !== 0 || posY !== 0"
+                        x-show="!maximized && (posX !== 0 || posY !== 0)"
                         x-transition
                         @click="resetPosition()"
                         type="button"
                         title="Kembalikan Posisi Form Window ke Tengah Layar"
-                        class="px-1.5 py-0.5 bg-slate-700/80 hover:bg-amber-600 border border-slate-600 rounded text-amber-300 hover:text-white text-[10px] font-bold transition active:scale-95 flex items-center gap-1 mr-1 shadow"
+                        class="px-[6px] py-[2px] bg-slate-700/80 hover:bg-amber-600 border border-slate-600 rounded-[3px] text-amber-300 hover:text-white text-[10px] font-bold transition active:scale-95 flex items-center gap-[4px] mr-[2px] shadow-xs"
                     >
-                        <i data-lucide="crosshair" class="w-3 h-3 text-amber-400"></i>
+                        <i data-lucide="crosshair" class="w-[12px] h-[12px] text-amber-400"></i>
                         <span>Center</span>
-                    </button>
-                    <button 
-                        @click="minimized = true" 
-                        type="button" 
-                        title="Minimize Jendela Form ke Taskbar" 
-                        class="w-5 h-5 flex items-center justify-center bg-slate-700/80 hover:bg-slate-600 border border-slate-600 rounded text-slate-200 text-[10px] font-black transition active:scale-95"
-                    >
-                        _
                     </button>
                     <button 
                         @click="maximized = !maximized" 
                         type="button" 
                         title="Maximize / Restore Ukuran Jendela Form" 
-                        class="w-5 h-5 flex items-center justify-center bg-slate-700/80 hover:bg-slate-600 border border-slate-600 rounded text-slate-200 text-[10px] font-black transition active:scale-95"
+                        class="w-[22px] h-[22px] flex items-center justify-center bg-slate-700/80 hover:bg-slate-600 border border-slate-600 rounded-[3px] text-slate-200 text-[11px] font-black transition active:scale-95"
                     >
                         <span x-text="maximized ? '❐' : '🗖'"></span>
                     </button>
+                    @if(request()->routeIs('archives.create') || request()->routeIs('borrowings.create') || request()->routeIs('destructions.*') || request()->routeIs('logs.*') || request()->routeIs('archives.show'))
+                    <a 
+                        href="{{ route('archives.index') }}" 
+                        title="Tutup Form & Kembali ke Katalog" 
+                        class="w-[22px] h-[22px] flex items-center justify-center bg-rose-600/90 hover:bg-rose-500 border border-rose-500 rounded-[3px] text-white text-[11px] font-black transition active:scale-95"
+                    >
+                        ✕
+                    </a>
+                    @else
+                    <button 
+                        @click="minimized = true" 
+                        type="button" 
+                        title="Tutup Jendela Form" 
+                        class="w-[22px] h-[22px] flex items-center justify-center bg-rose-600/90 hover:bg-rose-500 border border-rose-500 rounded-[3px] text-white text-[11px] font-black transition active:scale-95"
+                    >
+                        ✕
+                    </button>
+                    @endif
                 </div>
             </div>
 
             <!-- FORM CONTENT BODY -->
-            <div class="p-3 flex-1 overflow-y-auto max-h-[calc(100vh-140px)]">
+            <div 
+                :class="maximized ? 'max-h-none' : 'max-h-[calc(100vh-140px)]'"
+                class="p-3 flex-1 overflow-y-auto"
+            >
                 <!-- Flash Banners -->
                 @if (session('success'))
                 <div class="mb-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 flex items-start gap-2.5 text-xs shadow-sm">
@@ -464,6 +488,25 @@
                 @endif
 
                 @yield('content')
+            </div>
+        </div>
+
+        <!-- PLACEHOLDER SAAT JENDELA FORM DITUTUP -->
+        <div x-show="minimized" x-cloak class="my-auto text-center py-16 flex flex-col items-center justify-center select-none font-mono">
+            <div class="p-6 bg-slate-100/90 dark:bg-slate-900/90 border-2 border-slate-400 dark:border-slate-700 rounded-[6px] shadow-2xl max-w-sm flex flex-col items-center">
+                <div class="w-12 h-12 mb-3 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-500">
+                    <i data-lucide="layout" class="w-6 h-6"></i>
+                </div>
+                <h4 class="font-bold text-xs text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-1">JENDELA FORM DITUTUP</h4>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400 mb-4 font-sans">Klik tombol di bawah atau pilih menu tab di atas untuk membuka kembali form.</p>
+                <button 
+                    @click="minimized = false" 
+                    type="button" 
+                    class="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-[3px] text-[11px] flex items-center gap-1.5 transition active:scale-95 shadow"
+                >
+                    <i data-lucide="folder-archive" class="w-3.5 h-3.5"></i>
+                    <span>Tampilkan Jendela Form</span>
+                </button>
             </div>
         </div>
     </main>
@@ -503,8 +546,6 @@
             <span>USER: <strong class="text-white">{{ auth()->check() ? auth()->user()->name : 'PIC' }}</strong> ({{ auth()->check() && auth()->user()->department ? auth()->user()->department->code : 'DEPT' }})</span>
         </div>
         <div class="flex items-center gap-4 text-slate-400">
-            <span>HOTKEYS: F2:Baru | F5:Refresh | F8:Pinjam | F9:Cetak Label | Ctrl+F:Cari</span>
-            <span class="text-slate-400">|</span>
             <span>develope by Web Dev Indraco</span>
         </div>
     </footer>

@@ -24,7 +24,7 @@
         <div>
             <a href="{{ route('destructions.extend_print', $archive) }}" target="_blank" class="px-[10px] py-[3px] bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-amber-700 dark:text-amber-400 border border-slate-300 dark:border-slate-700 font-mono font-bold text-[11px] rounded-[3px] transition flex items-center gap-[6px] shadow-2xs">
                 <i data-lucide="printer" class="w-[12px] h-[12px]"></i>
-                <span>Cetak Form (F9)</span>
+                <span>Cetak Form</span>
             </a>
         </div>
     </div>

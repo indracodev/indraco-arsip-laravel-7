@@ -86,22 +86,22 @@
                 </button>
             </div>
 
-            <!-- Refresh Button (F5) -->
-            <button @click="window.location.reload()" type="button" class="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-400 dark:border-slate-600 rounded text-xs font-mono font-bold transition flex items-center gap-1 shadow-sm shrink-0" title="Segarkan Data (F5)">
+            <!-- Refresh Button -->
+            <button @click="window.location.reload()" type="button" class="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-400 dark:border-slate-600 rounded text-xs font-mono font-bold transition flex items-center gap-1 shadow-sm shrink-0" title="Segarkan Data">
                 <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-                <span>Refresh (F5)</span>
+                <span>Refresh</span>
             </button>
 
-            <!-- Add Warehouse (F2) -->
+            <!-- Add Warehouse -->
             <button @click="openAddWarehouse = true" type="button" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-white font-mono font-bold text-xs rounded border border-slate-900 shadow transition flex items-center gap-1 shrink-0">
                 <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-                <span>+ Gudang (F2)</span>
+                <span>+ Gudang</span>
             </button>
 
-            <!-- Add Location Rak (F3) -->
+            <!-- Add Location Rak -->
             <button @click="openAddLocation = true" type="button" class="px-3 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-mono font-black text-xs rounded border border-amber-600 shadow transition flex items-center gap-1 shrink-0">
                 <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
-                <span>+ Slot Rak (F3)</span>
+                <span>+ Slot Rak</span>
             </button>
         </div>
     </div>

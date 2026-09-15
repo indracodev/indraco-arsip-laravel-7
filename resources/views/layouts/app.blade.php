@@ -346,7 +346,6 @@
                 <i data-lucide="layout" class="w-8 h-8 text-amber-500"></i>
             </div>
             <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase">DOCUMENT MANAGEMENT SYSTEM</h3>
-            <p class="text-xs text-slate-500 max-w-sm mx-auto">Klik salah satu menu form di atas untuk membuka form window.</p>
         </div>
 
         <!-- RECURSIVE MDI WINDOW FRAMES (Allows Multiple Forms Open Simultaneously) -->
@@ -354,52 +353,44 @@
             <div 
                 x-show="!win.minimized" 
                 @mousedown="focusWindow(win.id)"
-                :class="win.maximized ? 'fixed inset-0 z-[60] w-full h-full rounded-none my-0' : 'absolute rounded-t-lg rounded-b-sm border-2 border-slate-400 dark:border-slate-700 shadow-2xl resize overflow-hidden'"
-                :style="getWindowStyle(win) + (win.maximized ? '' : 'width: 780px; max-width: calc(100% - 20px); height: 490px; max-height: calc(100% - 20px); min-width: 460px; min-height: 300px;')"
+                :class="win.maximized ? 'absolute inset-0 z-30 w-full h-full rounded-none border-0 my-0 shadow-none' : 'absolute rounded-[4px] border-2 border-slate-400 dark:border-slate-700 shadow-2xl resize overflow-hidden'"
+                :style="getWindowStyle(win) + (win.maximized ? '' : 'width: 860px; max-width: calc(100% - 20px); height: 520px; max-height: calc(100% - 20px); min-width: 460px; min-height: 300px;')"
                 class="delphi-window bg-slate-100 dark:bg-slate-900 flex flex-col transition-shadow duration-150"
             >
                 <!-- WINDOW TITLE BAR (Draggable Desktop Caption & Controls) -->
                 <div 
                     @mousedown="startDragWindow(win, $event)"
-                    @dblclick="win.maximized = !win.maximized"
+                    @dblclick="win.maximized = !win.maximized; if(win.maximized) focusWindow(win.id)"
                     :class="win.maximized ? 'cursor-default' : (win.isDragging ? 'cursor-grabbing select-none' : 'cursor-grab')"
                     title="Klik & tahan untuk menggeser/reposisi posisi jendela form (Drag to move)"
-                    class="bg-gradient-to-r from-slate-800 via-slate-700 to-indigo-950 text-white px-3 py-1.5 flex items-center justify-between border-b border-slate-600 font-mono text-xs select-none shrink-0"
+                    class="bg-gradient-to-r from-slate-800 via-slate-700 to-indigo-950 text-white px-[12px] py-[6px] flex items-center justify-between border-b border-slate-600 font-mono text-[11px] select-none shrink-0"
                 >
                     <!-- Left Title & Icon -->
-                    <div class="flex items-center gap-2 font-bold truncate pointer-events-none">
-                        <span class="p-0.5 bg-amber-500/20 border border-amber-400/40 rounded">
-                            <i :data-lucide="win.icon" class="w-3.5 h-3.5 text-amber-400"></i>
+                    <div class="flex items-center gap-[8px] font-bold truncate pointer-events-none">
+                        <span class="p-[2px] bg-amber-500/20 border border-amber-400/40 rounded-[3px]">
+                            <i :data-lucide="win.icon" class="w-[14px] h-[14px] text-amber-400"></i>
                         </span>
                         <span class="tracking-wide uppercase" x-text="win.title"></span>
                     </div>
 
-                    <!-- Right Window Controls [ 🎯 Center ] [ _ ] [ 🗖 ] [ ✕ ] -->
-                    <div class="flex items-center gap-1 shrink-0" @mousedown.stop>
+                    <!-- Right Window Controls [ 🎯 Center ] [ 🗖 ] [ ✕ ] -->
+                    <div class="flex items-center gap-[4px] shrink-0" @mousedown.stop>
                         <button 
-                            x-show="win.posX !== 0 || win.posY !== 0"
+                            x-show="!win.maximized && (win.posX !== 0 || win.posY !== 0)"
                             x-transition
                             @click="resetWindowPos(win)"
-                            type="button"
+                            type="button" 
                             title="Kembalikan Posisi Form Window ke Tengah Layar"
-                            class="px-1.5 py-0.5 bg-slate-700/80 hover:bg-amber-600 border border-slate-600 rounded text-amber-300 hover:text-white text-[10px] font-bold transition active:scale-95 flex items-center gap-1 mr-1 shadow"
+                            class="px-[6px] py-[2px] bg-slate-700/80 hover:bg-amber-600 border border-slate-600 rounded-[3px] text-amber-300 hover:text-white text-[10px] font-bold transition active:scale-95 flex items-center gap-[4px] mr-[2px] shadow-xs"
                         >
-                            <i data-lucide="crosshair" class="w-3 h-3 text-amber-400"></i>
+                            <i data-lucide="crosshair" class="w-[12px] h-[12px] text-amber-400"></i>
                             <span>Center</span>
                         </button>
                         <button 
-                            @click="win.minimized = true" 
-                            type="button" 
-                            title="Minimize Jendela Form ke Taskbar" 
-                            class="w-5 h-5 flex items-center justify-center bg-slate-700/80 hover:bg-slate-600 border border-slate-600 rounded text-slate-200 text-[10px] font-black transition active:scale-95"
-                        >
-                            _
-                        </button>
-                        <button 
-                            @click="win.maximized = !win.maximized" 
+                            @click="win.maximized = !win.maximized; if(win.maximized) focusWindow(win.id)" 
                             type="button" 
                             title="Maximize / Restore Ukuran Jendela Form" 
-                            class="w-5 h-5 flex items-center justify-center bg-slate-700/80 hover:bg-slate-600 border border-slate-600 rounded text-slate-200 text-[10px] font-black transition active:scale-95"
+                            class="w-[22px] h-[22px] flex items-center justify-center bg-slate-700/80 hover:bg-slate-600 border border-slate-600 rounded-[3px] text-slate-200 text-[11px] font-black transition active:scale-95"
                         >
                             <span x-text="win.maximized ? '❐' : '🗖'"></span>
                         </button>
@@ -407,7 +398,7 @@
                             @click="closeWindow(win.id)" 
                             type="button" 
                             title="Tutup Jendela Form Ini" 
-                            class="w-5 h-5 flex items-center justify-center bg-rose-600/90 hover:bg-rose-500 border border-rose-500 rounded text-white text-[10px] font-black transition active:scale-95"
+                            class="w-[22px] h-[22px] flex items-center justify-center bg-rose-600/90 hover:bg-rose-500 border border-rose-500 rounded-[3px] text-white text-[11px] font-black transition active:scale-95"
                         >
                             ✕
                         </button>
@@ -772,8 +763,11 @@
                 },
 
                 getWindowStyle(win) {
+                    if (win.maximized) {
+                        return `top: 0; left: 0; width: 100%; height: 100%; z-index: ${Math.max(win.zIndex, 25)}; transform: none;`;
+                    }
                     let style = `z-index: ${win.zIndex};`;
-                    if (!win.maximized && (win.posX !== 0 || win.posY !== 0)) {
+                    if (win.posX !== 0 || win.posY !== 0) {
                         style += ` transform: translate3d(${win.posX}px, ${win.posY}px, 0px);`;
                     }
                     return style;

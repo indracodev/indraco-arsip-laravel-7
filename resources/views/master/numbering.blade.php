@@ -46,16 +46,16 @@
                 </button>
             </div>
 
-            <!-- Refresh Button (F5) -->
-            <button @click="window.location.reload()" type="button" class="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-400 dark:border-slate-600 rounded text-xs font-mono font-bold transition flex items-center gap-1 shadow-sm shrink-0" title="Segarkan Data (F5)">
+            <!-- Refresh Button -->
+            <button @click="window.location.reload()" type="button" class="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-400 dark:border-slate-600 rounded text-xs font-mono font-bold transition flex items-center gap-1 shadow-sm shrink-0" title="Segarkan Data">
                 <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-                <span>Refresh (F5)</span>
+                <span>Refresh</span>
             </button>
 
-            <!-- Add Format (F2) -->
+            <!-- Add Format -->
             <button @click="openAdd = true" type="button" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-mono font-bold text-xs rounded border border-emerald-700 shadow transition flex items-center gap-1 shrink-0">
                 <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
-                <span>Format Baru (F2)</span>
+                <span>Format Baru</span>
             </button>
         </div>
     </div>

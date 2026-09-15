@@ -25,7 +25,7 @@
         <div class="flex items-center gap-[6px] font-mono text-[11px]">
             <a href="{{ route('archives.print_sticker', $archive) }}" target="_blank" class="px-[10px] py-[3px] bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-[3px] border border-amber-600 shadow-2xs transition flex items-center gap-[4px]">
                 <i data-lucide="printer" class="w-[12px] h-[12px]"></i>
-                <span>Cetak Label Box (F9)</span>
+                <span>Cetak Label Box</span>
             </a>
 
             @if($archive->status === 'in_warehouse')

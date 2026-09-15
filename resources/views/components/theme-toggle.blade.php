@@ -1,9 +1,9 @@
 <button 
     @click="typeof toggleTheme === 'function' ? toggleTheme() : (theme = (theme === 'dark' ? 'light' : 'dark'), localStorage.setItem('theme', theme), (theme === 'dark' ? document.documentElement.classList.add('dark') : document.documentElement.classList.remove('dark')))" 
     type="button" 
-    title="Ganti Mode Tampilan (Alt+T)"
+    title="Ganti Mode Tampilan (Dark/Light)"
     class="w-[26px] h-[26px] flex items-center justify-center bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-[3px] transition duration-150 active:scale-95 shrink-0 shadow-2xs focus:outline-none"
-    aria-label="Ganti Mode Tampilan (Alt+T)"
+    aria-label="Ganti Mode Tampilan (Dark/Light)"
 >
     <!-- Sun Icon (Shown in Dark Mode) -->
     <svg 

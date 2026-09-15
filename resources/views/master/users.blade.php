@@ -85,16 +85,16 @@
                 </button>
             </div>
 
-            <!-- Refresh Button (F5) -->
-            <button @click="window.location.reload()" type="button" class="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-400 dark:border-slate-600 rounded text-xs font-mono font-bold transition flex items-center gap-1 shadow-sm shrink-0" title="Segarkan Data (F5)">
+            <!-- Refresh Button -->
+            <button @click="window.location.reload()" type="button" class="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-400 dark:border-slate-600 rounded text-xs font-mono font-bold transition flex items-center gap-1 shadow-sm shrink-0" title="Segarkan Data">
                 <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-                <span>Refresh (F5)</span>
+                <span>Refresh</span>
             </button>
 
-            <!-- Add Button (F2) -->
+            <!-- Add Button -->
             <button @click="openAdd = true" type="button" class="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white font-mono font-bold text-xs rounded border border-blue-700 shadow transition flex items-center gap-1.5 shrink-0">
                 <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
-                <span>Tambah User (F2)</span>
+                <span>Tambah User</span>
             </button>
         </div>
     </div>

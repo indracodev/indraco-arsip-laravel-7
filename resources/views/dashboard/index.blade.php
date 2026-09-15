@@ -114,7 +114,7 @@
 
             <!-- Quick Filter Badges -->
             <div class="flex flex-wrap items-center gap-[6px] text-[10px] pt-[2px]">
-                <span class="text-slate-500 dark:text-slate-400 font-bold uppercase">Shortcut Filter:</span>
+                <span class="text-slate-500 dark:text-slate-400 font-bold uppercase">Filter Cepat:</span>
                 <a href="{{ route('archives.index', ['status' => 'in_warehouse']) }}" class="px-[6px] py-[1px] rounded-[2px] bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20 border border-emerald-500/30 font-bold flex items-center gap-[4px]">
                     <span class="w-[5px] h-[5px] rounded-full bg-emerald-400"></span> Di Gudang
                 </a>
