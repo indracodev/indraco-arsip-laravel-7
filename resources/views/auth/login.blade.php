@@ -113,14 +113,7 @@
     <canvas id="meshCanvas" class="fixed inset-0 pointer-events-none opacity-40 dark:opacity-30" style="z-index: 1;"></canvas>
 
     <!-- Top Desktop OS Workstation Header Bar -->
-    <header class="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white px-[12px] py-[6px] flex items-center justify-between border-b border-slate-700 z-30 font-mono shadow-sm">
-        <!-- Brand Logo -->
-        <div class="flex items-center shrink-0 select-none cursor-default" title="PT INDRACO">
-            <img src="{{ asset('images/logo-indraco-invert.png') }}" alt="PT INDRACO" class="h-[22px] w-auto object-contain opacity-95 pointer-events-none">
-        </div>
-
-        <!-- Center Running Text Ticker -->
-        @include('components.topbar-running-text')
+    <header class="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white px-[12px] py-[6px] flex items-center justify-end border-b border-slate-700 z-30 font-mono shadow-sm gap-5">
         
         <div class="flex items-center gap-[10px] shrink-0">
             <!-- Theme Toggle Button -->

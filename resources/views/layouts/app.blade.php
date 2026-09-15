@@ -278,6 +278,7 @@
         </div>
 
         <!-- Center Running Text Ticker -->
+        {{-- <p>Document Management System PT. Indraco Global Indonesia</p> --}}
         @include('components.topbar-running-text')
 
         <!-- Right System Info Controls -->
@@ -303,11 +304,11 @@
             @auth
             <div class="flex items-center gap-[8px] border-l border-slate-800 pl-[10px]">
                 <span class="text-slate-300 font-bold text-[11px]">{{ auth()->user()->name }}</span>
-                <span class="px-[8px] py-[2px] bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded-[4px] text-[10px] font-bold">
+                {{-- <span class="px-[8px] py-[2px] bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded-[4px] text-[10px] font-bold">
                     {{ auth()->user()->role_label }}
-                </span>
+                </span> --}}
 
-                <form action="{{ route('logout') }}" method="POST" @submit="if(isFullscreen || document.fullscreenElement) sessionStorage.setItem('app_fullscreen', 'true')" class="inline ml-[2px]">
+                <form action="{{ route('logout') }}" method="POST" @submit="if(isFullscreen || document.fullscreenElement) sessionStorage.setItem('app_fullscreen', 'true')" class="inline ml-[2px] mb-0">
                     @csrf
                     <button type="submit" class="p-[4px] text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-[4px] transition" title="Keluar Aplikasi">
                         <i data-lucide="log-out" class="w-[14px] h-[14px]"></i>

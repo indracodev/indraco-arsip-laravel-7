@@ -270,6 +270,7 @@
         </div>
 
         <!-- Center Running Text Ticker -->
+        {{-- <p>Document Management System PT. Indraco Global Indonesia</p> --}}
         @include('components.topbar-running-text')
 
         <!-- Right User Info & Controls -->
