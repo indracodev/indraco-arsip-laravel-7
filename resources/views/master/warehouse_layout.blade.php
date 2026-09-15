@@ -3,34 +3,38 @@
 @section('title', 'Interactive Layout Gudang 2D - DMS PT Indraco')
 
 @section('content')
-<div class="space-y-6" x-data="warehouseCanvasApp()">
+<div class="space-y-[10px]" x-data="warehouseCanvasApp()">
     <!-- Header Controls -->
-    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
-            <h1 class="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-                <i data-lucide="map" class="w-7 h-7 text-emerald-600 dark:text-emerald-400"></i>
-                Interactive Layout Gudang (2D Canvas)
-            </h1>
-            <p class="text-slate-600 dark:text-slate-400 text-xs sm:text-sm font-medium">
-                Peta visual denah gudang fisik PT Indraco. Anda dapat menambah object Gudang/Sektor (Square) & Rak (Rectangle), mengubah ukuran (Resize), menggeser posisi (Drag), serta mengatur warna dan nama.
-            </p>
+    <div class="bg-gradient-to-r from-slate-100 via-slate-50 to-slate-100 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 border border-slate-300 dark:border-slate-800 rounded-[4px] px-[12px] py-[8px] flex flex-col lg:flex-row lg:items-center justify-between gap-[8px] shadow-2xs font-mono">
+        <div class="flex items-center gap-[8px]">
+            <span class="p-[4px] bg-emerald-600/10 text-emerald-600 dark:text-emerald-400 rounded-[3px] border border-emerald-600/20">
+                <i data-lucide="map" class="w-[16px] h-[16px]"></i>
+            </span>
+            <div>
+                <h1 class="text-[13px] font-black uppercase text-slate-900 dark:text-white tracking-wide flex items-center gap-[6px]">
+                    <span>Interactive Layout Gudang (2D Canvas)</span>
+                </h1>
+                <p class="text-[11px] text-slate-600 dark:text-slate-400 font-mono">
+                    Peta denah visual gudang fisik. Tambah Gudang/Sektor (Square) & Rak (Rectangle), atur posisi dan kapasitas.
+                </p>
+            </div>
         </div>
 
         <!-- Canvas Toolbar -->
-        <div class="flex flex-wrap items-center gap-3">
+        <div class="flex flex-wrap items-center gap-[6px] text-[11px]">
             <!-- Add Object Action Group -->
-            <div class="flex items-center gap-2 bg-slate-100 dark:bg-slate-900 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800">
-                <button @click="openAddRoomModal()" type="button" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow transition flex items-center gap-1.5">
-                    <i data-lucide="square" class="w-4 h-4"></i> + Tambah Gudang (Square)
+            <div class="flex items-center gap-[4px] bg-white dark:bg-slate-900 p-[3px] rounded-[3px] border border-slate-300 dark:border-slate-800">
+                <button @click="openAddRoomModal()" type="button" class="px-[8px] py-[3px] bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] rounded-[2px] shadow-2xs transition flex items-center gap-[4px]">
+                    <i data-lucide="square" class="w-[12px] h-[12px]"></i> + Gudang
                 </button>
-                <button @click="openAddRackModal()" type="button" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow transition flex items-center gap-1.5">
-                    <i data-lucide="rectangle-horizontal" class="w-4 h-4"></i> + Tambah Rak (Rectangle)
+                <button @click="openAddRackModal()" type="button" class="px-[8px] py-[3px] bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] rounded-[2px] shadow-2xs transition flex items-center gap-[4px]">
+                    <i data-lucide="rectangle-horizontal" class="w-[12px] h-[12px]"></i> + Rak
                 </button>
             </div>
 
             <!-- Filter Department -->
-            <div class="flex items-center gap-2">
-                <select x-model="filterDepartment" @change="renderCanvas()" class="px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:border-amber-500">
+            <div class="flex items-center gap-[4px]">
+                <select x-model="filterDepartment" @change="renderCanvas()" class="px-[8px] h-[28px] bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-[3px] text-[11px] font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:border-amber-500">
                     <option value="">-- Semua Departemen --</option>
                     <template x-for="dept in departments" :key="dept.id">
                         <option :value="dept.id" x-text="dept.code + ' - ' + dept.name"></option>
@@ -39,16 +43,16 @@
             </div>
 
             <!-- Zoom Controls -->
-            <div class="flex items-center bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-1 shadow-sm">
-                <button @click="zoomOut()" type="button" class="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-700 dark:text-slate-300 transition" title="Zoom Out">
-                    <i data-lucide="zoom-out" class="w-4 h-4"></i>
+            <div class="flex items-center bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-[3px] p-[2px] shadow-2xs h-[28px]">
+                <button @click="zoomOut()" type="button" class="p-[3px] hover:bg-slate-100 dark:hover:bg-slate-800 rounded-[2px] text-slate-700 dark:text-slate-300 transition" title="Zoom Out">
+                    <i data-lucide="zoom-out" class="w-[12px] h-[12px]"></i>
                 </button>
-                <span class="px-2 text-xs font-mono font-bold text-amber-600 dark:text-amber-400" x-text="Math.round(scale * 100) + '%'"></span>
-                <button @click="zoomIn()" type="button" class="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-700 dark:text-slate-300 transition" title="Zoom In">
-                    <i data-lucide="zoom-in" class="w-4 h-4"></i>
+                <span class="px-[4px] text-[10px] font-mono font-bold text-amber-600 dark:text-amber-400" x-text="Math.round(scale * 100) + '%'"></span>
+                <button @click="zoomIn()" type="button" class="p-[3px] hover:bg-slate-100 dark:hover:bg-slate-800 rounded-[2px] text-slate-700 dark:text-slate-300 transition" title="Zoom In">
+                    <i data-lucide="zoom-in" class="w-[12px] h-[12px]"></i>
                 </button>
-                <button @click="resetZoom()" type="button" class="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-700 dark:text-slate-300 transition ml-1" title="Reset Scale">
-                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                <button @click="resetZoom()" type="button" class="p-[3px] hover:bg-slate-100 dark:hover:bg-slate-800 rounded-[2px] text-slate-700 dark:text-slate-300 transition ml-[2px]" title="Reset Scale">
+                    <i data-lucide="rotate-ccw" class="w-[12px] h-[12px]"></i>
                 </button>
             </div>
 
@@ -56,10 +60,10 @@
             <button 
                 @click="openCanvasResizeModal()" 
                 type="button" 
-                class="px-3.5 py-2 bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold text-xs rounded-xl border border-slate-300 dark:border-slate-800 shadow-sm transition flex items-center gap-1.5"
+                class="px-[8px] h-[28px] bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold text-[10px] rounded-[3px] border border-slate-300 dark:border-slate-800 shadow-2xs transition flex items-center gap-[4px]"
                 title="Ubah Dimensi (Lebar & Tinggi) Canvas Workspace Layout"
             >
-                <i data-lucide="scaling" class="w-4 h-4 text-cyan-500"></i>
+                <i data-lucide="scaling" class="w-[12px] h-[12px] text-cyan-500"></i>
                 <span>📐 Canvas: <strong class="text-cyan-600 dark:text-cyan-400 font-mono" x-text="canvasWidth + 'x' + canvasHeight + 'px'"></strong></span>
             </button>
 
@@ -67,45 +71,41 @@
             <button 
                 @click="toggleFullscreen()" 
                 type="button" 
-                class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs rounded-xl shadow transition flex items-center gap-2 border border-indigo-500/30"
+                class="px-[10px] h-[28px] bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[10px] rounded-[3px] shadow-2xs transition flex items-center gap-[4px] border border-indigo-500/30"
                 :title="isFullscreen ? 'Keluar Mode Fullscreen (Esc)' : 'Tampilkan Canvas 1 Layar Penuh (Fullscreen)'"
             >
-                <i data-lucide="maximize-2" x-show="!isFullscreen" class="w-4 h-4"></i>
-                <i data-lucide="minimize-2" x-show="isFullscreen" class="w-4 h-4"></i>
-                <span x-text="isFullscreen ? 'Keluar Fullscreen (Esc)' : '1 Layar Penuh (Fullscreen)'"></span>
+                <i data-lucide="maximize-2" x-show="!isFullscreen" class="w-[12px] h-[12px]"></i>
+                <i data-lucide="minimize-2" x-show="isFullscreen" class="w-[12px] h-[12px]"></i>
+                <span x-text="isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'"></span>
             </button>
         </div>
     </div>
 
     <!-- Legend & Mode Bar -->
-    <div class="bg-white dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex flex-wrap items-center justify-between gap-4 text-xs">
-        <div class="flex flex-wrap items-center gap-4">
-            <span class="font-bold text-slate-500 uppercase tracking-wider text-[11px]">Indikator Warna Rak (Default Kapasitas):</span>
-            <div class="flex items-center gap-1.5">
-                <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
-                <span class="font-semibold text-slate-700 dark:text-slate-300">Hijau (0% - 50%)</span>
+    <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-[4px] px-[10px] py-[6px] shadow-xs flex flex-wrap items-center justify-between gap-[8px] text-[11px] font-mono">
+        <div class="flex flex-wrap items-center gap-[10px]">
+            <span class="font-bold text-slate-500 uppercase tracking-wider text-[10px]">Kapasitas:</span>
+            <div class="flex items-center gap-[4px]">
+                <span class="w-[8px] h-[8px] rounded-full bg-emerald-500"></span>
+                <span class="text-slate-700 dark:text-slate-300 text-[10px]">Hijau (0-50%)</span>
             </div>
-            <div class="flex items-center gap-1.5">
-                <span class="w-3 h-3 rounded-full bg-yellow-500"></span>
-                <span class="font-semibold text-slate-700 dark:text-slate-300">Kuning (51% - 80%)</span>
+            <div class="flex items-center gap-[4px]">
+                <span class="w-[8px] h-[8px] rounded-full bg-yellow-500"></span>
+                <span class="text-slate-700 dark:text-slate-300 text-[10px]">Kuning (51-80%)</span>
             </div>
-            <div class="flex items-center gap-1.5">
-                <span class="w-3 h-3 rounded-full bg-orange-500"></span>
-                <span class="font-semibold text-slate-700 dark:text-slate-300">Orange (81% - 90%)</span>
+            <div class="flex items-center gap-[4px]">
+                <span class="w-[8px] h-[8px] rounded-full bg-orange-500"></span>
+                <span class="text-slate-700 dark:text-slate-300 text-[10px]">Orange (81-90%)</span>
             </div>
-            <div class="flex items-center gap-1.5">
-                <span class="w-3 h-3 rounded-full bg-rose-500"></span>
-                <span class="font-semibold text-slate-700 dark:text-slate-300">Merah (91% - 100%)</span>
-            </div>
-            <div class="flex items-center gap-1.5 border-l border-slate-300 dark:border-slate-800 pl-4">
-                <span class="w-3 h-3 rounded bg-purple-500"></span>
-                <span class="font-semibold text-slate-700 dark:text-slate-300">Custom Color</span>
+            <div class="flex items-center gap-[4px]">
+                <span class="w-[8px] h-[8px] rounded-full bg-rose-500"></span>
+                <span class="text-slate-700 dark:text-slate-300 text-[10px]">Merah (91-100%)</span>
             </div>
         </div>
-        <div class="flex items-center gap-2">
-            <span class="text-slate-500 font-medium">Petunjuk:</span>
-            <span class="px-2.5 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-lg font-bold">
-                Mouse Drag / Panah (&uarr; &darr; &larr; &rarr;) | Shift + Klik: Multi-Select | Rotate (Key: R) | Hapus (Key: Delete) | Copy & Paste (Ctrl+C / Ctrl+V)
+        <div class="flex items-center gap-[6px] text-[10px]">
+            <span class="text-slate-500">Petunjuk:</span>
+            <span class="px-[6px] py-[2px] bg-amber-500/10 text-amber-700 dark:text-amber-400 rounded-[2px] font-bold">
+                Drag / Panah (&uarr; &darr; &larr; &rarr;) | Shift+Klik: Multi | R: Rotate | Del: Hapus | Ctrl+C / Ctrl+V
             </span>
         </div>
     </div>

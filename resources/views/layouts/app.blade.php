@@ -64,7 +64,7 @@
 
     <style>
         [x-cloak] { display: none !important; }
-        main table { border-collapse: separate; border-spacing: 0; font-size: 0.85rem; }
+        main table { border-collapse: separate; border-spacing: 0; font-size: 11px; }
         main table th { background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%); border-right: 1px solid #cbd5e1; border-bottom: 2px solid #94a3b8; color: #1e293b; padding-top: 7px; padding-bottom: 7px; }
         .dark main table th { background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); border-right: 1px solid #334155; border-bottom: 2px solid #475569; color: #f8fafc; }
         main table td { border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; padding-top: 7px; padding-bottom: 7px; }
@@ -141,7 +141,7 @@
 </html>
 @else
 <html lang="id" 
-      style="min-width: 800px; min-height: 600px; font-size: {{ $fontSizeScale }};"
+      style="min-width: 800px; min-height: 600px; font-size: 14px;"
       class="h-full select-none overflow-x-auto">
 <head>
     <meta charset="UTF-8">
@@ -196,7 +196,7 @@
         main table {
             border-collapse: separate;
             border-spacing: 0;
-            font-size: 0.85rem;
+            font-size: 11px;
         }
         main table th {
             background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
@@ -271,20 +271,17 @@
     @endif
 
     <!-- 1. WINDOW TITLE BAR & WORKSTATION HEADER -->
-    <header class="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white px-3 py-1.5 flex items-center justify-between border-b border-slate-700 shadow-sm shrink-0 font-mono z-30">
-        <div class="flex items-center gap-3">
-            <a href="{{ route('dashboard') }}" class="flex items-center gap-2.5 group" title="DMS PT Indraco Desktop">
-                <img src="{{ asset('images/logo-indraco-invert.png') }}" alt="PT INDRACO" class="h-6 w-auto object-contain opacity-95 group-hover:opacity-100 transition">
-                <div class="h-4 w-px bg-slate-700 block"></div>
-                <span class="font-extrabold tracking-tight text-white flex items-center gap-1.5 text-xs">
-                    DMS <span class="text-amber-400 font-black">PT INDRACO</span>
-                    <span class="px-1.5 py-0.5 bg-amber-500/20 text-amber-300 text-[10px] rounded border border-amber-400/30 font-mono">Desktop Edition</span>
-                </span>
-            </a>
+    <header class="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white px-[12px] py-[6px] flex items-center justify-between border-b border-slate-700 shadow-sm shrink-0 font-mono z-30">
+        <!-- Brand Logo (Static Desktop UX) -->
+        <div class="flex items-center shrink-0 select-none cursor-default" title="PT INDRACO">
+            <img src="{{ asset('images/logo-indraco-invert.png') }}" alt="PT INDRACO" class="h-[22px] w-auto object-contain opacity-95 pointer-events-none">
         </div>
 
+        <!-- Center Running Text Ticker -->
+        @include('components.topbar-running-text')
+
         <!-- Right System Info Controls -->
-        <div class="flex items-center gap-2.5">
+        <div class="flex items-center gap-[10px] shrink-0">
             <!-- Theme Toggle Button -->
             @include('components.theme-toggle')
 
@@ -293,7 +290,7 @@
                 @click="toggleFullscreen()" 
                 type="button" 
                 :title="isFullscreen ? 'Keluar Mode Layar Penuh' : 'Mode Layar Penuh'"
-                class="w-6 h-6 flex items-center justify-center bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded text-amber-400 font-bold transition active:scale-95 shrink-0"
+                class="w-[24px] h-[24px] flex items-center justify-center bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-[4px] text-amber-400 font-bold transition active:scale-95 shrink-0"
             >
                 <template x-if="isFullscreen">
                     <span data-fullscreen-icon class="text-[13px] font-black leading-none select-none">❐</span>
@@ -304,16 +301,16 @@
             </button>
 
             @auth
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-[8px] border-l border-slate-800 pl-[10px]">
                 <span class="text-slate-300 font-bold text-[11px]">{{ auth()->user()->name }}</span>
-                <span class="px-2 py-0.5 bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded text-[10px] font-bold">
+                <span class="px-[8px] py-[2px] bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded-[4px] text-[10px] font-bold">
                     {{ auth()->user()->role_label }}
                 </span>
 
-                <form action="{{ route('logout') }}" method="POST" @submit="if(isFullscreen || document.fullscreenElement) sessionStorage.setItem('app_fullscreen', 'true')" class="inline ml-1">
+                <form action="{{ route('logout') }}" method="POST" @submit="if(isFullscreen || document.fullscreenElement) sessionStorage.setItem('app_fullscreen', 'true')" class="inline ml-[2px]">
                     @csrf
-                    <button type="submit" class="p-1 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded transition" title="Keluar Aplikasi">
-                        <i data-lucide="log-out" class="w-4 h-4"></i>
+                    <button type="submit" class="p-[4px] text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-[4px] transition" title="Keluar Aplikasi">
+                        <i data-lucide="log-out" class="w-[14px] h-[14px]"></i>
                     </button>
                 </form>
             </div>

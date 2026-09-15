@@ -15,12 +15,32 @@
     }
 @endphp
 <html lang="id" 
-      style="min-width: 800px; min-height: 600px; font-size: {{ $fontSizeScale }};"
+      style="min-width: 800px; min-height: 600px; font-size: 14px;"
       class="h-full select-none overflow-x-auto">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=800">
     <title>DMS PT Indraco - Desktop Edition</title>
+    
+    <!-- Instant Pre-hydration Theme Sync Script -->
+    <script>
+        (function() {
+            try {
+                var savedTheme = localStorage.getItem('theme');
+                var isDark = false;
+                if (savedTheme) {
+                    isDark = (savedTheme === 'dark');
+                } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    isDark = true;
+                }
+                if (isDark) {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
+            } catch (e) {}
+        })();
+    </script>
     
     <!-- PWA Manifest & Theme -->
     <link rel="manifest" href="/manifest.json">
@@ -210,13 +230,13 @@
             <div class="p-4 flex-1 grid grid-cols-12 gap-4 overflow-y-auto">
                 
                 <!-- Left Banner Panel (TPanel Desktop Graphics & Branding) -->
-                <div class="col-span-5 bg-gradient-to-br from-slate-200 via-slate-100 to-amber-500/10 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-5 flex flex-col items-center justify-between text-center shadow-inner">
+                <div class="col-span-5 bg-gradient-to-br from-slate-200 via-slate-100 to-amber-500/10 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 border border-slate-300 dark:border-slate-700 rounded-[4px] p-5 flex flex-col items-center justify-between text-center shadow-inner">
                     <div class="space-y-4 w-full flex flex-col items-center pt-2">
                         <!-- Company Logo in Beveled Box (Adaptive to Light/Dark Mode) -->
-                        <div class="p-4 bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 rounded-xl shadow-lg w-full flex justify-center items-center min-h-[80px] transition-colors">
+                        <div class="p-4 bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 rounded-[4px] shadow-sm w-full flex justify-center items-center min-h-[80px] transition-colors select-none cursor-default pointer-events-none">
                             <img :src="theme === 'dark' ? '{{ asset('images/logo-indraco-invert.png') }}' : '{{ asset('images/logo-indraco.png') }}'" 
                                  alt="PT Indraco Logo" 
-                                 class="h-12 w-auto object-contain transition-opacity duration-150">
+                                 class="h-12 w-auto object-contain transition-opacity duration-150 pointer-events-none">
                         </div>
 
                         <div>
@@ -537,6 +557,7 @@
                 startY: 0,
 
                 initApp() {
+                    this.applyTheme(this.theme);
                     lucide.createIcons();
                     this.updateTime();
                     setInterval(() => this.updateTime(), 1000);
@@ -652,7 +673,16 @@
                 toggleTheme() {
                     this.theme = (this.theme === 'dark' ? 'light' : 'dark');
                     localStorage.setItem('theme', this.theme);
+                    this.applyTheme(this.theme);
                     this.playClickSound();
+                },
+
+                applyTheme(theme) {
+                    if (theme === 'dark') {
+                        document.documentElement.classList.add('dark');
+                    } else {
+                        document.documentElement.classList.remove('dark');
+                    }
                 },
 
                 checkCapsLock(event) {

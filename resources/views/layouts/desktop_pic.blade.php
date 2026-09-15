@@ -49,7 +49,7 @@
 
     <style>
         [x-cloak] { display: none !important; }
-        main table { border-collapse: separate; border-spacing: 0; font-size: 0.85rem; }
+        main table { border-collapse: separate; border-spacing: 0; font-size: 11px; }
         main table th { background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%); border-right: 1px solid #cbd5e1; border-bottom: 2px solid #94a3b8; color: #1e293b; padding-top: 7px; padding-bottom: 7px; }
         .dark main table th { background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); border-right: 1px solid #334155; border-bottom: 2px solid #475569; color: #f8fafc; }
         main table td { border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; padding-top: 7px; padding-bottom: 7px; }
@@ -141,7 +141,7 @@
     }
 @endphp
 <html lang="id" 
-      style="min-width: 800px; min-height: 600px; font-size: {{ $fontSizeScale }};"
+      style="min-width: 800px; min-height: 600px; font-size: 14px;"
       class="h-full select-none overflow-x-auto">
 <head>
     <meta charset="UTF-8">
@@ -187,7 +187,7 @@
         main table {
             border-collapse: separate;
             border-spacing: 0;
-            font-size: 0.85rem;
+            font-size: 11px;
         }
         main table th {
             background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
@@ -261,30 +261,19 @@
     </div>
     @endif
 
-    <!-- 1. TOP WINDOW TITLE BAR & DELPHI MAIN MENU -->
-    <header class="bg-slate-950 text-white flex items-center justify-between px-3 py-1.5 border-b border-slate-800 shrink-0 shadow-sm z-30">
-        <div class="flex items-center gap-4">
-            <!-- Brand & Desktop Logo -->
-            <a href="{{ route('archives.index') }}" class="flex items-center gap-2.5 font-black tracking-tight text-white group" title="DMS PT Indraco">
-                <img src="{{ asset('images/logo-indraco-invert.png') }}" alt="PT INDRACO" class="h-6 w-auto object-contain opacity-95 group-hover:opacity-100 transition">
-                <div class="h-4 w-px bg-slate-700 block"></div>
-                <span class="text-xs font-extrabold flex items-center gap-1.5">
-                    DMS <span class="text-amber-400 font-black">PT INDRACO</span>
-                    <span class="text-amber-400 text-[10px] font-mono font-bold">[Workstation]</span>
-                </span>
-            </a>
-
-            <!-- Delphi Style Top Menu Dropdowns -->
-            <nav class="flex items-center gap-3 text-slate-300 text-xs font-medium border-l border-slate-800 pl-4">
-                <a href="{{ route('archives.index') }}" class="hover:text-amber-400 transition {{ request()->routeIs('archives.index') ? 'text-amber-400 font-bold' : '' }}">Catalog</a>
-                <a href="{{ route('borrowings.index') }}" class="hover:text-amber-400 transition {{ request()->routeIs('borrowings.*') ? 'text-amber-400 font-bold' : '' }}">Borrowings</a>
-                <a href="{{ route('destructions.index') }}" class="hover:text-amber-400 transition {{ request()->routeIs('destructions.*') ? 'text-amber-400 font-bold' : '' }}">Retention</a>
-                <a href="{{ route('logs.index') }}" class="hover:text-amber-400 transition {{ request()->routeIs('logs.*') ? 'text-amber-400 font-bold' : '' }}">Audit Logs</a>
-            </nav>
+    <!-- 1. TOP WINDOW TITLE BAR & WORKSTATION HEADER -->
+    <!-- 1. WINDOW TITLE BAR & WORKSTATION HEADER -->
+    <header class="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white flex items-center justify-between px-[12px] py-[6px] border-b border-slate-700 shrink-0 shadow-sm z-30 font-mono">
+        <!-- Brand Logo (Static Desktop UX) -->
+        <div class="flex items-center shrink-0 select-none cursor-default" title="PT INDRACO">
+            <img src="{{ asset('images/logo-indraco-invert.png') }}" alt="PT INDRACO" class="h-[22px] w-auto object-contain opacity-95 pointer-events-none">
         </div>
 
+        <!-- Center Running Text Ticker -->
+        @include('components.topbar-running-text')
+
         <!-- Right User Info & Controls -->
-        <div class="flex items-center gap-2.5">
+        <div class="flex items-center gap-[10px] shrink-0">
             <!-- Light/Dark Mode Switcher -->
             @include('components.theme-toggle')
 
@@ -293,7 +282,7 @@
                 @click="toggleFullscreen()" 
                 type="button" 
                 :title="isFullscreen ? 'Keluar Mode Layar Penuh' : 'Mode Layar Penuh'"
-                class="w-6 h-6 flex items-center justify-center bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded text-amber-400 font-bold transition active:scale-95 shrink-0"
+                class="w-[24px] h-[24px] flex items-center justify-center bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-[4px] text-amber-400 font-bold transition active:scale-95 shrink-0"
             >
                 <template x-if="isFullscreen">
                     <span data-fullscreen-icon class="text-[13px] font-black leading-none select-none">❐</span>
@@ -304,16 +293,13 @@
             </button>
 
             @auth
-            <div class="flex items-center gap-2 border-l border-slate-800 pl-3">
-                <div class="text-right">
-                    <span class="text-xs font-bold text-white block">{{ auth()->user()->name }}</span>
-                    <span class="text-[10px] text-amber-400 font-mono block">PIC DEPT: {{ auth()->user()->department->code ?? 'UMUM' }}</span>
-                </div>
+            <div class="flex items-center gap-[8px] border-l border-slate-800 pl-[10px]">
+                <span class="text-slate-300 font-bold text-[11px]">{{ auth()->user()->name }}</span>
 
-                <form action="{{ route('logout') }}" method="POST" @submit="if(isFullscreen || document.fullscreenElement) sessionStorage.setItem('app_fullscreen', 'true')" class="inline">
+                <form action="{{ route('logout') }}" method="POST" @submit="if(isFullscreen || document.fullscreenElement) sessionStorage.setItem('app_fullscreen', 'true')" class="inline ml-[2px]">
                     @csrf
-                    <button type="submit" class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-900 rounded-lg transition" title="Logout">
-                        <i data-lucide="power" class="w-4 h-4"></i>
+                    <button type="submit" class="p-[4px] text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-[4px] transition" title="Keluar Aplikasi">
+                        <i data-lucide="log-out" class="w-[14px] h-[14px]"></i>
                     </button>
                 </form>
             </div>
@@ -322,76 +308,76 @@
     </header>
 
     <!-- 2. DELPHI ACTION RIBBON TOOLBAR -->
-    <div class="bg-white dark:bg-slate-950 border-b border-slate-300 dark:border-slate-800 px-3 py-1.5 flex flex-wrap items-center justify-between gap-2 shrink-0 shadow-xs z-30">
-        <div class="flex flex-wrap items-center gap-1.5">
+    <div class="bg-white dark:bg-slate-950 border-b border-slate-300 dark:border-slate-800 px-[12px] py-[6px] flex flex-wrap items-center justify-between gap-[8px] shrink-0 shadow-xs z-30 font-mono">
+        <div class="flex flex-wrap items-center gap-[6px]">
             <!-- F2: Draft Baru -->
-            <a href="{{ route('archives.create') }}" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white font-bold text-xs transition flex items-center gap-1.5 shadow-2xs">
-                <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400"></i>
+            <a href="{{ route('archives.create') }}" class="px-[10px] py-[4px] bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-[4px] text-slate-900 dark:text-white font-bold text-[11px] transition flex items-center gap-[6px] shadow-2xs">
+                <i data-lucide="plus-circle" class="w-[14px] h-[14px] text-emerald-600 dark:text-emerald-400"></i>
                 <span>Baru (F2)</span>
             </a>
 
             <!-- F8: Pinjam Dokumen -->
-            <a href="{{ route('borrowings.create') }}" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white font-bold text-xs transition flex items-center gap-1.5 shadow-2xs">
-                <i data-lucide="file-symlink" class="w-3.5 h-3.5 text-purple-600 dark:text-purple-400"></i>
+            <a href="{{ route('borrowings.create') }}" class="px-[10px] py-[4px] bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-[4px] text-slate-900 dark:text-white font-bold text-[11px] transition flex items-center gap-[6px] shadow-2xs">
+                <i data-lucide="file-symlink" class="w-[14px] h-[14px] text-purple-600 dark:text-purple-400"></i>
                 <span>Pinjam (F8)</span>
             </a>
 
             <!-- F9: Cetak Custom Label -->
-            <a href="{{ route('archives.print_labels') }}" target="_blank" class="px-2.5 py-1 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-lg text-amber-700 dark:text-amber-300 font-bold text-xs transition flex items-center gap-1.5 shadow-2xs">
-                <i data-lucide="printer" class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400"></i>
+            <a href="{{ route('archives.print_labels') }}" target="_blank" class="px-[10px] py-[4px] bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-[4px] text-amber-700 dark:text-amber-300 font-bold text-[11px] transition flex items-center gap-[6px] shadow-2xs">
+                <i data-lucide="printer" class="w-[14px] h-[14px] text-amber-600 dark:text-amber-400"></i>
                 <span>Cetak Label (F9)</span>
             </a>
 
             <!-- F5: Refresh Data -->
-            <button onclick="window.location.reload()" type="button" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white font-bold text-xs transition flex items-center gap-1.5 shadow-2xs">
-                <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-blue-600 dark:text-blue-400"></i>
+            <button onclick="window.location.reload()" type="button" class="px-[10px] py-[4px] bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-[4px] text-slate-900 dark:text-white font-bold text-[11px] transition flex items-center gap-[6px] shadow-2xs">
+                <i data-lucide="refresh-cw" class="w-[14px] h-[14px] text-blue-600 dark:text-blue-400"></i>
                 <span>Refresh (F5)</span>
             </button>
         </div>
 
-        <div class="flex items-center gap-3 text-[11px] font-mono font-bold text-slate-500 dark:text-slate-400">
+        <div class="flex items-center gap-[12px] text-[11px] font-mono text-slate-500 dark:text-slate-400">
             <span>DEPARTEMEN: <strong class="text-amber-600 dark:text-amber-400">{{ auth()->user()->department->name ?? 'Global' }}</strong></span>
-            <span>WORKSTATION: WS-DESKTOP-01</span>
+            <span>WORKSTATION: <strong class="text-slate-700 dark:text-slate-300">WS-01</strong></span>
         </div>
     </div>
 
     <!-- 3. MDI TAB SHEET NAVIGATION MANAGER -->
-    <div class="bg-slate-200 dark:bg-slate-900/90 px-2 pt-1.5 border-b border-slate-300 dark:border-slate-800 flex items-center gap-1 shrink-0 overflow-x-auto z-30">
+    <div class="bg-slate-200/90 dark:bg-slate-900/90 px-[8px] pt-[6px] border-b border-slate-300 dark:border-slate-800 flex items-center gap-[4px] shrink-0 overflow-x-auto z-30 select-none">
         <!-- Tab 1: Katalog & Booking Arsip -->
-        <a href="{{ route('archives.index') }}" class="px-3.5 py-1.5 rounded-t-xl border-t border-x border-slate-300 dark:border-slate-700 font-bold text-xs transition flex items-center gap-1.5 shrink-0 {{ request()->routeIs('archives.index') ? 'bg-white dark:bg-slate-950 text-amber-600 dark:text-amber-400 border-b-white dark:border-b-slate-950 -mb-px shadow-2xs' : 'bg-slate-300 dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800' }}">
-            <i data-lucide="folder-archive" class="w-3.5 h-3.5"></i>
-            <span>[Form 1] Katalog Arsip {{ auth()->user()->department->code ?? '' }}</span>
+        <a href="{{ route('archives.index') }}" class="px-[12px] py-[6px] rounded-t-[4px] border-t border-x font-bold text-[11px] font-mono transition flex items-center gap-[6px] shrink-0 {{ request()->routeIs('archives.index') ? 'bg-white dark:bg-slate-950 text-amber-600 dark:text-amber-400 border-slate-300 dark:border-slate-700 border-b-transparent -mb-px shadow-xs' : 'border-transparent bg-slate-300/70 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 hover:bg-white/60 dark:hover:bg-slate-800' }}">
+            <i data-lucide="folder-archive" class="w-[14px] h-[14px]"></i>
+            <span>Katalog Arsip {{ auth()->user()->department->code ?? '' }}</span>
         </a>
 
-        <!-- Tab 2: Draft Pengajuan Storage Baru (If active or link) -->
+        <!-- Tab 2: Draft Pengajuan Storage Baru (If active) -->
         @if(request()->routeIs('archives.create'))
-        <a href="{{ route('archives.create') }}" class="px-3.5 py-1.5 rounded-t-xl border-t border-x border-slate-300 dark:border-slate-700 font-bold text-xs bg-white dark:bg-slate-950 text-emerald-600 dark:text-emerald-400 border-b-white dark:border-b-slate-950 -mb-px shadow-2xs transition flex items-center gap-1.5 shrink-0">
-            <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
-            <span>[Form 2] Draft Storage Baru</span>
+        <a href="{{ route('archives.create') }}" class="px-[12px] py-[6px] rounded-t-[4px] border-t border-x font-bold text-[11px] font-mono bg-white dark:bg-slate-950 text-emerald-600 dark:text-emerald-400 border-slate-300 dark:border-slate-700 border-b-transparent -mb-px shadow-xs transition flex items-center gap-[6px] shrink-0">
+            <i data-lucide="plus-circle" class="w-[14px] h-[14px]"></i>
+            <span>Draft Baru</span>
         </a>
         @endif
 
         <!-- Tab 3: Peminjaman Dokumen -->
-        <a href="{{ route('borrowings.index') }}" class="px-3.5 py-1.5 rounded-t-xl border-t border-x border-slate-300 dark:border-slate-700 font-bold text-xs transition flex items-center gap-1.5 shrink-0 {{ request()->routeIs('borrowings.*') ? 'bg-white dark:bg-slate-950 text-purple-600 dark:text-purple-400 border-b-white dark:border-b-slate-950 -mb-px shadow-2xs' : 'bg-slate-300 dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800' }}">
-            <i data-lucide="file-check-2" class="w-3.5 h-3.5"></i>
-            <span>[Form {{ request()->routeIs('archives.create') ? '3' : '2' }}] Peminjaman Berkas</span>
+        <a href="{{ route('borrowings.index') }}" class="px-[12px] py-[6px] rounded-t-[4px] border-t border-x font-bold text-[11px] font-mono transition flex items-center gap-[6px] shrink-0 {{ request()->routeIs('borrowings.*') ? 'bg-white dark:bg-slate-950 text-purple-600 dark:text-purple-400 border-slate-300 dark:border-slate-700 border-b-transparent -mb-px shadow-xs' : 'border-transparent bg-slate-300/70 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 hover:bg-white/60 dark:hover:bg-slate-800' }}">
+            <i data-lucide="file-check-2" class="w-[14px] h-[14px]"></i>
+            <span>Peminjaman Berkas</span>
         </a>
 
         <!-- Tab 4: Expiry Retention -->
-        <a href="{{ route('destructions.index') }}" class="px-3.5 py-1.5 rounded-t-xl border-t border-x border-slate-300 dark:border-slate-700 font-bold text-xs transition flex items-center gap-1.5 shrink-0 {{ request()->routeIs('destructions.*') ? 'bg-white dark:bg-slate-950 text-rose-600 dark:text-rose-400 border-b-white dark:border-b-slate-950 -mb-px shadow-2xs' : 'bg-slate-300 dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800' }}">
-            <i data-lucide="shield-alert" class="w-3.5 h-3.5"></i>
-            <span>[Form Status] Expiry Retention</span>
+        <a href="{{ route('destructions.index') }}" class="px-[12px] py-[6px] rounded-t-[4px] border-t border-x font-bold text-[11px] font-mono transition flex items-center gap-[6px] shrink-0 {{ request()->routeIs('destructions.*') ? 'bg-white dark:bg-slate-950 text-rose-600 dark:text-rose-400 border-slate-300 dark:border-slate-700 border-b-transparent -mb-px shadow-xs' : 'border-transparent bg-slate-300/70 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 hover:bg-white/60 dark:hover:bg-slate-800' }}">
+            <i data-lucide="shield-alert" class="w-[14px] h-[14px]"></i>
+            <span>Expiry Retention</span>
         </a>
 
         <!-- Tab 5: Audit Log -->
-        <a href="{{ route('logs.index') }}" class="px-3.5 py-1.5 rounded-t-xl border-t border-x border-slate-300 dark:border-slate-700 font-bold text-xs transition flex items-center gap-1.5 shrink-0 {{ request()->routeIs('logs.*') ? 'bg-white dark:bg-slate-950 text-cyan-600 dark:text-cyan-400 border-b-white dark:border-b-slate-950 -mb-px shadow-2xs' : 'bg-slate-300 dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800' }}">
-            <i data-lucide="history" class="w-3.5 h-3.5"></i>
+        <a href="{{ route('logs.index') }}" class="px-[12px] py-[6px] rounded-t-[4px] border-t border-x font-bold text-[11px] font-mono transition flex items-center gap-[6px] shrink-0 {{ request()->routeIs('logs.*') ? 'bg-white dark:bg-slate-950 text-cyan-600 dark:text-cyan-400 border-slate-300 dark:border-slate-700 border-b-transparent -mb-px shadow-xs' : 'border-transparent bg-slate-300/70 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 hover:bg-white/60 dark:hover:bg-slate-800' }}">
+            <i data-lucide="history" class="w-[14px] h-[14px]"></i>
             <span>Audit Trail</span>
         </a>
     </div>
 
     <!-- 4. MAIN VIEWPORT (MAIN CONTENT CONTAINER) -->
-    <main class="flex-1 bg-slate-200 dark:bg-slate-950 p-2 sm:p-4 overflow-auto relative min-w-0 desktop-bg-pattern flex items-start justify-center font-sans">
+    <main class="flex-1 bg-slate-200 dark:bg-slate-950 p-[12px] overflow-auto relative min-w-0 desktop-bg-pattern flex items-start justify-center font-sans">
         <!-- DELPHI TFORM WINDOW CONTAINER (Draggable Desktop Form Window) -->
         <div 
             x-show="!minimized" 
@@ -401,7 +387,7 @@
             x-transition:leave="transition ease-in duration-100 transform"
             x-transition:leave-start="opacity-100 scale-100"
             x-transition:leave-end="opacity-0 scale-90"
-            :class="maximized ? 'w-full h-full max-w-none rounded-none my-0' : 'w-full max-w-6xl rounded-t-lg rounded-b-sm my-auto'"
+            :class="maximized ? 'w-full h-full max-w-none rounded-none my-0' : 'w-full max-w-[1200px] rounded-[4px] my-auto'"
             :style="getWindowStyle()"
             class="delphi-window bg-slate-100 dark:bg-slate-900 border-2 border-slate-400 dark:border-slate-700 flex flex-col relative overflow-hidden shadow-2xl"
         >

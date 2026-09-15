@@ -3,24 +3,28 @@
 @section('title', 'Form Permintaan Peminjaman Arsip - DMS PT Indraco')
 
 @section('content')
-<div class="w-full space-y-6">
+<div class="space-y-[10px]">
     
-    <!-- Navigation & Header Section -->
-    <div>
-        <a href="{{ route('borrowings.index') }}" class="text-xs text-amber-600 dark:text-amber-400 font-bold hover:underline inline-flex items-center gap-1 mb-2">
-            <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> Kembali ke Log Peminjaman
-        </a>
-        <h1 class="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-            <i data-lucide="file-symlink" class="w-7 h-7 text-emerald-600 dark:text-emerald-400"></i>
-            Formulir Permintaan Peminjaman Dokumen Arsip
-        </h1>
-        <p class="text-slate-600 dark:text-slate-400 text-xs sm:text-sm font-medium">
-            Cari berkas fisik di gudang yang sesuai dengan departemen Anda, periksa detail dokumen, lalu ajukan pinjam.
-        </p>
+    <!-- DELPHI TOP TITLE & BREADCRUMB -->
+    <div class="bg-gradient-to-r from-slate-100 via-slate-50 to-slate-100 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 border border-slate-300 dark:border-slate-800 rounded-[4px] px-[12px] py-[8px] flex items-center justify-between shadow-2xs">
+        <div class="flex items-center gap-[8px]">
+            <a href="{{ route('borrowings.index') }}" title="Kembali ke Log Peminjaman" class="p-[4px] bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-[3px] border border-slate-300 dark:border-slate-700 transition">
+                <i data-lucide="arrow-left" class="w-[14px] h-[14px]"></i>
+            </a>
+            <div>
+                <h1 class="text-[13px] font-mono font-black uppercase text-slate-900 dark:text-white tracking-wide flex items-center gap-[6px]">
+                    <i data-lucide="file-symlink" class="w-[15px] h-[15px] text-emerald-600 dark:text-emerald-400"></i>
+                    <span>Formulir Permintaan Peminjaman Dokumen Arsip</span>
+                </h1>
+                <p class="text-[11px] text-slate-600 dark:text-slate-400 font-mono">
+                    Cari berkas fisik di gudang sesuai hak akses departemen Anda, isi estimasi kembali & keperluan.
+                </p>
+            </div>
+        </div>
     </div>
 
-    <!-- Main Full-Width Form Card -->
-    <div class="bg-white dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6"
+    <!-- MAIN DELPHI FORM CONTAINER (TGroupBox) -->
+    <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-[4px] p-[12px] shadow-xs space-y-[10px] font-sans"
          x-data="{
              search: '',
              selectedArchive: null,
@@ -60,26 +64,25 @@
 
         <!-- Department Security Scope Banner -->
         @if(auth()->user()->isPicDept())
-        <div class="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs flex items-center gap-3 font-medium">
-            <i data-lucide="shield-alert" class="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0"></i>
+        <div class="px-[10px] py-[6px] rounded-[3px] bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-[11px] font-mono flex items-center gap-[8px]">
+            <i data-lucide="shield-alert" class="w-[14px] h-[14px] text-amber-600 dark:text-amber-400 shrink-0"></i>
             <div>
-                <span class="font-bold block text-amber-950 dark:text-amber-200">Filter Keamanan Departemen Terkunci:</span>
-                Hanya menampilkan berkas arsip milik departemen <span class="font-black text-amber-900 dark:text-amber-100 uppercase">{{ auth()->user()->department->name ?? 'Departemen Anda' }} ({{ auth()->user()->department->code ?? 'DEPT' }})</span> dengan status tersimpan di gudang.
+                <strong>Security Scope Terkunci:</strong> Menampilkan arsip milik departemen <strong class="uppercase text-amber-900 dark:text-amber-200">{{ auth()->user()->department->name ?? 'Departemen' }} ({{ auth()->user()->department->code ?? 'DEPT' }})</strong> status di gudang.
             </div>
         </div>
         @endif
 
-        <form action="{{ route('borrowings.store') }}" method="POST" class="space-y-6">
+        <form action="{{ route('borrowings.store') }}" method="POST" class="space-y-[10px]">
             @csrf
 
             <!-- Hidden Archive ID input -->
             <input type="hidden" name="archive_id" :value="selectedArchive ? selectedArchive.id : ''" required>
 
             <!-- STEP 1: SEARCH & SELECT ARCHIVE DOCUMENT -->
-            <div class="space-y-3">
-                <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                    1. Cari Berkas Dokumen Arsip <span class="text-rose-500">*</span>
-                </label>
+            <fieldset class="border border-slate-300 dark:border-slate-800 rounded-[3px] p-[10px] space-y-[6px]">
+                <legend class="px-[6px] text-[10px] font-mono font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-[2px]">
+                    1. Pencarian Dokumen Berkas Arsip Fisik <span class="text-rose-500">*</span>
+                </legend>
 
                 <!-- Live Search Autocomplete Box -->
                 <div class="relative" @click.away="isOpen = false">
@@ -90,34 +93,34 @@
                             x-model="search"
                             @focus="isOpen = true"
                             @input="isOpen = true; selectedArchive = null"
-                            placeholder="Ketik Nomor Box (misal: BOX-...) atau Judul Berkas..." 
-                            class="w-full pl-10 pr-10 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-2xl text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition font-medium"
+                            placeholder="Ketik Nomor Box (contoh: BOX-...) atau Kata Kunci Judul Berkas..." 
+                            class="w-full pl-[28px] pr-[28px] h-[30px] bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-[3px] text-[11px] font-mono text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500 transition"
                         >
-                        <i data-lucide="search" class="w-5 h-5 text-slate-400 dark:text-slate-500 absolute left-3.5 top-3.5"></i>
+                        <i data-lucide="search" class="w-[13px] h-[13px] text-slate-400 absolute left-[8px] top-[8px]"></i>
                         
                         <!-- Clear Selection Icon -->
-                        <button type="button" x-show="search.length > 0" @click="clearSelection()" class="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600 dark:hover:text-white">
-                            <i data-lucide="x" class="w-4 h-4"></i>
+                        <button type="button" x-show="search.length > 0" @click="clearSelection()" class="absolute right-[8px] top-[7px] text-slate-400 hover:text-slate-600 dark:hover:text-white">
+                            <i data-lucide="x" class="w-[13px] h-[13px]"></i>
                         </button>
                     </div>
 
                     <!-- Autocomplete Dropdown List -->
                     <div x-show="isOpen && filteredArchives.length > 0" 
                          x-transition 
-                         class="absolute left-0 right-0 top-full mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl z-50 max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60">
+                         class="absolute left-0 right-0 top-full mt-[2px] bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-[3px] shadow-lg z-50 max-h-[200px] overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 font-mono text-[11px]">
                         <template x-for="arc in filteredArchives" :key="arc.id">
-                            <div @click="selectArchive(arc)" class="p-3.5 hover:bg-emerald-500/10 dark:hover:bg-emerald-500/20 cursor-pointer transition flex items-center justify-between gap-3">
-                                <div class="space-y-1">
-                                    <div class="flex items-center gap-2">
-                                        <span class="font-mono text-xs font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20" x-text="arc.box_number || 'NO-BOX'"></span>
-                                        <span class="text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded" x-text="arc.department ? arc.department.code : 'GEN'"></span>
+                            <div @click="selectArchive(arc)" class="p-[8px] hover:bg-emerald-500/10 dark:hover:bg-emerald-500/20 cursor-pointer transition flex items-center justify-between gap-[8px]">
+                                <div class="space-y-[2px]">
+                                    <div class="flex items-center gap-[6px]">
+                                        <span class="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-[6px] py-[1px] rounded-[2px] border border-amber-500/30" x-text="arc.box_number || 'NO-BOX'"></span>
+                                        <span class="text-[10px] font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-[4px] py-[1px] rounded-[2px]" x-text="arc.department ? arc.department.code : 'GEN'"></span>
                                     </div>
-                                    <h4 class="text-sm font-bold text-slate-900 dark:text-white" x-text="arc.title"></h4>
-                                    <p class="text-xs text-slate-500 dark:text-slate-400" x-text="arc.period_text || arc.period_start_date"></p>
+                                    <h4 class="text-[11px] font-bold text-slate-900 dark:text-white" x-text="arc.title"></h4>
+                                    <p class="text-[10px] text-slate-500" x-text="arc.period_text || arc.period_start_date"></p>
                                 </div>
                                 <div class="text-right shrink-0">
-                                    <span class="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                                        <i data-lucide="map-pin" class="w-3.5 h-3.5"></i>
+                                    <span class="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-[4px]">
+                                        <i data-lucide="map-pin" class="w-[11px] h-[11px]"></i>
                                         <span x-text="arc.location ? arc.location.full_location : 'Gudang'"></span>
                                     </span>
                                 </div>
@@ -126,65 +129,65 @@
                     </div>
 
                     <!-- Empty Search Result State -->
-                    <div x-show="isOpen && filteredArchives.length === 0" class="absolute left-0 right-0 top-full mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-4 text-center text-slate-500 text-xs z-50">
+                    <div x-show="isOpen && filteredArchives.length === 0" class="absolute left-0 right-0 top-full mt-[2px] bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-[3px] shadow-lg p-[10px] text-center text-slate-500 text-[11px] font-mono z-50">
                         Tidak ada berkas arsip yang sesuai dengan pencarian Anda di departemen ini.
                     </div>
                 </div>
-                @error('archive_id') <span class="text-rose-500 text-xs font-bold block mt-1">{{ $message }}</span> @enderror
-            </div>
+                @error('archive_id') <span class="text-rose-500 text-[10px] font-bold block mt-[2px]">{{ $message }}</span> @enderror
+            </fieldset>
 
             <!-- DETAIL INFORMASI BERKAS YANG DIPILIH -->
-            <div x-show="selectedArchive" x-transition class="bg-slate-50 dark:bg-slate-900/90 border-2 border-emerald-500/30 rounded-2xl p-5 space-y-4 shadow-sm">
-                <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
-                    <div class="flex items-center gap-2.5">
-                        <div class="p-2 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-xl">
-                            <i data-lucide="folder-check" class="w-5 h-5"></i>
-                        </div>
+            <div x-show="selectedArchive" x-transition class="bg-slate-50 dark:bg-slate-900 border border-emerald-500/40 rounded-[3px] p-[10px] space-y-[8px] font-mono text-[11px] shadow-2xs">
+                <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-[6px]">
+                    <div class="flex items-center gap-[6px]">
+                        <span class="p-[4px] bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-[2px]">
+                            <i data-lucide="folder-check" class="w-[14px] h-[14px]"></i>
+                        </span>
                         <div>
-                            <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">BERKAS ARSIP TERPILIH</span>
-                            <span class="font-mono text-base font-black text-amber-600 dark:text-amber-400" x-text="selectedArchive?.box_number || 'DRAFT'"></span>
+                            <span class="text-[9px] font-bold text-slate-500 uppercase tracking-wider block">BERKAS ARSIP TERPILIH</span>
+                            <span class="text-[12px] font-black text-amber-600 dark:text-amber-400" x-text="selectedArchive?.box_number || 'DRAFT'"></span>
                         </div>
                     </div>
 
-                    <button type="button" @click="clearSelection()" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition flex items-center gap-1">
-                        <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Ganti Berkas
+                    <button type="button" @click="clearSelection()" class="px-[8px] py-[2px] bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-[3px] text-[10px] font-bold transition flex items-center gap-[4px]">
+                        <i data-lucide="refresh-cw" class="w-[11px] h-[11px]"></i> Ganti Berkas
                     </button>
                 </div>
 
-                <div class="space-y-1">
-                    <h3 class="text-base font-extrabold text-slate-900 dark:text-white" x-text="selectedArchive?.title"></h3>
-                    <p class="text-xs text-slate-600 dark:text-slate-400" x-text="selectedArchive?.content_description"></p>
+                <div class="space-y-[2px]">
+                    <h3 class="text-[12px] font-bold text-slate-900 dark:text-white" x-text="selectedArchive?.title"></h3>
+                    <p class="text-[10px] text-slate-600 dark:text-slate-400 font-sans" x-text="selectedArchive?.content_description"></p>
                 </div>
 
                 <!-- Grid Details -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs pt-1">
-                    <div class="p-3 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
-                        <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 block uppercase">DEPARTEMEN</span>
-                        <span class="font-extrabold text-slate-900 dark:text-white" x-text="selectedArchive?.department ? (selectedArchive.department.code + ' - ' + selectedArchive.department.name) : 'UMUM'"></span>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-[6px] text-[10px] pt-[2px]">
+                    <div class="p-[6px] rounded-[3px] bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800">
+                        <span class="text-[9px] font-bold text-slate-500 block uppercase">DEPARTEMEN</span>
+                        <span class="font-bold text-slate-900 dark:text-white" x-text="selectedArchive?.department ? (selectedArchive.department.code + ' - ' + selectedArchive.department.name) : 'UMUM'"></span>
                     </div>
 
-                    <div class="p-3 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
-                        <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 block uppercase">LOKASI RAK GUDANG</span>
-                        <span class="font-extrabold text-emerald-600 dark:text-emerald-400" x-text="selectedArchive?.location ? selectedArchive.location.full_location : 'Gudang'"></span>
+                    <div class="p-[6px] rounded-[3px] bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800">
+                        <span class="text-[9px] font-bold text-slate-500 block uppercase">LOKASI RAK GUDANG</span>
+                        <span class="font-bold text-emerald-600 dark:text-emerald-400" x-text="selectedArchive?.location ? selectedArchive.location.full_location : 'Gudang'"></span>
                     </div>
 
-                    <div class="p-3 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
-                        <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 block uppercase">PERIODE BERKAS</span>
-                        <span class="font-extrabold text-amber-600 dark:text-amber-400" x-text="selectedArchive?.period_text || '-'"></span>
+                    <div class="p-[6px] rounded-[3px] bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800">
+                        <span class="text-[9px] font-bold text-slate-500 block uppercase">PERIODE BERKAS</span>
+                        <span class="font-bold text-amber-600 dark:text-amber-400" x-text="selectedArchive?.period_text || '-'"></span>
                     </div>
 
-                    <div class="p-3 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
-                        <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 block uppercase">KONDISI FISIK</span>
-                        <span class="font-extrabold text-slate-900 dark:text-white" x-text="selectedArchive?.physical_condition || 'Baik'"></span>
+                    <div class="p-[6px] rounded-[3px] bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800">
+                        <span class="text-[9px] font-bold text-slate-500 block uppercase">KONDISI FISIK</span>
+                        <span class="font-bold text-slate-900 dark:text-white" x-text="selectedArchive?.physical_condition || 'Baik'"></span>
                     </div>
                 </div>
             </div>
 
-            <!-- STEP 2 & 3: RETURN DATE & PURPOSE IN BALANCED GRID -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
-                <!-- Step 2: Expected Return Date (1 Column) -->
-                <div class="space-y-1.5 md:col-span-1">
-                    <label for="expected_return_date" class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+            <!-- STEP 2 & 3: RETURN DATE & PURPOSE -->
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-[8px] pt-[2px]">
+                <!-- Step 2: Expected Return Date (4 Columns) -->
+                <div class="md:col-span-4 flex flex-col gap-[3px]">
+                    <label for="expected_return_date" class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
                         2. Estimasi Pengembalian <span class="text-rose-500">*</span>
                     </label>
                     <input 
@@ -194,39 +197,39 @@
                         value="{{ old('expected_return_date', \Carbon\Carbon::now()->addDays(7)->format('Y-m-d')) }}" 
                         min="{{ \Carbon\Carbon::tomorrow()->format('Y-m-d') }}"
                         required
-                        class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-2xl text-sm text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 font-medium transition"
+                        class="w-full px-[8px] h-[30px] bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-[3px] text-[11px] font-mono text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 transition"
                     >
-                    @error('expected_return_date') <span class="text-rose-500 text-xs font-bold block mt-1">{{ $message }}</span> @enderror
+                    @error('expected_return_date') <span class="text-rose-500 text-[10px] font-bold block">{{ $message }}</span> @enderror
                 </div>
 
-                <!-- Step 3: Purpose / Reason (2 Columns) -->
-                <div class="space-y-1.5 md:col-span-2">
-                    <label for="purpose" class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                        3. Maksud / Alasan Keperluan Peminjaman <span class="text-rose-500">*</span>
+                <!-- Step 3: Purpose / Reason (8 Columns) -->
+                <div class="md:col-span-8 flex flex-col gap-[3px]">
+                    <label for="purpose" class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                        3. Alasan / Keperluan Peminjaman <span class="text-rose-500">*</span>
                     </label>
                     <textarea 
                         name="purpose" 
                         id="purpose" 
-                        rows="3" 
+                        rows="2" 
                         required 
                         placeholder="Contoh: Diperlukan untuk verifikasi audit internal perpajakan tahunan..." 
-                        class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-2xl text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-medium transition"
+                        class="w-full p-[6px] bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-[3px] text-[11px] font-mono text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500 transition"
                     >{{ old('purpose') }}</textarea>
-                    @error('purpose') <span class="text-rose-500 text-xs font-bold block mt-1">{{ $message }}</span> @enderror
+                    @error('purpose') <span class="text-rose-500 text-[10px] font-bold block">{{ $message }}</span> @enderror
                 </div>
             </div>
 
             <!-- Form Actions Footer -->
-            <div class="pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-3">
-                <a href="{{ route('borrowings.index') }}" class="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs sm:text-sm transition">
+            <div class="pt-[8px] border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-[6px]">
+                <a href="{{ route('borrowings.index') }}" class="px-[12px] h-[28px] rounded-[3px] bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-mono font-bold text-[11px] transition flex items-center">
                     Batal
                 </a>
                 <button type="submit" 
                         :disabled="!selectedArchive" 
-                        :class="selectedArchive ? 'bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-400 text-slate-950 font-black shadow-lg shadow-emerald-500/20' : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed font-bold'"
-                        class="px-6 py-2.5 rounded-xl text-xs sm:text-sm transition flex items-center gap-2">
-                    <i data-lucide="send" class="w-4 h-4"></i>
-                    Kirim Permintaan Peminjaman
+                        :class="selectedArchive ? 'bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-400 text-slate-950 font-black border border-emerald-600 shadow-2xs' : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600 border border-slate-300 dark:border-slate-700 cursor-not-allowed font-bold'"
+                        class="px-[12px] h-[28px] rounded-[3px] text-[11px] font-mono transition flex items-center gap-[6px]">
+                    <i data-lucide="send" class="w-[12px] h-[12px]"></i>
+                    <span>Kirim Pengajuan</span>
                 </button>
             </div>
         </form>

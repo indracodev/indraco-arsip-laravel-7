@@ -3,88 +3,95 @@
 @section('title', 'Form Perpanjangan Masa Simpan - DMS PT Indraco')
 
 @section('content')
-<div class="w-full max-w-4xl mx-auto space-y-6">
-    <!-- Header -->
-    <div class="flex items-center justify-between">
-        <div>
-            <a href="{{ route('destructions.index') }}" class="text-xs text-amber-600 dark:text-amber-400 font-bold hover:underline inline-flex items-center gap-1 mb-2">
-                <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> Kembali ke Retention Expiry
+<div class="space-y-[10px]">
+    <!-- DELPHI TOP TITLE & ACTIONS -->
+    <div class="bg-gradient-to-r from-slate-100 via-slate-50 to-slate-100 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 border border-slate-300 dark:border-slate-800 rounded-[4px] px-[12px] py-[8px] flex items-center justify-between shadow-2xs">
+        <div class="flex items-center gap-[8px]">
+            <a href="{{ route('destructions.index') }}" title="Kembali ke Retention Expiry" class="p-[4px] bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-[3px] border border-slate-300 dark:border-slate-700 transition">
+                <i data-lucide="arrow-left" class="w-[14px] h-[14px]"></i>
             </a>
-            <h1 class="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-                <i data-lucide="clock" class="w-7 h-7 text-purple-600 dark:text-purple-400"></i>
-                Pengajuan Perpanjangan Masa Simpan Dokumen
-            </h1>
-            <p class="text-slate-600 dark:text-slate-400 text-xs sm:text-sm font-medium">Jika dokumen masih dibutuhkan oleh Departemen, ajukan perpanjangan masa simpan dilengkapi alasan dan scan formulir.</p>
+            <div>
+                <h1 class="text-[13px] font-mono font-black uppercase text-slate-900 dark:text-white tracking-wide flex items-center gap-[6px]">
+                    <i data-lucide="clock" class="w-[15px] h-[15px] text-purple-600 dark:text-purple-400"></i>
+                    <span>Pengajuan Perpanjangan Masa Simpan Dokumen</span>
+                </h1>
+                <p class="text-[11px] text-slate-600 dark:text-slate-400 font-mono">
+                    Ajukan perpanjangan masa retensi dokumen arsip yang masih dibutuhkan operasional.
+                </p>
+            </div>
         </div>
 
-        <a href="{{ route('destructions.extend_print', $archive) }}" target="_blank" class="px-4 py-2 bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-amber-600 dark:text-amber-400 border border-slate-200 dark:border-slate-800 font-bold text-xs rounded-xl transition flex items-center gap-2">
-            <i data-lucide="printer" class="w-4 h-4"></i> Cetak Form Perpanjangan
-        </a>
-    </div>
-
-    <!-- Archive Summary Box -->
-    <div class="bg-purple-500/10 border border-purple-500/30 rounded-3xl p-6 shadow-sm space-y-3">
-        <span class="text-xs font-bold uppercase tracking-wider text-purple-700 dark:text-purple-400 block">Informasi Berkas Dokumen</span>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-medium">
-            <div>
-                <span class="text-slate-500 dark:text-slate-400 block">No. Box Arsip:</span>
-                <span class="font-mono font-bold text-amber-600 dark:text-amber-400 text-sm">{{ $archive->box_number }}</span>
-            </div>
-            <div>
-                <span class="text-slate-500 dark:text-slate-400 block">Judul Berkas:</span>
-                <span class="font-bold text-slate-900 dark:text-white text-sm">{{ $archive->title }}</span>
-            </div>
-            <div>
-                <span class="text-slate-500 dark:text-slate-400 block">Departemen:</span>
-                <span class="font-bold text-slate-900 dark:text-white text-sm">{{ $archive->department->name }} ({{ $archive->department->code }})</span>
-            </div>
-            <div>
-                <span class="text-slate-500 dark:text-slate-400 block">Masa Simpan Saat Ini:</span>
-                <span class="font-bold text-purple-700 dark:text-purple-300 text-sm">{{ $archive->retention_years }} Tahun (Expiry: {{ $archive->retention_expiry_date ? \Carbon\Carbon::parse($archive->retention_expiry_date)->format('d M Y') : '-' }})</span>
-            </div>
+        <div>
+            <a href="{{ route('destructions.extend_print', $archive) }}" target="_blank" class="px-[10px] py-[3px] bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-amber-700 dark:text-amber-400 border border-slate-300 dark:border-slate-700 font-mono font-bold text-[11px] rounded-[3px] transition flex items-center gap-[6px] shadow-2xs">
+                <i data-lucide="printer" class="w-[12px] h-[12px]"></i>
+                <span>Cetak Form (F9)</span>
+            </a>
         </div>
     </div>
 
-    <!-- Extension Form Card -->
-    <div class="bg-white dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
-        <form action="{{ route('destructions.extend_store', $archive) }}" method="POST" enctype="multipart/form-data" class="space-y-6">
+    <!-- DELPHI TGROUPBOX: INFORMASI BERKAS -->
+    <div class="bg-purple-500/10 border border-purple-500/30 rounded-[4px] p-[10px] space-y-[6px] font-mono text-[11px] shadow-2xs">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-400 block">Informasi Berkas Dokumen</span>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-[8px]">
+            <div class="p-[6px] rounded-[3px] bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800">
+                <span class="text-[9px] font-bold text-slate-500 block uppercase">NO. BOX ARSIP</span>
+                <span class="font-extrabold text-amber-600 dark:text-amber-400">{{ $archive->box_number ?? 'DRAFT' }}</span>
+            </div>
+            <div class="p-[6px] rounded-[3px] bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800">
+                <span class="text-[9px] font-bold text-slate-500 block uppercase">JUDUL BERKAS</span>
+                <span class="font-bold text-slate-900 dark:text-white truncate block">{{ $archive->title }}</span>
+            </div>
+            <div class="p-[6px] rounded-[3px] bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800">
+                <span class="text-[9px] font-bold text-slate-500 block uppercase">DEPARTEMEN</span>
+                <span class="font-bold text-slate-900 dark:text-white">{{ $archive->department->name }} ({{ $archive->department->code }})</span>
+            </div>
+            <div class="p-[6px] rounded-[3px] bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800">
+                <span class="text-[9px] font-bold text-slate-500 block uppercase">MASA SIMPAN SAAT INI</span>
+                <span class="font-bold text-purple-700 dark:text-purple-300">{{ $archive->retention_years }} Thn (Exp: {{ $archive->retention_expiry_date ? \Carbon\Carbon::parse($archive->retention_expiry_date)->format('d M Y') : '-' }})</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- DELPHI FORM CONTAINER (TGroupBox) -->
+    <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-[4px] p-[12px] shadow-xs space-y-[10px] font-sans">
+        <form action="{{ route('destructions.extend_store', $archive) }}" method="POST" enctype="multipart/form-data" class="space-y-[10px]">
             @csrf
 
             <!-- Additional Years -->
-            <div>
-                <label for="additional_years" class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-400 mb-1.5">
+            <div class="flex flex-col gap-[3px]">
+                <label for="additional_years" class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
                     Tambahan Masa Simpan (Tahun) <span class="text-rose-500">*</span>
                 </label>
-                <div class="flex items-center gap-3">
-                    <select name="additional_years" id="additional_years" required class="w-36 px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 transition font-bold">
+                <div class="flex items-center gap-[8px]">
+                    <select name="additional_years" id="additional_years" required class="w-[140px] px-[8px] h-[30px] bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-[3px] text-[11px] font-mono text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 transition font-bold">
                         <option value="1">1 Tahun</option>
                         <option value="2">2 Tahun</option>
                         <option value="3">3 Tahun</option>
                         <option value="4">4 Tahun</option>
                         <option value="5">5 Tahun (Maks)</option>
                     </select>
-                    <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Maksimal total simpan 5 tahun dari periode dokumen.</span>
+                    <span class="text-[11px] text-slate-500 font-mono">Maksimal perpanjangan simpan 5 tahun dari periode dokumen.</span>
                 </div>
             </div>
 
             <!-- Extension Reason -->
-            <div>
-                <label for="extension_reason" class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-400 mb-1.5">
+            <div class="flex flex-col gap-[3px]">
+                <label for="extension_reason" class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
                     Alasan Perpanjangan Masa Simpan <span class="text-rose-500">*</span>
                 </label>
                 <textarea 
                     name="extension_reason" 
                     id="extension_reason" 
-                    rows="4" 
+                    rows="3" 
                     required 
-                    placeholder="Jelaskan secara rinci alasan dokumen ini masih harus disimpan (misal: audit perpajakan belum selesai, sengketa legal, audit kualifikasi supplier, dsb)..." 
-                    class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-purple-500 transition font-medium"
+                    placeholder="Jelaskan alasan dokumen masih harus disimpan (misal: audit perpajakan belum selesai, sengketa hukum, verifikasi supplier)..." 
+                    class="w-full p-[6px] bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-[3px] text-[11px] font-mono text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-purple-500 transition"
                 >{{ old('extension_reason', $archive->extension_reason) }}</textarea>
             </div>
 
             <!-- Scan Extension Form Upload -->
-            <div>
-                <label for="scan_extension_form" class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-400 mb-1.5">
+            <div class="flex flex-col gap-[3px]">
+                <label for="scan_extension_form" class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
                     Upload Scan Formulir Perpanjangan Masa Simpan (PDF/Image)
                 </label>
                 <input 
@@ -92,20 +99,21 @@
                     name="scan_extension_form" 
                     id="scan_extension_form" 
                     accept=".pdf,.jpg,.jpeg,.png"
-                    class="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl text-xs text-slate-700 dark:text-slate-300 file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-purple-500/20 file:text-purple-700 dark:file:text-purple-400 hover:file:bg-purple-500/30"
+                    class="w-full px-[8px] py-[3px] bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-[3px] text-[11px] font-mono text-slate-700 dark:text-slate-300"
                 >
                 @if($archive->scan_extension_form)
-                    <span class="text-xs text-emerald-600 font-semibold mt-1 block">File scan perpanjangan sebelumnya sudah terupload.</span>
+                    <span class="text-[10px] text-emerald-600 font-bold font-mono mt-[2px] block">File scan perpanjangan sebelumnya sudah tersimpan.</span>
                 @endif
             </div>
 
             <!-- Actions -->
-            <div class="pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-3">
-                <a href="{{ route('destructions.index') }}" class="px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs sm:text-sm transition">
+            <div class="pt-[8px] border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-[6px]">
+                <a href="{{ route('destructions.index') }}" class="px-[12px] h-[28px] rounded-[3px] bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-mono font-bold text-[11px] transition flex items-center">
                     Batal
                 </a>
-                <button type="submit" class="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-black text-xs sm:text-sm shadow-lg shadow-purple-500/20 transition">
-                    Submit Perpanjangan Masa Simpan
+                <button type="submit" class="px-[12px] h-[28px] rounded-[3px] bg-purple-600 hover:bg-purple-500 text-white font-mono font-bold text-[11px] border border-purple-700 shadow-2xs transition flex items-center gap-[6px]">
+                    <i data-lucide="check" class="w-[12px] h-[12px]"></i>
+                    <span>Submit Perpanjangan</span>
                 </button>
             </div>
         </form>

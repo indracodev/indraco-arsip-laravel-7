@@ -1,8 +1,8 @@
 <button 
-    @click="typeof toggleTheme === 'function' ? toggleTheme() : (theme = (theme === 'dark' ? 'light' : 'dark'), localStorage.setItem('theme', theme))" 
+    @click="typeof toggleTheme === 'function' ? toggleTheme() : (theme = (theme === 'dark' ? 'light' : 'dark'), localStorage.setItem('theme', theme), (theme === 'dark' ? document.documentElement.classList.add('dark') : document.documentElement.classList.remove('dark')))" 
     type="button" 
     title="Ganti Mode Tampilan (Alt+T)"
-    class="w-7 h-7 flex items-center justify-center bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded transition duration-150 active:scale-90 shrink-0 shadow-xs focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+    class="w-[26px] h-[26px] flex items-center justify-center bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-[3px] transition duration-150 active:scale-95 shrink-0 shadow-2xs focus:outline-none"
     aria-label="Ganti Mode Tampilan (Alt+T)"
 >
     <!-- Sun Icon (Shown in Dark Mode) -->
@@ -10,7 +10,7 @@
         x-show="theme === 'dark'" 
         x-cloak
         xmlns="http://www.w3.org/2000/svg" 
-        class="w-3.5 h-3.5 text-amber-400 stroke-current" 
+        class="w-[13px] h-[13px] text-amber-400 stroke-current" 
         viewBox="0 0 24 24" 
         fill="none" 
         stroke-width="2" 
@@ -33,7 +33,7 @@
         x-show="theme !== 'dark'" 
         x-cloak
         xmlns="http://www.w3.org/2000/svg" 
-        class="w-3.5 h-3.5 text-sky-300 stroke-current" 
+        class="w-[13px] h-[13px] text-sky-300 stroke-current" 
         viewBox="0 0 24 24" 
         fill="none" 
         stroke-width="2" 
