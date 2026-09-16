@@ -91,23 +91,23 @@
         }, true);
     </script>
 </head>
-<body class="h-full bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 p-3 overflow-y-auto font-sans text-xs">
+<body class="h-full bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 p-3 overflow-y-auto font-sans">
     @if (session('success'))
-    <div class="mb-3 p-2.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 flex items-start gap-2.5 text-xs font-mono shadow-sm">
+    <div class="mb-3 p-2.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 flex items-start gap-2.5 font-mono shadow-sm">
         <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5"></i>
         <div class="font-bold">{{ session('success') }}</div>
     </div>
     @endif
 
     @if (session('warning'))
-    <div class="mb-3 p-2.5 rounded bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 flex items-start gap-2.5 text-xs font-mono shadow-sm">
+    <div class="mb-3 p-2.5 rounded bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 flex items-start gap-2.5 font-mono shadow-sm">
         <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5"></i>
         <div class="font-bold">{{ session('warning') }}</div>
     </div>
     @endif
 
     @if (session('error'))
-    <div class="mb-3 p-2.5 rounded bg-rose-500/10 border border-rose-500/30 text-rose-800 dark:text-rose-300 flex items-start gap-2.5 text-xs font-mono shadow-sm">
+    <div class="mb-3 p-2.5 rounded bg-rose-500/10 border border-rose-500/30 text-rose-800 dark:text-rose-300 flex items-start gap-2.5 font-mono shadow-sm">
         <i data-lucide="alert-circle" class="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5"></i>
         <div class="font-bold">{{ session('error') }}</div>
     </div>
@@ -231,14 +231,14 @@
       @mousemove.window="onDrag($event)" 
       @mouseup.window="stopDrag()" 
       :class="theme === 'dark' ? 'dark' : ''" 
-      class="h-full bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 flex flex-col overflow-hidden font-sans text-xs min-w-[800px] min-h-[600px]">
+      class="h-full bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 flex flex-col overflow-hidden font-sans min-w-[800px] min-h-[600px]">
 
     <!-- IMPERSONATION BANNER (If Active) -->
     @if(session()->has('impersonator_id'))
     @php
         $impersonator = \App\Models\User::find(session('impersonator_id'));
     @endphp
-    <div class="bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 text-slate-950 px-4 py-2 shadow-md flex items-center justify-between z-50 text-xs font-bold border-b border-amber-600 shrink-0">
+    <div class="bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 text-slate-950 px-4 py-2 shadow-md flex items-center justify-between z-50 font-bold border-b border-amber-600 shrink-0">
         <div class="flex items-center gap-2.5">
             <span class="p-1 bg-slate-950 text-amber-400 rounded shadow">
                 <i data-lucide="user-check" class="w-3.5 h-3.5"></i>
@@ -253,7 +253,7 @@
 
         <form action="{{ route('impersonate.leave') }}" method="POST" class="inline">
             @csrf
-            <button type="submit" class="px-3 py-1 bg-slate-950 hover:bg-slate-900 text-white rounded-lg text-xs font-black shadow transition flex items-center gap-1 shrink-0">
+            <button type="submit" class="px-3 py-1 bg-slate-950 hover:bg-slate-900 text-white rounded-lg font-black shadow transition flex items-center gap-1 shrink-0">
                 <i data-lucide="log-out" class="w-3 h-3 text-amber-400"></i>
                 Kembali ke SuperAdmin
             </button>
@@ -295,9 +295,12 @@
 
             @auth
             <div class="flex items-center gap-[8px] border-l border-slate-800 pl-[10px]">
-                <span class="text-slate-300 font-bold text-[11px]">{{ auth()->user()->name }}</span>
+                {{-- <span class="text-slate-300 font-bold text-[11px]">{{ auth()->user()->name }}</span> --}}
+                <span class="px-[8px] py-[2px] bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded-[4px] text-[10px] font-bold">
+                    {{ auth()->user()->role_label }}
+                </span>
 
-                <form action="{{ route('logout') }}" method="POST" @submit="if(isFullscreen || document.fullscreenElement) sessionStorage.setItem('app_fullscreen', 'true')" class="inline ml-[2px]">
+                <form action="{{ route('logout') }}" method="POST" @submit="if(isFullscreen || document.fullscreenElement) sessionStorage.setItem('app_fullscreen', 'true')" class="inline ml-[2px] mb-0">
                     @csrf
                     <button type="submit" class="p-[4px] text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-[4px] transition" title="Keluar Aplikasi">
                         <i data-lucide="log-out" class="w-[14px] h-[14px]"></i>
@@ -468,21 +471,21 @@
             >
                 <!-- Flash Banners -->
                 @if (session('success'))
-                <div class="mb-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 flex items-start gap-2.5 text-xs shadow-sm">
+                <div class="mb-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 flex items-start gap-2.5 shadow-sm">
                     <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5"></i>
                     <div class="font-bold">{{ session('success') }}</div>
                 </div>
                 @endif
 
                 @if (session('warning'))
-                <div class="mb-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 flex items-start gap-2.5 text-xs shadow-sm">
+                <div class="mb-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 flex items-start gap-2.5 shadow-sm">
                     <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5"></i>
                     <div class="font-bold">{{ session('warning') }}</div>
                 </div>
                 @endif
 
                 @if (session('error'))
-                <div class="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-800 dark:text-rose-300 flex items-start gap-2.5 text-xs shadow-sm">
+                <div class="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-800 dark:text-rose-300 flex items-start gap-2.5 shadow-sm">
                     <i data-lucide="alert-circle" class="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5"></i>
                     <div class="font-bold">{{ session('error') }}</div>
                 </div>
@@ -498,7 +501,7 @@
                 <div class="w-12 h-12 mb-3 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-500">
                     <i data-lucide="layout" class="w-6 h-6"></i>
                 </div>
-                <h4 class="font-bold text-xs text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-1">JENDELA FORM DITUTUP</h4>
+                <h4 class="font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-1">JENDELA FORM DITUTUP</h4>
                 <p class="text-[11px] text-slate-500 dark:text-slate-400 mb-4 font-sans">Klik tombol di bawah atau pilih menu tab di atas untuk membuka kembali form.</p>
                 <button 
                     @click="minimized = false" 
@@ -532,22 +535,27 @@
             <span class="text-slate-700">|</span>
 
             <!-- CPU & MEMORY RESOURCE USAGE MONITOR -->
+            <style>
+                .pc-info-value {min-width: 30px;}
+            </style>
             <div class="flex items-center gap-2 text-[10px]">
                 <span class="px-1.5 py-0.2 bg-slate-800 text-sky-300 border border-slate-700 rounded font-bold flex items-center gap-1" title="Penggunaan CPU Workstation">
                     <i data-lucide="cpu" class="w-3 h-3 text-sky-400"></i>
-                    <span>CPU: <strong x-text="cpuUsage + '%'">12%</strong></span>
+                    <span>CPU: </span>
+                    <span class="pc-info-value text-center"><strong x-text="cpuUsage + '%'">12%</strong></span>
                 </span>
 
                 <span class="px-1.5 py-0.2 bg-slate-800 text-purple-300 border border-slate-700 rounded font-bold flex items-center gap-1" title="Penggunaan Memori RAM Workstation">
                     <i data-lucide="hard-drive" class="w-3 h-3 text-purple-400"></i>
-                    <span>MEM: <strong x-text="memUsage + '%'">38%</strong></span>
+                    <span>MEM: </span>
+                    <span class="pc-info-value text-center"><strong x-text="memUsage + '%'">38%</strong></span>
                 </span>
             </div>
-            <span class="text-slate-400">|</span>
-            <span>USER: <strong class="text-white">{{ auth()->check() ? auth()->user()->name : 'PIC' }}</strong> ({{ auth()->check() && auth()->user()->department ? auth()->user()->department->code : 'DEPT' }})</span>
+            {{-- <span class="text-slate-400">|</span> --}}
+            {{-- <span>USER: <strong class="text-white">{{ auth()->check() ? auth()->user()->name : 'PIC' }}</strong> ({{ auth()->check() && auth()->user()->department ? auth()->user()->department->code : 'DEPT' }})</span> --}}
         </div>
         <div class="flex items-center gap-4 text-slate-400">
-            <span>develope by Web Dev Indraco</span>
+            <span>Developed by WebDev &copy; 2026 Indraco Global Indonesia</span>
         </div>
     </footer>
 

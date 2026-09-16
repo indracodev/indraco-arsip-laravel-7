@@ -305,8 +305,7 @@
                </div>
 
                <!-- Label Footer -->
-               <div
-                  class="flex justify-between items-center text-slate-400 font-mono border-t border-slate-200 pt-1.5 mt-1"
+               <div class="flex justify-between items-center font-mono border-t border-slate-200 pt-1.5 mt-1"
                   :class="fontScale == 'sm' ? 'text-[8px]' : 'text-[9px]'">
                   <span>TGL: {{ $item->created_at ? $item->created_at->format('d/m/Y') : date('d/m/Y') }}</span>
                   <span>D-ARSIP PT INDRACO</span>
