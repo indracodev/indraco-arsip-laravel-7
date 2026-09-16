@@ -42,6 +42,58 @@ class Archive extends Model
         'retention_years' => 'integer',
     ];
 
+    public function getDocumentTypesAttribute(): array
+    {
+        $raw = $this->attributes['document_type'] ?? null;
+        if (empty($raw)) {
+            return ['UMUM'];
+        }
+
+        $decoded = json_decode($raw, true);
+        if (is_array($decoded)) {
+            return !empty($decoded) ? $decoded : ['UMUM'];
+        }
+
+        if (strpos($raw, ',') !== false) {
+            $parts = array_filter(array_map('trim', explode(',', $raw)));
+            return !empty($parts) ? $parts : ['UMUM'];
+        }
+
+        return [$raw];
+    }
+
+    public function getDocumentTypeFormattedAttribute(): string
+    {
+        $types = $this->document_types;
+        if (empty($types)) {
+            return 'UMUM';
+        }
+        return implode(', ', $types);
+    }
+
+    public function getDocumentTypeAttribute($value): ?string
+    {
+        if (empty($value)) {
+            return 'UMUM';
+        }
+
+        $decoded = json_decode($value, true);
+        if (is_array($decoded)) {
+            return implode(', ', $decoded);
+        }
+
+        return $value;
+    }
+
+    public function setDocumentTypeAttribute($value): void
+    {
+        if (is_array($value)) {
+            $this->attributes['document_type'] = json_encode(array_values(array_filter($value)));
+        } else {
+            $this->attributes['document_type'] = $value;
+        }
+    }
+
     public function department(): BelongsTo
     {
         return $this->belongsTo(Department::class);

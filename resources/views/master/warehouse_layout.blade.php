@@ -688,8 +688,13 @@
                     </div>
 
                     <div class="p-2.5 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
-                        <span class="text-slate-500 block">Jenis Dokumen:</span>
-                        <span class="font-bold text-slate-900 dark:text-white" x-text="selectedDoc?.document_type"></span>
+                        <span class="text-slate-500 block mb-1">Jenis Dokumen:</span>
+                        <div class="flex flex-wrap gap-1" x-show="selectedDoc?.document_types && selectedDoc.document_types.length > 0">
+                            <template x-for="dt in (selectedDoc?.document_types || [])" :key="dt">
+                                <span class="px-2 py-0.5 bg-amber-100 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-300 font-bold text-xs rounded" x-text="dt"></span>
+                            </template>
+                        </div>
+                        <span class="font-bold text-slate-900 dark:text-white" x-show="!selectedDoc?.document_types || selectedDoc.document_types.length === 0" x-text="selectedDoc?.document_type || 'UMUM'"></span>
                     </div>
 
                     <div class="p-2.5 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">

@@ -69,7 +69,7 @@
                     </tr>
                     <tr>
                         <td class="border border-slate-300 p-2.5 font-bold bg-slate-100">Jenis Dokumen & Periode</td>
-                        <td class="border border-slate-300 p-2.5">{{ $archive->document_type ?? 'UMUM' }} | {{ $archive->period_text }} ({{ $archive->period_yy_mm }})</td>
+                        <td class="border border-slate-300 p-2.5">{{ $archive->document_type_formatted ?? ($archive->document_type ?? 'UMUM') }} | {{ $archive->period_text }} ({{ $archive->period_yy_mm }})</td>
                     </tr>
                     <tr>
                         <td class="border border-slate-300 p-2.5 font-bold bg-slate-100">Masa Simpan Awal</td>

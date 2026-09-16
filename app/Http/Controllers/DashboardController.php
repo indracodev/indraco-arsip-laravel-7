@@ -109,6 +109,7 @@ class DashboardController extends Controller
                     'title' => $archive->title,
                     'box_number' => $archive->box_number ?? 'Penomoran Pending',
                     'dept_code' => $archive->department->code ?? 'GEN',
+                    'document_type' => $archive->document_type_formatted,
                     'location' => $archive->location->full_location ?? 'Belum Ditentukan',
                     'status' => $archive->status,
                     'status_label' => $this->getStatusLabel($archive->status),
@@ -134,7 +135,8 @@ class DashboardController extends Controller
                 $q->where('title', 'like', "%{$search}%")
                   ->orWhere('box_number', 'like', "%{$search}%")
                   ->orWhere('period_text', 'like', "%{$search}%")
-                  ->orWhere('content_description', 'like', "%{$search}%");
+                  ->orWhere('content_description', 'like', "%{$search}%")
+                  ->orWhere('document_type', 'like', "%{$search}%");
             })
             ->latest()
             ->take(8)
@@ -145,6 +147,8 @@ class DashboardController extends Controller
                     'title' => $archive->title,
                     'box_number' => $archive->box_number ?? 'Penomoran Pending',
                     'dept_code' => $archive->department->code ?? 'GEN',
+                    'document_type' => $archive->document_type_formatted,
+                    'document_types' => $archive->document_types,
                     'location' => $archive->location->full_location ?? 'Belum Ditentukan',
                     'status' => $archive->status,
                     'status_label' => $this->getStatusLabel($archive->status),

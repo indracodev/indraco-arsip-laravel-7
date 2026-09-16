@@ -165,6 +165,9 @@
                                 <div class="flex items-center gap-[4px]">
                                     <span class="px-[4px] py-[1px] rounded-[2px] text-[9px] font-bold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300" x-text="item.dept_code"></span>
                                     <span class="text-[10px] font-bold text-amber-600 dark:text-amber-400" x-text="item.box_number"></span>
+                                    <template x-if="item.document_type">
+                                        <span class="text-[9px] px-[4px] py-[0.5px] rounded-[2px] bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/60 text-amber-800 dark:text-amber-300 font-bold truncate max-w-[150px]" x-text="item.document_type"></span>
+                                    </template>
                                 </div>
                                 <h4 class="text-[11px] font-bold text-slate-900 dark:text-white truncate" x-text="item.title"></h4>
                             </div>
@@ -195,6 +198,9 @@
                                 <div class="flex items-center gap-[4px]">
                                     <span class="px-[4px] py-[1px] rounded-[2px] text-[9px] font-bold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300" x-text="item.dept_code"></span>
                                     <span class="text-[10px] font-bold text-amber-600 dark:text-amber-400" x-text="item.box_number"></span>
+                                    <template x-if="item.document_type">
+                                        <span class="text-[9px] px-[4px] py-[0.5px] rounded-[2px] bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/60 text-amber-800 dark:text-amber-300 font-bold truncate max-w-[150px]" x-text="item.document_type"></span>
+                                    </template>
                                 </div>
                                 <h4 class="text-[11px] font-bold text-slate-900 dark:text-white truncate" x-text="item.title"></h4>
                             </div>

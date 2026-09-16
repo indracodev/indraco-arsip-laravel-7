@@ -190,8 +190,16 @@
                     </div>
 
                     <div class="p-[6px] bg-slate-50 dark:bg-slate-900 rounded-[3px] border border-slate-200 dark:border-slate-800">
-                        <span class="text-[9px] font-bold text-slate-500 uppercase block">Jenis Dokumen:</span>
-                        <span class="font-bold text-slate-900 dark:text-white">{{ $archive->document_type ?? 'UMUM' }}</span>
+                        <span class="text-[9px] font-bold text-slate-500 uppercase block mb-[2px]">Jenis Dokumen Fisik:</span>
+                        <div class="flex flex-wrap gap-[3px]">
+                            @forelse($archive->document_types as $docType)
+                                <span class="px-[5px] py-[1px] bg-amber-100 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-300 text-[10px] font-bold font-mono rounded-[2px]">
+                                    {{ $docType }}
+                                </span>
+                            @empty
+                                <span class="font-bold text-slate-900 dark:text-white">UMUM</span>
+                            @endforelse
+                        </div>
                     </div>
 
                     <div class="p-[6px] bg-slate-50 dark:bg-slate-900 rounded-[3px] border border-slate-200 dark:border-slate-800">

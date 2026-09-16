@@ -266,9 +266,9 @@
                   <div class="border border-slate-300 p-2 rounded bg-slate-50">
                      <span class="font-bold text-slate-500 uppercase block"
                         :class="fontScale == 'sm' ? 'text-[8px]' : 'text-[9px]'">JENIS DOKUMEN</span>
-                     <span class="font-extrabold text-slate-900 block"
-                        :class="fontScale == 'sm' ? 'text-xs' : 'text-sm'">
-                        {{ $item->document_type ?? 'UMUM' }}
+                     <span class="font-extrabold text-slate-900 block leading-tight"
+                        :class="fontScale == 'sm' ? 'text-[10px]' : 'text-xs'">
+                        {{ $item->document_type_formatted ?? ($item->document_type ?? 'UMUM') }}
                      </span>
                   </div>
 

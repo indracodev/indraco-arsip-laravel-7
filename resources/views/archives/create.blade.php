@@ -32,7 +32,7 @@
         <form action="{{ route('archives.store') }}" method="POST" enctype="multipart/form-data" class="space-y-[8px] pt-[4px]">
             @csrf
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-[8px]">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-[8px]">
                 <!-- Company Name -->
                 <div class="flex flex-col gap-[2px]">
                     <label for="company_name" class="text-[10px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-400">
@@ -70,23 +70,137 @@
                         </select>
                     @endif
                 </div>
-
-                <!-- Document Type -->
-                <div class="flex flex-col gap-[2px]">
-                    <label for="document_type" class="text-[10px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-400">
-                        JENIS DOKUMEN <span class="text-rose-500">*</span>
-                    </label>
-                    <select name="document_type" id="document_type" required class="w-full px-[8px] h-[28px] bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-[3px] text-[11px] font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition">
-                        <option value="PR" {{ old('document_type') == 'PR' ? 'selected' : '' }}>PR (Purchase Requisition)</option>
-                        <option value="ABSENSI" {{ old('document_type') == 'ABSENSI' ? 'selected' : '' }}>ABSENSI</option>
-                        <option value="UTILITY" {{ old('document_type') == 'UTILITY' ? 'selected' : '' }}>UTILITY</option>
-                        <option value="DATA SAMPLE" {{ old('document_type') == 'DATA SAMPLE' ? 'selected' : '' }}>DATA SAMPLE</option>
-                        <option value="FAKTUR" {{ old('document_type') == 'FAKTUR' ? 'selected' : '' }}>FAKTUR / INVOICE</option>
-                        <option value="KONTRAK" {{ old('document_type') == 'KONTRAK' ? 'selected' : '' }}>KONTRAK / PERJANJIAN</option>
-                        <option value="LAINNYA" {{ old('document_type') == 'LAINNYA' ? 'selected' : '' }}>LAINNYA</option>
-                    </select>
-                </div>
             </div>
+
+            @php
+                $oldDocTypes = old('document_types', []);
+                $availableDocTypes = [
+                    ['id' => 'PR', 'name' => 'PR (Purchase Requisition)', 'desc' => 'Permintaan Pembelian'],
+                    ['id' => 'PO', 'name' => 'PO (Purchase Order)', 'desc' => 'Pesanan Pembelian'],
+                    ['id' => 'SURAT JALAN', 'name' => 'Surat Jalan (DO)', 'desc' => 'Bukti Kirim & Terima'],
+                    ['id' => 'FAKTUR', 'name' => 'Faktur / Invoice', 'desc' => 'Tagihan Pembelian/Jual'],
+                    ['id' => 'FAKTUR PAJAK', 'name' => 'Faktur Pajak', 'desc' => 'Faktur Pajak Standar'],
+                    ['id' => 'ABSENSI', 'name' => 'Absensi / Payroll', 'desc' => 'Presensi & Rekap Gaji'],
+                    ['id' => 'KONTRAK', 'name' => 'Kontrak / SPK', 'desc' => 'Perjanjian & Legalitas'],
+                    ['id' => 'UTILITY', 'name' => 'Utility / Bukti Bayar', 'desc' => 'Tagihan Operasional'],
+                    ['id' => 'DATA SAMPLE', 'name' => 'Data Sample', 'desc' => 'Uji Lab & Quality Control'],
+                    ['id' => 'LAINNYA', 'name' => 'Lainnya (Spesifik)', 'desc' => 'Dokumen spesifik lain'],
+                ];
+            @endphp
+
+            <!-- Document Types Multi-Check Selection GroupBox -->
+            <fieldset 
+                x-data="{
+                    selectedTypes: {{ json_encode($oldDocTypes) }},
+                    showCustom: {{ in_array('LAINNYA', $oldDocTypes) ? 'true' : 'false' }},
+                    toggle(type) {
+                        if (this.selectedTypes.includes(type)) {
+                            this.selectedTypes = this.selectedTypes.filter(t => t !== type);
+                        } else {
+                            this.selectedTypes.push(type);
+                        }
+                        this.checkCustom();
+                    },
+                    checkCustom() {
+                        this.showCustom = this.selectedTypes.includes('LAINNYA');
+                    },
+                    selectAll() {
+                        this.selectedTypes = ['PR', 'PO', 'SURAT JALAN', 'FAKTUR', 'FAKTUR PAJAK', 'ABSENSI', 'KONTRAK', 'UTILITY', 'DATA SAMPLE', 'LAINNYA'];
+                        this.checkCustom();
+                    },
+                    clearAll() {
+                        this.selectedTypes = [];
+                        this.checkCustom();
+                    },
+                    presetFinance() {
+                        this.selectedTypes = ['PR', 'PO', 'SURAT JALAN', 'FAKTUR', 'FAKTUR PAJAK'];
+                        this.checkCustom();
+                    },
+                    presetHRD() {
+                        this.selectedTypes = ['ABSENSI', 'UTILITY'];
+                        this.checkCustom();
+                    }
+                }"
+                class="border border-slate-300 dark:border-slate-800 p-[8px] sm:p-[10px] rounded-[3px] bg-slate-50/70 dark:bg-slate-900/60 space-y-[6px]"
+            >
+                <legend class="px-[6px] text-[10px] font-bold uppercase text-amber-700 dark:text-amber-400 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px] shadow-2xs flex items-center gap-[4px]">
+                    <i data-lucide="check-square" class="w-[12px] h-[12px] text-amber-500"></i>
+                    <span>TIPE DOKUMEN DALAM SATU BOX BENDEL <span class="text-rose-500">*</span> (Pilihan Formulir Ceklis)</span>
+                </legend>
+
+                <!-- Helper buttons & counter ribbon -->
+                <div class="flex flex-wrap items-center justify-between gap-[6px] pb-[4px] border-b border-slate-200 dark:border-slate-800">
+                    <div class="flex items-center gap-[6px] text-[10px] text-slate-600 dark:text-slate-400 font-mono">
+                        <span>Terpilih:</span>
+                        <span class="px-[6px] py-[1px] bg-amber-500 text-slate-950 font-black rounded font-mono text-[10px]" x-text="selectedTypes.length + ' Dokumen'"></span>
+                        <span class="text-slate-400 text-[9px] hidden sm:inline">(Bisa mencakup beberapa jenis dokumen dalam satu box)</span>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-[4px] text-[10px] font-mono">
+                        <button type="button" @click="selectAll()" class="px-[6px] py-[1px] bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded border border-slate-300 dark:border-slate-700 font-bold transition">
+                            Pilih Semua
+                        </button>
+                        <button type="button" @click="clearAll()" class="px-[6px] py-[1px] bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded border border-slate-300 dark:border-slate-700 font-bold transition">
+                            Kosongkan
+                        </button>
+                        <span class="text-slate-300 dark:text-slate-700">|</span>
+                        <button type="button" @click="presetFinance()" class="px-[6px] py-[1px] bg-amber-100 hover:bg-amber-200 dark:bg-amber-950/50 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 rounded border border-amber-300 dark:border-amber-800 font-bold transition">
+                            + Paket Finance/Purchasing
+                        </button>
+                        <button type="button" @click="presetHRD()" class="px-[6px] py-[1px] bg-sky-100 hover:bg-sky-200 dark:bg-sky-950/50 dark:hover:bg-sky-900/60 text-sky-800 dark:text-sky-300 rounded border border-sky-300 dark:border-sky-800 font-bold transition">
+                            + Paket HRD/GA
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Checkbox Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-[6px]">
+                    @foreach($availableDocTypes as $doc)
+                    <label 
+                        class="relative flex items-start gap-[6px] p-[6px] rounded-[3px] border cursor-pointer select-none transition"
+                        :class="selectedTypes.includes('{{ $doc['id'] }}') 
+                            ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-400 dark:border-amber-600 shadow-2xs' 
+                            : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'"
+                    >
+                        <input 
+                            type="checkbox" 
+                            name="document_types[]" 
+                            value="{{ $doc['id'] }}" 
+                            x-model="selectedTypes"
+                            @change="checkCustom()"
+                            class="mt-[2px] rounded border-slate-300 dark:border-slate-700 text-amber-500 focus:ring-0"
+                        >
+                        <div class="flex-1 min-w-0">
+                            <span class="font-bold text-[10.5px] block leading-tight font-mono" :class="selectedTypes.includes('{{ $doc['id'] }}') ? 'text-amber-900 dark:text-amber-300' : 'text-slate-800 dark:text-slate-200'">
+                                {{ $doc['name'] }}
+                            </span>
+                            <span class="text-[9px] text-slate-500 dark:text-slate-400 block leading-tight mt-[1px]">
+                                {{ $doc['desc'] }}
+                            </span>
+                        </div>
+                    </label>
+                    @endforeach
+                </div>
+
+                <!-- Custom Document Type Input (shown if LAINNYA is checked) -->
+                <div x-show="showCustom" x-transition class="pt-[4px] border-t border-slate-200 dark:border-slate-800 flex flex-col gap-[2px]">
+                    <label for="custom_document_type" class="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase">
+                        Keterangan Dokumen Tambahan (Lainnya):
+                    </label>
+                    <input 
+                        type="text" 
+                        name="custom_document_type" 
+                        id="custom_document_type" 
+                        value="{{ old('custom_document_type') }}" 
+                        placeholder="Contoh: Polis Asuransi Kendaraan, Bilyet Deposito, Bukti Setor Pajak..."
+                        class="w-full px-[8px] h-[28px] bg-white dark:bg-slate-950 border border-amber-300 dark:border-amber-700 rounded-[3px] text-[11px] font-mono text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 transition"
+                    >
+                </div>
+
+                @error('document_types') 
+                    <span class="text-rose-500 text-[10px] font-bold block pt-[2px]">{{ $message }}</span> 
+                @enderror
+            </fieldset>
 
             <!-- Archive Title -->
             <div class="flex flex-col gap-[2px]">

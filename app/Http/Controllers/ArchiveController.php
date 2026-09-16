@@ -29,12 +29,18 @@ class ArchiveController extends Controller
                 $q->where('title', 'like', "%{$search}%")
                   ->orWhere('box_number', 'like', "%{$search}%")
                   ->orWhere('period_text', 'like', "%{$search}%")
-                  ->orWhere('content_description', 'like', "%{$search}%");
+                  ->orWhere('content_description', 'like', "%{$search}%")
+                  ->orWhere('document_type', 'like', "%{$search}%");
             });
         }
 
         if ($request->filled('department_id')) {
             $query->where('department_id', $request->department_id);
+        }
+
+        if ($request->filled('document_type')) {
+            $docType = $request->document_type;
+            $query->where('document_type', 'like', "%{$docType}%");
         }
 
         if ($request->filled('status')) {
@@ -84,7 +90,9 @@ class ArchiveController extends Controller
         $validated = $request->validate([
             'department_id' => 'required|exists:departments,id',
             'company_name' => 'nullable|string|max:150',
-            'document_type' => 'nullable|string|max:100',
+            'document_types' => 'required|array|min:1',
+            'document_types.*' => 'string|max:100',
+            'custom_document_type' => 'nullable|string|max:100',
             'title' => 'required|string|max:255',
             'period_start_date' => 'required|date',
             'period_end_date' => 'required|date|after_or_equal:period_start_date',
@@ -96,10 +104,25 @@ class ArchiveController extends Controller
             'file' => 'nullable|file|mimes:pdf,jpg,png,doc,docx,zip|max:10240',
             'scan_input_form' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
             'scan_approval_input' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
+        ], [
+            'document_types.required' => 'Pilih minimal satu jenis dokumen untuk berkas arsip ini.',
+            'document_types.min' => 'Pilih minimal satu jenis dokumen untuk berkas arsip ini.',
         ]);
 
         if ($user->isPicDept()) {
             $validated['department_id'] = $user->department_id;
+        }
+
+        // Process multi-selected document types
+        $documentTypes = $request->input('document_types', []);
+        if (in_array('LAINNYA', $documentTypes) && !empty($request->custom_document_type)) {
+            $custom = trim($request->custom_document_type);
+            $key = array_search('LAINNYA', $documentTypes);
+            $documentTypes[$key] = 'LAINNYA: ' . strtoupper($custom);
+        }
+        $documentTypes = array_values(array_unique(array_filter($documentTypes)));
+        if (empty($documentTypes)) {
+            $documentTypes = ['UMUM'];
         }
 
         $filePath = null;
@@ -122,7 +145,7 @@ class ArchiveController extends Controller
         $retentionExpiryDate = $endDate->copy()->addYears((int)$validated['retention_years']);
 
         // Generate period text if empty
-        $periodText = $validated['period_text'];
+        $periodText = $validated['period_text'] ?? null;
         if (empty($periodText)) {
             $periodText = Carbon::parse($validated['period_start_date'])->isoFormat('MMMM Y') . ' - ' . $endDate->isoFormat('MMMM Y');
         }
@@ -136,7 +159,7 @@ class ArchiveController extends Controller
         Archive::create([
             'department_id' => $validated['department_id'],
             'company_name' => $validated['company_name'] ?? 'PT Indraco',
-            'document_type' => $validated['document_type'] ?? 'UMUM',
+            'document_type' => $documentTypes,
             'created_by_user_id' => $user->id,
             'title' => $validated['title'],
             'period_start_date' => $validated['period_start_date'],

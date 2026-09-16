@@ -36,7 +36,7 @@
             Filter & Pencarian Data Katalog
         </legend>
 
-        <form action="{{ route('archives.index') }}" method="GET" class="grid grid-cols-5 gap-[8px] pt-[4px]" @submit="submitting = true">
+        <form action="{{ route('archives.index') }}" method="GET" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-[8px] pt-[4px]" @submit="submitting = true">
             <input type="hidden" name="sort" value="{{ request('sort', 'created_at') }}">
             <input type="hidden" name="direction" value="{{ request('direction', 'desc') }}">
 
@@ -51,7 +51,7 @@
                         type="text" 
                         name="search" 
                         value="{{ request('search') }}" 
-                        placeholder="Judul, No. Box, Isi Berkas..." 
+                        placeholder="Judul, No. Box, Dokumen..." 
                         class="w-full pl-[26px] pr-[8px] h-[28px] bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-[4px] text-[11px] font-mono text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 transition"
                     >
                     <i data-lucide="search" class="w-[12px] h-[12px] text-slate-400 absolute left-[8px] top-[8px]"></i>
@@ -62,7 +62,7 @@
             <div class="space-y-[4px]">
                 <label class="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 block">DEPARTEMEN</label>
                 <select name="department_id" class="w-full h-[28px] px-[8px] bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-[4px] text-[11px] font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition">
-                    <option value="">-- Semua Departemen --</option>
+                    <option value="">-- Semua Dept --</option>
                     @foreach($departments as $dept)
                     <option value="{{ $dept->id }}" {{ request('department_id') == $dept->id ? 'selected' : '' }}>
                         {{ $dept->code }} - {{ $dept->name }}
@@ -71,11 +71,29 @@
                 </select>
             </div>
 
+            <!-- Document Type Filter -->
+            <div class="space-y-[4px]">
+                <label class="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 block">JENIS DOKUMEN</label>
+                <select name="document_type" class="w-full h-[28px] px-[8px] bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-[4px] text-[11px] font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition">
+                    <option value="">-- Semua Dokumen --</option>
+                    <option value="PR" {{ request('document_type') == 'PR' ? 'selected' : '' }}>PR (Purchase Requisition)</option>
+                    <option value="PO" {{ request('document_type') == 'PO' ? 'selected' : '' }}>PO (Purchase Order)</option>
+                    <option value="SURAT JALAN" {{ request('document_type') == 'SURAT JALAN' ? 'selected' : '' }}>Surat Jalan (DO)</option>
+                    <option value="FAKTUR" {{ request('document_type') == 'FAKTUR' ? 'selected' : '' }}>Faktur / Invoice</option>
+                    <option value="FAKTUR PAJAK" {{ request('document_type') == 'FAKTUR PAJAK' ? 'selected' : '' }}>Faktur Pajak</option>
+                    <option value="ABSENSI" {{ request('document_type') == 'ABSENSI' ? 'selected' : '' }}>Absensi / Payroll</option>
+                    <option value="KONTRAK" {{ request('document_type') == 'KONTRAK' ? 'selected' : '' }}>Kontrak / SPK</option>
+                    <option value="UTILITY" {{ request('document_type') == 'UTILITY' ? 'selected' : '' }}>Utility / Bukti Bayar</option>
+                    <option value="DATA SAMPLE" {{ request('document_type') == 'DATA SAMPLE' ? 'selected' : '' }}>Data Sample</option>
+                    <option value="LAINNYA" {{ request('document_type') == 'LAINNYA' ? 'selected' : '' }}>Lainnya</option>
+                </select>
+            </div>
+
             <!-- Status Filter -->
             <div class="space-y-[4px]">
                 <label class="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 block">STATUS WORKFLOW</label>
                 <select name="status" class="w-full h-[28px] px-[8px] bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-[4px] text-[11px] font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition">
-                    <option value="">-- Semua Status Workflow --</option>
+                    <option value="">-- Semua Status --</option>
                     <option value="draft" {{ request('status') == 'draft' ? 'selected' : '' }}>Draft (Revisi)</option>
                     <option value="pending_verification" {{ request('status') == 'pending_verification' ? 'selected' : '' }}>Antrean Verifikasi</option>
                     <option value="approved_booked" {{ request('status') == 'approved_booked' ? 'selected' : '' }}>Approved / Booked</option>
@@ -103,7 +121,7 @@
                     <span x-text="submitting ? 'Memuat...' : 'Filter'"></span>
                 </button>
 
-                @if(request()->hasAny(['search', 'department_id', 'status', 'expiry_filter']))
+                @if(request()->hasAny(['search', 'department_id', 'document_type', 'status', 'expiry_filter']))
                 <a href="{{ route('archives.index') }}" class="h-[28px] px-[8px] bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-[4px] text-[11px] font-mono font-bold border border-slate-300 dark:border-slate-700 transition flex items-center justify-center shadow-2xs" title="Reset Filter">
                     <i data-lucide="x" class="w-[12px] h-[12px]"></i>
                 </a>
@@ -213,6 +231,13 @@
                                         {{ $archive->department->code ?? 'GEN' }}
                                     </span>
                                     <span>by {{ $archive->creator->name ?? 'User' }}</span>
+                                </div>
+                                <div class="flex flex-wrap items-center gap-[3px] pt-[2px]">
+                                    @foreach($archive->document_types as $docType)
+                                        <span class="px-[4px] py-[0.5px] rounded-[2px] bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/60 text-amber-800 dark:text-amber-300 font-bold text-[9px] font-mono">
+                                            {{ $docType }}
+                                        </span>
+                                    @endforeach
                                 </div>
                             </div>
                         </td>
