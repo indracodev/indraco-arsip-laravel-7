@@ -1,5 +1,22 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" data-bs-theme="light">
+@php
+    $configuredFontSize = config('app.font_size', env('APP_FONT_SIZE', '16px'));
+    $lowerFontSize = strtolower($configuredFontSize);
+    if (in_array($lowerFontSize, ['small', 'sm'])) {
+        $fontSizeScale = '14px';
+    } elseif (in_array($lowerFontSize, ['medium', 'md', 'default'])) {
+        $fontSizeScale = '16px';
+    } elseif (in_array($lowerFontSize, ['large', 'lg'])) {
+        $fontSizeScale = '18px';
+    } elseif (in_array($lowerFontSize, ['xlarge', 'xl'])) {
+        $fontSizeScale = '20px';
+    } elseif (\Illuminate\Support\Str::contains($configuredFontSize, 'px') || \Illuminate\Support\Str::contains($configuredFontSize, '%') || \Illuminate\Support\Str::contains($configuredFontSize, 'rem')) {
+        $fontSizeScale = $configuredFontSize;
+    } else {
+        $fontSizeScale = '16px';
+    }
+@endphp
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" data-bs-theme="light" style="font-size: {{ $fontSizeScale }};">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=800">
@@ -13,6 +30,9 @@
     <link rel="stylesheet" href="{{ asset('css/main.css') }}">
 
     <style>
+        html, body {
+            font-size: {{ $fontSizeScale }};
+        }
         body {
             background-color: #f8f9fa;
         }

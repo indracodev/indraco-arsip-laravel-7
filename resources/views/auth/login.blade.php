@@ -1,13 +1,15 @@
 <!DOCTYPE html>
 @php
-   $configuredFontSize = config('app.font_size', 'medium');
+   $configuredFontSize = config('app.font_size', env('APP_FONT_SIZE', '16px'));
    $lowerFontSize = strtolower($configuredFontSize);
    if (in_array($lowerFontSize, ['small', 'sm'])) {
-       $fontSizeScale = '90%';
+       $fontSizeScale = '14px';
+   } elseif (in_array($lowerFontSize, ['medium', 'md', 'default'])) {
+       $fontSizeScale = '16px';
    } elseif (in_array($lowerFontSize, ['large', 'lg'])) {
-       $fontSizeScale = '110%';
+       $fontSizeScale = '18px';
    } elseif (in_array($lowerFontSize, ['xlarge', 'xl'])) {
-       $fontSizeScale = '120%';
+       $fontSizeScale = '20px';
    } elseif (
        \Illuminate\Support\Str::contains($configuredFontSize, 'px') ||
        \Illuminate\Support\Str::contains($configuredFontSize, '%') ||
@@ -15,10 +17,10 @@
    ) {
        $fontSizeScale = $configuredFontSize;
    } else {
-       $fontSizeScale = '100%';
+       $fontSizeScale = '16px';
    }
 @endphp
-<html lang="id" style="min-width: 800px; min-height: 600px; font-size: 14px;"
+<html lang="id" style="min-width: 800px; min-height: 600px; font-size: {{ $fontSizeScale }};"
    class="h-full select-none overflow-x-auto">
 
 <head>
@@ -79,6 +81,21 @@
    <style>
       [x-cloak] {
          display: none !important;
+      }
+
+      html, body {
+         font-size: {{ $fontSizeScale }};
+      }
+
+      /* Scale up tiny utility classes so text is comfortable & readable */
+      .text-\[10px\], .text-\[11px\] {
+         font-size: 0.8125rem !important;
+      }
+      .text-\[9px\] {
+         font-size: 0.75rem !important;
+      }
+      .text-\[12px\] {
+         font-size: 0.875rem !important;
       }
 
       /* Delphi / Visual Basic Classic Desktop Bevel & Frame Styles */

@@ -1,12 +1,14 @@
 @php
-   $configuredFontSize = config('app.font_size', env('APP_FONT_SIZE', '19px'));
+   $configuredFontSize = config('app.font_size', env('APP_FONT_SIZE', '16px'));
    $lowerFontSize = strtolower($configuredFontSize);
    if (in_array($lowerFontSize, ['small', 'sm'])) {
-       $fontSizeScale = '90%';
+       $fontSizeScale = '14px';
+   } elseif (in_array($lowerFontSize, ['medium', 'md', 'default'])) {
+       $fontSizeScale = '16px';
    } elseif (in_array($lowerFontSize, ['large', 'lg'])) {
-       $fontSizeScale = '110%';
+       $fontSizeScale = '18px';
    } elseif (in_array($lowerFontSize, ['xlarge', 'xl'])) {
-       $fontSizeScale = '120%';
+       $fontSizeScale = '20px';
    } elseif (
        \Illuminate\Support\Str::contains($configuredFontSize, 'px') ||
        \Illuminate\Support\Str::contains($configuredFontSize, '%') ||
@@ -14,7 +16,7 @@
    ) {
        $fontSizeScale = $configuredFontSize;
    } else {
-       $fontSizeScale = '19px';
+       $fontSizeScale = '16px';
    }
 @endphp
 @if (request()->has('embed') ||
@@ -22,7 +24,7 @@
         request()->header('Sec-Fetch-Dest') === 'iframe' ||
         \Illuminate\Support\Str::contains(request()->header('referer', ''), 'embed=1'))
    <!DOCTYPE html>
-   <html lang="id" class="h-full select-none">
+   <html lang="id" style="font-size: {{ $fontSizeScale }};" class="h-full select-none">
 
    <head>
       <meta charset="UTF-8">
@@ -77,10 +79,25 @@
             display: none !important;
          }
 
+         html, body {
+            font-size: {{ $fontSizeScale }};
+         }
+
          main table {
             border-collapse: separate;
             border-spacing: 0;
-            font-size: 11px;
+            font-size: 0.875rem;
+         }
+
+         /* Scale up tiny utility classes so text is comfortable & readable */
+         .text-\[10px\], .text-\[11px\] {
+            font-size: 0.8125rem !important;
+         }
+         .text-\[9px\] {
+            font-size: 0.75rem !important;
+         }
+         .text-\[12px\] {
+            font-size: 0.875rem !important;
          }
 
          main table th {
@@ -189,7 +206,7 @@
 
    </html>
 @else
-   <html lang="id" style="min-width: 800px; min-height: 600px; font-size: 14px;"
+   <html lang="id" style="min-width: 800px; min-height: 600px; font-size: {{ $fontSizeScale }};"
       class="h-full select-none overflow-x-auto">
 
    <head>
@@ -236,6 +253,10 @@
             display: none !important;
          }
 
+         html, body {
+            font-size: {{ $fontSizeScale }};
+         }
+
          .no-scrollbar::-webkit-scrollbar {
             display: none !important;
             width: 0 !important;
@@ -251,7 +272,18 @@
          main table {
             border-collapse: separate;
             border-spacing: 0;
-            font-size: 11px;
+            font-size: 0.875rem;
+         }
+
+         /* Scale up tiny utility classes so text is comfortable & readable */
+         .text-\[10px\], .text-\[11px\] {
+            font-size: 0.8125rem !important;
+         }
+         .text-\[9px\] {
+            font-size: 0.75rem !important;
+         }
+         .text-\[12px\] {
+            font-size: 0.875rem !important;
          }
 
          main table th {
@@ -605,6 +637,18 @@
                      url: '{{ route('master.departments') }}?embed=1'
                   },
                   {
+                     id: 'companies',
+                     title: 'Perusahaan Entitas',
+                     icon: 'landmark',
+                     url: '{{ route('master.companies') }}?embed=1'
+                  },
+                  {
+                     id: 'document_types',
+                     title: 'Katalog Dokumen',
+                     icon: 'file-text',
+                     url: '{{ route('master.document_types') }}?embed=1'
+                  },
+                  {
                      id: 'warehouses',
                      title: 'Master Gudang & Rak',
                      icon: 'warehouse',
@@ -647,6 +691,8 @@
                   let initialId = 'dashboard';
                   @if (request()->routeIs('master.departments'))
                      initialId = 'departments';
+                  @elseif (request()->routeIs('master.companies')) initialId = 'companies';
+                  @elseif (request()->routeIs('master.document_types')) initialId = 'document_types';
                   @elseif (request()->routeIs('master.warehouses')) initialId = 'warehouses';
                   @elseif (request()->routeIs('master.warehouses.layout')) initialId = 'warehouse_layout';
                   @elseif (request()->routeIs('master.numbering')) initialId = 'numbering';

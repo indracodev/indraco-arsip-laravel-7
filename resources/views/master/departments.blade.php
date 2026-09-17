@@ -1,11 +1,13 @@
 @extends('layouts.app')
 
-@section('title', 'Master Departemen - DMS PT Indraco')
+@section('title', 'Master Departemen & Subdepartemen - DMS PT Indraco')
 
 @section('content')
 <div class="space-y-3" x-data="{
     openAdd: false, 
     editItem: null,
+    addSubDeptTarget: null,
+    editSubDeptTarget: null,
     searchQuery: '',
     sortColumn: 'code',
     sortDirection: 'asc',
@@ -20,7 +22,8 @@
             res = res.filter(i => 
                 (i.code && i.code.toLowerCase().includes(q)) ||
                 (i.name && i.name.toLowerCase().includes(q)) ||
-                (i.description && i.description.toLowerCase().includes(q))
+                (i.description && i.description.toLowerCase().includes(q)) ||
+                (i.sub_departments && i.sub_departments.some(s => s.name.toLowerCase().includes(q) || (s.code && s.code.toLowerCase().includes(q))))
             );
         }
         res.sort((a, b) => {
@@ -46,7 +49,7 @@
             this.sortColumn = col;
             this.sortDirection = 'asc';
         }
-        setTimeout(() => { this.isLoading = false; lucide.createIcons(); }, 80);
+        setTimeout(() => { this.isLoading = false; if (window.lucide) lucide.createIcons(); }, 80);
     }
 }">
 
@@ -54,11 +57,11 @@
     <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-3 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3 font-mono">
         <div class="flex items-center gap-2">
             <span class="p-1.5 bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/30 rounded">
-                <i data-lucide="building-2" class="w-4 h-4"></i>
+                <i data-lucide="network" class="w-4 h-4"></i>
             </span>
             <div>
-                <h1 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Master Departemen Perusahaan</h1>
-                <p class="text-[11px] text-slate-500 dark:text-slate-400">Pengelolaan Daftar Unit Departemen PT Indraco (TDBGrid Engine)</p>
+                <h1 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Master Departemen & Subdepartemen (Parent > Child)</h1>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400">Pengelolaan Hirarki Unit Departemen & Subdepartemen PT Indraco (Full Super Admin Control)</p>
             </div>
         </div>
 
@@ -69,8 +72,8 @@
                 <input 
                     type="text" 
                     x-model="searchQuery" 
-                    placeholder="Cari kode/nama... (Ctrl+F)" 
-                    class="w-full pl-8 pr-7 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition"
+                    placeholder="Cari dept / subdept... (Ctrl+F)" 
+                    class="w-full pl-8 pr-7 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 transition"
                 >
                 <button x-show="searchQuery" @click="searchQuery = ''" type="button" class="absolute right-2 top-1.5 text-slate-400 hover:text-slate-600">
                     <i data-lucide="x" class="w-3 h-3"></i>
@@ -83,10 +86,10 @@
                 <span>Refresh</span>
             </button>
 
-            <!-- Add Button -->
+            <!-- Add Department Button -->
             <button @click="openAdd = true" type="button" class="px-3 py-1 bg-purple-600 hover:bg-purple-500 text-white font-mono font-bold text-xs rounded border border-purple-700 shadow transition flex items-center gap-1.5 shrink-0">
                 <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
-                <span>Tambah Dept</span>
+                <span>Tambah Departemen (Parent)</span>
             </button>
         </div>
     </div>
@@ -105,52 +108,118 @@
             <table class="w-full text-left border-collapse font-sans text-xs">
                 <thead>
                     <tr class="font-mono text-[11px] select-none">
-                        <th @click="sortBy('code')" class="py-2 px-3 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800 transition">
+                        <th @click="sortBy('code')" class="py-2 px-3 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800 transition w-24">
                             <div class="flex items-center gap-1">
-                                KODE DEPT
+                                KODE
                                 <i data-lucide="arrow-up-down" class="w-3 h-3 opacity-40" x-show="sortColumn !== 'code'"></i>
                                 <i data-lucide="arrow-up" class="w-3 h-3 text-purple-600" x-show="sortColumn === 'code' && sortDirection === 'asc'"></i>
                                 <i data-lucide="arrow-down" class="w-3 h-3 text-purple-600" x-show="sortColumn === 'code' && sortDirection === 'desc'"></i>
                             </div>
                         </th>
-                        <th @click="sortBy('name')" class="py-2 px-3 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800 transition">
+                        <th @click="sortBy('name')" class="py-2 px-3 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800 transition w-56">
                             <div class="flex items-center gap-1">
-                                NAMA DEPARTEMEN
+                                DEPARTEMEN (PARENT)
                                 <i data-lucide="arrow-up-down" class="w-3 h-3 opacity-40" x-show="sortColumn !== 'name'"></i>
                                 <i data-lucide="arrow-up" class="w-3 h-3 text-purple-600" x-show="sortColumn === 'name' && sortDirection === 'asc'"></i>
                                 <i data-lucide="arrow-down" class="w-3 h-3 text-purple-600" x-show="sortColumn === 'name' && sortDirection === 'desc'"></i>
                             </div>
                         </th>
-                        <th class="py-2 px-3">DESKRIPSI / RUANG LINGKUP</th>
-                        <th @click="sortBy('archives_count')" class="py-2 px-3 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800 transition">
+                        <th class="py-2 px-3">
+                            SUBDEPARTEMEN / DIVISI KERJA (CHILDREN)
+                        </th>
+                        <th @click="sortBy('archives_count')" class="py-2 px-3 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800 transition w-32">
                             <div class="flex items-center gap-1">
-                                TOTAL BERKAS ARSIP
+                                TOTAL BERKAS
                                 <i data-lucide="arrow-up-down" class="w-3 h-3 opacity-40" x-show="sortColumn !== 'archives_count'"></i>
                                 <i data-lucide="arrow-up" class="w-3 h-3 text-purple-600" x-show="sortColumn === 'archives_count' && sortDirection === 'asc'"></i>
                                 <i data-lucide="arrow-down" class="w-3 h-3 text-purple-600" x-show="sortColumn === 'archives_count' && sortDirection === 'desc'"></i>
                             </div>
                         </th>
-                        <th class="py-2 px-3 text-right">AKSI</th>
+                        <th class="py-2 px-3 text-right w-44">AKSI DEPT</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
                     <template x-for="dept in filteredItems" :key="dept.id">
-                        <tr class="hover:bg-amber-500/10 dark:hover:bg-amber-500/20 transition">
-                            <td class="py-2 px-3 font-mono text-xs text-amber-600 dark:text-amber-400 font-bold" x-text="dept.code"></td>
-                            <td class="py-2 px-3 font-bold text-slate-900 dark:text-white" x-text="dept.name"></td>
-                            <td class="py-2 px-3 text-xs text-slate-600 dark:text-slate-300 font-medium" x-text="dept.description || '-'"></td>
-                            <td class="py-2 px-3 text-xs font-mono font-bold text-purple-700 dark:text-purple-300" x-text="(dept.archives_count || 0) + ' Box/Berkas'"></td>
-                            <td class="py-2 px-3 text-right flex items-center justify-end gap-1 font-mono">
-                                <button @click="editItem = Object.assign({}, dept)" class="px-2 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-400 dark:border-slate-600 rounded text-[11px] font-bold transition flex items-center gap-1" title="Edit Departemen">
-                                    <i data-lucide="edit-3" class="w-3 h-3 text-amber-500"></i> Edit
-                                </button>
-                                <form :action="'{{ url('/master/departments') }}/' + dept.id" method="POST" class="inline" @submit="submitting = true">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" onclick="return confirm('Hapus departemen ini?')" class="px-2 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/30 rounded text-[11px] font-bold transition flex items-center gap-1" title="Hapus Departemen">
-                                        <i data-lucide="trash-2" class="w-3 h-3 text-rose-500"></i> Hapus
+                        <tr class="hover:bg-amber-500/5 dark:hover:bg-amber-500/10 transition">
+                            <!-- Code -->
+                            <td class="py-2 px-3 font-mono text-xs text-purple-600 dark:text-purple-400 font-bold align-top" x-text="dept.code"></td>
+
+                            <!-- Parent Dept Name -->
+                            <td class="py-2 px-3 align-top">
+                                <div class="font-bold text-slate-900 dark:text-white" x-text="dept.name"></div>
+                                <div class="text-[10px] text-slate-500 dark:text-slate-400 font-mono mt-0.5" x-text="dept.description || '-'"></div>
+                            </td>
+
+                            <!-- Subdepartments List (Parent > Child) -->
+                            <td class="py-2 px-3 align-top">
+                                <div class="flex flex-wrap items-center gap-1.5">
+                                    <template x-for="sub in (dept.sub_departments || [])" :key="sub.id">
+                                        <div class="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-[11px] font-mono group transition hover:border-purple-400">
+                                            <span class="font-bold text-slate-800 dark:text-slate-200" x-text="sub.name"></span>
+                                            <template x-if="sub.code">
+                                                <span class="text-[9px] text-amber-600 dark:text-amber-400 font-bold" x-text="'(' + sub.code + ')'"></span>
+                                            </template>
+
+                                            <!-- Edit subdept -->
+                                            <button 
+                                                @click="editSubDeptTarget = Object.assign({}, sub)" 
+                                                type="button" 
+                                                class="text-slate-400 hover:text-amber-500 ml-1"
+                                                title="Edit Subdepartemen"
+                                            >
+                                                <i data-lucide="edit-2" class="w-3 h-3"></i>
+                                            </button>
+
+                                            <!-- Delete subdept -->
+                                            <form :action="'{{ url('/master/subdepartments') }}/' + sub.id" method="POST" class="inline" @submit="submitting = true">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button 
+                                                    type="submit" 
+                                                    onclick="return confirm('Hapus subdepartemen ini?')" 
+                                                    class="text-slate-400 hover:text-rose-500"
+                                                    title="Hapus Subdepartemen"
+                                                >
+                                                    <i data-lucide="x" class="w-3 h-3"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </template>
+
+                                    <!-- Button to add new child subdepartment under this department -->
+                                    <button 
+                                        @click="addSubDeptTarget = Object.assign({}, dept)" 
+                                        type="button" 
+                                        class="px-2 py-0.5 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700/80 rounded text-[10px] font-mono font-bold flex items-center gap-1 transition"
+                                        title="Tambah Subdepartemen untuk unit ini"
+                                    >
+                                        <i data-lucide="plus" class="w-3 h-3 text-amber-600"></i>
+                                        <span>+ Subdept</span>
                                     </button>
-                                </form>
+
+                                    <template x-if="!dept.sub_departments || dept.sub_departments.length === 0">
+                                        <span class="text-[10px] text-slate-400 italic">Belum ada subdepartemen</span>
+                                    </template>
+                                </div>
+                            </td>
+
+                            <!-- Total Archives -->
+                            <td class="py-2 px-3 text-xs font-mono font-bold text-slate-700 dark:text-slate-300 align-top" x-text="(dept.archives_count || 0) + ' Box/Berkas'"></td>
+
+                            <!-- Actions -->
+                            <td class="py-2 px-3 text-right align-top font-mono">
+                                <div class="flex items-center justify-end gap-1">
+                                    <button @click="editItem = Object.assign({}, dept)" class="px-2 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-400 dark:border-slate-600 rounded text-[11px] font-bold transition flex items-center gap-1" title="Edit Departemen">
+                                        <i data-lucide="edit-3" class="w-3 h-3 text-amber-500"></i> Edit
+                                    </button>
+                                    <form :action="'{{ url('/master/departments') }}/' + dept.id" method="POST" class="inline" @submit="submitting = true">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" onclick="return confirm('Hapus departemen beserta seluruh subdepartemennya?')" class="px-2 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/30 rounded text-[11px] font-bold transition flex items-center gap-1" title="Hapus Departemen">
+                                            <i data-lucide="trash-2" class="w-3 h-3 text-rose-500"></i> Hapus
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                     </template>
@@ -164,11 +233,11 @@
         <!-- Table Footer Count Bar -->
         <div class="bg-slate-100 dark:bg-slate-900 border-t border-slate-300 dark:border-slate-800 px-3 py-1 font-mono text-[11px] flex items-center justify-between text-slate-600 dark:text-slate-400">
             <span>Menampilkan <strong class="text-purple-600 dark:text-purple-400" x-text="filteredItems.length"></strong> dari <strong x-text="items.length"></strong> departemen</span>
-            <span>TDBGrid View Mode</span>
+            <span>Parent-Child Hierarchy Mode</span>
         </div>
     </div>
 
-    <!-- WINDOWS FORM DIALOG MODAL 1: ADD DEPARTMENT -->
+    <!-- WINDOWS FORM DIALOG MODAL 1: ADD DEPARTMENT (PARENT) -->
     <div x-show="openAdd" 
          x-cloak 
          x-data="{ 
@@ -195,10 +264,10 @@
             <!-- Window Title Bar (Draggable) -->
             <div @mousedown="startDrag($event)" 
                  :class="isDragging ? 'cursor-grabbing select-none' : 'cursor-grab'"
-                 title="Klik & tahan untuk menggeser/reposisi posisi form (Drag to move)"
+                 title="Klik & tahan untuk menggeser form (Drag to move)"
                  class="bg-gradient-to-r from-slate-800 via-slate-700 to-indigo-950 text-white px-3 py-1.5 flex items-center justify-between border-b border-slate-600 font-mono text-xs select-none">
                 <span class="flex items-center gap-1.5 font-bold pointer-events-none">
-                    <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-purple-400"></i> frmDepartmentAdd : Tambah Departemen Baru
+                    <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-purple-400"></i> frmDepartmentAdd : Tambah Departemen Parent Baru
                 </span>
                 <div class="flex items-center gap-1">
                     <button x-show="posX !== 0 || posY !== 0" @click="resetPos()" type="button" class="px-1.5 py-0.5 bg-slate-700 hover:bg-amber-600 border border-slate-600 rounded text-amber-300 hover:text-white text-[10px] font-bold transition mr-1" title="Kembalikan Form ke Tengah">Center</button>
@@ -209,19 +278,19 @@
             <form action="{{ route('master.departments.store') }}" method="POST" class="p-4 space-y-3 font-sans text-xs" @submit="submitting = true">
                 @csrf
                 <fieldset class="border border-slate-300 dark:border-slate-700 p-3 rounded bg-white/80 dark:bg-slate-950/70 space-y-3">
-                    <legend class="px-2 font-mono text-xs font-bold text-purple-700 dark:text-purple-400 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded shadow-sm">Data Form Departemen</legend>
+                    <legend class="px-2 font-mono text-xs font-bold text-purple-700 dark:text-purple-400 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded shadow-sm">Data Departemen Utama</legend>
 
                     <div>
-                        <label class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">KODE DEPARTEMEN (CTH: FIN, HRD)</label>
-                        <input type="text" name="code" required maxlength="10" placeholder="FIN" class="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-400 dark:border-slate-700 rounded font-mono text-amber-600 dark:text-amber-400 uppercase font-bold focus:outline-none focus:border-purple-500">
+                        <label class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">KODE DEPARTEMEN (CTH: FAT, DNM, HRD)</label>
+                        <input type="text" name="code" required maxlength="10" placeholder="FAT" class="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-400 dark:border-slate-700 rounded font-mono text-amber-600 dark:text-amber-400 uppercase font-bold focus:outline-none focus:border-purple-500">
                     </div>
                     <div>
-                        <label class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">NAMA DEPARTEMEN</label>
-                        <input type="text" name="name" required placeholder="Keuangan & Akuntansi" class="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-400 dark:border-slate-700 rounded text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 font-semibold">
+                        <label class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">NAMA DEPARTEMEN (PARENT)</label>
+                        <input type="text" name="name" required placeholder="Contoh: Keuangan, Akuntansi & Pajak" class="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-400 dark:border-slate-700 rounded text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 font-semibold">
                     </div>
                     <div>
                         <label class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">DESKRIPSI / RUANG LINGKUP</label>
-                        <textarea name="description" rows="2" class="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-400 dark:border-slate-700 rounded text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 font-medium"></textarea>
+                        <textarea name="description" rows="2" placeholder="Ruang lingkup divisi..." class="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-400 dark:border-slate-700 rounded text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 font-medium"></textarea>
                     </div>
                 </fieldset>
 
@@ -236,7 +305,7 @@
         </div>
     </div>
 
-    <!-- WINDOWS FORM DIALOG MODAL 2: EDIT DEPARTMENT -->
+    <!-- WINDOWS FORM DIALOG MODAL 2: EDIT DEPARTMENT (PARENT) -->
     <template x-if="editItem">
         <div x-data="{ 
                  posX: 0, posY: 0, isDragging: false, startX: 0, startY: 0, 
@@ -262,7 +331,7 @@
                 <!-- Window Title Bar (Draggable) -->
                 <div @mousedown="startDrag($event)" 
                      :class="isDragging ? 'cursor-grabbing select-none' : 'cursor-grab'"
-                     title="Klik & tahan untuk menggeser/reposisi posisi form (Drag to move)"
+                     title="Klik & tahan untuk menggeser form (Drag to move)"
                      class="bg-gradient-to-r from-slate-800 via-slate-700 to-indigo-950 text-white px-3 py-1.5 flex items-center justify-between border-b border-slate-600 font-mono text-xs select-none">
                     <span class="flex items-center gap-1.5 font-bold pointer-events-none">
                         <i data-lucide="edit-3" class="w-3.5 h-3.5 text-amber-400"></i> frmDepartmentEdit : Edit Data Departemen
@@ -298,6 +367,145 @@
                         <button type="submit" :disabled="submitting" class="px-4 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black rounded transition disabled:opacity-50 flex items-center gap-1">
                             <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin" x-show="submitting"></i>
                             <span x-text="submitting ? 'Memperbarui...' : 'Update Data (Enter)'"></span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </template>
+
+    <!-- WINDOWS FORM DIALOG MODAL 3: ADD SUBDEPARTMENT (CHILD OF SELECTED DEPT) -->
+    <template x-if="addSubDeptTarget">
+        <div x-data="{ 
+                 posX: 0, posY: 0, isDragging: false, startX: 0, startY: 0, 
+                 startDrag(e) { 
+                     if (e.target.closest('button') || e.target.closest('input') || e.target.closest('textarea')) return; 
+                     this.isDragging = true; 
+                     this.startX = e.clientX - this.posX; 
+                     this.startY = e.clientY - this.posY; 
+                 }, 
+                 onDrag(e) { 
+                     if (!this.isDragging) return; 
+                     this.posX = e.clientX - this.startX; 
+                     this.posY = e.clientY - this.startY; 
+                 }, 
+                 stopDrag() { this.isDragging = false; }, 
+                 resetPos() { this.posX = 0; this.posY = 0; } 
+             }"
+             @mousemove.window="onDrag($event)" 
+             @mouseup.window="stopDrag()"
+             class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+            <div :style="posX || posY ? 'transform: translate3d(' + posX + 'px, ' + posY + 'px, 0px);' : ''" 
+                 class="delphi-window bg-slate-100 dark:bg-slate-900 border-2 border-slate-400 dark:border-slate-700 rounded-lg max-w-md w-full shadow-2xl overflow-hidden font-mono">
+                <!-- Window Title Bar (Draggable) -->
+                <div @mousedown="startDrag($event)" 
+                     :class="isDragging ? 'cursor-grabbing select-none' : 'cursor-grab'"
+                     title="Klik & tahan untuk menggeser form (Drag to move)"
+                     class="bg-gradient-to-r from-slate-800 via-slate-700 to-purple-950 text-white px-3 py-1.5 flex items-center justify-between border-b border-slate-600 font-mono text-xs select-none">
+                    <span class="flex items-center gap-1.5 font-bold pointer-events-none">
+                        <i data-lucide="git-branch" class="w-3.5 h-3.5 text-purple-400"></i> frmSubDepartmentAdd : Tambah Subdepartemen
+                    </span>
+                    <div class="flex items-center gap-1">
+                        <button x-show="posX !== 0 || posY !== 0" @click="resetPos()" type="button" class="px-1.5 py-0.5 bg-slate-700 hover:bg-amber-600 border border-slate-600 rounded text-amber-300 hover:text-white text-[10px] font-bold transition mr-1" title="Kembalikan Form ke Tengah">Center</button>
+                        <button @click="addSubDeptTarget = null" type="button" class="text-slate-400 hover:text-white">✕</button>
+                    </div>
+                </div>
+
+                <form :action="'{{ url('/master/departments') }}/' + addSubDeptTarget.id + '/subdepartments'" method="POST" class="p-4 space-y-3 font-sans text-xs" @submit="submitting = true">
+                    @csrf
+                    <fieldset class="border border-slate-300 dark:border-slate-700 p-3 rounded bg-white/80 dark:bg-slate-950/70 space-y-3">
+                        <legend class="px-2 font-mono text-xs font-bold text-purple-700 dark:text-purple-400 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded shadow-sm">
+                            Subdepartemen untuk: <span class="text-amber-600 dark:text-amber-400" x-text="addSubDeptTarget.code + ' - ' + addSubDeptTarget.name"></span>
+                        </legend>
+
+                        <div>
+                            <label class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">NAMA SUBDEPARTEMEN / DIVISI <span class="text-rose-500">*</span></label>
+                            <input type="text" name="name" required placeholder="Contoh: Finance, Accounting, Tax, Design..." class="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-400 dark:border-slate-700 rounded text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 font-bold">
+                        </div>
+                        <div>
+                            <label class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">KODE SINGKATAN (CTH: FIN, ACC, TAX, DSG)</label>
+                            <input type="text" name="code" maxlength="20" placeholder="FIN" class="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-400 dark:border-slate-700 rounded font-mono text-amber-600 dark:text-amber-400 uppercase font-bold focus:outline-none focus:border-purple-500">
+                        </div>
+                        <div>
+                            <label class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">DESKRIPSI / TUGAS</label>
+                            <textarea name="description" rows="2" placeholder="Fungsi dan ruang lingkup subdepartemen..." class="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-400 dark:border-slate-700 rounded text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 font-medium"></textarea>
+                        </div>
+                    </fieldset>
+
+                    <div class="flex justify-end gap-2 pt-2 font-mono">
+                        <button type="button" @click="addSubDeptTarget = null" class="px-3 py-1.5 bg-slate-300 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded text-xs font-bold hover:bg-slate-400">Batal (Esc)</button>
+                        <button type="submit" :disabled="submitting" class="px-4 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-black rounded transition disabled:opacity-50 flex items-center gap-1">
+                            <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin" x-show="submitting"></i>
+                            <span x-text="submitting ? 'Menyimpan...' : 'Simpan Subdept (Enter)'"></span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </template>
+
+    <!-- WINDOWS FORM DIALOG MODAL 4: EDIT SUBDEPARTMENT -->
+    <template x-if="editSubDeptTarget">
+        <div x-data="{ 
+                 posX: 0, posY: 0, isDragging: false, startX: 0, startY: 0, 
+                 startDrag(e) { 
+                     if (e.target.closest('button') || e.target.closest('input') || e.target.closest('textarea')) return; 
+                     this.isDragging = true; 
+                     this.startX = e.clientX - this.posX; 
+                     this.startY = e.clientY - this.posY; 
+                 }, 
+                 onDrag(e) { 
+                     if (!this.isDragging) return; 
+                     this.posX = e.clientX - this.startX; 
+                     this.posY = e.clientY - this.startY; 
+                 }, 
+                 stopDrag() { this.isDragging = false; }, 
+                 resetPos() { this.posX = 0; this.posY = 0; } 
+             }"
+             @mousemove.window="onDrag($event)" 
+             @mouseup.window="stopDrag()"
+             class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+            <div :style="posX || posY ? 'transform: translate3d(' + posX + 'px, ' + posY + 'px, 0px);' : ''" 
+                 class="delphi-window bg-slate-100 dark:bg-slate-900 border-2 border-slate-400 dark:border-slate-700 rounded-lg max-w-md w-full shadow-2xl overflow-hidden font-mono">
+                <!-- Window Title Bar (Draggable) -->
+                <div @mousedown="startDrag($event)" 
+                     :class="isDragging ? 'cursor-grabbing select-none' : 'cursor-grab'"
+                     title="Klik & tahan untuk menggeser form (Drag to move)"
+                     class="bg-gradient-to-r from-slate-800 via-slate-700 to-amber-950 text-white px-3 py-1.5 flex items-center justify-between border-b border-slate-600 font-mono text-xs select-none">
+                    <span class="flex items-center gap-1.5 font-bold pointer-events-none">
+                        <i data-lucide="edit-3" class="w-3.5 h-3.5 text-amber-400"></i> frmSubDepartmentEdit : Ubah Subdepartemen
+                    </span>
+                    <div class="flex items-center gap-1">
+                        <button x-show="posX !== 0 || posY !== 0" @click="resetPos()" type="button" class="px-1.5 py-0.5 bg-slate-700 hover:bg-amber-600 border border-slate-600 rounded text-amber-300 hover:text-white text-[10px] font-bold transition mr-1" title="Kembalikan Form ke Tengah">Center</button>
+                        <button @click="editSubDeptTarget = null" type="button" class="text-slate-400 hover:text-white">✕</button>
+                    </div>
+                </div>
+
+                <form :action="'{{ url('/master/subdepartments') }}/' + editSubDeptTarget.id" method="POST" class="p-4 space-y-3 font-sans text-xs" @submit="submitting = true">
+                    @csrf
+                    @method('PUT')
+                    <fieldset class="border border-slate-300 dark:border-slate-700 p-3 rounded bg-white/80 dark:bg-slate-950/70 space-y-3">
+                        <legend class="px-2 font-mono text-xs font-bold text-amber-700 dark:text-amber-400 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded shadow-sm">Form Edit Subdepartemen</legend>
+
+                        <div>
+                            <label class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">NAMA SUBDEPARTEMEN <span class="text-rose-500">*</span></label>
+                            <input type="text" name="name" :value="editSubDeptTarget.name" required class="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-400 dark:border-slate-700 rounded text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 font-bold">
+                        </div>
+                        <div>
+                            <label class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">KODE SINGKATAN</label>
+                            <input type="text" name="code" :value="editSubDeptTarget.code" maxlength="20" class="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-400 dark:border-slate-700 rounded font-mono text-amber-600 dark:text-amber-400 uppercase font-bold focus:outline-none focus:border-amber-500">
+                        </div>
+                        <div>
+                            <label class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">DESKRIPSI</label>
+                            <textarea name="description" rows="2" x-text="editSubDeptTarget.description" class="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-400 dark:border-slate-700 rounded text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 font-medium"></textarea>
+                        </div>
+                    </fieldset>
+
+                    <div class="flex justify-end gap-2 pt-2 font-mono">
+                        <button type="button" @click="editSubDeptTarget = null" class="px-3 py-1.5 bg-slate-300 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded text-xs font-bold hover:bg-slate-400">Batal (Esc)</button>
+                        <button type="submit" :disabled="submitting" class="px-4 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black rounded transition disabled:opacity-50 flex items-center gap-1">
+                            <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin" x-show="submitting"></i>
+                            <span x-text="submitting ? 'Memperbarui...' : 'Update Subdept (Enter)'"></span>
                         </button>
                     </div>
                 </form>

@@ -56,6 +56,9 @@ return [
 
     'asset_url' => env('ASSET_URL', null),
 
+    'font_size' => env('APP_FONT_SIZE', '16px'),
+
+
     /*
     |--------------------------------------------------------------------------
     | Application Timezone

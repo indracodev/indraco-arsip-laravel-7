@@ -1,6 +1,23 @@
+@php
+    $configuredFontSize = config('app.font_size', env('APP_FONT_SIZE', '16px'));
+    $lowerFontSize = strtolower($configuredFontSize);
+    if (in_array($lowerFontSize, ['small', 'sm'])) {
+        $fontSizeScale = '14px';
+    } elseif (in_array($lowerFontSize, ['medium', 'md', 'default'])) {
+        $fontSizeScale = '16px';
+    } elseif (in_array($lowerFontSize, ['large', 'lg'])) {
+        $fontSizeScale = '18px';
+    } elseif (in_array($lowerFontSize, ['xlarge', 'xl'])) {
+        $fontSizeScale = '20px';
+    } elseif (\Illuminate\Support\Str::contains($configuredFontSize, 'px') || \Illuminate\Support\Str::contains($configuredFontSize, '%') || \Illuminate\Support\Str::contains($configuredFontSize, 'rem')) {
+        $fontSizeScale = $configuredFontSize;
+    } else {
+        $fontSizeScale = '16px';
+    }
+@endphp
 @if(request()->has('embed') || request()->header('X-MDI-Embed') || request()->header('Sec-Fetch-Dest') === 'iframe' || \Illuminate\Support\Str::contains(request()->header('referer', ''), 'embed=1'))
 <!DOCTYPE html>
-<html lang="id" class="h-full select-none">
+<html lang="id" style="font-size: {{ $fontSizeScale }};" class="h-full select-none">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=800">
@@ -35,7 +52,7 @@
         tailwind.config = {
             darkMode: 'class',
             theme: {
-                extend: {
+               extend: {
                     fontFamily: {
                         sans: ['Inter', 'sans-serif'],
                         mono: ['JetBrains Mono', 'monospace'],
@@ -49,7 +66,11 @@
 
     <style>
         [x-cloak] { display: none !important; }
-        main table { border-collapse: separate; border-spacing: 0; font-size: 11px; }
+        html, body { font-size: {{ $fontSizeScale }}; }
+        main table { border-collapse: separate; border-spacing: 0; font-size: 0.875rem; }
+        .text-\[10px\], .text-\[11px\] { font-size: 0.8125rem !important; }
+        .text-\[9px\] { font-size: 0.75rem !important; }
+        .text-\[12px\] { font-size: 0.875rem !important; }
         main table th { background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%); border-right: 1px solid #cbd5e1; border-bottom: 2px solid #94a3b8; color: #1e293b; padding-top: 7px; padding-bottom: 7px; }
         .dark main table th { background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); border-right: 1px solid #334155; border-bottom: 2px solid #475569; color: #f8fafc; }
         main table td { border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; padding-top: 7px; padding-bottom: 7px; }
@@ -125,23 +146,8 @@
 </html>
 @else
 <!DOCTYPE html>
-@php
-    $configuredFontSize = config('app.font_size', env('APP_FONT_SIZE', '19px'));
-    $lowerFontSize = strtolower($configuredFontSize);
-    if (in_array($lowerFontSize, ['small', 'sm'])) {
-        $fontSizeScale = '90%';
-    } elseif (in_array($lowerFontSize, ['large', 'lg'])) {
-        $fontSizeScale = '110%';
-    } elseif (in_array($lowerFontSize, ['xlarge', 'xl'])) {
-        $fontSizeScale = '120%';
-    } elseif (\Illuminate\Support\Str::contains($configuredFontSize, 'px') || \Illuminate\Support\Str::contains($configuredFontSize, '%') || \Illuminate\Support\Str::contains($configuredFontSize, 'rem')) {
-        $fontSizeScale = $configuredFontSize;
-    } else {
-        $fontSizeScale = '19px';
-    }
-@endphp
 <html lang="id" 
-      style="min-width: 800px; min-height: 600px; font-size: 14px;"
+      style="min-width: 800px; min-height: 600px; font-size: {{ $fontSizeScale }};"
       class="h-full select-none overflow-x-auto">
 <head>
     <meta charset="UTF-8">
@@ -182,12 +188,27 @@
 
     <style>
         [x-cloak] { display: none !important; }
+
+        html, body {
+            font-size: {{ $fontSizeScale }};
+        }
         
         /* Enterprise Desktop Custom Component Styles (Delphi/VB DBGrid & TForm Style) */
         main table {
             border-collapse: separate;
             border-spacing: 0;
-            font-size: 11px;
+            font-size: 0.875rem;
+        }
+
+        /* Scale up tiny utility classes so text is comfortable & readable */
+        .text-\[10px\], .text-\[11px\] {
+            font-size: 0.8125rem !important;
+        }
+        .text-\[9px\] {
+            font-size: 0.75rem !important;
+        }
+        .text-\[12px\] {
+            font-size: 0.875rem !important;
         }
         main table th {
             background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
@@ -332,6 +353,18 @@
                 <span>Cetak Label</span>
             </a>
 
+            <!-- Entitas PT -->
+            <a href="{{ route('master.companies') }}" class="px-[10px] py-[4px] bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-[4px] text-slate-900 dark:text-white font-bold text-[11px] transition flex items-center gap-[6px] shadow-2xs">
+                <i data-lucide="landmark" class="w-[14px] h-[14px] text-indigo-600 dark:text-indigo-400"></i>
+                <span>Entitas PT</span>
+            </a>
+
+            <!-- Katalog Dokumen -->
+            <a href="{{ route('master.document_types') }}" class="px-[10px] py-[4px] bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-[4px] text-slate-900 dark:text-white font-bold text-[11px] transition flex items-center gap-[6px] shadow-2xs">
+                <i data-lucide="file-text" class="w-[14px] h-[14px] text-teal-600 dark:text-teal-400"></i>
+                <span>Katalog Dokumen</span>
+            </a>
+
             <!-- Refresh Data -->
             <button onclick="window.location.reload()" type="button" class="px-[10px] py-[4px] bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-[4px] text-slate-900 dark:text-white font-bold text-[11px] transition flex items-center gap-[6px] shadow-2xs">
                 <i data-lucide="refresh-cw" class="w-[14px] h-[14px] text-blue-600 dark:text-blue-400"></i>
@@ -385,6 +418,18 @@
         <a href="{{ route('logs.index') }}" class="px-[12px] py-[6px] rounded-t-[4px] border-t border-x font-bold text-[11px] font-mono transition flex items-center gap-[6px] shrink-0 {{ request()->routeIs('logs.*') ? 'bg-white dark:bg-slate-950 text-cyan-600 dark:text-cyan-400 border-slate-300 dark:border-slate-700 border-b-transparent -mb-px shadow-xs' : 'border-transparent bg-slate-300/70 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 hover:bg-white/60 dark:hover:bg-slate-800' }}">
             <i data-lucide="history" class="w-[14px] h-[14px]"></i>
             <span>Audit Trail</span>
+        </a>
+
+        <!-- Tab 6: Entitas Perusahaan -->
+        <a href="{{ route('master.companies') }}" class="px-[12px] py-[6px] rounded-t-[4px] border-t border-x font-bold text-[11px] font-mono transition flex items-center gap-[6px] shrink-0 {{ request()->routeIs('master.companies*') ? 'bg-white dark:bg-slate-950 text-indigo-600 dark:text-indigo-400 border-slate-300 dark:border-slate-700 border-b-transparent -mb-px shadow-xs' : 'border-transparent bg-slate-300/70 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 hover:bg-white/60 dark:hover:bg-slate-800' }}">
+            <i data-lucide="landmark" class="w-[14px] h-[14px]"></i>
+            <span>Entitas PT</span>
+        </a>
+
+        <!-- Tab 7: Katalog Dokumen -->
+        <a href="{{ route('master.document_types') }}" class="px-[12px] py-[6px] rounded-t-[4px] border-t border-x font-bold text-[11px] font-mono transition flex items-center gap-[6px] shrink-0 {{ request()->routeIs('master.document_types*') ? 'bg-white dark:bg-slate-950 text-teal-600 dark:text-teal-400 border-slate-300 dark:border-slate-700 border-b-transparent -mb-px shadow-xs' : 'border-transparent bg-slate-300/70 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 hover:bg-white/60 dark:hover:bg-slate-800' }}">
+            <i data-lucide="file-text" class="w-[14px] h-[14px]"></i>
+            <span>Katalog Dokumen</span>
         </a>
     </div>
 

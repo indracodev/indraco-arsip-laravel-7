@@ -22,4 +22,14 @@ class Department extends Model
     {
         return $this->hasMany(Archive::class);
     }
+
+    public function subDepartments(): HasMany
+    {
+        return $this->hasMany(SubDepartment::class);
+    }
+
+    public function documentTypes(): HasMany
+    {
+        return $this->hasMany(DocumentType::class);
+    }
 }

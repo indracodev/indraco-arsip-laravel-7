@@ -76,16 +76,24 @@
                 <label class="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 block">JENIS DOKUMEN</label>
                 <select name="document_type" class="w-full h-[28px] px-[8px] bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-[4px] text-[11px] font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition">
                     <option value="">-- Semua Dokumen --</option>
-                    <option value="PR" {{ request('document_type') == 'PR' ? 'selected' : '' }}>PR (Purchase Requisition)</option>
-                    <option value="PO" {{ request('document_type') == 'PO' ? 'selected' : '' }}>PO (Purchase Order)</option>
-                    <option value="SURAT JALAN" {{ request('document_type') == 'SURAT JALAN' ? 'selected' : '' }}>Surat Jalan (DO)</option>
-                    <option value="FAKTUR" {{ request('document_type') == 'FAKTUR' ? 'selected' : '' }}>Faktur / Invoice</option>
-                    <option value="FAKTUR PAJAK" {{ request('document_type') == 'FAKTUR PAJAK' ? 'selected' : '' }}>Faktur Pajak</option>
-                    <option value="ABSENSI" {{ request('document_type') == 'ABSENSI' ? 'selected' : '' }}>Absensi / Payroll</option>
-                    <option value="KONTRAK" {{ request('document_type') == 'KONTRAK' ? 'selected' : '' }}>Kontrak / SPK</option>
-                    <option value="UTILITY" {{ request('document_type') == 'UTILITY' ? 'selected' : '' }}>Utility / Bukti Bayar</option>
-                    <option value="DATA SAMPLE" {{ request('document_type') == 'DATA SAMPLE' ? 'selected' : '' }}>Data Sample</option>
-                    <option value="LAINNYA" {{ request('document_type') == 'LAINNYA' ? 'selected' : '' }}>Lainnya</option>
+                    @if(isset($documentTypes) && count($documentTypes) > 0)
+                        @foreach($documentTypes as $doc)
+                            <option value="{{ $doc->code }}" {{ request('document_type') == $doc->code ? 'selected' : '' }}>
+                                {{ $doc->code }} ({{ $doc->name }})
+                            </option>
+                        @endforeach
+                    @else
+                        <option value="PR" {{ request('document_type') == 'PR' ? 'selected' : '' }}>PR (Purchase Requisition)</option>
+                        <option value="PO" {{ request('document_type') == 'PO' ? 'selected' : '' }}>PO (Purchase Order)</option>
+                        <option value="SURAT JALAN" {{ request('document_type') == 'SURAT JALAN' ? 'selected' : '' }}>Surat Jalan (DO)</option>
+                        <option value="FAKTUR" {{ request('document_type') == 'FAKTUR' ? 'selected' : '' }}>Faktur / Invoice</option>
+                        <option value="FAKTUR PAJAK" {{ request('document_type') == 'FAKTUR PAJAK' ? 'selected' : '' }}>Faktur Pajak</option>
+                        <option value="ABSENSI" {{ request('document_type') == 'ABSENSI' ? 'selected' : '' }}>Absensi / Payroll</option>
+                        <option value="KONTRAK" {{ request('document_type') == 'KONTRAK' ? 'selected' : '' }}>Kontrak / SPK</option>
+                        <option value="UTILITY" {{ request('document_type') == 'UTILITY' ? 'selected' : '' }}>Utility / Bukti Bayar</option>
+                        <option value="DATA SAMPLE" {{ request('document_type') == 'DATA SAMPLE' ? 'selected' : '' }}>Data Sample</option>
+                        <option value="LAINNYA" {{ request('document_type') == 'LAINNYA' ? 'selected' : '' }}>Lainnya</option>
+                    @endif
                 </select>
             </div>
 
@@ -226,10 +234,18 @@
                                 <a href="{{ route('archives.show', $archive) }}" class="font-bold text-slate-900 dark:text-white hover:text-amber-600 dark:hover:text-amber-400 transition block font-mono">
                                     {{ $archive->title }}
                                 </a>
-                                <div class="flex items-center gap-[6px] text-[11px] text-slate-500 font-mono">
-                                    <span class="px-[6px] py-[1px] rounded-[3px] bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-bold">
+                                <div class="flex flex-wrap items-center gap-[6px] text-[11px] text-slate-500 font-mono">
+                                    <span class="px-[6px] py-[1px] rounded-[3px] bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-bold" title="{{ $archive->department->name ?? 'General' }}">
                                         {{ $archive->department->code ?? 'GEN' }}
+                                        @if($archive->subDepartment)
+                                            <span class="text-amber-600 dark:text-amber-400 font-normal">/ {{ $archive->subDepartment->name }}</span>
+                                        @endif
                                     </span>
+                                    @if($archive->company_name)
+                                        <span class="px-[5px] py-[1px] rounded-[3px] bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 text-blue-700 dark:text-blue-300 text-[10px]">
+                                            {{ $archive->company_name }}
+                                        </span>
+                                    @endif
                                     <span>by {{ $archive->creator->name ?? 'User' }}</span>
                                 </div>
                                 <div class="flex flex-wrap items-center gap-[3px] pt-[2px]">

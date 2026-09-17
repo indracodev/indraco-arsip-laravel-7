@@ -13,6 +13,7 @@ class Archive extends Model
     protected $fillable = [
         'box_number',
         'department_id',
+        'sub_department_id',
         'company_name',
         'document_type',
         'created_by_user_id',
@@ -97,6 +98,20 @@ class Archive extends Model
     public function department(): BelongsTo
     {
         return $this->belongsTo(Department::class);
+    }
+
+    public function subDepartment(): BelongsTo
+    {
+        return $this->belongsTo(SubDepartment::class, 'sub_department_id');
+    }
+
+    public function getFullDepartmentAttribute(): string
+    {
+        $dept = $this->department ? $this->department->code : 'GEN';
+        if ($this->subDepartment) {
+            return $dept . ' - ' . $this->subDepartment->name;
+        }
+        return $dept;
     }
 
     public function creator(): BelongsTo

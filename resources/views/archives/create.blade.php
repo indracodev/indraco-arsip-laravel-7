@@ -2,8 +2,15 @@
 
 @section('title', 'Form Draft & Booking Tempat Arsip - DMS PT Indraco')
 
+@php
+    $oldDocTypes = old('document_types', []);
+    if (!is_array($oldDocTypes)) {
+        $oldDocTypes = [];
+    }
+@endphp
+
 @section('content')
-<div class="w-full space-y-[10px] font-mono">
+<div class="w-full space-y-[10px] font-mono" x-data="archiveCreateForm()">
     <!-- DELPHI FORM TOOLBAR HEADER -->
     <div class="bg-gradient-to-r from-slate-100 via-slate-50 to-slate-100 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 border border-slate-300 dark:border-slate-800 rounded-[4px] px-[12px] py-[8px] shadow-2xs flex items-center justify-between gap-[8px]">
         <div class="flex items-center gap-[8px]">
@@ -12,7 +19,7 @@
             </span>
             <div>
                 <h1 class="text-[12px] font-bold text-slate-900 dark:text-white uppercase tracking-wider">Form Pengajuan Draft & Booking Storage</h1>
-                <p class="text-[10px] text-slate-500 dark:text-slate-400">Isi rincian berkas arsip dan periode retention untuk diverifikasi oleh PIC Gudang (TForm Window)</p>
+                <p class="text-[10px] text-slate-500 dark:text-slate-400">Isi rincian berkas arsip, entitas, subdepartemen & tipe dokumen untuk diverifikasi (TForm Window)</p>
             </div>
         </div>
 
@@ -32,21 +39,53 @@
         <form action="{{ route('archives.store') }}" method="POST" enctype="multipart/form-data" class="space-y-[8px] pt-[4px]">
             @csrf
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-[8px]">
-                <!-- Company Name -->
+            <!-- 1. Perusahaan Entitas, Departemen, & Subdepartemen (Parent > Child) -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-[8px]">
+                
+                <!-- Company Name / Perusahaan Entitas (Custom Company Control) -->
                 <div class="flex flex-col gap-[2px]">
-                    <label for="company_name" class="text-[10px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-400">
-                        PERUSAHAAN ENTIAS <span class="text-rose-500">*</span>
-                    </label>
-                    <select name="company_name" id="company_name" required class="w-full px-[8px] h-[28px] bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-[3px] text-[11px] font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition">
-                        <option value="PT Indraco Global" {{ old('company_name') == 'PT Indraco Global' ? 'selected' : '' }}>PT Indraco Global</option>
-                        <option value="PT Indraco Trading" {{ old('company_name') == 'PT Indraco Trading' ? 'selected' : '' }}>PT Indraco Trading</option>
-                        <option value="PT Indraco Enterprise" {{ old('company_name') == 'PT Indraco Enterprise' ? 'selected' : '' }}>PT Indraco Enterprise</option>
-                        <option value="PT Indraco International" {{ old('company_name') == 'PT Indraco International' ? 'selected' : '' }}>PT Indraco International</option>
-                    </select>
+                    <div class="flex items-center justify-between">
+                        <label for="company_name" class="text-[10px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-400">
+                            PERUSAHAAN ENTITAS <span class="text-rose-500">*</span>
+                        </label>
+                        <!-- Quick Add Button for PIC Dept & Super Admin -->
+                        <button 
+                            type="button" 
+                            @click="openAddCompanyModal = true"
+                            class="text-[9px] font-bold text-amber-600 dark:text-amber-400 hover:underline flex items-center gap-[2px]"
+                            title="Tambah Perusahaan Entitas Baru / Custom"
+                        >
+                            <i data-lucide="plus" class="w-[10px] h-[10px]"></i>
+                            <span>+ Tambah Entitas</span>
+                        </button>
+                    </div>
+
+                    <div class="flex items-center gap-[4px]">
+                        <select 
+                            name="company_name" 
+                            id="company_name" 
+                            x-model="selectedCompany"
+                            required 
+                            class="w-full px-[8px] h-[28px] bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-[3px] text-[11px] font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition"
+                        >
+                            <template x-for="comp in companyList" :key="comp.id">
+                                <option :value="comp.name" x-text="comp.name + (comp.code ? ' (' + comp.code + ')' : '')"></option>
+                            </template>
+                        </select>
+
+                        <button 
+                            type="button" 
+                            @click="openAddCompanyModal = true" 
+                            class="px-[6px] h-[28px] bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 rounded-[3px] text-[10px] font-bold transition shrink-0"
+                            title="Buka form input entitas baru"
+                        >
+                            +
+                        </button>
+                    </div>
+                    @error('company_name') <span class="text-rose-500 text-[10px] block font-bold">{{ $message }}</span> @enderror
                 </div>
 
-                <!-- Department Selection -->
+                <!-- Department Selection (Parent Department) -->
                 <div class="flex flex-col gap-[2px]">
                     <label for="department_id" class="text-[10px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-400">
                         DEPARTEMEN PEMILIK <span class="text-rose-500">*</span>
@@ -60,75 +99,77 @@
                             class="w-full px-[8px] h-[28px] bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-[3px] text-[11px] font-mono font-bold text-slate-800 dark:text-slate-300 cursor-not-allowed"
                         >
                     @else
-                        <select name="department_id" id="department_id" required class="w-full px-[8px] h-[28px] bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-[3px] text-[11px] font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition">
+                        <select 
+                            name="department_id" 
+                            id="department_id" 
+                            x-model="selectedDeptId"
+                            required 
+                            class="w-full px-[8px] h-[28px] bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-[3px] text-[11px] font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition"
+                        >
                             <option value="">-- Pilih Departemen --</option>
                             @foreach($departments as $dept)
-                            <option value="{{ $dept->id }}" {{ old('department_id') == $dept->id ? 'selected' : '' }}>
+                            <option value="{{ $dept->id }}">
                                 {{ $dept->code }} - {{ $dept->name }}
                             </option>
                             @endforeach
                         </select>
                     @endif
+                    @error('department_id') <span class="text-rose-500 text-[10px] block font-bold">{{ $message }}</span> @enderror
                 </div>
+
+                <!-- SubDepartment Selection (Child Hierarchy: Parent > Child) -->
+                <div class="flex flex-col gap-[2px]">
+                    <label for="sub_department_id" class="text-[10px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-400">
+                        SUBDEPARTEMEN / DIVISI <span class="text-amber-600 font-bold">(Unit Kerja)</span>
+                    </label>
+
+                    @if(auth()->user()->isPicDept())
+                        <select 
+                            name="sub_department_id" 
+                            id="sub_department_id" 
+                            class="w-full px-[8px] h-[28px] bg-slate-50 dark:bg-slate-900 border border-amber-300 dark:border-amber-700 rounded-[3px] text-[11px] font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition"
+                        >
+                            <option value="">-- Pilih Subdepartemen --</option>
+                            @if(auth()->user()->department && auth()->user()->department->subDepartments->count() > 0)
+                                @foreach(auth()->user()->department->subDepartments as $sub)
+                                    <option value="{{ $sub->id }}" {{ old('sub_department_id', auth()->user()->sub_department_id) == $sub->id ? 'selected' : '' }}>
+                                        {{ $sub->name }} {{ $sub->code ? '('.$sub->code.')' : '' }}
+                                    </option>
+                                @endforeach
+                            @else
+                                <option value="" disabled>(Unit Utama - Belum ada subdepartemen)</option>
+                            @endif
+                        </select>
+                    @else
+                        <!-- Dynamic Cascading SubDepartment for Super Admin -->
+                        <select 
+                            name="sub_department_id" 
+                            id="sub_department_id" 
+                            x-model="selectedSubDeptId"
+                            class="w-full px-[8px] h-[28px] bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-[3px] text-[11px] font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition"
+                        >
+                            <option value="">-- Pilih Subdepartemen --</option>
+                            <template x-for="sub in subDeptList" :key="sub.id">
+                                <option :value="sub.id" x-text="sub.name + (sub.code ? ' (' + sub.code + ')' : '')"></option>
+                            </template>
+                            <template x-if="selectedDeptId && subDeptList.length === 0">
+                                <option value="" disabled>(Tidak ada subdepartemen terdaftar)</option>
+                            </template>
+                        </select>
+                    @endif
+                    @error('sub_department_id') <span class="text-rose-500 text-[10px] block font-bold">{{ $message }}</span> @enderror
+                </div>
+
             </div>
 
-            @php
-                $oldDocTypes = old('document_types', []);
-                $availableDocTypes = [
-                    ['id' => 'PR', 'name' => 'PR (Purchase Requisition)', 'desc' => 'Permintaan Pembelian'],
-                    ['id' => 'PO', 'name' => 'PO (Purchase Order)', 'desc' => 'Pesanan Pembelian'],
-                    ['id' => 'SURAT JALAN', 'name' => 'Surat Jalan (DO)', 'desc' => 'Bukti Kirim & Terima'],
-                    ['id' => 'FAKTUR', 'name' => 'Faktur / Invoice', 'desc' => 'Tagihan Pembelian/Jual'],
-                    ['id' => 'FAKTUR PAJAK', 'name' => 'Faktur Pajak', 'desc' => 'Faktur Pajak Standar'],
-                    ['id' => 'ABSENSI', 'name' => 'Absensi / Payroll', 'desc' => 'Presensi & Rekap Gaji'],
-                    ['id' => 'KONTRAK', 'name' => 'Kontrak / SPK', 'desc' => 'Perjanjian & Legalitas'],
-                    ['id' => 'UTILITY', 'name' => 'Utility / Bukti Bayar', 'desc' => 'Tagihan Operasional'],
-                    ['id' => 'DATA SAMPLE', 'name' => 'Data Sample', 'desc' => 'Uji Lab & Quality Control'],
-                    ['id' => 'LAINNYA', 'name' => 'Lainnya (Spesifik)', 'desc' => 'Dokumen spesifik lain'],
-                ];
-            @endphp
-
-            <!-- Document Types Multi-Check Selection GroupBox -->
-            <fieldset 
-                x-data="{
-                    selectedTypes: {{ json_encode($oldDocTypes) }},
-                    showCustom: {{ in_array('LAINNYA', $oldDocTypes) ? 'true' : 'false' }},
-                    toggle(type) {
-                        if (this.selectedTypes.includes(type)) {
-                            this.selectedTypes = this.selectedTypes.filter(t => t !== type);
-                        } else {
-                            this.selectedTypes.push(type);
-                        }
-                        this.checkCustom();
-                    },
-                    checkCustom() {
-                        this.showCustom = this.selectedTypes.includes('LAINNYA');
-                    },
-                    selectAll() {
-                        this.selectedTypes = ['PR', 'PO', 'SURAT JALAN', 'FAKTUR', 'FAKTUR PAJAK', 'ABSENSI', 'KONTRAK', 'UTILITY', 'DATA SAMPLE', 'LAINNYA'];
-                        this.checkCustom();
-                    },
-                    clearAll() {
-                        this.selectedTypes = [];
-                        this.checkCustom();
-                    },
-                    presetFinance() {
-                        this.selectedTypes = ['PR', 'PO', 'SURAT JALAN', 'FAKTUR', 'FAKTUR PAJAK'];
-                        this.checkCustom();
-                    },
-                    presetHRD() {
-                        this.selectedTypes = ['ABSENSI', 'UTILITY'];
-                        this.checkCustom();
-                    }
-                }"
-                class="border border-slate-300 dark:border-slate-800 p-[8px] sm:p-[10px] rounded-[3px] bg-slate-50/70 dark:bg-slate-900/60 space-y-[6px]"
-            >
+            <!-- 2. Document Types Multi-Check Selection GroupBox (Dynamic Catalog & Custom Document) -->
+            <fieldset class="border border-slate-300 dark:border-slate-800 p-[8px] sm:p-[10px] rounded-[3px] bg-slate-50/70 dark:bg-slate-900/60 space-y-[6px]">
                 <legend class="px-[6px] text-[10px] font-bold uppercase text-amber-700 dark:text-amber-400 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px] shadow-2xs flex items-center gap-[4px]">
                     <i data-lucide="check-square" class="w-[12px] h-[12px] text-amber-500"></i>
                     <span>TIPE DOKUMEN DALAM SATU BOX BENDEL <span class="text-rose-500">*</span> (Pilihan Formulir Ceklis)</span>
                 </legend>
 
-                <!-- Helper buttons & counter ribbon -->
+                <!-- Helper buttons, Counter Ribbon, & Add to Catalog Button -->
                 <div class="flex flex-wrap items-center justify-between gap-[6px] pb-[4px] border-b border-slate-200 dark:border-slate-800">
                     <div class="flex items-center gap-[6px] text-[10px] text-slate-600 dark:text-slate-400 font-mono">
                         <span>Terpilih:</span>
@@ -150,49 +191,63 @@
                         <button type="button" @click="presetHRD()" class="px-[6px] py-[1px] bg-sky-100 hover:bg-sky-200 dark:bg-sky-950/50 dark:hover:bg-sky-900/60 text-sky-800 dark:text-sky-300 rounded border border-sky-300 dark:border-sky-800 font-bold transition">
                             + Paket HRD/GA
                         </button>
+
+                        <span class="text-slate-300 dark:text-slate-700">|</span>
+                        
+                        <!-- HIGH VISIBILITY ACTION: TAMBAH KATALOG DOKUMEN (PIC DEPT FULL CONTROL) -->
+                        <button 
+                            type="button" 
+                            @click="openAddDocModal = true" 
+                            class="px-[8px] py-[1px] bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black rounded border border-amber-600 shadow-2xs transition flex items-center gap-[3px]"
+                            title="Tambahkan jenis dokumen baru ke dalam katalog sistem"
+                        >
+                            <i data-lucide="plus-circle" class="w-[11px] h-[11px] text-slate-950"></i>
+                            <span>+ Tambah Katalog Dokumen</span>
+                        </button>
                     </div>
                 </div>
 
-                <!-- Checkbox Grid -->
+                <!-- Dynamic Checkbox Grid loaded from Database Catalog -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-[6px]">
-                    @foreach($availableDocTypes as $doc)
-                    <label 
-                        class="relative flex items-start gap-[6px] p-[6px] rounded-[3px] border cursor-pointer select-none transition"
-                        :class="selectedTypes.includes('{{ $doc['id'] }}') 
-                            ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-400 dark:border-amber-600 shadow-2xs' 
-                            : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'"
-                    >
-                        <input 
-                            type="checkbox" 
-                            name="document_types[]" 
-                            value="{{ $doc['id'] }}" 
-                            x-model="selectedTypes"
-                            @change="checkCustom()"
-                            class="mt-[2px] rounded border-slate-300 dark:border-slate-700 text-amber-500 focus:ring-0"
+                    <template x-for="doc in docList" :key="doc.id">
+                        <label 
+                            class="relative flex items-start gap-[6px] p-[6px] rounded-[3px] border cursor-pointer select-none transition"
+                            :class="selectedTypes.includes(doc.id) 
+                                ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-400 dark:border-amber-600 shadow-2xs' 
+                                : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'"
                         >
-                        <div class="flex-1 min-w-0">
-                            <span class="font-bold text-[10.5px] block leading-tight font-mono" :class="selectedTypes.includes('{{ $doc['id'] }}') ? 'text-amber-900 dark:text-amber-300' : 'text-slate-800 dark:text-slate-200'">
-                                {{ $doc['name'] }}
-                            </span>
-                            <span class="text-[9px] text-slate-500 dark:text-slate-400 block leading-tight mt-[1px]">
-                                {{ $doc['desc'] }}
-                            </span>
-                        </div>
-                    </label>
-                    @endforeach
+                            <input 
+                                type="checkbox" 
+                                name="document_types[]" 
+                                :value="doc.id" 
+                                x-model="selectedTypes"
+                                @change="checkCustom()"
+                                class="mt-[2px] rounded border-slate-300 dark:border-slate-700 text-amber-500 focus:ring-0"
+                            >
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-[4px]">
+                                    <span class="font-bold text-[10.5px] block leading-tight font-mono" :class="selectedTypes.includes(doc.id) ? 'text-amber-900 dark:text-amber-300' : 'text-slate-800 dark:text-slate-200'" x-text="doc.name"></span>
+                                    <template x-if="!doc.is_preset">
+                                        <span class="px-[3px] py-[0.5px] bg-purple-100 dark:bg-purple-950/60 border border-purple-300 dark:border-purple-800 text-purple-700 dark:text-purple-300 text-[8px] font-bold rounded" title="Custom Catalog">Custom</span>
+                                    </template>
+                                </div>
+                                <span class="text-[9px] text-slate-500 dark:text-slate-400 block leading-tight mt-[1px]" x-text="doc.desc"></span>
+                            </div>
+                        </label>
+                    </template>
                 </div>
 
                 <!-- Custom Document Type Input (shown if LAINNYA is checked) -->
                 <div x-show="showCustom" x-transition class="pt-[4px] border-t border-slate-200 dark:border-slate-800 flex flex-col gap-[2px]">
                     <label for="custom_document_type" class="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase">
-                        Keterangan Dokumen Tambahan (Lainnya):
+                        Keterangan Spesifik Dokumen Lainnya (Spesifik Box Ini):
                     </label>
                     <input 
                         type="text" 
                         name="custom_document_type" 
                         id="custom_document_type" 
                         value="{{ old('custom_document_type') }}" 
-                        placeholder="Contoh: Polis Asuransi Kendaraan, Bilyet Deposito, Bukti Setor Pajak..."
+                        placeholder="Contoh: Polis Asuransi Kendaraan Operasional, Bilyet Deposito No 123..."
                         class="w-full px-[8px] h-[28px] bg-white dark:bg-slate-950 border border-amber-300 dark:border-amber-700 rounded-[3px] text-[11px] font-mono text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 transition"
                     >
                 </div>
@@ -202,7 +257,7 @@
                 @enderror
             </fieldset>
 
-            <!-- Archive Title -->
+            <!-- 3. Archive Title -->
             <div class="flex flex-col gap-[2px]">
                 <label for="title" class="text-[10px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-400">
                     JUDUL / NAMA BERKAS ARSIP <span class="text-rose-500">*</span>
@@ -219,7 +274,7 @@
                 @error('title') <span class="text-rose-500 text-[10px] block font-bold">{{ $message }}</span> @enderror
             </div>
 
-            <!-- Period Range GroupBox -->
+            <!-- 4. Period Range GroupBox -->
             <fieldset class="border border-slate-300 dark:border-slate-800 p-[8px] rounded-[3px] bg-slate-50 dark:bg-slate-900/60">
                 <legend class="px-[4px] text-[10px] font-bold uppercase text-amber-600 dark:text-amber-400">Periode Berkas Dokumen</legend>
                 
@@ -249,50 +304,45 @@
                     </div>
 
                     <div class="flex flex-col gap-[2px]">
+                        <label for="period_text" class="text-[10px] font-bold text-slate-700 dark:text-slate-400">Label Periode</label>
+                        <input 
+                            type="text" 
+                            name="period_text" 
+                            id="period_text" 
+                            value="{{ old('period_text', 'Januari - Maret 2026') }}" 
+                            placeholder="Contoh: Q1 2026" 
+                            class="w-full px-[6px] h-[28px] bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[3px] text-[11px] font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition"
+                        >
+                    </div>
+
+                    <div class="flex flex-col gap-[2px]">
                         <label for="period_yy_mm" class="text-[10px] font-bold text-slate-700 dark:text-slate-400">Format YY-MM</label>
                         <input 
                             type="text" 
                             name="period_yy_mm" 
                             id="period_yy_mm" 
                             value="{{ old('period_yy_mm', date('y-m')) }}" 
-                            placeholder="e.g. 26-03" 
-                            class="w-full px-[6px] h-[28px] bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[3px] text-[11px] font-mono text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 transition"
-                        >
-                    </div>
-
-                    <div class="flex flex-col gap-[2px]">
-                        <label for="period_text" class="text-[10px] font-bold text-slate-700 dark:text-slate-400">Label Periode Custom</label>
-                        <input 
-                            type="text" 
-                            name="period_text" 
-                            id="period_text" 
-                            value="{{ old('period_text') }}" 
-                            placeholder="e.g. Januari - Maret 2026" 
-                            class="w-full px-[6px] h-[28px] bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[3px] text-[11px] font-mono text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 transition"
+                            placeholder="26-03" 
+                            maxlength="7"
+                            class="w-full px-[6px] h-[28px] bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[3px] text-[11px] font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition font-bold"
                         >
                     </div>
                 </div>
             </fieldset>
 
-            <!-- Retention & Physical Condition -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-[8px]">
+            <!-- 5. Retention & Wadah Fisik -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-[8px]">
                 <div class="flex flex-col gap-[2px]">
                     <label for="retention_years" class="text-[10px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-400">
-                        MASA SIMPAN RETENTION (TAHUN) <span class="text-rose-500">*</span>
+                        RETENSI SIMPAN (TAHUN) <span class="text-rose-500">*</span>
                     </label>
-                    <div class="flex items-center gap-[6px]">
-                        <input 
-                            type="number" 
-                            name="retention_years" 
-                            id="retention_years" 
-                            value="{{ old('retention_years', 5) }}" 
-                            min="1" 
-                            max="5" 
-                            required 
-                            class="w-[80px] px-[8px] h-[28px] bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-[3px] text-[11px] font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition"
-                        >
-                        <span class="text-[10px] text-amber-600 dark:text-amber-400 font-bold">Maksimal 5 Tahun</span>
-                    </div>
+                    <select name="retention_years" id="retention_years" required class="w-full px-[8px] h-[28px] bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-[3px] text-[11px] font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition">
+                        <option value="1" {{ old('retention_years', 5) == 1 ? 'selected' : '' }}>1 Tahun</option>
+                        <option value="2" {{ old('retention_years', 5) == 2 ? 'selected' : '' }}>2 Tahun</option>
+                        <option value="3" {{ old('retention_years', 5) == 3 ? 'selected' : '' }}>3 Tahun</option>
+                        <option value="4" {{ old('retention_years', 5) == 4 ? 'selected' : '' }}>4 Tahun</option>
+                        <option value="5" {{ old('retention_years', 5) == 5 ? 'selected' : '' }}>5 Tahun (Maksimal Bawaan)</option>
+                    </select>
                 </div>
 
                 <div class="flex flex-col gap-[2px]">
@@ -311,7 +361,7 @@
                 </div>
             </div>
 
-            <!-- Content Description -->
+            <!-- 6. Content Description -->
             <div class="flex flex-col gap-[2px]">
                 <label for="content_description" class="text-[10px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-400">
                     RINCIAN ISI BERKAS & METADATA <span class="text-rose-500">*</span>
@@ -326,7 +376,7 @@
                 >{{ old('content_description') }}</textarea>
             </div>
 
-            <!-- Attachment Scans section -->
+            <!-- 7. Attachment Scans Section -->
             <fieldset class="border border-slate-300 dark:border-slate-800 p-[8px] rounded-[3px] bg-amber-500/5 dark:bg-amber-950/20">
                 <legend class="px-[4px] text-[10px] font-bold uppercase text-amber-700 dark:text-amber-400 flex items-center gap-[4px]">
                     <i data-lucide="file-check" class="w-[12px] h-[12px]"></i>
@@ -381,5 +431,320 @@
             </div>
         </form>
     </fieldset>
+
+    <!-- WINDOWS FORM DIALOG MODAL 1: ADD COMPANY ENTITY (PIC DEPT FULL CONTROL) -->
+    <div x-show="openAddCompanyModal" 
+         x-cloak 
+         x-data="{ 
+             posX: 0, posY: 0, isDragging: false, startX: 0, startY: 0, 
+             startDrag(e) { 
+                 if (e.target.closest('button') || e.target.closest('input') || e.target.closest('textarea')) return; 
+                 this.isDragging = true; 
+                 this.startX = e.clientX - this.posX; 
+                 this.startY = e.clientY - this.posY; 
+             }, 
+             onDrag(e) { 
+                 if (!this.isDragging) return; 
+                 this.posX = e.clientX - this.startX; 
+                 this.posY = e.clientY - this.startY; 
+             }, 
+             stopDrag() { this.isDragging = false; }, 
+             resetPos() { this.posX = 0; this.posY = 0; } 
+         }"
+         @mousemove.window="onDrag($event)" 
+         @mouseup.window="stopDrag()"
+         class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 font-mono">
+        <div :style="posX || posY ? 'transform: translate3d(' + posX + 'px, ' + posY + 'px, 0px);' : ''" 
+             class="delphi-window bg-slate-100 dark:bg-slate-900 border-2 border-slate-400 dark:border-slate-700 rounded-lg max-w-md w-full shadow-2xl overflow-hidden font-mono text-xs">
+            
+            <!-- Window Title Bar (Draggable) -->
+            <div @mousedown="startDrag($event)" 
+                 :class="isDragging ? 'cursor-grabbing select-none' : 'cursor-grab'"
+                 title="Klik & tahan untuk menggeser form (Drag to move)"
+                 class="bg-gradient-to-r from-slate-800 via-slate-700 to-amber-950 text-white px-3 py-1.5 flex items-center justify-between border-b border-slate-600 select-none">
+                <span class="flex items-center gap-1.5 font-bold pointer-events-none">
+                    <i data-lucide="building-2" class="w-3.5 h-3.5 text-amber-400"></i> frmCompanyAdd : Tambah Perusahaan Entitas Baru
+                </span>
+                <div class="flex items-center gap-1">
+                    <button x-show="posX !== 0 || posY !== 0" @click="resetPos()" type="button" class="px-1.5 py-0.5 bg-slate-700 hover:bg-amber-600 border border-slate-600 rounded text-amber-300 hover:text-white text-[10px] font-bold transition mr-1" title="Kembalikan Form ke Tengah">Center</button>
+                    <button @click="openAddCompanyModal = false; resetPos()" type="button" class="text-slate-400 hover:text-white">✕</button>
+                </div>
+            </div>
+
+            <form @submit.prevent="submitCompany()" class="p-4 space-y-3 font-sans text-xs">
+                <div x-show="companyError" class="p-2 rounded bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-300 text-[11px] font-mono font-bold" x-text="companyError"></div>
+
+                <fieldset class="border border-slate-300 dark:border-slate-700 p-3 rounded bg-white/80 dark:bg-slate-950/70 space-y-3">
+                    <legend class="px-2 font-mono text-xs font-bold text-amber-700 dark:text-amber-400 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded shadow-sm">Data Perusahaan Entitas</legend>
+
+                    <div>
+                        <label class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">NAMA PERUSAHAAN ENTITAS <span class="text-rose-500">*</span></label>
+                        <input type="text" x-model="newCompany.name" required placeholder="Contoh: PT Indraco Niaga Makmur" class="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-400 dark:border-slate-700 rounded font-bold text-slate-900 dark:text-white focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div>
+                        <label class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">KODE SINGKATAN (OPSIONAL)</label>
+                        <input type="text" x-model="newCompany.code" maxlength="20" placeholder="INM" class="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-400 dark:border-slate-700 rounded font-mono uppercase font-bold text-amber-600 dark:text-amber-400 focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div>
+                        <label class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">DESKRIPSI / KETERANGAN</label>
+                        <textarea x-model="newCompany.description" rows="2" placeholder="Keterangan unit usaha atau divisi bisnis..." class="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-400 dark:border-slate-700 rounded text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 font-medium"></textarea>
+                    </div>
+                </fieldset>
+
+                <div class="flex justify-end gap-2 pt-2 font-mono">
+                    <button type="button" @click="openAddCompanyModal = false; resetPos()" class="px-3 py-1.5 bg-slate-300 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded text-xs font-bold hover:bg-slate-400">Batal (Esc)</button>
+                    <button type="submit" :disabled="companySubmitting" class="px-4 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black rounded transition disabled:opacity-50 flex items-center gap-1 shadow-sm">
+                        <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin" x-show="companySubmitting"></i>
+                        <span x-text="companySubmitting ? 'Menyimpan...' : 'Simpan & Pilih (Enter)'"></span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- WINDOWS FORM DIALOG MODAL 2: ADD CUSTOM DOCUMENT TO CATALOG (PIC DEPT FULL CONTROL) -->
+    <div x-show="openAddDocModal" 
+         x-cloak 
+         x-data="{ 
+             posX: 0, posY: 0, isDragging: false, startX: 0, startY: 0, 
+             startDrag(e) { 
+                 if (e.target.closest('button') || e.target.closest('input') || e.target.closest('textarea')) return; 
+                 this.isDragging = true; 
+                 this.startX = e.clientX - this.posX; 
+                 this.startY = e.clientY - this.posY; 
+             }, 
+             onDrag(e) { 
+                 if (!this.isDragging) return; 
+                 this.posX = e.clientX - this.startX; 
+                 this.posY = e.clientY - this.startY; 
+             }, 
+             stopDrag() { this.isDragging = false; }, 
+             resetPos() { this.posX = 0; this.posY = 0; } 
+         }"
+         @mousemove.window="onDrag($event)" 
+         @mouseup.window="stopDrag()"
+         class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 font-mono">
+        <div :style="posX || posY ? 'transform: translate3d(' + posX + 'px, ' + posY + 'px, 0px);' : ''" 
+             class="delphi-window bg-slate-100 dark:bg-slate-900 border-2 border-slate-400 dark:border-slate-700 rounded-lg max-w-md w-full shadow-2xl overflow-hidden font-mono text-xs">
+            
+            <!-- Window Title Bar (Draggable) -->
+            <div @mousedown="startDrag($event)" 
+                 :class="isDragging ? 'cursor-grabbing select-none' : 'cursor-grab'"
+                 title="Klik & tahan untuk menggeser form (Drag to move)"
+                 class="bg-gradient-to-r from-slate-800 via-slate-700 to-indigo-950 text-white px-3 py-1.5 flex items-center justify-between border-b border-slate-600 select-none">
+                <span class="flex items-center gap-1.5 font-bold pointer-events-none">
+                    <i data-lucide="file-plus" class="w-3.5 h-3.5 text-amber-400"></i> frmDocumentCatalogAdd : Tambah Tipe Dokumen ke Katalog
+                </span>
+                <div class="flex items-center gap-1">
+                    <button x-show="posX !== 0 || posY !== 0" @click="resetPos()" type="button" class="px-1.5 py-0.5 bg-slate-700 hover:bg-amber-600 border border-slate-600 rounded text-amber-300 hover:text-white text-[10px] font-bold transition mr-1" title="Kembalikan Form ke Tengah">Center</button>
+                    <button @click="openAddDocModal = false; resetPos()" type="button" class="text-slate-400 hover:text-white">✕</button>
+                </div>
+            </div>
+
+            <form @submit.prevent="submitDocType()" class="p-4 space-y-3 font-sans text-xs">
+                <div x-show="docError" class="p-2 rounded bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-300 text-[11px] font-mono font-bold" x-text="docError"></div>
+
+                <fieldset class="border border-slate-300 dark:border-slate-700 p-3 rounded bg-white/80 dark:bg-slate-950/70 space-y-3">
+                    <legend class="px-2 font-mono text-xs font-bold text-amber-700 dark:text-amber-400 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded shadow-sm">Formulir Katalog Dokumen Baru</legend>
+
+                    <div>
+                        <label class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">KODE / SINGKATAN DOKUMEN <span class="text-rose-500">*</span></label>
+                        <input type="text" x-model="newDoc.code" required maxlength="50" placeholder="CTH: SERTIFIKAT, BILYET, ASURANSI" class="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-400 dark:border-slate-700 rounded font-mono uppercase font-bold text-amber-600 dark:text-amber-400 focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div>
+                        <label class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">NAMA LENGKAP JENIS DOKUMEN <span class="text-rose-500">*</span></label>
+                        <input type="text" x-model="newDoc.name" required placeholder="Contoh: Sertifikat Legalitas / Hak Milik Tanah" class="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-400 dark:border-slate-700 rounded font-bold text-slate-900 dark:text-white focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div>
+                        <label class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">DESKRIPSI / KETERANGAN RINGKAS</label>
+                        <input type="text" x-model="newDoc.description" placeholder="Contoh: Bukti Kepemilikan & Aset Perusahaan" class="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-400 dark:border-slate-700 rounded text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 font-medium">
+                    </div>
+                    <div>
+                        <label class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">LINGKUP PENGGUNAAN KATALOG</label>
+                        <div class="flex items-center gap-4 pt-1 font-mono text-xs">
+                            <label class="flex items-center gap-1.5 cursor-pointer">
+                                <input type="radio" x-model="newDoc.scope" value="global" class="text-amber-500 focus:ring-0">
+                                <span>Global (Semua Departemen)</span>
+                            </label>
+                            <label class="flex items-center gap-1.5 cursor-pointer">
+                                <input type="radio" x-model="newDoc.scope" value="dept" class="text-amber-500 focus:ring-0">
+                                <span>Khusus Departemen Ini</span>
+                            </label>
+                        </div>
+                    </div>
+                </fieldset>
+
+                <div class="flex justify-end gap-2 pt-2 font-mono">
+                    <button type="button" @click="openAddDocModal = false; resetPos()" class="px-3 py-1.5 bg-slate-300 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded text-xs font-bold hover:bg-slate-400">Batal (Esc)</button>
+                    <button type="submit" :disabled="docSubmitting" class="px-4 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black rounded transition disabled:opacity-50 flex items-center gap-1 shadow-sm">
+                        <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin" x-show="docSubmitting"></i>
+                        <span x-text="docSubmitting ? 'Menyimpan...' : 'Tambahkan & Ceklis (Enter)'"></span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
 </div>
+
+<script>
+function archiveCreateForm() {
+    return {
+        // Companies
+        companyList: @json($companies),
+        selectedCompany: '{{ old('company_name', $companies->first()->name ?? 'PT Indraco Global') }}',
+        openAddCompanyModal: false,
+        newCompany: { name: '', code: '', description: '' },
+        companySubmitting: false,
+        companyError: '',
+
+        // Departments & Subdepartments
+        allDepts: @json($departments),
+        isPicDept: {{ auth()->user()->isPicDept() ? 'true' : 'false' }},
+        selectedDeptId: '{{ old('department_id', auth()->user()->isPicDept() ? auth()->user()->department_id : '') }}',
+        selectedSubDeptId: '{{ old('sub_department_id', auth()->user()->sub_department_id ?? '') }}',
+
+        get subDeptList() {
+            if (!this.selectedDeptId) return [];
+            const dept = this.allDepts.find(d => d.id == this.selectedDeptId);
+            return dept && dept.sub_departments ? dept.sub_departments : [];
+        },
+
+        // Document Types & Catalog
+        docList: {!! json_encode($availableDocTypes->map(function($d) {
+            return [
+                'id' => $d->code,
+                'code' => $d->code,
+                'name' => $d->name,
+                'desc' => $d->description ?? $d->name,
+                'is_preset' => (bool)$d->is_preset,
+            ];
+        })->values()) !!},
+        selectedTypes: @json($oldDocTypes),
+        showCustom: {{ in_array('LAINNYA', $oldDocTypes) ? 'true' : 'false' }},
+        openAddDocModal: false,
+        newDoc: { code: '', name: '', description: '', scope: 'global' },
+        docSubmitting: false,
+        docError: '',
+
+        toggle(type) {
+            if (this.selectedTypes.includes(type)) {
+                this.selectedTypes = this.selectedTypes.filter(t => t !== type);
+            } else {
+                this.selectedTypes.push(type);
+            }
+            this.checkCustom();
+        },
+        checkCustom() {
+            this.showCustom = this.selectedTypes.includes('LAINNYA');
+        },
+        selectAll() {
+            this.selectedTypes = this.docList.map(d => d.id);
+            this.checkCustom();
+        },
+        clearAll() {
+            this.selectedTypes = [];
+            this.checkCustom();
+        },
+        presetFinance() {
+            const targets = ['PR', 'PO', 'SURAT JALAN', 'FAKTUR', 'FAKTUR PAJAK'];
+            targets.forEach(t => {
+                if (!this.selectedTypes.includes(t)) this.selectedTypes.push(t);
+            });
+            this.checkCustom();
+        },
+        presetHRD() {
+            const targets = ['ABSENSI', 'UTILITY'];
+            targets.forEach(t => {
+                if (!this.selectedTypes.includes(t)) this.selectedTypes.push(t);
+            });
+            this.checkCustom();
+        },
+
+        // Submit new Company via AJAX
+        submitCompany() {
+            if (!this.newCompany.name.trim()) {
+                this.companyError = 'Nama perusahaan wajib diisi.';
+                return;
+            }
+            this.companySubmitting = true;
+            this.companyError = '';
+
+            fetch('{{ route('api.companies.store') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify(this.newCompany)
+            })
+            .then(res => res.json())
+            .then(data => {
+                this.companySubmitting = false;
+                if (data.success) {
+                    this.companyList.push(data.company);
+                    this.selectedCompany = data.company.name;
+                    this.openAddCompanyModal = false;
+                    this.newCompany = { name: '', code: '', description: '' };
+                } else {
+                    this.companyError = data.message || 'Gagal menambahkan perusahaan.';
+                }
+            })
+            .catch(err => {
+                this.companySubmitting = false;
+                this.companyError = 'Terjadi kesalahan sistem.';
+            });
+        },
+
+        // Submit new Document Type via AJAX
+        submitDocType() {
+            if (!this.newDoc.code.trim() || !this.newDoc.name.trim()) {
+                this.docError = 'Kode dan nama dokumen wajib diisi.';
+                return;
+            }
+            this.docSubmitting = true;
+            this.docError = '';
+
+            const payload = {
+                code: this.newDoc.code,
+                name: this.newDoc.name,
+                description: this.newDoc.description,
+                scope_department: this.newDoc.scope,
+                department_id: (this.newDoc.scope === 'dept' && this.selectedDeptId) ? this.selectedDeptId : null
+            };
+
+            fetch('{{ route('api.document_types.store') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                this.docSubmitting = false;
+                if (data.success) {
+                    const newType = data.document_type;
+                    this.docList.push(newType);
+                    if (!this.selectedTypes.includes(newType.id)) {
+                        this.selectedTypes.push(newType.id);
+                    }
+                    this.openAddDocModal = false;
+                    this.newDoc = { code: '', name: '', description: '', scope: 'global' };
+                    setTimeout(() => { if (window.lucide) lucide.createIcons(); }, 50);
+                } else {
+                    this.docError = data.message || 'Gagal menambahkan dokumen ke katalog.';
+                }
+            })
+            .catch(err => {
+                this.docSubmitting = false;
+                this.docError = 'Terjadi kesalahan sistem.';
+            });
+        }
+    };
+}
+</script>
 @endsection

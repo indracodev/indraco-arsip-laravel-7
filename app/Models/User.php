@@ -16,6 +16,7 @@ class User extends Authenticatable
         'email',
         'password',
         'department_id',
+        'sub_department_id',
         'role',
         'phone',
     ];
@@ -32,6 +33,11 @@ class User extends Authenticatable
     public function department(): BelongsTo
     {
         return $this->belongsTo(Department::class);
+    }
+
+    public function subDepartment(): BelongsTo
+    {
+        return $this->belongsTo(SubDepartment::class, 'sub_department_id');
     }
 
     public function archives(): HasMany

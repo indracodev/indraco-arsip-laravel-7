@@ -3,7 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Archive;
+use App\Models\Company;
 use App\Models\Department;
+use App\Models\DocumentType;
+use App\Models\SubDepartment;
 use App\Models\WarehouseEntryLog;
 use App\Models\WarehouseLocation;
 use App\Services\NumberingService;
@@ -16,7 +19,7 @@ class ArchiveController extends Controller
     {
         $user = auth()->user();
 
-        $query = Archive::with(['department', 'location.warehouse', 'creator']);
+        $query = Archive::with(['department', 'subDepartment', 'location.warehouse', 'creator']);
 
         if ($user->isPicDept()) {
             $query->where('department_id', $user->department_id);
@@ -36,6 +39,10 @@ class ArchiveController extends Controller
 
         if ($request->filled('department_id')) {
             $query->where('department_id', $request->department_id);
+        }
+
+        if ($request->filled('sub_department_id')) {
+            $query->where('sub_department_id', $request->sub_department_id);
         }
 
         if ($request->filled('document_type')) {
@@ -71,16 +78,25 @@ class ArchiveController extends Controller
         }
 
         $archives = $query->paginate(10)->withQueryString();
-        $departments = Department::all();
+        $departments = Department::with('subDepartments')->get();
+        $documentTypes = DocumentType::orderBy('is_preset', 'desc')->orderBy('code', 'asc')->get();
 
-        return view('archives.index', compact('archives', 'departments'));
+        return view('archives.index', compact('archives', 'departments', 'documentTypes'));
     }
 
     public function create()
     {
         $user = auth()->user();
-        $departments = Department::all();
-        return view('archives.create', compact('user', 'departments'));
+        $departments = Department::with('subDepartments')->get();
+        $companies = Company::where('is_active', true)->orderBy('id')->get();
+        
+        $deptId = $user->isPicDept() ? $user->department_id : null;
+        $availableDocTypes = DocumentType::forDepartment($deptId)
+            ->orderBy('is_preset', 'desc')
+            ->orderBy('code', 'asc')
+            ->get();
+
+        return view('archives.create', compact('user', 'departments', 'companies', 'availableDocTypes'));
     }
 
     public function store(Request $request)
@@ -89,6 +105,7 @@ class ArchiveController extends Controller
 
         $validated = $request->validate([
             'department_id' => 'required|exists:departments,id',
+            'sub_department_id' => 'nullable|exists:sub_departments,id',
             'company_name' => 'nullable|string|max:150',
             'document_types' => 'required|array|min:1',
             'document_types.*' => 'string|max:100',
@@ -158,7 +175,8 @@ class ArchiveController extends Controller
 
         Archive::create([
             'department_id' => $validated['department_id'],
-            'company_name' => $validated['company_name'] ?? 'PT Indraco',
+            'sub_department_id' => $validated['sub_department_id'] ?? null,
+            'company_name' => $validated['company_name'] ?? 'PT Indraco Global',
             'document_type' => $documentTypes,
             'created_by_user_id' => $user->id,
             'title' => $validated['title'],
@@ -184,6 +202,7 @@ class ArchiveController extends Controller
     {
         $archive->load([
             'department',
+            'subDepartment',
             'creator',
             'location.warehouse',
             'entryLogs.picGudang',
@@ -206,7 +225,7 @@ class ArchiveController extends Controller
             abort(403, 'Anda tidak memiliki akses ke label arsip departemen lain.');
         }
 
-        $archive->load(['department', 'location.warehouse', 'creator']);
+        $archive->load(['department', 'subDepartment', 'location.warehouse', 'creator']);
         $archives = collect([$archive]);
         return view('archives.print_sticker', compact('archives', 'archive'));
     }
@@ -220,7 +239,7 @@ class ArchiveController extends Controller
             $ids = array_filter(explode(',', $ids));
         }
 
-        $query = Archive::with(['department', 'location.warehouse', 'creator']);
+        $query = Archive::with(['department', 'subDepartment', 'location.warehouse', 'creator']);
 
         // Scope to user's department if PIC Dept
         if ($user->isPicDept()) {

@@ -225,6 +225,11 @@
                         :class="fontScale == 'sm' ? 'text-xs' : (fontScale == 'lg' ? 'text-base' : 'text-sm')">
                         {{ $item->department->code ?? 'GEN' }}
                      </span>
+                     @if($item->subDepartment)
+                        <span class="font-bold text-amber-700 block text-[9px] lowercase -mt-0.5 tracking-tight">
+                           ({{ $item->subDepartment->name }})
+                        </span>
+                     @endif
                   </div>
                </div>
 

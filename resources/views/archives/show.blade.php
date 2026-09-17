@@ -186,7 +186,10 @@
 
                     <div class="p-[6px] bg-slate-50 dark:bg-slate-900 rounded-[3px] border border-slate-200 dark:border-slate-800">
                         <span class="text-[9px] font-bold text-slate-500 uppercase block">Departemen:</span>
-                        <span class="font-bold text-slate-900 dark:text-white">{{ $archive->department->name }} ({{ $archive->department->code }})</span>
+                        <span class="font-bold text-slate-900 dark:text-white block">{{ $archive->department->name }} ({{ $archive->department->code }})</span>
+                        @if($archive->subDepartment)
+                            <span class="text-amber-600 dark:text-amber-400 font-bold block text-[10px] mt-0.5">Sub: {{ $archive->subDepartment->name }}</span>
+                        @endif
                     </div>
 
                     <div class="p-[6px] bg-slate-50 dark:bg-slate-900 rounded-[3px] border border-slate-200 dark:border-slate-800">

@@ -71,6 +71,11 @@ Route::middleware('auth')->group(function () {
         Route::put('/departments/{department}', 'DepartmentController@update')->name('departments.update');
         Route::delete('/departments/{department}', 'DepartmentController@destroy')->name('departments.destroy');
 
+        // Subdepartments (Full Super Admin Control)
+        Route::post('/departments/{department}/subdepartments', 'DepartmentController@storeSubDepartment')->name('departments.subdepartments.store')->middleware('role:admin');
+        Route::put('/subdepartments/{subDepartment}', 'DepartmentController@updateSubDepartment')->name('subdepartments.update')->middleware('role:admin');
+        Route::delete('/subdepartments/{subDepartment}', 'DepartmentController@destroySubDepartment')->name('subdepartments.destroy')->middleware('role:admin');
+
         Route::get('/warehouses', 'WarehouseController@index')->name('warehouses');
         Route::post('/warehouses', 'WarehouseController@storeWarehouse')->name('warehouses.store');
         Route::put('/warehouses/{warehouse}', 'WarehouseController@updateWarehouse')->name('warehouses.update');
@@ -89,6 +94,24 @@ Route::middleware('auth')->group(function () {
         Route::delete('/users/{user}', 'UserController@destroy')->name('users.destroy');
         Route::post('/users/{user}/impersonate', 'UserController@impersonate')->name('users.impersonate');
     });
+
+    // Master Catalogs accessible to PIC Departemen, PIC Gudang & Super Admin
+    Route::prefix('master')->name('master.')->group(function () {
+        Route::get('/companies', 'CompanyController@index')->name('companies');
+        Route::post('/companies', 'CompanyController@store')->name('companies.store');
+        Route::put('/companies/{company}', 'CompanyController@update')->name('companies.update');
+        Route::delete('/companies/{company}', 'CompanyController@destroy')->name('companies.destroy');
+
+        Route::get('/document-types', 'DocumentTypeController@index')->name('document_types');
+        Route::post('/document-types', 'DocumentTypeController@store')->name('document_types.store');
+        Route::put('/document-types/{documentType}', 'DocumentTypeController@update')->name('document_types.update');
+        Route::delete('/document-types/{documentType}', 'DocumentTypeController@destroy')->name('document_types.destroy');
+    });
+
+    // Fast AJAX APIs for Quick-Add and Cascading Dropdowns
+    Route::post('/api/companies/store', 'CompanyController@apiStore')->name('api.companies.store');
+    Route::post('/api/document-types/store', 'DocumentTypeController@apiStore')->name('api.document_types.store');
+    Route::get('/api/departments/{department}/subdepartments', 'DepartmentController@apiSubDepartments')->name('api.departments.subdepartments');
 
     // Leave Impersonate Route
     Route::post('/impersonate/leave', 'UserController@leaveImpersonate')->name('impersonate.leave');
