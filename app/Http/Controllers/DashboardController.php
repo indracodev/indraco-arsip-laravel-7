@@ -86,7 +86,8 @@ class DashboardController extends Controller
             'totalCapacity',
             'usedCapacity',
             'capacityPercent',
-            'deptBreakdown'
+            'deptBreakdown',
+            'user'
         ));
     }
 

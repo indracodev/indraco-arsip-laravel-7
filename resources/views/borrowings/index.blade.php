@@ -21,7 +21,7 @@
             </div>
         </div>
 
-        @if(!auth()->user()->isPicDept())
+        @if(auth()->check() && auth()->user()->isPicDept())
         <div class="flex items-center gap-[6px]">
             <a href="{{ route('borrowings.create') }}" class="px-[10px] py-[4px] bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-400 hover:to-emerald-300 text-slate-950 font-mono font-black text-[11px] rounded-[3px] border border-emerald-600 shadow-2xs transition flex items-center gap-[6px]">
                 <i data-lucide="plus-circle" class="w-[13px] h-[13px]"></i>

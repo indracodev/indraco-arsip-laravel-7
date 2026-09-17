@@ -19,374 +19,143 @@
        $fontSizeScale = '16px';
    }
 @endphp
-@if (request()->has('embed') ||
-        request()->header('X-MDI-Embed') ||
-        request()->header('Sec-Fetch-Dest') === 'iframe' ||
-        \Illuminate\Support\Str::contains(request()->header('referer', ''), 'embed=1'))
-   <!DOCTYPE html>
-   <html lang="id" style="font-size: {{ $fontSizeScale }};" class="h-full select-none">
+<!DOCTYPE html>
+<html lang="id" style="font-size: {{ $fontSizeScale }};" class="h-full select-none">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@yield('title', 'DMS PT Indraco - Workstation')</title>
 
-   <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=800">
-      <title>@yield('title', 'DMS PT Indraco - Workstation Form')</title>
+    <!-- PWA Manifest & Theme -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#d97706">
 
-      <link rel="preconnect" href="https://fonts.googleapis.com">
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-      <link
-         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap"
-         rel="stylesheet">
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 
-      <!-- Instant Embed Theme Sync Script to Prevent Theme Flashbang -->
-      <script>
-         (function() {
+    <!-- Instant Theme Synchronization -->
+    <script>
+        (function() {
             try {
-               var savedTheme = localStorage.getItem('theme');
-               var isDark = false;
-               if (savedTheme) {
-                  isDark = (savedTheme === 'dark');
-               } else if (window.parent && window.parent.document && window.parent.document.documentElement) {
-                  isDark = window.parent.document.documentElement.classList.contains('dark');
-               }
-               if (isDark) {
-                  document.documentElement.classList.add('dark');
-               } else {
-                  document.documentElement.classList.remove('dark');
-               }
-            } catch (e) {}
-         })();
-      </script>
+                var savedTheme = localStorage.getItem('theme');
+                if (savedTheme === 'dark') {
+                    document.documentElement.classList.add('dark');
+                } else if (savedTheme === 'light') {
+                    document.documentElement.classList.remove('dark');
+                } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    document.documentElement.classList.add('dark');
+                }
+            } catch(e) {}
+        })();
+    </script>
 
-      <script src="https://cdn.tailwindcss.com"></script>
-      <script>
-         tailwind.config = {
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
             darkMode: 'class',
             theme: {
-               extend: {
-                  fontFamily: {
-                     sans: ['Inter', 'sans-serif'],
-                     mono: ['JetBrains Mono', 'monospace'],
-                  }
-               }
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
             }
-         }
-      </script>
-      <script src="https://unpkg.com/lucide@latest"></script>
-      <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+        }
+    </script>
 
-      <style>
-         [x-cloak] {
-            display: none !important;
-         }
+    <!-- Lucide & Alpine.js CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
-         html, body {
-            font-size: {{ $fontSizeScale }};
-         }
-
-         main table {
-            border-collapse: separate;
-            border-spacing: 0;
-            font-size: 0.875rem;
-         }
-
-         /* Scale up tiny utility classes so text is comfortable & readable */
-         .text-\[10px\], .text-\[11px\] {
-            font-size: 0.8125rem !important;
-         }
-         .text-\[9px\] {
-            font-size: 0.75rem !important;
-         }
-         .text-\[12px\] {
-            font-size: 0.875rem !important;
-         }
-
-         main table th {
+    <style>
+        [x-cloak] { display: none !important; }
+        html, body { font-size: {{ $fontSizeScale }}; }
+        main table { border-collapse: separate; border-spacing: 0; font-size: 0.875rem; }
+        .text-\[10px\], .text-\[11px\] { font-size: 0.8125rem !important; }
+        .text-\[9px\] { font-size: 0.75rem !important; }
+        .text-\[12px\] { font-size: 0.875rem !important; }
+        main table th {
             background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
             border-right: 1px solid #cbd5e1;
             border-bottom: 2px solid #94a3b8;
             color: #1e293b;
             padding-top: 7px;
             padding-bottom: 7px;
-         }
-
-         .dark main table th {
+        }
+        .dark main table th {
             background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
             border-right: 1px solid #334155;
             border-bottom: 2px solid #475569;
             color: #f8fafc;
-         }
-
-         main table td {
+        }
+        main table td {
             border-right: 1px solid #e2e8f0;
             border-bottom: 1px solid #e2e8f0;
             padding-top: 7px;
             padding-bottom: 7px;
-         }
-
-         .dark main table td {
+        }
+        .dark main table td {
             border-right: 1px solid #1e293b;
             border-bottom: 1px solid #1e293b;
-         }
-      </style>
-
-      <script>
-         // Live Embed Theme Synchronization Listener
-         function applyEmbedTheme(theme) {
-            if (theme === 'dark') {
-               document.documentElement.classList.add('dark');
-            } else {
-               document.documentElement.classList.remove('dark');
-            }
-         }
-         window.addEventListener('message', function(event) {
-            if (event.data && event.data.type === 'THEME_CHANGE') {
-               applyEmbedTheme(event.data.theme);
-            }
-         });
-
-         function tryRestoreParentFullscreen() {
-            try {
-               if (sessionStorage.getItem('app_fullscreen') === 'true' && window.parent && window.parent !== window) {
-                  if (!window.parent.document.fullscreenElement && window.parent.document.documentElement.requestFullscreen) {
-                     window.parent.document.documentElement.requestFullscreen().catch(function() {});
-                  }
-               }
-            } catch (e) {}
-         }
-         window.addEventListener('pointerdown', tryRestoreParentFullscreen, true);
-         window.addEventListener('keydown', tryRestoreParentFullscreen, true);
-         window.addEventListener('click', function() {
-            try {
-               tryRestoreParentFullscreen();
-               if (window.parent && window.parent !== window) {
-                  window.parent.postMessage({
-                     type: 'IFRAME_CLICK'
-                  }, '*');
-               }
-            } catch (e) {}
-         }, true);
-      </script>
-   </head>
-
-   <body class="h-full bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 p-3 overflow-y-auto font-sans">
-      <!-- Flash Banners -->
-      @if (session('success'))
-         <div
-            class="mb-3 p-2.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 flex items-start gap-2.5 font-mono shadow-sm">
-            <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5"></i>
-            <div class="font-bold">{{ session('success') }}</div>
-         </div>
-      @endif
-
-      @if (session('warning'))
-         <div
-            class="mb-3 p-2.5 rounded bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 flex items-start gap-2.5 font-mono shadow-sm">
-            <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5"></i>
-            <div class="font-bold">{{ session('warning') }}</div>
-         </div>
-      @endif
-
-      @if (session('error'))
-         <div
-            class="mb-3 p-2.5 rounded bg-rose-500/10 border border-rose-500/30 text-rose-800 dark:text-rose-300 flex items-start gap-2.5 font-mono shadow-sm">
-            <i data-lucide="alert-circle" class="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5"></i>
-            <div class="font-bold">{{ session('error') }}</div>
-         </div>
-      @endif
-
-      @yield('content')
-
-      <script>
-         document.addEventListener("DOMContentLoaded", function() {
-            lucide.createIcons();
-         });
-      </script>
-      @stack('scripts')
-   </body>
-
-   </html>
-@else
-   <html lang="id" style="min-width: 800px; min-height: 600px; font-size: {{ $fontSizeScale }};"
-      class="h-full select-none overflow-x-auto">
-
-   <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=800">
-      <title>@yield('title', 'DMS PT Indraco - Workstation Desktop Edition')</title>
-
-      <!-- PWA Manifest & Theme -->
-      <link rel="manifest" href="/manifest.json">
-      <meta name="theme-color" content="#d97706">
-
-      <!-- Google Fonts Inter & JetBrains Mono -->
-      <link rel="preconnect" href="https://fonts.googleapis.com">
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-      <link
-         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap"
-         rel="stylesheet">
-
-      <!-- Tailwind CSS CDN -->
-      <script src="https://cdn.tailwindcss.com"></script>
-      <script>
-         tailwind.config = {
-            darkMode: 'class',
-            theme: {
-               extend: {
-                  fontFamily: {
-                     sans: ['Inter', 'sans-serif'],
-                     mono: ['JetBrains Mono', 'monospace'],
-                  }
-               }
-            }
-         }
-      </script>
-
-      <!-- Lucide Icons CDN -->
-      <script src="https://unpkg.com/lucide@latest"></script>
-
-      <!-- Alpine.js CDN -->
-      <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-      <script src="{{ asset('js/seamless-desktop.js') }}"></script>
-
-      <style>
-         [x-cloak] {
-            display: none !important;
-         }
-
-         html, body {
-            font-size: {{ $fontSizeScale }};
-         }
-
-         .no-scrollbar::-webkit-scrollbar {
-            display: none !important;
-            width: 0 !important;
-            height: 0 !important;
-         }
-
-         .no-scrollbar {
-            -ms-overflow-style: none !important;
-            scrollbar-width: none !important;
-         }
-
-         /* Enterprise Desktop Custom Component Styles (Delphi/VB DBGrid & TForm Style) */
-         main table {
-            border-collapse: separate;
-            border-spacing: 0;
-            font-size: 0.875rem;
-         }
-
-         /* Scale up tiny utility classes so text is comfortable & readable */
-         .text-\[10px\], .text-\[11px\] {
-            font-size: 0.8125rem !important;
-         }
-         .text-\[9px\] {
-            font-size: 0.75rem !important;
-         }
-         .text-\[12px\] {
-            font-size: 0.875rem !important;
-         }
-
-         main table th {
-            background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
-            border-right: 1px solid #cbd5e1;
-            border-bottom: 2px solid #94a3b8;
-            color: #1e293b;
-            padding-top: 7px;
-            padding-bottom: 7px;
-         }
-
-         .dark main table th {
-            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
-            border-right: 1px solid #334155;
-            border-bottom: 2px solid #475569;
-            color: #f8fafc;
-         }
-
-         main table td {
-            border-right: 1px solid #e2e8f0;
-            border-bottom: 1px solid #e2e8f0;
-            padding-top: 7px;
-            padding-bottom: 7px;
-         }
-
-         .dark main table td {
-            border-right: 1px solid #1e293b;
-            border-bottom: 1px solid #1e293b;
-         }
-
-         .delphi-window {
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), inset 1px 1px 0 rgba(255, 255, 255, 0.2);
-         }
-
-         .desktop-bg-pattern {
-            background-image: radial-gradient(rgba(148, 163, 184, 0.25) 1px, transparent 1px);
-            background-size: 16px 16px;
-         }
-
-         .dark .desktop-bg-pattern {
-            background-image: radial-gradient(rgba(51, 65, 85, 0.4) 1px, transparent 1px);
-            background-size: 16px 16px;
-         }
-      </style>
-   </head>
-
-   <body x-data="desktopAppLayout()" x-init="initMdi()" @mousemove.window="onDrag($event)" @mouseup.window="stopDrag()"
-      :class="theme === 'dark' ? 'dark' : ''"
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+    @stack('styles')
+</head>
+<body x-data="navTabAppLayout()" 
+      x-init="init()" 
+      :class="theme === 'dark' ? 'dark' : ''" 
       class="h-full bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 flex flex-col overflow-hidden font-sans min-w-[800px] min-h-[600px]">
 
-      <!-- IMPERSONATION BANNER (If Active) -->
-      @if (session()->has('impersonator_id'))
-         @php
-            $impersonator = \App\Models\User::find(session('impersonator_id'));
-         @endphp
-         <div
-            class="bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 text-slate-950 px-4 py-1.5 shadow-md flex items-center justify-between z-50 font-bold border-b border-amber-600 shrink-0 font-mono">
-            <div class="flex items-center gap-2.5">
-               <span class="p-1 bg-slate-950 text-amber-400 rounded shadow">
-                  <i data-lucide="user-check" class="w-3.5 h-3.5"></i>
-               </span>
-               <div>
-                  <span>Mode Impersonasi Aktif: Anda sedang login sebagai <strong
-                        class="underline font-black text-slate-950">{{ auth()->user()->name }}</strong>
-                     ({{ auth()->user()->role_label }}
-                     {{ auth()->user()->department ? '- ' . auth()->user()->department->code : '' }})</span>
-                  @if ($impersonator)
-                     <span class="opacity-80 inline text-[11px] ml-2">| Akun Asli:
-                        <strong>{{ $impersonator->name }}</strong> (Super Admin)</span>
-                  @endif
-               </div>
+    <!-- IMPERSONATION BANNER (If Active) -->
+    @if(session()->has('impersonator_id'))
+    @php
+        $impersonator = \App\Models\User::find(session('impersonator_id'));
+    @endphp
+    <div class="bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 text-slate-950 px-4 py-2 shadow-md flex items-center justify-between z-50 font-bold border-b border-amber-600 shrink-0 text-[12px] font-mono">
+        <div class="flex items-center gap-2.5">
+            <span class="p-1 bg-slate-950 text-amber-400 rounded shadow">
+                <i data-lucide="user-check" class="w-3.5 h-3.5"></i>
+            </span>
+            <div>
+                <span>Mode Impersonasi Aktif: Anda sedang login sebagai <strong class="underline font-black text-slate-950">{{ auth()->user()->name }}</strong> ({{ auth()->user()->role_label }} {{ auth()->user()->department ? '- ' . auth()->user()->department->code : '' }})</span>
+                @if($impersonator)
+                    <span class="opacity-80 inline text-[11px] ml-2">| Akun Asli: <strong>{{ $impersonator->name }}</strong> (Super Admin)</span>
+                @endif
             </div>
+        </div>
 
-            <form action="{{ route('impersonate.leave') }}" method="POST" class="inline">
-               @csrf
-               <button type="submit"
-                  class="px-3 py-1 bg-slate-950 hover:bg-slate-900 text-white rounded font-black shadow transition flex items-center gap-1 shrink-0">
-                  <i data-lucide="log-out" class="w-3 h-3 text-amber-400"></i>
-                  Kembali ke SuperAdmin
-               </button>
-            </form>
-         </div>
-      @endif
+        <form action="{{ route('impersonate.leave') }}" method="POST" class="inline">
+            @csrf
+            <button type="submit" class="px-3 py-1 bg-slate-950 hover:bg-slate-900 text-white rounded font-black shadow transition flex items-center gap-1 shrink-0">
+                <i data-lucide="log-out" class="w-3 h-3 text-amber-400"></i>
+                Kembali ke SuperAdmin
+            </button>
+        </form>
+    </div>
+    @endif
 
-      <!-- 1. WINDOW TITLE BAR & WORKSTATION HEADER -->
-      <header
-         class="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white px-[12px] py-[6px] flex items-center justify-between border-b border-slate-700 shadow-sm shrink-0 font-mono z-30">
-         <!-- Brand Logo (Static Desktop UX) -->
-         <div class="flex items-center shrink-0 select-none cursor-default" title="PT INDRACO">
-            <img src="{{ asset('images/logo-indraco-invert.png') }}" alt="PT INDRACO"
-               class="h-[22px] w-auto object-contain opacity-95 pointer-events-none">
-         </div>
+    <!-- 1. WINDOW TITLE BAR & WORKSTATION HEADER -->
+    <header class="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white px-[12px] py-[6px] flex items-center justify-between border-b border-slate-700 shadow-sm shrink-0 font-mono z-30">
+        <!-- Brand Logo -->
+        <div class="flex items-center shrink-0 select-none cursor-default" title="PT INDRACO">
+            <img src="{{ asset('images/logo-indraco-invert.png') }}" alt="PT INDRACO" class="h-[22px] w-auto object-contain opacity-95 pointer-events-none">
+        </div>
 
-         <!-- Center Running Text Ticker -->
-         {{-- <p>Document Management System PT. Indraco Global Indonesia</p> --}}
-         @include('components.topbar-running-text')
+        <!-- Center Running Text Ticker -->
+        @include('components.topbar-running-text')
 
-         <!-- Right System Info Controls -->
-         <div class="flex items-center gap-[10px] shrink-0">
+        <!-- Right System Info Controls -->
+        <div class="flex items-center gap-[10px] shrink-0">
             <!-- Theme Toggle Button -->
             @include('components.theme-toggle')
 
-            <!-- Fullscreen / Maximize Toggle Button -->
+            <!-- Fullscreen Toggle Button -->
             <button @click="toggleFullscreen()" type="button"
                :title="isFullscreen ? 'Keluar Mode Layar Penuh' : 'Mode Layar Penuh'"
                class="w-[24px] h-[24px] flex items-center justify-center bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-[4px] text-amber-400 font-bold transition active:scale-95 shrink-0">
@@ -400,118 +169,214 @@
 
             @auth
                <div class="flex items-center gap-[8px] border-l border-slate-800 pl-[10px]">
-                  {{-- <span class="text-slate-300 font-bold text-[11px]">{{ auth()->user()->name }}</span> --}}
-                  <span
-                     class="px-[8px] py-[2px] bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded-[4px] text-[10px] font-bold">
-                     {{ auth()->user()->role_label }}
+                  <span class="px-[8px] py-[2px] bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded-[4px] text-[10px] font-bold">
+                     {{ auth()->user()->role_label }} {{ auth()->user()->department ? '- ' . auth()->user()->department->code : '' }}
                   </span>
 
-                  <form action="{{ route('logout') }}" method="POST"
-                     @submit="if(isFullscreen || document.fullscreenElement) sessionStorage.setItem('app_fullscreen', 'true')"
-                     class="inline ml-[2px] mb-0">
+                  <form action="{{ route('logout') }}" method="POST" class="inline ml-[2px] mb-0">
                      @csrf
-                     <button type="submit"
-                        class="p-[4px] text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-[4px] transition"
-                        title="Keluar Aplikasi">
+                     <button type="submit" class="p-[4px] text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-[4px] transition" title="Keluar Aplikasi">
                         <i data-lucide="log-out" class="w-[14px] h-[14px]"></i>
                      </button>
                   </form>
                </div>
             @endauth
-         </div>
-      </header>
+        </div>
+    </header>
 
-      <!-- 2. DELPHI MDI TABBED WORKSPACE SHEET BAR (FIXED NAV BAR) -->
-      <div
-         class="bg-slate-200/80 dark:bg-slate-950 border-b border-slate-300 dark:border-slate-800 px-2 pt-1 flex items-center justify-start gap-1 shrink-0 font-mono text-[11px] select-none z-30 overflow-x-auto no-scrollbar">
-         <template x-for="form in availableForms" :key="form.id">
-            <button @click="openFormWindow(form.id)" type="button"
-               :class="activeWinId === form.id ?
-                   'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 border-t-2 border-t-amber-500 border-x border-slate-300 dark:border-slate-700 font-bold shadow-sm' :
-                   (isWindowOpen(form.id) ?
-                       'bg-slate-100 dark:bg-slate-900/80 text-slate-900 dark:text-slate-100 border-t-2 border-t-transparent border-x border-slate-300 dark:border-slate-700 font-bold' :
-                       'bg-slate-200/60 dark:bg-slate-950 text-slate-600 dark:text-slate-400 border-t-2 border-t-transparent border-x border-transparent font-bold hover:bg-slate-100 dark:hover:bg-slate-850'
-                       )"
-               class="px-3 py-1.5 rounded-t transition-colors flex items-center gap-2 shrink-0 cursor-pointer whitespace-nowrap">
-               <i :data-lucide="form.icon" class="w-3.5 h-3.5"
-                  :class="activeWinId === form.id ? 'text-amber-500' : (isWindowOpen(form.id) ? 'text-amber-500/80' :
-                      'text-slate-400')"></i>
-               <span x-text="form.title"></span>
+    <!-- 2. ACTION RIBBON TOOLBAR (PIC DEPARTEMEN ONLY) -->
+    @if(auth()->check() && auth()->user()->isPicDept())
+    <div class="bg-white dark:bg-slate-950 border-b border-slate-300 dark:border-slate-800 px-3 py-1.5 flex flex-wrap items-center justify-between gap-2 shrink-0 font-mono text-[11px] z-30">
+        <div class="flex flex-wrap items-center gap-1.5">
+            <!-- Buat Arsip Baru -->
+            <a href="{{ route('archives.create') }}" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-white font-bold transition flex items-center gap-1.5 shadow-2xs {{ request()->routeIs('archives.create') ? 'ring-1 ring-emerald-500 text-emerald-600 dark:text-emerald-400' : '' }}">
+                <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400"></i>
+                <span>+ Buat Arsip</span>
+            </a>
+
+            <!-- Pinjam Berkas -->
+            <a href="{{ route('borrowings.create') }}" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-white font-bold transition flex items-center gap-1.5 shadow-2xs {{ request()->routeIs('borrowings.create') ? 'ring-1 ring-purple-500 text-purple-600 dark:text-purple-400' : '' }}">
+                <i data-lucide="file-symlink" class="w-3.5 h-3.5 text-purple-600 dark:text-purple-400"></i>
+                <span>Pinjam</span>
+            </a>
+
+            <!-- Cetak Label -->
+            <a href="{{ route('archives.print_labels') }}" target="_blank" class="px-2.5 py-1 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded text-amber-700 dark:text-amber-300 font-bold transition flex items-center gap-1.5 shadow-2xs">
+                <i data-lucide="printer" class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400"></i>
+                <span>Cetak Label</span>
+            </a>
+
+            <!-- Refresh Halaman -->
+            <button onclick="window.location.reload()" type="button" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-white font-bold transition flex items-center gap-1.5 shadow-2xs" title="Muat Ulang Halaman">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-blue-600 dark:text-blue-400"></i>
+                <span>Refresh</span>
             </button>
-         </template>
-      </div>
+        </div>
 
-      <!-- 3. MAIN VIEWPORT CONTAINER (MDI Workstation Desktop Canvas) -->
-      <main
-         class="flex-1 bg-slate-200 dark:bg-slate-950 p-3 overflow-hidden relative min-w-0 desktop-bg-pattern flex items-center justify-center font-sans">
+        <div class="flex items-center gap-3 text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+            <span>DEPARTEMEN: <strong class="text-amber-600 dark:text-amber-400">{{ auth()->user()->department->name ?? 'Global' }} ({{ auth()->user()->department->code ?? 'GEN' }})</strong></span>
+            <span>WORKSTATION: <strong class="text-slate-700 dark:text-slate-200">WS-01</strong></span>
+        </div>
+    </div>
+    @endif
 
-         <!-- Empty Workspace Placeholder (When all windows closed) -->
-         <div x-show="openWindows.length === 0" class="my-auto text-center space-y-3 font-mono">
-            <div
-               class="p-4 bg-slate-300 dark:bg-slate-800/80 rounded-2xl w-16 h-16 mx-auto flex items-center justify-center text-slate-500 dark:text-slate-400 shadow-inner">
-               <i data-lucide="layout" class="w-8 h-8 text-amber-500"></i>
+    <!-- 3. NAV-TAB BAR (CLEAN FULL-CANVAS TAB NAVIGATION) -->
+    <nav class="bg-slate-200/90 dark:bg-slate-950 border-b border-slate-300 dark:border-slate-800 px-2 pt-1 flex items-center justify-start gap-1 shrink-0 font-mono text-[11px] select-none z-30 overflow-x-auto no-scrollbar">
+        @if(auth()->check() && auth()->user()->isPicDept())
+            <!-- PIC DEPARTEMEN TABS -->
+            <a href="{{ route('archives.index') }}" 
+               class="px-3 py-1.5 rounded-t transition-all flex items-center gap-2 shrink-0 cursor-pointer whitespace-nowrap {{ request()->routeIs('archives.index') || request()->routeIs('archives.show') ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 border-t-2 border-t-amber-500 border-x border-slate-300 dark:border-slate-700 font-bold shadow-xs -mb-px' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/80 dark:hover:bg-slate-850 font-medium' }}">
+               <i data-lucide="folder-archive" class="w-3.5 h-3.5 {{ request()->routeIs('archives.index') || request()->routeIs('archives.show') ? 'text-amber-500' : 'text-slate-400' }}"></i>
+               <span>Katalog Arsip {{ auth()->user()->department->code ?? '' }}</span>
+            </a>
+
+            <a href="{{ route('archives.create') }}" 
+               class="px-3 py-1.5 rounded-t transition-all flex items-center gap-2 shrink-0 cursor-pointer whitespace-nowrap {{ request()->routeIs('archives.create') ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 border-t-2 border-t-emerald-500 border-x border-slate-300 dark:border-slate-700 font-bold shadow-xs -mb-px' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/80 dark:hover:bg-slate-850 font-medium' }}">
+               <i data-lucide="plus-circle" class="w-3.5 h-3.5 {{ request()->routeIs('archives.create') ? 'text-emerald-500' : 'text-slate-400' }}"></i>
+               <span>+ Draft Baru</span>
+            </a>
+
+            <a href="{{ route('borrowings.index') }}" 
+               class="px-3 py-1.5 rounded-t transition-all flex items-center gap-2 shrink-0 cursor-pointer whitespace-nowrap {{ request()->routeIs('borrowings.*') ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 border-t-2 border-t-purple-500 border-x border-slate-300 dark:border-slate-700 font-bold shadow-xs -mb-px' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/80 dark:hover:bg-slate-850 font-medium' }}">
+               <i data-lucide="file-check-2" class="w-3.5 h-3.5 {{ request()->routeIs('borrowings.*') ? 'text-purple-500' : 'text-slate-400' }}"></i>
+               <span>Peminjaman Berkas</span>
+            </a>
+
+            <a href="{{ route('master.companies') }}" 
+               class="px-3 py-1.5 rounded-t transition-all flex items-center gap-2 shrink-0 cursor-pointer whitespace-nowrap {{ request()->routeIs('master.companies*') ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 border-t-2 border-t-indigo-500 border-x border-slate-300 dark:border-slate-700 font-bold shadow-xs -mb-px' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/80 dark:hover:bg-slate-850 font-medium' }}">
+               <i data-lucide="landmark" class="w-3.5 h-3.5 {{ request()->routeIs('master.companies*') ? 'text-indigo-500' : 'text-slate-400' }}"></i>
+               <span>Perusahaan Entitas</span>
+            </a>
+
+            <a href="{{ route('master.document_types') }}" 
+               class="px-3 py-1.5 rounded-t transition-all flex items-center gap-2 shrink-0 cursor-pointer whitespace-nowrap {{ request()->routeIs('master.document_types*') ? 'bg-white dark:bg-slate-900 text-teal-600 dark:text-teal-400 border-t-2 border-t-teal-500 border-x border-slate-300 dark:border-slate-700 font-bold shadow-xs -mb-px' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/80 dark:hover:bg-slate-850 font-medium' }}">
+               <i data-lucide="file-text" class="w-3.5 h-3.5 {{ request()->routeIs('master.document_types*') ? 'text-teal-500' : 'text-slate-400' }}"></i>
+               <span>Katalog Dokumen</span>
+            </a>
+
+            <a href="{{ route('destructions.index') }}" 
+               class="px-3 py-1.5 rounded-t transition-all flex items-center gap-2 shrink-0 cursor-pointer whitespace-nowrap {{ request()->routeIs('destructions.*') ? 'bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400 border-t-2 border-t-rose-500 border-x border-slate-300 dark:border-slate-700 font-bold shadow-xs -mb-px' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/80 dark:hover:bg-slate-850 font-medium' }}">
+               <i data-lucide="shield-alert" class="w-3.5 h-3.5 {{ request()->routeIs('destructions.*') ? 'text-rose-500' : 'text-slate-400' }}"></i>
+               <span>Expiry Retention</span>
+            </a>
+
+            <a href="{{ route('logs.index') }}" 
+               class="px-3 py-1.5 rounded-t transition-all flex items-center gap-2 shrink-0 cursor-pointer whitespace-nowrap {{ request()->routeIs('logs.*') ? 'bg-white dark:bg-slate-900 text-cyan-600 dark:text-cyan-400 border-t-2 border-t-cyan-500 border-x border-slate-300 dark:border-slate-700 font-bold shadow-xs -mb-px' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/80 dark:hover:bg-slate-850 font-medium' }}">
+               <i data-lucide="history" class="w-3.5 h-3.5 {{ request()->routeIs('logs.*') ? 'text-cyan-500' : 'text-slate-400' }}"></i>
+               <span>Audit Trail</span>
+            </a>
+        @else
+            <!-- SUPER ADMIN & PIC GUDANG TABS -->
+            <a href="{{ route('dashboard') }}" 
+               class="px-3 py-1.5 rounded-t transition-all flex items-center gap-2 shrink-0 cursor-pointer whitespace-nowrap {{ request()->routeIs('dashboard') || request()->is('/') ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 border-t-2 border-t-amber-500 border-x border-slate-300 dark:border-slate-700 font-bold shadow-xs -mb-px' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/80 dark:hover:bg-slate-850 font-medium' }}">
+               <i data-lucide="layout-dashboard" class="w-3.5 h-3.5 {{ request()->routeIs('dashboard') || request()->is('/') ? 'text-amber-500' : 'text-slate-400' }}"></i>
+               <span>Dashboard Overview</span>
+            </a>
+
+            @if(auth()->check() && (auth()->user()->isAdmin() || auth()->user()->isPicGudang()))
+            <a href="{{ route('master.departments') }}" 
+               class="px-3 py-1.5 rounded-t transition-all flex items-center gap-2 shrink-0 cursor-pointer whitespace-nowrap {{ request()->routeIs('master.departments*') ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 border-t-2 border-t-amber-500 border-x border-slate-300 dark:border-slate-700 font-bold shadow-xs -mb-px' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/80 dark:hover:bg-slate-850 font-medium' }}">
+               <i data-lucide="building-2" class="w-3.5 h-3.5 {{ request()->routeIs('master.departments*') ? 'text-amber-500' : 'text-slate-400' }}"></i>
+               <span>Master Departemen</span>
+            </a>
+            @endif
+
+            <a href="{{ route('master.companies') }}" 
+               class="px-3 py-1.5 rounded-t transition-all flex items-center gap-2 shrink-0 cursor-pointer whitespace-nowrap {{ request()->routeIs('master.companies*') ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 border-t-2 border-t-indigo-500 border-x border-slate-300 dark:border-slate-700 font-bold shadow-xs -mb-px' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/80 dark:hover:bg-slate-850 font-medium' }}">
+               <i data-lucide="landmark" class="w-3.5 h-3.5 {{ request()->routeIs('master.companies*') ? 'text-indigo-500' : 'text-slate-400' }}"></i>
+               <span>Perusahaan Entitas</span>
+            </a>
+
+            <a href="{{ route('master.document_types') }}" 
+               class="px-3 py-1.5 rounded-t transition-all flex items-center gap-2 shrink-0 cursor-pointer whitespace-nowrap {{ request()->routeIs('master.document_types*') ? 'bg-white dark:bg-slate-900 text-teal-600 dark:text-teal-400 border-t-2 border-t-teal-500 border-x border-slate-300 dark:border-slate-700 font-bold shadow-xs -mb-px' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/80 dark:hover:bg-slate-850 font-medium' }}">
+               <i data-lucide="file-text" class="w-3.5 h-3.5 {{ request()->routeIs('master.document_types*') ? 'text-teal-500' : 'text-slate-400' }}"></i>
+               <span>Katalog Dokumen</span>
+            </a>
+
+            @if(auth()->check() && (auth()->user()->isAdmin() || auth()->user()->isPicGudang()))
+            <a href="{{ route('master.warehouses') }}" 
+               class="px-3 py-1.5 rounded-t transition-all flex items-center gap-2 shrink-0 cursor-pointer whitespace-nowrap {{ request()->routeIs('master.warehouses') ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 border-t-2 border-t-amber-500 border-x border-slate-300 dark:border-slate-700 font-bold shadow-xs -mb-px' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/80 dark:hover:bg-slate-850 font-medium' }}">
+               <i data-lucide="warehouse" class="w-3.5 h-3.5 {{ request()->routeIs('master.warehouses') ? 'text-amber-500' : 'text-slate-400' }}"></i>
+               <span>Master Gudang & Rak</span>
+            </a>
+
+            <a href="{{ route('master.warehouses.layout') }}" 
+               class="px-3 py-1.5 rounded-t transition-all flex items-center gap-2 shrink-0 cursor-pointer whitespace-nowrap {{ request()->routeIs('master.warehouses.layout') ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 border-t-2 border-t-amber-500 border-x border-slate-300 dark:border-slate-700 font-bold shadow-xs -mb-px' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/80 dark:hover:bg-slate-850 font-medium' }}">
+               <i data-lucide="map" class="w-3.5 h-3.5 {{ request()->routeIs('master.warehouses.layout') ? 'text-amber-500' : 'text-slate-400' }}"></i>
+               <span>Layout Gudang 2D</span>
+            </a>
+            @endif
+
+            @if(auth()->check() && auth()->user()->isSuperAdmin())
+            <a href="{{ route('master.numbering') }}" 
+               class="px-3 py-1.5 rounded-t transition-all flex items-center gap-2 shrink-0 cursor-pointer whitespace-nowrap {{ request()->routeIs('master.numbering') ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 border-t-2 border-t-amber-500 border-x border-slate-300 dark:border-slate-700 font-bold shadow-xs -mb-px' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/80 dark:hover:bg-slate-850 font-medium' }}">
+               <i data-lucide="binary" class="w-3.5 h-3.5 {{ request()->routeIs('master.numbering') ? 'text-amber-500' : 'text-slate-400' }}"></i>
+               <span>Format Penomoran Box</span>
+            </a>
+
+            <a href="{{ route('master.users') }}" 
+               class="px-3 py-1.5 rounded-t transition-all flex items-center gap-2 shrink-0 cursor-pointer whitespace-nowrap {{ request()->routeIs('master.users') ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 border-t-2 border-t-amber-500 border-x border-slate-300 dark:border-slate-700 font-bold shadow-xs -mb-px' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/80 dark:hover:bg-slate-850 font-medium' }}">
+               <i data-lucide="users" class="w-3.5 h-3.5 {{ request()->routeIs('master.users') ? 'text-amber-500' : 'text-slate-400' }}"></i>
+               <span>Kelola User & Hak Akses</span>
+            </a>
+            @endif
+
+            <a href="{{ route('archives.index') }}" 
+               class="px-3 py-1.5 rounded-t transition-all flex items-center gap-2 shrink-0 cursor-pointer whitespace-nowrap {{ request()->routeIs('archives.index') || request()->routeIs('archives.show') ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 border-t-2 border-t-amber-500 border-x border-slate-300 dark:border-slate-700 font-bold shadow-xs -mb-px' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/80 dark:hover:bg-slate-850 font-medium' }}">
+               <i data-lucide="folder-archive" class="w-3.5 h-3.5 {{ request()->routeIs('archives.index') || request()->routeIs('archives.show') ? 'text-amber-500' : 'text-slate-400' }}"></i>
+               <span>Katalog Arsip</span>
+            </a>
+
+            <a href="{{ route('borrowings.index') }}" 
+               class="px-3 py-1.5 rounded-t transition-all flex items-center gap-2 shrink-0 cursor-pointer whitespace-nowrap {{ request()->routeIs('borrowings.*') ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 border-t-2 border-t-purple-500 border-x border-slate-300 dark:border-slate-700 font-bold shadow-xs -mb-px' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/80 dark:hover:bg-slate-850 font-medium' }}">
+               <i data-lucide="file-check-2" class="w-3.5 h-3.5 {{ request()->routeIs('borrowings.*') ? 'text-purple-500' : 'text-slate-400' }}"></i>
+               <span>Peminjaman Berkas</span>
+            </a>
+
+            <a href="{{ route('destructions.index') }}" 
+               class="px-3 py-1.5 rounded-t transition-all flex items-center gap-2 shrink-0 cursor-pointer whitespace-nowrap {{ request()->routeIs('destructions.*') ? 'bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400 border-t-2 border-t-rose-500 border-x border-slate-300 dark:border-slate-700 font-bold shadow-xs -mb-px' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/80 dark:hover:bg-slate-850 font-medium' }}">
+               <i data-lucide="shield-alert" class="w-3.5 h-3.5 {{ request()->routeIs('destructions.*') ? 'text-rose-500' : 'text-slate-400' }}"></i>
+               <span>Expiry Retention</span>
+            </a>
+
+            <a href="{{ route('logs.index') }}" 
+               class="px-3 py-1.5 rounded-t transition-all flex items-center gap-2 shrink-0 cursor-pointer whitespace-nowrap {{ request()->routeIs('logs.*') ? 'bg-white dark:bg-slate-900 text-cyan-600 dark:text-cyan-400 border-t-2 border-t-cyan-500 border-x border-slate-300 dark:border-slate-700 font-bold shadow-xs -mb-px' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/80 dark:hover:bg-slate-850 font-medium' }}">
+               <i data-lucide="history" class="w-3.5 h-3.5 {{ request()->routeIs('logs.*') ? 'text-cyan-500' : 'text-slate-400' }}"></i>
+               <span>Audit Trail</span>
+            </a>
+        @endif
+    </nav>
+
+    <!-- 4. FULL-CANVAS WORKSPACE VIEWPORT -->
+    <main class="flex-1 bg-slate-100 dark:bg-slate-950 p-3 md:p-4 overflow-y-auto font-sans">
+        <!-- Flash Notification Banners -->
+        @if (session('success'))
+            <div class="mb-3 p-2.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 flex items-start gap-2.5 font-mono shadow-sm">
+                <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5"></i>
+                <div class="font-bold">{{ session('success') }}</div>
             </div>
-            <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase">DOCUMENT MANAGEMENT SYSTEM</h3>
-         </div>
+        @endif
 
-         <!-- RECURSIVE MDI WINDOW FRAMES (Allows Multiple Forms Open Simultaneously) -->
-         <template x-for="win in openWindows" :key="win.id">
-            <div x-show="!win.minimized" @mousedown="focusWindow(win.id)"
-               :class="win.maximized ? 'absolute inset-0 z-30 w-full h-full rounded-none border-0 my-0 shadow-none' :
-                   'absolute rounded-[4px] border-2 border-slate-400 dark:border-slate-700 shadow-2xl resize overflow-hidden'"
-               :style="getWindowStyle(win) + (win.maximized ? '' :
-                   'width: 860px; max-width: calc(100% - 20px); height: 520px; max-height: calc(100% - 20px); min-width: 460px; min-height: 300px;'
-                   )"
-               class="delphi-window bg-slate-100 dark:bg-slate-900 flex flex-col transition-shadow duration-150">
-               <!-- WINDOW TITLE BAR (Draggable Desktop Caption & Controls) -->
-               <div @mousedown="startDragWindow(win, $event)"
-                  @dblclick="win.maximized = !win.maximized; if(win.maximized) focusWindow(win.id)"
-                  :class="win.maximized ? 'cursor-default' : (win.isDragging ? 'cursor-grabbing select-none' : 'cursor-grab')"
-                  title="Klik & tahan untuk menggeser/reposisi posisi jendela form (Drag to move)"
-                  class="bg-gradient-to-r from-slate-800 via-slate-700 to-indigo-950 text-white px-[12px] py-[6px] flex items-center justify-between border-b border-slate-600 font-mono text-[11px] select-none shrink-0">
-                  <!-- Left Title & Icon -->
-                  <div class="flex items-center gap-[8px] font-bold truncate pointer-events-none">
-                     <span class="p-[2px] bg-amber-500/20 border border-amber-400/40 rounded-[3px]">
-                        <i :data-lucide="win.icon" class="w-[14px] h-[14px] text-amber-400"></i>
-                     </span>
-                     <span class="tracking-wide uppercase" x-text="win.title"></span>
-                  </div>
-
-                  <!-- Right Window Controls [ 🎯 Center ] [ 🗖 ] [ ✕ ] -->
-                  <div class="flex items-center gap-[4px] shrink-0" @mousedown.stop>
-                     <button x-show="!win.maximized && (win.posX !== 0 || win.posY !== 0)" x-transition
-                        @click="resetWindowPos(win)" type="button"
-                        title="Kembalikan Posisi Form Window ke Tengah Layar"
-                        class="px-[6px] py-[2px] bg-slate-700/80 hover:bg-amber-600 border border-slate-600 rounded-[3px] text-amber-300 hover:text-white text-[10px] font-bold transition active:scale-95 flex items-center gap-[4px] mr-[2px] shadow-xs">
-                        <i data-lucide="crosshair" class="w-[12px] h-[12px] text-amber-400"></i>
-                        <span>Center</span>
-                     </button>
-                     <button @click="win.maximized = !win.maximized; if(win.maximized) focusWindow(win.id)"
-                        type="button" title="Maximize / Restore Ukuran Jendela Form"
-                        class="w-[22px] h-[22px] flex items-center justify-center bg-slate-700/80 hover:bg-slate-600 border border-slate-600 rounded-[3px] text-slate-200 text-[11px] font-black transition active:scale-95">
-                        <span x-text="win.maximized ? '❐' : '🗖'"></span>
-                     </button>
-                     <button @click="closeWindow(win.id)" type="button" title="Tutup Jendela Form Ini"
-                        class="w-[22px] h-[22px] flex items-center justify-center bg-rose-600/90 hover:bg-rose-500 border border-rose-500 rounded-[3px] text-white text-[11px] font-black transition active:scale-95">
-                        ✕
-                     </button>
-                  </div>
-               </div>
-
-               <!-- WINDOW IFRAME CONTAINER (ISOLATED FORM EMBED CONTENT) -->
-               <div class="flex-1 bg-white dark:bg-slate-900 relative overflow-hidden">
-                  <iframe :src="win.url" @load="broadcastTheme(theme)"
-                     :class="activeDragWin ? 'pointer-events-none' : ''"
-                     class="w-full h-full border-0 block"></iframe>
-               </div>
+        @if (session('warning'))
+            <div class="mb-3 p-2.5 rounded bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 flex items-start gap-2.5 font-mono shadow-sm">
+                <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5"></i>
+                <div class="font-bold">{{ session('warning') }}</div>
             </div>
-         </template>
-      </main>
+        @endif
 
-      <!-- 4. BOTTOM STATUS BAR PANEL (TStatusBar) -->
-      <footer
-         class="bg-slate-900 text-slate-300 text-[11px] px-3 py-1 flex items-center justify-between border-t border-slate-800 shrink-0 font-mono z-30 select-none">
-         <div class="flex items-center gap-3">
+        @if (session('error'))
+            <div class="mb-3 p-2.5 rounded bg-rose-500/10 border border-rose-500/30 text-rose-800 dark:text-rose-300 flex items-start gap-2.5 font-mono shadow-sm">
+                <i data-lucide="alert-circle" class="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5"></i>
+                <div class="font-bold">{{ session('error') }}</div>
+            </div>
+        @endif
+
+        @yield('content')
+    </main>
+
+    <!-- 5. BOTTOM STATUS BAR PANEL (TStatusBar) -->
+    <footer class="bg-slate-900 text-slate-300 text-[11px] px-3 py-1 flex items-center justify-between border-t border-slate-800 shrink-0 font-mono z-30 select-none">
+        <div class="flex items-center gap-3">
             <span class="flex items-center gap-1.5 text-emerald-400 font-bold">
                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> SYSTEM READY
             </span>
@@ -520,441 +385,91 @@
 
             <!-- CPU & MEMORY RESOURCE USAGE MONITOR -->
             <style>
-               .pc-info-value {
-                  min-width: 30px;
-               }
+               .pc-info-value { min-width: 30px; }
             </style>
             <div class="flex items-center gap-2 text-[10px]">
-               <span
-                  class="px-1.5 py-0.2 bg-slate-800 text-sky-300 border border-slate-700 rounded font-bold flex items-center gap-1"
-                  title="Penggunaan CPU Workstation">
+               <span class="px-1.5 py-0.2 bg-slate-800 text-sky-300 border border-slate-700 rounded font-bold flex items-center gap-1" title="Penggunaan CPU Workstation">
                   <i data-lucide="cpu" class="w-3 h-3 text-sky-400"></i>
                   <span>CPU: </span>
                   <span class="pc-info-value text-center"><strong x-text="cpuUsage + '%'">12%</strong></span>
                </span>
 
-               <span
-                  class="px-1.5 py-0.2 bg-slate-800 text-purple-300 border border-slate-700 rounded font-bold flex items-center gap-1"
-                  title="Penggunaan Memori RAM Workstation">
+               <span class="px-1.5 py-0.2 bg-slate-800 text-purple-300 border border-slate-700 rounded font-bold flex items-center gap-1" title="Penggunaan Memori RAM Workstation">
                   <i data-lucide="hard-drive" class="w-3 h-3 text-purple-400"></i>
                   <span>MEM: </span>
                   <span class="pc-info-value text-center"><strong x-text="memUsage + '%'">38%</strong></span>
                </span>
             </div>
+        </div>
 
-            <!-- Minimized Window Taskbar Items -->
-            <template x-for="win in openWindows.filter(w => w.minimized)" :key="win.id">
-               <button @click="win.minimized = false; focusWindow(win.id)" type="button"
-                  class="px-2 py-0.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/50 rounded text-[10px] font-bold flex items-center gap-1 transition active:scale-95">
-                  <i :data-lucide="win.icon" class="w-3 h-3 text-amber-400"></i>
-                  <span x-text="win.title"></span>
-               </button>
-            </template>
-         </div>
+        <div class="flex items-center gap-3 text-slate-400 text-[10px]">
+            <span>USER: <strong class="text-white">{{ auth()->check() ? auth()->user()->name : 'Guest' }}</strong> ({{ auth()->check() ? auth()->user()->role_label : '' }})</span>
+            <span class="text-slate-700">|</span>
+            <span>Developed by WebDev &copy; 2026 Indraco Global Indonesia</span>
+        </div>
+    </footer>
 
-         <!-- MDI Cascade / Tile & Window Counter Controls in Footer Status Bar -->
-         <div class="flex items-center gap-3">
-            <div class="flex items-center gap-1.5">
-               <template x-if="openWindows.length > 1">
-                  <div class="flex items-center gap-1 mr-1">
-                     <button @click="cascadeWindows()" type="button"
-                        class="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-bold rounded border border-slate-700 flex items-center gap-1 transition shadow active:scale-95"
-                        title="Susun Jendela Secara Bertingkat (Cascade)">
-                        <i data-lucide="layers" class="w-3 h-3 text-amber-400"></i>
-                        <span>Cascade</span>
-                     </button>
-                     <button @click="tileWindows()" type="button"
-                        class="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-bold rounded border border-slate-700 flex items-center gap-1 transition shadow active:scale-95"
-                        title="Susun Jendela Berdampingan (Tile)">
-                        <i data-lucide="grid" class="w-3 h-3 text-amber-400"></i>
-                        <span>Tile</span>
-                     </button>
-                  </div>
-               </template>
-
-               <span
-                  class="px-2 py-0.5 bg-slate-800 text-amber-300 rounded border border-slate-700 text-[10px] font-bold">
-                  <span x-text="openWindows.length"></span> Form Terbuka
-               </span>
-            </div>
-
-            <div class="flex items-center gap-3 text-slate-400 border-l border-slate-800 pl-3">
-               {{-- <span>SUPER ADMIN: <strong class="text-white">{{ auth()->check() ? auth()->user()->name : 'Admin' }}</strong> (Global)</span> --}}
-               {{-- <span class="text-slate-500">|</span> --}}
-               <span>Developed by WebDev &copy; 2026 Indraco Global Indonesia</span>
-            </div>
-         </div>
-      </footer>
-
-      <!-- Lucide Icons & Desktop Hotkeys Script -->
-      <script>
-         function desktopAppLayout() {
+    <!-- Alpine.js Application Component Script -->
+    <script>
+        function navTabAppLayout() {
             return {
-               theme: localStorage.getItem('theme') || 'light',
-               openWindows: [],
-               activeWinId: null,
-               maxZIndex: 10,
-               activeDragWin: null,
-               showAddMenu: false,
-               isFullscreen: !!document.fullscreenElement,
-               cpuUsage: 14,
-               memUsage: 38,
+                theme: localStorage.getItem('theme') || 'light',
+                isFullscreen: !!document.fullscreenElement,
+                cpuUsage: 14,
+                memUsage: 38,
 
-               toggleTheme() {
-                  this.theme = (this.theme === 'dark' ? 'light' : 'dark');
-                  localStorage.setItem('theme', this.theme);
-                  this.broadcastTheme(this.theme);
-               },
+                init() {
+                    this.startSystemMonitor();
+                    document.addEventListener('fullscreenchange', () => {
+                        this.isFullscreen = !!document.fullscreenElement;
+                    });
+                },
 
-               broadcastTheme(theme) {
-                  document.querySelectorAll('iframe').forEach(iframe => {
-                     try {
-                        iframe.contentWindow.postMessage({
-                           type: 'THEME_CHANGE',
-                           theme: theme
-                        }, '*');
-                        if (iframe.contentDocument && iframe.contentDocument.documentElement) {
-                           if (theme === 'dark') {
-                              iframe.contentDocument.documentElement.classList.add('dark');
-                           } else {
-                              iframe.contentDocument.documentElement.classList.remove('dark');
-                           }
-                        }
-                     } catch (e) {}
-                  });
-               },
+                toggleTheme() {
+                    this.theme = (this.theme === 'dark' ? 'light' : 'dark');
+                    localStorage.setItem('theme', this.theme);
+                    if (this.theme === 'dark') {
+                        document.documentElement.classList.add('dark');
+                    } else {
+                        document.documentElement.classList.remove('dark');
+                    }
+                },
 
-               availableForms: [{
-                     id: 'dashboard',
-                     title: 'Dashboard Overview',
-                     icon: 'layout-dashboard',
-                     url: '{{ route('dashboard') }}?embed=1'
-                  },
-                  {
-                     id: 'departments',
-                     title: 'Master Departemen',
-                     icon: 'building-2',
-                     url: '{{ route('master.departments') }}?embed=1'
-                  },
-                  {
-                     id: 'companies',
-                     title: 'Perusahaan Entitas',
-                     icon: 'landmark',
-                     url: '{{ route('master.companies') }}?embed=1'
-                  },
-                  {
-                     id: 'document_types',
-                     title: 'Katalog Dokumen',
-                     icon: 'file-text',
-                     url: '{{ route('master.document_types') }}?embed=1'
-                  },
-                  {
-                     id: 'warehouses',
-                     title: 'Master Gudang & Rak',
-                     icon: 'warehouse',
-                     url: '{{ route('master.warehouses') }}?embed=1'
-                  },
-                  {
-                     id: 'warehouse_layout',
-                     title: 'Layout Gudang 2D',
-                     icon: 'map',
-                     url: '{{ route('master.warehouses.layout') }}?embed=1'
-                  },
-                  @if (auth()->check() && auth()->user()->isSuperAdmin())
-                     {
-                        id: 'numbering',
-                        title: 'Format Penomoran Box',
-                        icon: 'binary',
-                        url: '{{ route('master.numbering') }}?embed=1'
-                     },
-                  @endif {
-                     id: 'users',
-                     title: 'Kelola User & Hak Akses',
-                     icon: 'users',
-                     url: '{{ route('master.users') }}?embed=1'
-                  },
-                  {
-                     id: 'archives',
-                     title: 'Katalog Arsip',
-                     icon: 'folder-archive',
-                     url: '{{ route('archives.index') }}?embed=1'
-                  },
-                  {
-                     id: 'logs',
-                     title: 'Audit Trail',
-                     icon: 'history',
-                     url: '{{ route('logs.index') }}?embed=1'
-                  }
-               ],
-
-               initMdi() {
-                  let initialId = 'dashboard';
-                  @if (request()->routeIs('master.departments'))
-                     initialId = 'departments';
-                  @elseif (request()->routeIs('master.companies')) initialId = 'companies';
-                  @elseif (request()->routeIs('master.document_types')) initialId = 'document_types';
-                  @elseif (request()->routeIs('master.warehouses')) initialId = 'warehouses';
-                  @elseif (request()->routeIs('master.warehouses.layout')) initialId = 'warehouse_layout';
-                  @elseif (request()->routeIs('master.numbering')) initialId = 'numbering';
-                  @elseif (request()->routeIs('master.users')) initialId = 'users';
-                  @elseif (request()->routeIs('archives.*')) initialId = 'archives';
-                  @elseif (request()->routeIs('logs.*')) initialId = 'logs';
-                  @endif
-
-                  this.openFormWindow(initialId);
-                  this.startSystemMonitor();
-
-                  let isNavigating = false;
-                  window.addEventListener('beforeunload', () => {
-                     isNavigating = true;
-                  });
-                  window.addEventListener('pagehide', () => {
-                     isNavigating = true;
-                  });
-                  document.addEventListener('submit', () => {
-                     isNavigating = true;
-                  }, true);
-                  document.addEventListener('click', (e) => {
-                     const link = e.target.closest('a');
-                     if (link && link.href && !link.href.startsWith('javascript:') && !link.getAttribute('target')) {
-                        isNavigating = true;
-                     }
-                  }, true);
-
-                  document.addEventListener('fullscreenchange', () => {
-                     this.isFullscreen = !!document.fullscreenElement;
-                     if (this.isFullscreen) {
-                        sessionStorage.setItem('app_fullscreen', 'true');
-                     } else {
-                        if (!isNavigating) {
-                           sessionStorage.setItem('app_fullscreen', 'false');
-                        }
-                     }
-                  });
-
-                  this.checkFullscreenPersistence();
-               },
-
-               startSystemMonitor() {
-                  this.updateStats();
-                  setInterval(() => this.updateStats(), 3000);
-               },
-
-               updateStats() {
-                  if (window.performance && window.performance.memory) {
-                     const mem = window.performance.memory;
-                     const usedPct = Math.round((mem.usedJSHeapSize / mem.jsHeapSizeLimit) * 100);
-                     this.memUsage = Math.min(Math.max(usedPct + 24, 28), 75);
-                  } else {
-                     this.memUsage = Math.floor(Math.random() * 10) + 34; // 34% - 44%
-                  }
-                  this.cpuUsage = Math.floor(Math.random() * 14) + 6; // 6% - 20%
-               },
-
-               checkFullscreenPersistence() {
-                  const silentRestore = () => {
-                     if (sessionStorage.getItem('app_fullscreen') === 'true' && !document.fullscreenElement) {
-                        if (document.documentElement.requestFullscreen) {
-                           document.documentElement.requestFullscreen().then(() => {
-                              this.isFullscreen = true;
-                           }).catch(() => {});
-                        }
-                     }
-                  };
-
-                  silentRestore();
-                  window.addEventListener('pointerdown', silentRestore, true);
-                  window.addEventListener('keydown', silentRestore, true);
-                  window.addEventListener('click', silentRestore, true);
-                  window.addEventListener('message', (e) => {
-                     if (e.data && e.data.type === 'IFRAME_CLICK') {
-                        silentRestore();
-                     }
-                  });
-               },
-
-               toggleFullscreen() {
-                  if (typeof window.toggleDesktopFullscreen === 'function') {
-                     window.toggleDesktopFullscreen();
-                  } else if (!document.fullscreenElement) {
-                     if (document.documentElement.requestFullscreen) {
+                toggleFullscreen() {
+                    if (!document.fullscreenElement) {
                         document.documentElement.requestFullscreen().then(() => {
-                           this.isFullscreen = true;
-                           sessionStorage.setItem('app_fullscreen', 'true');
-                        }).catch(() => {});
-                     }
-                  } else {
-                     if (document.exitFullscreen) {
-                        document.exitFullscreen().then(() => {
-                           this.isFullscreen = false;
-                           sessionStorage.setItem('app_fullscreen', 'false');
-                        }).catch(() => {});
-                     }
-                  }
-               },
+                            this.isFullscreen = true;
+                        }).catch(err => {});
+                    } else {
+                        if (document.exitFullscreen) {
+                            document.exitFullscreen().then(() => {
+                                this.isFullscreen = false;
+                            }).catch(err => {});
+                        }
+                    }
+                },
 
-               isWindowOpen(formId) {
-                  return this.openWindows.some(w => w.id === formId);
-               },
+                startSystemMonitor() {
+                    this.updateStats();
+                    setInterval(() => this.updateStats(), 3500);
+                },
 
-               openFormWindow(formId) {
-                  let win = this.openWindows.find(w => w.id === formId);
-                  if (win) {
-                     win.minimized = false;
-                     this.focusWindow(win.id);
-                  } else {
-                     const form = this.availableForms.find(f => f.id === formId);
-                     if (!form) return;
-
-                     const count = this.openWindows.length;
-                     const offsetX = (count * 30) % 180;
-                     const offsetY = (count * 25) % 120;
-
-                     win = {
-                        id: form.id,
-                        title: form.title,
-                        icon: form.icon,
-                        url: form.url,
-                        posX: offsetX,
-                        posY: offsetY,
-                        zIndex: ++this.maxZIndex,
-                        maximized: false,
-                        minimized: false,
-                        isDragging: false,
-                        startX: 0,
-                        startY: 0
-                     };
-                     this.openWindows.push(win);
-                     this.activeWinId = win.id;
-                  }
-                  this.showAddMenu = false;
-                  setTimeout(() => lucide.createIcons(), 50);
-               },
-
-               closeWindow(formId) {
-                  this.openWindows = this.openWindows.filter(w => w.id !== formId);
-                  if (this.activeWinId === formId) {
-                     const remaining = this.openWindows.filter(w => !w.minimized);
-                     if (remaining.length > 0) {
-                        this.focusWindow(remaining[remaining.length - 1].id);
-                     } else {
-                        this.activeWinId = null;
-                     }
-                  }
-               },
-
-               focusWindow(formId) {
-                  const win = this.openWindows.find(w => w.id === formId);
-                  if (win) {
-                     this.maxZIndex++;
-                     win.zIndex = this.maxZIndex;
-                     this.activeWinId = win.id;
-                     if (win.minimized) win.minimized = false;
-                  }
-               },
-
-               cascadeWindows() {
-                  const visibleWins = this.openWindows.filter(w => !w.minimized);
-                  visibleWins.forEach((win, index) => {
-                     win.maximized = false;
-                     win.posX = (index - (visibleWins.length - 1) / 2) * 45;
-                     win.posY = (index - (visibleWins.length - 1) / 2) * 35;
-                     win.zIndex = ++this.maxZIndex;
-                  });
-                  if (visibleWins.length > 0) {
-                     this.activeWinId = visibleWins[visibleWins.length - 1].id;
-                  }
-               },
-
-               tileWindows() {
-                  const visibleWins = this.openWindows.filter(w => !w.minimized);
-                  const count = visibleWins.length;
-                  if (count === 0) return;
-
-                  visibleWins.forEach((win, index) => {
-                     win.maximized = false;
-                     if (count === 1) {
-                        win.posX = 0;
-                        win.posY = 0;
-                     } else if (count === 2) {
-                        win.posX = index === 0 ? -200 : 200;
-                        win.posY = 0;
-                     } else {
-                        const cols = Math.ceil(Math.sqrt(count));
-                        const row = Math.floor(index / cols);
-                        const col = index % cols;
-                        win.posX = (col - (cols - 1) / 2) * 240;
-                        win.posY = (row - (Math.ceil(count / cols) - 1) / 2) * 160;
-                     }
-                     win.zIndex = ++this.maxZIndex;
-                  });
-               },
-
-               startDragWindow(win, e) {
-                  if (win.maximized) return;
-                  if (e.target.closest('button') || e.target.closest('input') || e.target.closest('select') || e.target
-                     .closest('a')) return;
-                  this.focusWindow(win.id);
-                  this.activeDragWin = win;
-                  win.isDragging = true;
-                  win.startX = e.clientX - win.posX;
-                  win.startY = e.clientY - win.posY;
-               },
-
-               onDrag(e) {
-                  if (!this.activeDragWin || !this.activeDragWin.isDragging || this.activeDragWin.maximized) return;
-                  this.activeDragWin.posX = e.clientX - this.activeDragWin.startX;
-                  this.activeDragWin.posY = e.clientY - this.activeDragWin.startY;
-               },
-
-               stopDrag() {
-                  if (this.activeDragWin) {
-                     this.activeDragWin.isDragging = false;
-                     this.activeDragWin = null;
-                  }
-               },
-
-               resetWindowPos(win) {
-                  win.posX = 0;
-                  win.posY = 0;
-               },
-
-               getWindowStyle(win) {
-                  if (win.maximized) {
-                     return `top: 0; left: 0; width: 100%; height: 100%; z-index: ${Math.max(win.zIndex, 25)}; transform: none;`;
-                  }
-                  let style = `z-index: ${win.zIndex};`;
-                  if (win.posX !== 0 || win.posY !== 0) {
-                     style += ` transform: translate3d(${win.posX}px, ${win.posY}px, 0px);`;
-                  }
-                  return style;
-               }
+                updateStats() {
+                    if (window.performance && window.performance.memory) {
+                        const mem = window.performance.memory;
+                        const usedPct = Math.round((mem.usedJSHeapSize / mem.jsHeapSizeLimit) * 100);
+                        this.memUsage = Math.min(Math.max(usedPct + 24, 28), 75);
+                    } else {
+                        this.memUsage = Math.floor(Math.random() * 10) + 34;
+                    }
+                    this.cpuUsage = Math.floor(Math.random() * 14) + 6;
+                }
             }
-         }
-
-         document.addEventListener("DOMContentLoaded", function() {
+        }
+        document.addEventListener("DOMContentLoaded", function() {
             lucide.createIcons();
-
-            // Desktop Keyboard Shortcuts Handler
-            document.addEventListener('keydown', function(e) {
-               if (e.key === 'F5') {
-                  e.preventDefault();
-                  window.location.reload();
-               } else if (e.altKey && (e.key === 't' || e.key === 'T')) {
-                  e.preventDefault();
-                  const alpineRoot = document.querySelector('[x-data]');
-                  if (window.Alpine && alpineRoot) {
-                     const alpineData = Alpine.$data(alpineRoot);
-                     if (alpineData && typeof alpineData.toggleTheme === 'function') {
-                        alpineData.toggleTheme();
-                     }
-                  }
-               }
-            });
-         });
-      </script>
-      @stack('scripts')
-   </body>
-
-   </html>
-@endif
+        });
+    </script>
+    @stack('scripts')
+</body>
+</html>

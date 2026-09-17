@@ -28,7 +28,7 @@
                 <span>Cetak Label Box</span>
             </a>
 
-            @if($archive->status === 'in_warehouse')
+            @if($archive->status === 'in_warehouse' && auth()->check() && auth()->user()->isPicDept())
             <a href="{{ route('borrowings.create', ['archive_id' => $archive->id]) }}" class="px-[10px] py-[3px] bg-purple-500/10 hover:bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-500/30 font-bold rounded-[3px] transition flex items-center gap-[4px]">
                 <i data-lucide="file-symlink" class="w-[12px] h-[12px]"></i>
                 <span>Pinjam Berkas</span>

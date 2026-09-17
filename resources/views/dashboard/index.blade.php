@@ -3,6 +3,7 @@
 @section('title', 'Dashboard Overview - DMS PT Indraco')
 
 @section('content')
+@php $user = $user ?? auth()->user(); @endphp
 <div class="space-y-[10px]">
     <!-- DELPHI WORKSTATION STATUS HEADER -->
     <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-[4px] px-[12px] py-[8px] shadow-xs flex items-center justify-between gap-[8px] font-mono">
@@ -12,12 +13,12 @@
             </span>
             <div>
                 <h1 class="text-[12px] font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-                    Workstation Dashboard: <span class="text-amber-600 dark:text-amber-400 font-extrabold">{{ $user->name }}</span>
+                    Workstation Dashboard: <span class="text-amber-600 dark:text-amber-400 font-extrabold">{{ $user->name ?? 'User' }}</span>
                 </h1>
                 <p class="text-[10px] text-slate-500 dark:text-slate-400">
-                    @if($user->isSuperAdmin())
+                    @if($user && $user->isSuperAdmin())
                         Super Admin Access (Master Data & Dokumen Seluruh Entitas PT Indraco)
-                    @elseif($user->isPicGudang())
+                    @elseif($user && $user->isPicGudang())
                         Kurator Gudang (Verifikasi Box Code, Slot Rak Gudang, & Dispatch)
                     @else
                         Departemen {{ $user->department->name ?? 'Operasional' }} ({{ $user->department->code ?? 'DEPT' }})
@@ -26,7 +27,7 @@
             </div>
         </div>
 
-        @if(!auth()->user()->isPicDept())
+        @if(auth()->check() && auth()->user()->isPicDept())
         <div class="flex items-center gap-[6px]">
             <a href="{{ route('archives.create') }}" class="px-[10px] py-[3px] bg-amber-500 hover:bg-amber-400 text-slate-950 font-mono font-black text-[11px] rounded-[3px] border border-amber-600 shadow-2xs transition flex items-center gap-[4px]">
                 <i data-lucide="plus-circle" class="w-[12px] h-[12px]"></i>
