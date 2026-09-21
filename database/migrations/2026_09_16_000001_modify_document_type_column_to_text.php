@@ -14,8 +14,10 @@ class ModifyDocumentTypeColumnToText extends Migration
      */
     public function up()
     {
-        // Use raw SQL to modify column type to TEXT safely without requiring doctrine/dbal
-        DB::statement("ALTER TABLE archives MODIFY COLUMN document_type TEXT NULL");
+        // Use raw SQL to modify column type to TEXT safely without requiring doctrine/dbal on MySQL/MariaDB
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE archives MODIFY COLUMN document_type TEXT NULL");
+        }
     }
 
     /**
@@ -25,6 +27,8 @@ class ModifyDocumentTypeColumnToText extends Migration
      */
     public function down()
     {
-        DB::statement("ALTER TABLE archives MODIFY COLUMN document_type VARCHAR(100) NULL");
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE archives MODIFY COLUMN document_type VARCHAR(100) NULL");
+        }
     }
 }

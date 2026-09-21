@@ -92,50 +92,12 @@ class DatabaseSeeder extends Seeder
             'phone' => '081234567894',
         ]);
 
-        // 3. Seed Warehouses & Locations
-        $wh1 = Warehouse::create([
-            'code' => 'GUDANG-A',
-            'name' => 'Gudang Arsip Utama (Gudang A)',
-            'address' => 'Kawasan Industri Indraco Gedangan, Sidoarjo - Blok A1-A5',
-        ]);
+        // 3. Seed Warehouses & Interactive Canvas Layout
+        $this->call(WarehouseLayoutSeeder::class);
 
-        $wh2 = Warehouse::create([
-            'code' => 'GUDANG-B',
-            'name' => 'Gudang Depo Arsip Sekunder (Gudang B)',
-            'address' => 'Kawasan Industri Indraco Gedangan, Sidoarjo - Blok B2',
-        ]);
-
-        $locA1 = WarehouseLocation::create([
-            'warehouse_id' => $wh1->id,
-            'rack_code' => 'RAK-A1',
-            'shelf_code' => 'BARIS-01',
-            'box_capacity' => 50,
-            'current_box_count' => 2,
-        ]);
-
-        $locA2 = WarehouseLocation::create([
-            'warehouse_id' => $wh1->id,
-            'rack_code' => 'RAK-A1',
-            'shelf_code' => 'BARIS-02',
-            'box_capacity' => 50,
-            'current_box_count' => 1,
-        ]);
-
-        $locA3 = WarehouseLocation::create([
-            'warehouse_id' => $wh1->id,
-            'rack_code' => 'RAK-A2',
-            'shelf_code' => 'BARIS-01',
-            'box_capacity' => 40,
-            'current_box_count' => 0,
-        ]);
-
-        $locB1 = WarehouseLocation::create([
-            'warehouse_id' => $wh2->id,
-            'rack_code' => 'RAK-B1',
-            'shelf_code' => 'BARIS-01',
-            'box_capacity' => 60,
-            'current_box_count' => 1,
-        ]);
+        $locA1 = WarehouseLocation::where('location_type', 'rack')->first();
+        $locA2 = WarehouseLocation::where('location_type', 'rack')->skip(1)->first();
+        $locB1 = WarehouseLocation::where('location_type', 'rack')->skip(2)->first();
 
         // 4. Seed Dynamic Numbering Format
         NumberingFormat::create([
@@ -273,7 +235,5 @@ class DatabaseSeeder extends Seeder
             'notes' => 'Pemusnahan disaksikan oleh perwakilan tim Manajemen & PIC Departemen Logistik.',
         ]);
 
-        // Run WarehouseLayoutSeeder as well
-        $this->call(WarehouseLayoutSeeder::class);
     }
 }

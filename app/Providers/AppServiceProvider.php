@@ -13,7 +13,17 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        //
+        // Auto-create SQLite database file if missing
+        if (config('database.default') === 'sqlite') {
+            $dbPath = config('database.connections.sqlite.database');
+            if ($dbPath && $dbPath !== ':memory:' && !file_exists($dbPath)) {
+                $dir = dirname($dbPath);
+                if (!is_dir($dir)) {
+                    @mkdir($dir, 0755, true);
+                }
+                @touch($dbPath);
+            }
+        }
     }
 
     /**
