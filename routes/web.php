@@ -75,6 +75,10 @@ Route::middleware('auth')->group(function () {
         Route::put('/departments/{department}', 'DepartmentController@update')->name('departments.update');
         Route::delete('/departments/{department}', 'DepartmentController@destroy')->name('departments.destroy');
 
+        Route::post('/sub-departments', 'DepartmentController@storeSubDepartment')->name('sub_departments.store');
+        Route::put('/sub-departments/{subDepartment}', 'DepartmentController@updateSubDepartment')->name('sub_departments.update');
+        Route::delete('/sub-departments/{subDepartment}', 'DepartmentController@destroySubDepartment')->name('sub_departments.destroy');
+
         Route::get('/warehouses', 'WarehouseController@index')->name('warehouses');
         Route::post('/warehouses', 'WarehouseController@storeWarehouse')->name('warehouses.store');
         Route::put('/warehouses/{warehouse}', 'WarehouseController@updateWarehouse')->name('warehouses.update');

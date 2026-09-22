@@ -97,9 +97,9 @@ class ArchiveController extends Controller
             'company_name' => 'nullable|string|max:150',
             'document_type' => 'nullable|string|max:100',
             'is_custom_doc_name' => 'nullable|boolean',
-            'custom_doc_name' => 'required_if:is_custom_doc_name,1,true|nullable|string|max:255',
+            'custom_doc_name' => 'nullable|string|max:255',
             'title' => 'required_without:custom_doc_name|nullable|string|max:255',
-            'periode_doc' => ['required', 'string', 'regex:/^\d{4}\/(0[1-9]|1[0-2])$/'], // Format YYYY/MM
+            'periode_doc' => ['required', 'string', 'max:100'],
             'tgl_penyerahan' => 'required|date',
             'period_text' => 'nullable|string|max:100',
             'content_description' => 'required|string',
@@ -115,18 +115,38 @@ class ArchiveController extends Controller
             $validated['department_id'] = $user->department_id;
         }
 
-        // 1. Business Rule: 1 Box 1 Periode Dokumen (YYYY/MM)
-        [$year, $month] = explode('/', $validated['periode_doc']);
-        $startDate = Carbon::createFromDate((int)$year, (int)$month, 1)->startOfDay();
-        $endDate = $startDate->copy()->endOfMonth()->endOfDay();
+        // 1. Business Rule: Periode Dokumen (1 Bulan atau Rentang Multi-Bulan YYYY/MM)
+        $rawPeriod = trim($validated['periode_doc']);
+        if (preg_match('/^(\d{4}\/(?:0[1-9]|1[0-2]))\s*(?:-|s\/d|hingga|to)\s*(\d{4}\/(?:0[1-9]|1[0-2]))$/i', $rawPeriod, $matches)) {
+            $startPeriodStr = $matches[1];
+            $endPeriodStr = $matches[2];
+            [$sYear, $sMonth] = explode('/', $startPeriodStr);
+            [$eYear, $eMonth] = explode('/', $endPeriodStr);
+            $startDate = Carbon::createFromDate((int)$sYear, (int)$sMonth, 1)->startOfDay();
+            $endDate = Carbon::createFromDate((int)$eYear, (int)$eMonth, 1)->endOfMonth()->endOfDay();
+            $formattedPeriodDoc = $startPeriodStr . ' - ' . $endPeriodStr;
+            $periodText = !empty($validated['period_text']) ? $validated['period_text'] : ($startDate->isoFormat('MMMM Y') . ' - ' . $endDate->isoFormat('MMMM Y'));
+        } elseif (preg_match('/^(\d{4}\/(?:0[1-9]|1[0-2]))$/', $rawPeriod, $matches)) {
+            $periodStr = $matches[1];
+            [$year, $month] = explode('/', $periodStr);
+            $startDate = Carbon::createFromDate((int)$year, (int)$month, 1)->startOfDay();
+            $endDate = $startDate->copy()->endOfMonth()->endOfDay();
+            $formattedPeriodDoc = $periodStr;
+            $periodText = !empty($validated['period_text']) ? $validated['period_text'] : $startDate->isoFormat('MMMM Y');
+        } else {
+            $startDate = Carbon::now()->startOfMonth();
+            $endDate = Carbon::now()->endOfMonth();
+            $formattedPeriodDoc = $rawPeriod;
+            $periodText = !empty($validated['period_text']) ? $validated['period_text'] : $rawPeriod;
+        }
 
-        $periodText = $validated['period_text'] ?? ($startDate->isoFormat('MMMM Y'));
-        $periodYyMm = $validated['periode_doc'];
+        $validated['periode_doc'] = $formattedPeriodDoc;
+        $periodYyMm = $formattedPeriodDoc;
 
         // 2. Title & Custom Doc Name Handling
         $isCustomDocName = !empty($validated['is_custom_doc_name']);
-        $customDocName = $isCustomDocName ? $validated['custom_doc_name'] : null;
-        $finalTitle = $isCustomDocName ? $customDocName : ($validated['title'] ?? 'Dokumen Periode ' . $validated['periode_doc']);
+        $customDocName = $isCustomDocName ? ($validated['custom_doc_name'] ?? $request->input('custom_doc_name')) : null;
+        $finalTitle = $isCustomDocName ? $customDocName : ($validated['title'] ?? 'Dokumen Periode ' . $formattedPeriodDoc);
 
         // 3. Automated Retention Years & Expiry Calculation
         $department = Department::find($validated['department_id']);
@@ -368,21 +388,33 @@ class ArchiveController extends Controller
 
     public function apiCalculateRetention(Request $request)
     {
-        $periodeDoc = $request->query('periode_doc'); // e.g. 2026/09
+        $periodeDoc = trim($request->query('periode_doc', '')); // e.g. 2026/09 or 2026/07 - 2026/09
         $deptId = $request->query('department_id');
         $subDeptId = $request->query('sub_department_id');
         $customYears = $request->query('masa_simpan_custom');
 
-        if (!$periodeDoc || !preg_match('/^\d{4}\/(0[1-9]|1[0-2])$/', $periodeDoc)) {
+        if (preg_match('/^(\d{4}\/(?:0[1-9]|1[0-2]))\s*(?:-|s\/d|hingga|to)\s*(\d{4}\/(?:0[1-9]|1[0-2]))$/i', $periodeDoc, $matches)) {
+            $startPeriodStr = $matches[1];
+            $endPeriodStr = $matches[2];
+            [$sYear, $sMonth] = explode('/', $startPeriodStr);
+            [$eYear, $eMonth] = explode('/', $endPeriodStr);
+            $startDate = Carbon::createFromDate((int)$sYear, (int)$sMonth, 1)->startOfDay();
+            $endDate = Carbon::createFromDate((int)$eYear, (int)$eMonth, 1)->endOfMonth()->endOfDay();
+            $formattedPeriodDoc = $startPeriodStr . ' - ' . $endPeriodStr;
+            $periodText = $startDate->isoFormat('MMMM Y') . ' - ' . $endDate->isoFormat('MMMM Y');
+        } elseif (preg_match('/^(\d{4}\/(?:0[1-9]|1[0-2]))$/', $periodeDoc, $matches)) {
+            $periodStr = $matches[1];
+            [$year, $month] = explode('/', $periodStr);
+            $startDate = Carbon::createFromDate((int)$year, (int)$month, 1)->startOfDay();
+            $endDate = $startDate->copy()->endOfMonth()->endOfDay();
+            $formattedPeriodDoc = $periodStr;
+            $periodText = $startDate->isoFormat('MMMM Y');
+        } else {
             return response()->json([
                 'success' => false,
-                'message' => 'Format periode harus YYYY/MM (contoh: 2026/09)',
+                'message' => 'Format periode harus YYYY/MM (contoh: 2026/09) atau Rentang YYYY/MM - YYYY/MM (contoh: 2026/07 - 2026/09)',
             ], 422);
         }
-
-        [$year, $month] = explode('/', $periodeDoc);
-        $startDate = Carbon::createFromDate((int)$year, (int)$month, 1)->startOfDay();
-        $endDate = $startDate->copy()->endOfMonth()->endOfDay();
 
         $effectiveRetentionYears = 5;
         if (!empty($customYears) && (int)$customYears > 0) {
@@ -403,10 +435,10 @@ class ArchiveController extends Controller
 
         return response()->json([
             'success' => true,
-            'periode_doc' => $periodeDoc,
+            'periode_doc' => $formattedPeriodDoc,
             'period_start_date' => $startDate->format('Y-m-d'),
             'period_end_date' => $endDate->format('Y-m-d'),
-            'period_text' => $startDate->isoFormat('MMMM Y'),
+            'period_text' => $periodText,
             'effective_retention_years' => $effectiveRetentionYears,
             'retention_expiry_date' => $expiryDate->format('Y-m-d'),
             'retention_expiry_formatted' => $expiryDate->isoFormat('D MMMM Y'),

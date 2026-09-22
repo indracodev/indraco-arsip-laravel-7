@@ -88,6 +88,7 @@
 <html lang="id" 
       x-data="desktopAppLayout()" 
       x-init="initMdi()"
+      @open-form-window.window="openFormWindowWithCustom($event.detail.id, $event.detail.title, $event.detail.icon, $event.detail.url)"
       @mousemove.window="onDrag($event)"
       @mouseup.window="stopDrag()"
       :class="theme === 'dark' ? 'dark' : ''"
@@ -215,17 +216,184 @@
     @endif
 
     <!-- 1. WINDOW TITLE BAR & WORKSTATION HEADER -->
-    <header class="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white px-3 py-1.5 flex items-center justify-between border-b border-slate-700 shadow-sm shrink-0 font-mono z-30">
-        <div class="flex items-center gap-3">
-            <a href="{{ route('dashboard') }}" class="flex items-center gap-2 group">
+    <header class="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white px-3 py-1.5 flex items-center justify-between border-b border-slate-700 shadow-sm shrink-0 font-mono relative z-50">
+        <div class="flex items-center gap-3 flex-1 min-w-0 mr-3">
+            <a href="{{ route('dashboard') }}" class="flex items-center gap-2 group shrink-0">
                 <div class="p-1 bg-white rounded shadow-sm">
                     <img src="{{ asset('images/logo-indraco-est.png') }}" alt="PT Indraco Logo" class="h-5 w-auto object-contain">
                 </div>
-                <span class="font-extrabold tracking-tight text-white flex items-center gap-1.5 text-xs">
+                <span class="font-extrabold tracking-tight text-white flex items-center gap-1.5 text-xs whitespace-nowrap">
                     DMS <span class="text-amber-400 font-black">PT INDRACO</span>
                     <span class="px-1.5 py-0.5 bg-amber-500/20 text-amber-300 text-[10px] rounded border border-amber-400/30">Desktop Edition</span>
                 </span>
             </a>
+
+            <!-- SUPER ADMIN GLOBAL QUICK SEARCH (ALL DOCUMENTS) -->
+            <div class="relative z-50 flex-1 min-w-[320px] max-w-2xl ml-2" x-data="superAdminQuickSearch()" @click.outside="closeDropdown()">
+                <div class="relative flex items-center">
+                    <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
+                        <svg x-show="isLoading" class="w-4 h-4 text-amber-400 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" x-cloak>
+                            <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+                        </svg>
+                        <svg x-show="!isLoading" class="w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                    </div>
+
+                    <input 
+                        type="text" 
+                        id="adminHeaderSearchInput"
+                        x-model="searchQuery"
+                        @input.debounce.250ms="doSearch()"
+                        @focus="showSuggestions = true; if (!searchQuery) loadDefaultSuggestions()"
+                        @keydown.escape="closeDropdown()"
+                        @keydown.arrow-down.prevent="navigateResults(1)"
+                        @keydown.arrow-up.prevent="navigateResults(-1)"
+                        @keydown.enter.prevent="selectActiveResult()"
+                        placeholder="Cari semua dokumen (nama arsip, dept, butir isi, no. box, rak gudang) [Ctrl+F]..." 
+                        class="w-full pl-9 pr-8 py-1 bg-slate-950/80 border border-slate-700 hover:border-slate-600 focus:border-amber-400 rounded text-xs font-mono text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-400 transition shadow-inner"
+                    >
+
+                    <!-- Clear Search Button -->
+                    <button 
+                        x-show="searchQuery.length > 0" 
+                        @click="clearSearch()"
+                        type="button" 
+                        class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-rose-400 transition cursor-pointer"
+                        title="Hapus pencarian"
+                        x-cloak
+                    >
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- AUTO-SUGGESTION FLOATING DROPDOWN PANEL (WIDE WORKSTATION DELPHI STYLE) -->
+                <div 
+                    x-show="showSuggestions" 
+                    x-transition:enter="transition ease-out duration-100"
+                    x-transition:enter-start="opacity-0 scale-95 -translate-y-1"
+                    x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                    x-transition:leave="transition ease-in duration-75"
+                    x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                    x-transition:leave-end="opacity-0 scale-95 -translate-y-1"
+                    class="absolute left-0 mt-1.5 w-[680px] sm:w-[760px] max-w-[94vw] bg-white dark:bg-slate-900 border-2 border-amber-500 rounded-lg shadow-2xl z-[100] overflow-hidden font-mono text-xs text-slate-800 dark:text-slate-100"
+                    x-cloak
+                >
+                    <!-- Header Dropdown Info -->
+                    <div class="px-3 py-2 bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white flex items-center justify-between border-b border-slate-700 text-[11px]">
+                        <span class="font-bold flex items-center gap-2 text-amber-300">
+                            <svg class="w-4 h-4 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            </svg>
+                            PENCARIAN GLOBAL SELURUH ARSIP & LOKASI GUDANG
+                        </span>
+                        <span class="px-2 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-400/40 rounded text-[11px] font-bold">
+                            SUPER ADMIN • ALL DEPARTMENTS
+                        </span>
+                    </div>
+
+                    <!-- Suggestion / Quick Filters Chips -->
+                    <div x-show="suggestedKeywords.length > 0" class="px-3.5 py-2 bg-slate-50 dark:bg-slate-950/80 border-b border-slate-200 dark:border-slate-800">
+                        <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1.5">Filter Cepat / Topik Dokumen:</span>
+                        <div class="flex flex-wrap gap-1.5">
+                            <template x-for="kw in suggestedKeywords" :key="kw">
+                                <button 
+                                    @click="selectKeyword(kw)"
+                                    type="button" 
+                                    class="px-2.5 py-1 bg-white dark:bg-slate-800 hover:bg-amber-500 hover:text-slate-950 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded text-[11px] font-bold transition flex items-center gap-1 shadow-2xs cursor-pointer"
+                                >
+                                    <span class="text-amber-500 font-black">#</span>
+                                    <span x-text="kw"></span>
+                                </button>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Results List Scroll Container -->
+                    <div class="max-h-96 overflow-y-auto divide-y divide-slate-200 dark:divide-slate-800 bg-white dark:bg-slate-900">
+                        <!-- Loading State -->
+                        <div x-show="isLoading" class="p-6 text-center text-slate-500 flex items-center justify-center gap-2.5 font-bold">
+                            <svg class="w-5 h-5 text-amber-500 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+                            </svg>
+                            <span>Mencari data berkas & rak gudang...</span>
+                        </div>
+
+                        <!-- Results Items -->
+                        <template x-for="(item, idx) in searchResults" :key="item.id">
+                            <div 
+                                @click="selectArchive(item)"
+                                :class="selectedIndex === idx ? 'bg-amber-500/15 dark:bg-amber-950/40 border-l-4 border-amber-500' : 'hover:bg-slate-100 dark:hover:bg-slate-800/80'"
+                                class="p-3 cursor-pointer transition flex flex-col gap-1.5 select-none"
+                            >
+                                <!-- Top Row: No Box, Dept Badge, Status Badge, Period -->
+                                <div class="flex items-center justify-between gap-2">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <span class="font-black text-amber-600 dark:text-amber-400 text-xs sm:text-sm flex items-center gap-1.5">
+                                            <svg class="w-4 h-4 text-amber-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                                                <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                                                <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                                            </svg>
+                                            <span x-text="item.box_number || 'Penomoran Pending'"></span>
+                                        </span>
+
+                                        <!-- Department Badge -->
+                                        <span class="px-2 py-0.5 rounded bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20 text-[10px] font-black uppercase" x-text="item.dept_code + (item.sub_dept ? ' / ' + item.sub_dept : '')"></span>
+                                    </div>
+
+                                    <div class="flex items-center gap-2">
+                                        <span class="px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-bold" x-text="item.periode_doc"></span>
+                                        <span 
+                                            :class="item.status === 'in_warehouse' ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30' : (item.status === 'borrowed' ? 'bg-purple-500/20 text-purple-700 dark:text-purple-300 border-purple-500/30' : 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/30')"
+                                            class="px-2 py-0.5 rounded border text-[11px] font-bold"
+                                            x-text="item.status_label"
+                                        ></span>
+                                    </div>
+                                </div>
+
+                                <!-- Middle Row: Judul / Nama Dokumen -->
+                                <div class="font-bold text-slate-900 dark:text-white text-xs sm:text-sm leading-snug" x-text="item.title"></div>
+
+                                <!-- Content Description snippet if matched -->
+                                <div x-show="item.content_description" class="text-xs text-slate-500 dark:text-slate-400 italic line-clamp-2">
+                                    <span class="text-slate-400 font-bold not-italic">Isi:</span> <span x-text="item.content_description"></span>
+                                </div>
+
+                                <!-- Bottom Row: Physical Warehouse & Rack Location -->
+                                <div class="flex items-center justify-between gap-2 pt-1 border-t border-slate-100 dark:border-slate-800 text-xs">
+                                    <div class="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 font-bold">
+                                        <svg class="w-3.5 h-3.5 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                            <circle cx="12" cy="10" r="3"></circle>
+                                        </svg>
+                                        <span x-text="item.location"></span>
+                                    </div>
+
+                                    <span class="text-[11px] text-amber-600 dark:text-amber-400 font-bold hover:underline flex items-center gap-1 shrink-0">
+                                        Buka Detail Form 
+                                        <svg class="w-3 h-3 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                                            <polyline points="12 5 19 12 12 19"></polyline>
+                                        </svg>
+                                    </span>
+                                </div>
+                            </div>
+                        </template>
+
+                        <!-- Empty Result State -->
+                        <div x-show="!isLoading && searchResults.length === 0" class="p-6 text-center text-slate-500 dark:text-slate-400">
+                            <p class="font-bold text-xs text-slate-700 dark:text-slate-300">Tidak ada dokumen ditemukan</p>
+                            <p class="text-[11px] text-slate-500 mt-0.5">Tidak ditemukan berkas dengan kata kunci "<span class="font-bold text-amber-600 dark:text-amber-400" x-text="searchQuery"></span>"</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Right System Info Controls -->
@@ -279,7 +447,7 @@
     </header>
 
     <!-- 2. DELPHI MDI TABBED WORKSPACE SHEET BAR (FIXED NAV BAR) -->
-    <div class="bg-slate-200/80 dark:bg-slate-950 border-b border-slate-300 dark:border-slate-800 px-2 pt-1 flex items-center justify-start gap-1 shrink-0 font-mono text-[11px] select-none z-30 overflow-x-auto no-scrollbar">
+    <div class="bg-slate-200/80 dark:bg-slate-950 border-b border-slate-300 dark:border-slate-800 px-2 pt-1 flex items-center justify-start gap-1 shrink-0 font-mono text-[11px] select-none relative z-20 overflow-x-auto no-scrollbar">
         <template x-for="form in availableForms" :key="form.id">
             <button 
                 @click="openFormWindow(form.id)"
@@ -347,27 +515,32 @@
                             <i data-lucide="crosshair" class="w-3 h-3 text-amber-400"></i>
                             <span>Center</span>
                         </button>
+                        <!-- 1. MINIMIZE BUTTON [-] -->
                         <button 
                             @click="win.minimized = true" 
                             type="button" 
                             title="Minimize Jendela Form ke Taskbar" 
-                            class="w-5 h-5 flex items-center justify-center bg-slate-700/80 hover:bg-slate-600 border border-slate-600 rounded text-slate-200 text-[10px] font-black transition active:scale-95"
+                            class="w-6 h-6 flex items-center justify-center bg-slate-700/90 hover:bg-slate-600 border border-slate-600 rounded text-slate-200 text-xs font-black transition active:scale-95 cursor-pointer shadow-xs"
                         >
-                            _
+                            –
                         </button>
+
+                        <!-- 2. MAXIMIZE / RESTORE BUTTON [🗖] -->
                         <button 
                             @click="win.maximized = !win.maximized" 
                             type="button" 
                             title="Maximize / Restore Ukuran Jendela Form" 
-                            class="w-5 h-5 flex items-center justify-center bg-slate-700/80 hover:bg-slate-600 border border-slate-600 rounded text-slate-200 text-[10px] font-black transition active:scale-95"
+                            class="w-6 h-6 flex items-center justify-center bg-slate-700/90 hover:bg-slate-600 border border-slate-600 rounded text-slate-200 text-xs font-black transition active:scale-95 cursor-pointer shadow-xs"
                         >
                             <span x-text="win.maximized ? '❐' : '🗖'"></span>
                         </button>
+
+                        <!-- 3. CLOSE BUTTON [✕] (Red Delphi / Windows Standard) -->
                         <button 
                             @click="closeWindow(win.id)" 
                             type="button" 
                             title="Tutup Jendela Form Ini" 
-                            class="w-5 h-5 flex items-center justify-center bg-rose-600/90 hover:bg-rose-500 border border-rose-500 rounded text-white text-[10px] font-black transition active:scale-95"
+                            class="w-6 h-6 flex items-center justify-center bg-rose-600 hover:bg-rose-500 border border-rose-500 rounded text-white text-xs font-black transition active:scale-95 cursor-pointer shadow-xs"
                         >
                             ✕
                         </button>
@@ -501,6 +674,12 @@
                     this.openFormWindow(initialId);
                     this.startSystemMonitor();
 
+                    window.addEventListener('open-form-window', (e) => {
+                        if (e.detail) {
+                            this.openFormWindowWithCustom(e.detail.id, e.detail.title, e.detail.icon, e.detail.url);
+                        }
+                    });
+
                     document.addEventListener('fullscreenchange', () => {
                         this.isFullscreen = !!document.fullscreenElement;
                         if (this.isFullscreen) {
@@ -607,6 +786,37 @@
                     setTimeout(() => lucide.createIcons(), 50);
                 },
 
+                openFormWindowWithCustom(id, title, icon, url) {
+                    let win = this.openWindows.find(w => w.id === id);
+                    if (win) {
+                        win.minimized = false;
+                        win.url = url;
+                        this.focusWindow(win.id);
+                    } else {
+                        const count = this.openWindows.length;
+                        const offsetX = (count * 30) % 180;
+                        const offsetY = (count * 25) % 120;
+
+                        win = {
+                            id: id,
+                            title: title,
+                            icon: icon || 'folder-open',
+                            url: url,
+                            posX: offsetX,
+                            posY: offsetY,
+                            zIndex: ++this.maxZIndex,
+                            maximized: false,
+                            minimized: false,
+                            isDragging: false,
+                            startX: 0,
+                            startY: 0
+                        };
+                        this.openWindows.push(win);
+                        this.activeWinId = win.id;
+                    }
+                    setTimeout(() => lucide.createIcons(), 50);
+                },
+
                 closeWindow(formId) {
                     this.openWindows = this.openWindows.filter(w => w.id !== formId);
                     if (this.activeWinId === formId) {
@@ -704,6 +914,97 @@
             }
         }
 
+        function superAdminQuickSearch() {
+            return {
+                searchQuery: '',
+                showSuggestions: false,
+                isLoading: false,
+                searchResults: [],
+                suggestedKeywords: [],
+                selectedIndex: -1,
+
+                async loadDefaultSuggestions() {
+                    this.isLoading = true;
+                    try {
+                        const res = await fetch('{{ route("archives.search_api") }}');
+                        const data = await res.json();
+                        if (data.type === 'suggestions') {
+                            this.suggestedKeywords = data.keywords || [];
+                            this.searchResults = data.recent || [];
+                        }
+                    } catch (err) {
+                        console.error('Super Admin Search API error:', err);
+                    } finally {
+                        this.isLoading = false;
+                    }
+                },
+
+                async doSearch() {
+                    if (!this.searchQuery.trim()) {
+                        this.loadDefaultSuggestions();
+                        return;
+                    }
+                    this.isLoading = true;
+                    this.showSuggestions = true;
+                    this.selectedIndex = -1;
+                    try {
+                        const res = await fetch('{{ route("archives.search_api") }}?q=' + encodeURIComponent(this.searchQuery.trim()));
+                        const data = await res.json();
+                        if (data.type === 'results') {
+                            this.searchResults = data.items || [];
+                        }
+                    } catch (err) {
+                        console.error('Super Admin Search query error:', err);
+                    } finally {
+                        this.isLoading = false;
+                    }
+                },
+
+                selectKeyword(keyword) {
+                    this.searchQuery = keyword;
+                    this.doSearch();
+                },
+
+                selectArchive(archive) {
+                    const detailId = 'archive_detail_' + archive.id;
+                    const boxLabel = archive.box_number ? archive.box_number : ('ID #' + archive.id);
+                    const title = `[Detail] ${boxLabel} - ${archive.title || 'Dokumen'}`;
+                    let url = archive.url || ('{{ url("/archives") }}/' + archive.id);
+                    url += (url.includes('?') ? '&embed=1' : '?embed=1');
+
+                    window.dispatchEvent(new CustomEvent('open-form-window', {
+                        detail: {
+                            id: detailId,
+                            title: title,
+                            icon: 'file-text',
+                            url: url
+                        }
+                    }));
+                },
+
+                navigateResults(direction) {
+                    if (!this.searchResults.length) return;
+                    this.selectedIndex = (this.selectedIndex + direction + this.searchResults.length) % this.searchResults.length;
+                },
+
+                selectActiveResult() {
+                    if (this.selectedIndex >= 0 && this.selectedIndex < this.searchResults.length) {
+                        this.selectArchive(this.searchResults[this.selectedIndex]);
+                    }
+                },
+
+                clearSearch() {
+                    this.searchQuery = '';
+                    this.loadDefaultSuggestions();
+                },
+
+                closeDropdown() {
+                    this.showSuggestions = false;
+                    this.selectedIndex = -1;
+                }
+            }
+        }
+
         document.addEventListener("DOMContentLoaded", function() {
             lucide.createIcons();
 
@@ -712,6 +1013,15 @@
                 if (e.key === 'F5') {
                     e.preventDefault();
                     window.location.reload();
+                }
+                // Ctrl + F: Focus Super Admin Search Input
+                else if (e.ctrlKey && e.key.toLowerCase() === 'f') {
+                    e.preventDefault();
+                    const searchInput = document.getElementById('adminHeaderSearchInput');
+                    if (searchInput) {
+                        searchInput.focus();
+                        searchInput.select();
+                    }
                 }
             });
         });

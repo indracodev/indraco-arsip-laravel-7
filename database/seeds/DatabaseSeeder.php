@@ -18,53 +18,16 @@ class DatabaseSeeder extends Seeder
 {
     public function run()
     {
-        // 1. Seed Departments
-        $deptFin = Department::create([
-            'sidar_id' => 'SIDAR-DEPT-FIN',
-            'code' => 'FIN',
-            'name' => 'Keuangan & Akuntansi (FAT)',
-            'description' => 'Departemen Keuangan, Perpajakan, dan Akuntansi Perusahaan',
-            'retention_years' => 10,
-            'is_active' => true,
-        ]);
+        // 1. Seed All 29 Indraco Departments
+        $this->call(DepartmentSeeder::class);
 
-        $deptHrd = Department::create([
-            'sidar_id' => 'SIDAR-DEPT-HRD',
-            'code' => 'HRD',
-            'name' => 'Human Resources & Legal',
-            'description' => 'Departemen SDM, Ketenagakerjaan, dan Legalitas',
-            'retention_years' => 5,
-            'is_active' => true,
-        ]);
+        $deptFin = Department::where('code', 'FIN')->first();
+        $deptHrd = Department::where('code', 'HRD')->first();
+        $deptMkt = Department::where('code', 'MKT')->first();
+        $deptLog = Department::where('code', 'LOG')->first();
+        $deptProd = Department::where('code', 'PROD')->first();
 
-        $deptMkt = Department::create([
-            'sidar_id' => 'SIDAR-DEPT-MKT',
-            'code' => 'MKT',
-            'name' => 'Marketing & Sales',
-            'description' => 'Departemen Pemasaran, Promosi, dan Penjualan Product',
-            'retention_years' => 5,
-            'is_active' => true,
-        ]);
-
-        $deptLog = Department::create([
-            'sidar_id' => 'SIDAR-DEPT-LOG',
-            'code' => 'LOG',
-            'name' => 'Logistik & Rantai Pasok',
-            'description' => 'Departemen Pergudangan, Pengiriman, & Supply Chain',
-            'retention_years' => 5,
-            'is_active' => true,
-        ]);
-
-        $deptProd = Department::create([
-            'sidar_id' => 'SIDAR-DEPT-PROD',
-            'code' => 'PROD',
-            'name' => 'Produksi & Operation',
-            'description' => 'Departemen Pengolahan Kopi, Teh, dan Manufaktur',
-            'retention_years' => 5,
-            'is_active' => true,
-        ]);
-
-        // 2. Seed Sub-Departments (SIDAR sync)
+        // 2. Seed Sub-Departments
         $this->call(SubDepartmentSeeder::class);
 
         $subTax = SubDepartment::where('code', 'TAX')->first();

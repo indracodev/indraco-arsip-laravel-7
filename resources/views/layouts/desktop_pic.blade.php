@@ -86,7 +86,9 @@
     }
 @endphp
 <html lang="id" 
-      x-data="desktopAppLayout()" 
+      x-data="desktopPicAppLayout()" 
+      x-init="initMdi()"
+      @open-form-window.window="openFormWindowWithCustom($event.detail.id, $event.detail.title, $event.detail.icon, $event.detail.url)"
       @mousemove.window="onDrag($event)"
       @mouseup.window="stopDrag()"
       :class="theme === 'dark' ? 'dark' : ''"
@@ -101,7 +103,7 @@
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#d97706">
     
-    <!-- Google Fonts Inter -->
+    <!-- Google Fonts Inter & JetBrains Mono -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
@@ -130,6 +132,15 @@
 
     <style>
         [x-cloak] { display: none !important; }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none !important;
+            scrollbar-width: none !important;
+        }
         
         /* Enterprise Desktop Custom Component Styles (Delphi/VB DBGrid & TForm Style) */
         main table {
@@ -181,7 +192,7 @@
     @php
         $impersonator = \App\Models\User::find(session('impersonator_id'));
     @endphp
-    <div class="bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 text-slate-950 px-4 py-2 shadow-md flex items-center justify-between z-50 text-xs font-bold border-b border-amber-600 shrink-0">
+    <div class="bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 text-slate-950 px-4 py-2 shadow-md flex items-center justify-between z-50 text-xs font-bold border-b border-amber-600 shrink-0 font-mono">
         <div class="flex items-center gap-2.5">
             <span class="p-1 bg-slate-950 text-amber-400 rounded shadow">
                 <i data-lucide="user-check" class="w-3.5 h-3.5"></i>
@@ -196,7 +207,7 @@
 
         <form action="{{ route('impersonate.leave') }}" method="POST" class="inline">
             @csrf
-            <button type="submit" class="px-3 py-1 bg-slate-950 hover:bg-slate-900 text-white rounded-lg text-xs font-black shadow transition flex items-center gap-1 shrink-0">
+            <button type="submit" class="px-3 py-1 bg-slate-950 hover:bg-slate-900 text-white rounded text-xs font-black shadow transition flex items-center gap-1 shrink-0">
                 <i data-lucide="log-out" class="w-3 h-3 text-amber-400"></i>
                 Kembali ke SuperAdmin
             </button>
@@ -205,24 +216,24 @@
     @endif
 
     <!-- 1. TOP WINDOW TITLE BAR & DELPHI MAIN MENU -->
-    <header class="bg-slate-950 text-white flex items-center justify-between px-3 py-1.5 border-b border-slate-800 shrink-0 shadow-sm z-30">
+    <header class="bg-slate-950 text-white flex items-center justify-between px-3 py-1.5 border-b border-slate-800 shrink-0 shadow-sm z-30 font-mono">
         <div class="flex items-center gap-4">
             <!-- Brand & Desktop Logo -->
             <a href="{{ route('archives.index') }}" class="flex items-center gap-2 font-black tracking-tight text-white group">
-                <div class="p-1 bg-amber-500 text-slate-950 rounded-lg font-extrabold text-xs shadow">
+                <div class="p-1 bg-amber-500 text-slate-950 rounded font-extrabold text-xs shadow">
                     <i data-lucide="monitor" class="w-4 h-4"></i>
                 </div>
-                <span class="text-sm font-extrabold">
+                <span class="text-xs sm:text-sm font-extrabold">
                     INDRACO DMS <span class="text-amber-400 text-xs font-mono font-bold">[Desktop Workstation]</span>
                 </span>
             </a>
 
             <!-- Delphi Style Top Menu Dropdowns -->
             <nav class="hidden md:flex items-center gap-3 text-slate-300 text-xs font-medium border-l border-slate-800 pl-4">
-                <a href="{{ route('archives.index') }}" class="hover:text-amber-400 transition {{ request()->routeIs('archives.index') ? 'text-amber-400 font-bold' : '' }}">Catalog</a>
-                <a href="{{ route('borrowings.index') }}" class="hover:text-amber-400 transition {{ request()->routeIs('borrowings.*') ? 'text-amber-400 font-bold' : '' }}">Borrowings</a>
-                <a href="{{ route('destructions.index') }}" class="hover:text-amber-400 transition {{ request()->routeIs('destructions.*') ? 'text-amber-400 font-bold' : '' }}">Retention</a>
-                <a href="{{ route('logs.index') }}" class="hover:text-amber-400 transition {{ request()->routeIs('logs.*') ? 'text-amber-400 font-bold' : '' }}">Audit Logs</a>
+                <button @click="openFormWindow('archives')" type="button" class="hover:text-amber-400 transition" :class="activeWinId === 'archives' ? 'text-amber-400 font-bold' : ''">Catalog</button>
+                <button @click="openFormWindow('borrowings')" type="button" class="hover:text-amber-400 transition" :class="activeWinId === 'borrowings' ? 'text-amber-400 font-bold' : ''">Borrowings</button>
+                <button @click="openFormWindow('destructions')" type="button" class="hover:text-amber-400 transition" :class="activeWinId === 'destructions' ? 'text-amber-400 font-bold' : ''">Retention</button>
+                <button @click="openFormWindow('logs')" type="button" class="hover:text-amber-400 transition" :class="activeWinId === 'logs' ? 'text-amber-400 font-bold' : ''">Audit Logs</button>
             </nav>
         </div>
 
@@ -232,14 +243,29 @@
             <button 
                 @click="theme = (theme === 'dark' ? 'light' : 'dark'); localStorage.setItem('theme', theme)" 
                 type="button" 
-                class="p-1.5 rounded-lg bg-slate-900 text-slate-400 hover:text-amber-400 border border-slate-800 transition"
-                title="Ganti Tema"
+                class="px-2 py-0.5 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 rounded text-[11px] font-mono flex items-center gap-1.5 transition"
+                title="Ganti Mode Tampilan (Alt+T)"
             >
                 <template x-if="theme === 'dark'">
-                    <i data-lucide="sun" class="w-4 h-4 text-amber-400"></i>
+                    <span class="flex items-center gap-1 text-amber-300"><i data-lucide="sun" class="w-3 h-3"></i> Light Mode</span>
                 </template>
                 <template x-if="theme !== 'dark'">
-                    <i data-lucide="moon" class="w-4 h-4 text-slate-300"></i>
+                    <span class="flex items-center gap-1 text-sky-300"><i data-lucide="moon" class="w-3 h-3"></i> Dark Mode</span>
+                </template>
+            </button>
+
+            <!-- Fullscreen / Maximize Toggle Button -->
+            <button 
+                @click="toggleFullscreen()" 
+                type="button" 
+                :title="isFullscreen ? 'Keluar Full Screen (Esc / F11)' : 'Layar Penuh (Full Screen / Maximize)'"
+                class="w-6 h-6 flex items-center justify-center bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded text-amber-400 font-bold transition active:scale-95 shrink-0"
+            >
+                <template x-if="isFullscreen">
+                    <span class="text-[13px] font-black leading-none select-none">❐</span>
+                </template>
+                <template x-if="!isFullscreen">
+                    <span class="text-[13px] font-black leading-none select-none">🗖</span>
                 </template>
             </button>
 
@@ -250,9 +276,9 @@
                     <span class="text-[10px] text-amber-400 font-mono block">PIC DEPT: {{ auth()->user()->department->code ?? 'UMUM' }}</span>
                 </div>
 
-                <form action="{{ route('logout') }}" method="POST" class="inline">
+                <form action="{{ route('logout') }}" method="POST" class="inline ml-1">
                     @csrf
-                    <button type="submit" class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-900 rounded-lg transition" title="Logout">
+                    <button type="submit" class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-900 rounded transition" title="Logout">
                         <i data-lucide="power" class="w-4 h-4"></i>
                     </button>
                 </form>
@@ -262,31 +288,214 @@
     </header>
 
     <!-- 2. DELPHI ACTION RIBBON TOOLBAR -->
-    <div class="bg-white dark:bg-slate-950 border-b border-slate-300 dark:border-slate-800 px-3 py-1.5 flex flex-wrap items-center justify-between gap-2 shrink-0 shadow-xs z-30">
-        <div class="flex flex-wrap items-center gap-1.5">
+    <div class="bg-white dark:bg-slate-950 border-b border-slate-300 dark:border-slate-800 px-3 py-1.5 flex flex-wrap items-center justify-between gap-2 shrink-0 shadow-xs z-40 relative font-mono">
+        <div class="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
             <!-- F2: Draft Baru -->
-            <a href="{{ route('archives.create') }}" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white font-bold text-xs transition flex items-center gap-1.5 shadow-2xs">
+            <button 
+                @click="openFormWindow('archives_create')"
+                type="button" 
+                class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-white font-bold text-xs transition flex items-center gap-1.5 shadow-2xs cursor-pointer shrink-0"
+                title="Buka Form Draft Pengajuan Box Baru (F2)"
+            >
                 <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400"></i>
                 <span>Baru (F2)</span>
-            </a>
+            </button>
 
             <!-- F8: Pinjam Dokumen -->
-            <a href="{{ route('borrowings.create') }}" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white font-bold text-xs transition flex items-center gap-1.5 shadow-2xs">
+            <button 
+                @click="openFormWindow('borrowings')"
+                type="button" 
+                class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-white font-bold text-xs transition flex items-center gap-1.5 shadow-2xs cursor-pointer shrink-0"
+                title="Buka Form Peminjaman Berkas (F8)"
+            >
                 <i data-lucide="file-symlink" class="w-3.5 h-3.5 text-purple-600 dark:text-purple-400"></i>
                 <span>Pinjam (F8)</span>
-            </a>
+            </button>
 
             <!-- F9: Cetak Custom Label -->
-            <a href="{{ route('archives.print_labels') }}" target="_blank" class="px-2.5 py-1 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-lg text-amber-700 dark:text-amber-300 font-bold text-xs transition flex items-center gap-1.5 shadow-2xs">
+            <a href="{{ route('archives.print_labels') }}" target="_blank" class="px-2.5 py-1 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded text-amber-700 dark:text-amber-300 font-bold text-xs transition flex items-center gap-1.5 shadow-2xs shrink-0">
                 <i data-lucide="printer" class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400"></i>
                 <span>Cetak Label (F9)</span>
             </a>
 
-            <!-- F5: Refresh Data -->
-            <button onclick="window.location.reload()" type="button" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white font-bold text-xs transition flex items-center gap-1.5 shadow-2xs">
+            <!-- F5: Refresh Active Form -->
+            <button 
+                @click="refreshActiveWindow()" 
+                type="button" 
+                class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-white font-bold text-xs transition flex items-center gap-1.5 shadow-2xs cursor-pointer shrink-0"
+                title="Refresh Form yang Sedang Aktif (F5)"
+            >
                 <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-blue-600 dark:text-blue-400"></i>
                 <span>Refresh (F5)</span>
             </button>
+
+            <!-- SEBELAH KANAN REFRESH: SEARCH INPUT WITH AUTO-SUGGESTIONS & PHYSICAL LOCATION -->
+            <div class="relative z-50 flex-1 min-w-[320px] max-w-2xl ml-1" x-data="picQuickSearch()" @click.outside="closeDropdown()">
+                <div class="relative flex items-center">
+                    <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
+                        <svg x-show="isLoading" class="w-4 h-4 text-amber-500 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" x-cloak>
+                            <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+                        </svg>
+                        <svg x-show="!isLoading" class="w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                    </div>
+
+                    <input 
+                        type="text" 
+                        id="picHeaderSearchInput"
+                        x-model="searchQuery"
+                        @input.debounce.250ms="doSearch()"
+                        @focus="showSuggestions = true; if (!searchQuery) loadDefaultSuggestions()"
+                        @keydown.escape="closeDropdown()"
+                        @keydown.arrow-down.prevent="navigateResults(1)"
+                        @keydown.arrow-up.prevent="navigateResults(-1)"
+                        @keydown.enter.prevent="selectActiveResult()"
+                        placeholder="Cari arsip Dept (nama dokumen, butir isi, no. box, rak) [Ctrl+F]..." 
+                        class="w-full pl-9 pr-8 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition shadow-inner"
+                    >
+
+                    <!-- Clear Search Button -->
+                    <button 
+                        x-show="searchQuery.length > 0" 
+                        @click="clearSearch()"
+                        type="button" 
+                        class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-rose-500 transition cursor-pointer"
+                        title="Hapus pencarian"
+                        x-cloak
+                    >
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- AUTO-SUGGESTION FLOATING DROPDOWN PANEL (WIDE WORKSTATION DELPHI STYLE) -->
+                <div 
+                    x-show="showSuggestions" 
+                    x-transition:enter="transition ease-out duration-100"
+                    x-transition:enter-start="opacity-0 scale-95 -translate-y-1"
+                    x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                    x-transition:leave="transition ease-in duration-75"
+                    x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                    x-transition:leave-end="opacity-0 scale-95 -translate-y-1"
+                    class="absolute left-0 mt-1 w-[680px] sm:w-[740px] max-w-[94vw] bg-white dark:bg-slate-900 border-2 border-amber-500 rounded-lg shadow-2xl z-[100] overflow-hidden font-mono text-xs"
+                    x-cloak
+                >
+                    <!-- Header Dropdown Info -->
+                    <div class="px-3 py-2 bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white flex items-center justify-between border-b border-slate-700 text-[11px]">
+                        <span class="font-bold flex items-center gap-2 text-amber-300">
+                            <svg class="w-4 h-4 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            </svg>
+                            PENCARIAN ARSIP & LOKASI GUDANG
+                        </span>
+                        <span class="px-2 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-400/40 rounded text-[11px] font-bold">
+                            DEPT: {{ auth()->user()->department->code ?? 'DEPT' }} - {{ auth()->user()->department->name ?? '' }}
+                        </span>
+                    </div>
+
+                    <!-- Suggestion / Quick Filters Chips (when no input or matching keywords) -->
+                    <div x-show="suggestedKeywords.length > 0" class="px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950/80 border-b border-slate-200 dark:border-slate-800">
+                        <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1.5">Pencarian Cepat / Topik Dokumen:</span>
+                        <div class="flex flex-wrap gap-1.5">
+                            <template x-for="kw in suggestedKeywords" :key="kw">
+                                <button 
+                                    @click="selectKeyword(kw)"
+                                    type="button" 
+                                    class="px-2.5 py-1 bg-white dark:bg-slate-800 hover:bg-amber-500 hover:text-slate-950 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded text-[11px] font-bold transition flex items-center gap-1 shadow-2xs cursor-pointer"
+                                >
+                                    <span class="text-amber-500 font-black">#</span>
+                                    <span x-text="kw"></span>
+                                </button>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Results List Scroll Container -->
+                    <div class="max-h-96 overflow-y-auto divide-y divide-slate-200 dark:divide-slate-800 bg-white dark:bg-slate-900">
+                        <!-- Loading State -->
+                        <div x-show="isLoading" class="p-6 text-center text-slate-500 flex items-center justify-center gap-2.5 font-bold">
+                            <svg class="w-5 h-5 text-amber-500 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+                            </svg>
+                            <span>Mencari data berkas & rak gudang...</span>
+                        </div>
+
+                        <!-- Results Items -->
+                        <template x-for="(item, idx) in searchResults" :key="item.id">
+                            <div 
+                                @click="selectArchive(item)"
+                                :class="selectedIndex === idx ? 'bg-amber-500/15 dark:bg-amber-950/40 border-l-4 border-amber-500' : 'hover:bg-slate-100 dark:hover:bg-slate-800/80'"
+                                class="p-3 cursor-pointer transition flex flex-col gap-1.5 select-none"
+                            >
+                                <!-- Top Row: No Box, Status Badge, Period -->
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="font-black text-amber-600 dark:text-amber-400 text-xs sm:text-sm flex items-center gap-1.5">
+                                        <svg class="w-4 h-4 text-amber-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                                            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                                            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                                        </svg>
+                                        <span x-text="item.box_number || 'Penomoran Pending'"></span>
+                                    </span>
+
+                                    <div class="flex items-center gap-2">
+                                        <span class="px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-bold" x-text="item.periode_doc"></span>
+                                        <span 
+                                            :class="item.status === 'in_warehouse' ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30' : (item.status === 'borrowed' ? 'bg-purple-500/20 text-purple-700 dark:text-purple-300 border-purple-500/30' : 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/30')"
+                                            class="px-2 py-0.5 rounded border text-[11px] font-bold"
+                                            x-text="item.status_label"
+                                        ></span>
+                                    </div>
+                                </div>
+
+                                <!-- Middle Row: Judul / Nama Dokumen -->
+                                <div class="font-bold text-slate-900 dark:text-white text-xs sm:text-sm leading-snug" x-text="item.title"></div>
+
+                                <!-- Content Description snippet if matched -->
+                                <div x-show="item.content_description" class="text-xs text-slate-500 dark:text-slate-400 italic line-clamp-2">
+                                    <span class="text-slate-400 font-bold not-italic">Isi:</span> <span x-text="item.content_description"></span>
+                                </div>
+
+                                <!-- Bottom Row: Physical Warehouse & Rack Location -->
+                                <div class="flex items-center justify-between gap-2 pt-1 border-t border-slate-100 dark:border-slate-800 text-xs">
+                                    <div class="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 font-bold">
+                                        <svg class="w-3.5 h-3.5 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                            <circle cx="12" cy="10" r="3"></circle>
+                                        </svg>
+                                        <span x-text="item.location"></span>
+                                    </div>
+
+                                    <span class="text-[11px] text-amber-600 dark:text-amber-400 font-bold hover:underline flex items-center gap-1 shrink-0">
+                                        Buka Form 
+                                        <svg class="w-3 h-3 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                                            <polyline points="12 5 19 12 12 19"></polyline>
+                                        </svg>
+                                    </span>
+                                </div>
+                            </div>
+                        </template>
+
+                        <!-- Empty Result State -->
+                        <div x-show="!isLoading && searchResults.length === 0" class="p-6 text-center text-slate-500 dark:text-slate-400">
+                            <p class="font-bold text-xs text-slate-700 dark:text-slate-300">Tidak ada dokumen ditemukan</p>
+                            <p class="text-[11px] text-slate-500 mt-0.5">Tidak ditemukan berkas pada Departemen {{ auth()->user()->department->code ?? '' }} dengan kata kunci "<span class="font-bold text-amber-600 dark:text-amber-400" x-text="searchQuery"></span>"</p>
+                        </div>
+                    </div>
+
+                    <!-- Footer Dropdown Shortcut Helper -->
+                    <div class="px-3 py-1.5 bg-slate-100 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 text-[10px] text-slate-500 dark:text-slate-400 flex items-center justify-between">
+                        <span>Gunakan <kbd class="px-1 py-0.2 bg-slate-200 dark:bg-slate-800 border rounded font-bold">↑</kbd> <kbd class="px-1 py-0.2 bg-slate-200 dark:bg-slate-800 border rounded font-bold">↓</kbd> Navigasi, <kbd class="px-1 py-0.2 bg-slate-200 dark:bg-slate-800 border rounded font-bold">Enter</kbd> Pilih</span>
+                        <span><kbd class="px-1 py-0.2 bg-slate-200 dark:bg-slate-800 border rounded font-bold">Esc</kbd> Tutup</span>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="flex items-center gap-3 text-[11px] font-mono font-bold text-slate-500 dark:text-slate-400">
@@ -295,146 +504,125 @@
         </div>
     </div>
 
-    <!-- 3. MDI TAB SHEET NAVIGATION MANAGER -->
-    <div class="bg-slate-200 dark:bg-slate-900/90 px-2 pt-1.5 border-b border-slate-300 dark:border-slate-800 flex items-center gap-1 shrink-0 overflow-x-auto z-30">
-        <!-- Tab 1: Katalog & Booking Arsip -->
-        <a href="{{ route('archives.index') }}" class="px-3.5 py-1.5 rounded-t-xl border-t border-x border-slate-300 dark:border-slate-700 font-bold text-xs transition flex items-center gap-1.5 shrink-0 {{ request()->routeIs('archives.index') ? 'bg-white dark:bg-slate-950 text-amber-600 dark:text-amber-400 border-b-white dark:border-b-slate-950 -mb-px shadow-2xs' : 'bg-slate-300 dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800' }}">
-            <i data-lucide="folder-archive" class="w-3.5 h-3.5"></i>
-            <span>[Form 1] Katalog Arsip {{ auth()->user()->department->code ?? '' }}</span>
-        </a>
-
-        <!-- Tab 2: Draft Pengajuan Storage Baru (If active or link) -->
-        @if(request()->routeIs('archives.create'))
-        <a href="{{ route('archives.create') }}" class="px-3.5 py-1.5 rounded-t-xl border-t border-x border-slate-300 dark:border-slate-700 font-bold text-xs bg-white dark:bg-slate-950 text-emerald-600 dark:text-emerald-400 border-b-white dark:border-b-slate-950 -mb-px shadow-2xs transition flex items-center gap-1.5 shrink-0">
-            <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
-            <span>[Form 2] Draft Storage Baru</span>
-        </a>
-        @endif
-
-        <!-- Tab 3: Peminjaman Dokumen -->
-        <a href="{{ route('borrowings.index') }}" class="px-3.5 py-1.5 rounded-t-xl border-t border-x border-slate-300 dark:border-slate-700 font-bold text-xs transition flex items-center gap-1.5 shrink-0 {{ request()->routeIs('borrowings.*') ? 'bg-white dark:bg-slate-950 text-purple-600 dark:text-purple-400 border-b-white dark:border-b-slate-950 -mb-px shadow-2xs' : 'bg-slate-300 dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800' }}">
-            <i data-lucide="file-check-2" class="w-3.5 h-3.5"></i>
-            <span>[Form {{ request()->routeIs('archives.create') ? '3' : '2' }}] Peminjaman Berkas</span>
-        </a>
-
-        <!-- Tab 4: Expiry Retention -->
-        <a href="{{ route('destructions.index') }}" class="px-3.5 py-1.5 rounded-t-xl border-t border-x border-slate-300 dark:border-slate-700 font-bold text-xs transition flex items-center gap-1.5 shrink-0 {{ request()->routeIs('destructions.*') ? 'bg-white dark:bg-slate-950 text-rose-600 dark:text-rose-400 border-b-white dark:border-b-slate-950 -mb-px shadow-2xs' : 'bg-slate-300 dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800' }}">
-            <i data-lucide="shield-alert" class="w-3.5 h-3.5"></i>
-            <span>[Form Status] Expiry Retention</span>
-        </a>
-
-        <!-- Tab 5: Audit Log -->
-        <a href="{{ route('logs.index') }}" class="px-3.5 py-1.5 rounded-t-xl border-t border-x border-slate-300 dark:border-slate-700 font-bold text-xs transition flex items-center gap-1.5 shrink-0 {{ request()->routeIs('logs.*') ? 'bg-white dark:bg-slate-950 text-cyan-600 dark:text-cyan-400 border-b-white dark:border-b-slate-950 -mb-px shadow-2xs' : 'bg-slate-300 dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800' }}">
-            <i data-lucide="history" class="w-3.5 h-3.5"></i>
-            <span>Audit Trail</span>
-        </a>
+    <!-- 3. MDI TAB SHEET NAVIGATION MANAGER (FIXED TAB BAR) -->
+    <div class="bg-slate-200/90 dark:bg-slate-950 border-b border-slate-300 dark:border-slate-800 px-2 pt-1 flex items-center justify-start gap-1 shrink-0 font-mono text-[11px] select-none z-20 relative overflow-x-auto no-scrollbar">
+        <template x-for="form in availableForms" :key="form.id">
+            <button 
+                @click="openFormWindow(form.id)"
+                type="button"
+                :class="activeWinId === form.id 
+                    ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 border-t-2 border-t-amber-500 border-x border-slate-300 dark:border-slate-700 font-bold shadow-sm' 
+                    : (isWindowOpen(form.id)
+                        ? 'bg-slate-100 dark:bg-slate-900/80 text-slate-900 dark:text-slate-100 border-t-2 border-t-transparent border-x border-slate-300 dark:border-slate-700 font-bold'
+                        : 'bg-slate-200/60 dark:bg-slate-950 text-slate-600 dark:text-slate-400 border-t-2 border-t-transparent border-x border-transparent font-bold hover:bg-slate-100 dark:hover:bg-slate-850')"
+                class="px-3 py-1.5 rounded-t text-xs transition-colors flex items-center gap-2 shrink-0 cursor-pointer whitespace-nowrap"
+            >
+                <i :data-lucide="form.icon" class="w-3.5 h-3.5" :class="activeWinId === form.id ? 'text-amber-500' : (isWindowOpen(form.id) ? 'text-amber-500/80' : 'text-slate-400')"></i>
+                <span x-text="form.title"></span>
+            </button>
+        </template>
     </div>
 
-    <!-- 4. MAIN VIEWPORT (MAIN CONTENT CONTAINER) -->
-    <main class="flex-1 bg-slate-200 dark:bg-slate-950 p-2 sm:p-4 overflow-auto relative min-w-0 desktop-bg-pattern flex items-start justify-center font-sans">
-        <!-- DELPHI TFORM WINDOW CONTAINER (Draggable Desktop Form Window) -->
-        <div 
-            x-show="!minimized" 
-            x-transition:enter="transition ease-out duration-150 transform"
-            x-transition:enter-start="opacity-0 scale-95"
-            x-transition:enter-end="opacity-100 scale-100"
-            x-transition:leave="transition ease-in duration-100 transform"
-            x-transition:leave-start="opacity-100 scale-100"
-            x-transition:leave-end="opacity-0 scale-90"
-            :class="maximized ? 'w-full h-full max-w-none rounded-none my-0' : 'w-full max-w-6xl rounded-t-lg rounded-b-sm my-auto'"
-            :style="getWindowStyle()"
-            class="delphi-window bg-slate-100 dark:bg-slate-900 border-2 border-slate-400 dark:border-slate-700 flex flex-col relative overflow-hidden shadow-2xl"
-        >
-            <!-- WINDOW TITLE BAR (Draggable Desktop Caption & Window Controls) -->
-            <div 
-                @mousedown="startDrag($event)"
-                @dblclick="maximized = !maximized"
-                :class="maximized ? 'cursor-default' : (isDragging ? 'cursor-grabbing select-none' : 'cursor-grab')"
-                title="Klik & tahan untuk menggeser/reposisi posisi jendela form (Drag to move)"
-                class="bg-gradient-to-r from-slate-800 via-slate-700 to-indigo-950 text-white px-3 py-1.5 flex items-center justify-between border-b border-slate-600 font-mono text-xs select-none shrink-0"
-            >
-                <!-- Left Title & Icon -->
-                <div class="flex items-center gap-2 font-bold truncate pointer-events-none">
-                    <span class="p-0.5 bg-amber-500/20 border border-amber-400/40 rounded">
-                        <i data-lucide="layout" class="w-3.5 h-3.5 text-amber-400"></i>
-                    </span>
-                    <span class="tracking-wide uppercase">@yield('title', 'DMS PT Indraco - Workstation Form')</span>
-                </div>
-
-                <!-- Right Window Controls [ 🎯 Center ] [ _ ] [ 🗖 ] -->
-                <div class="flex items-center gap-1 shrink-0" @mousedown.stop>
-                    <button 
-                        x-show="posX !== 0 || posY !== 0"
-                        x-transition
-                        @click="resetPosition()"
-                        type="button"
-                        title="Kembalikan Posisi Form Window ke Tengah Layar"
-                        class="px-1.5 py-0.5 bg-slate-700/80 hover:bg-amber-600 border border-slate-600 rounded text-amber-300 hover:text-white text-[10px] font-bold transition active:scale-95 flex items-center gap-1 mr-1 shadow"
-                    >
-                        <i data-lucide="crosshair" class="w-3 h-3 text-amber-400"></i>
-                        <span>Center</span>
-                    </button>
-                    <button 
-                        @click="minimized = true" 
-                        type="button" 
-                        title="Minimize Jendela Form ke Taskbar" 
-                        class="w-5 h-5 flex items-center justify-center bg-slate-700/80 hover:bg-slate-600 border border-slate-600 rounded text-slate-200 text-[10px] font-black transition active:scale-95"
-                    >
-                        _
-                    </button>
-                    <button 
-                        @click="maximized = !maximized" 
-                        type="button" 
-                        title="Maximize / Restore Ukuran Jendela Form" 
-                        class="w-5 h-5 flex items-center justify-center bg-slate-700/80 hover:bg-slate-600 border border-slate-600 rounded text-slate-200 text-[10px] font-black transition active:scale-95"
-                    >
-                        <span x-text="maximized ? '❐' : '🗖'"></span>
-                    </button>
-                </div>
+    <!-- 4. MAIN VIEWPORT (MDI Multi-Window Workstation Desktop Canvas) -->
+    <main class="flex-1 bg-slate-200 dark:bg-slate-950 p-2 sm:p-4 overflow-hidden relative min-w-0 desktop-bg-pattern flex items-center justify-center font-sans">
+        
+        <!-- Empty Workspace Placeholder (When all windows closed) -->
+        <div x-show="openWindows.length === 0" class="my-auto text-center space-y-3 font-mono">
+            <div class="p-4 bg-slate-300 dark:bg-slate-800/80 rounded-2xl w-16 h-16 mx-auto flex items-center justify-center text-slate-500 dark:text-slate-400 shadow-inner">
+                <i data-lucide="layout" class="w-8 h-8 text-amber-500"></i>
             </div>
-
-            <!-- FORM CONTENT BODY -->
-            <div class="p-3 sm:p-4 flex-1 overflow-y-auto max-h-[calc(100vh-140px)]">
-                <!-- Flash Banners -->
-                @if (session('success'))
-                <div class="mb-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 flex items-start gap-2.5 text-xs shadow-sm">
-                    <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5"></i>
-                    <div class="font-bold">{{ session('success') }}</div>
-                </div>
-                @endif
-
-                @if (session('warning'))
-                <div class="mb-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 flex items-start gap-2.5 text-xs shadow-sm">
-                    <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5"></i>
-                    <div class="font-bold">{{ session('warning') }}</div>
-                </div>
-                @endif
-
-                @if (session('error'))
-                <div class="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-800 dark:text-rose-300 flex items-start gap-2.5 text-xs shadow-sm">
-                    <i data-lucide="alert-circle" class="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5"></i>
-                    <div class="font-bold">{{ session('error') }}</div>
-                </div>
-                @endif
-
-                @yield('content')
-            </div>
+            <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase">INDRACO ARSIP WORKSTATION</h3>
+            <p class="text-xs text-slate-500 max-w-sm mx-auto">Klik salah satu tab menu form di atas untuk membuka form window.</p>
         </div>
+
+        <!-- RECURSIVE MDI WINDOW FRAMES (Allows Multiple Forms Open Simultaneously) -->
+        <template x-for="win in openWindows" :key="win.id">
+            <div 
+                x-show="!win.minimized" 
+                @mousedown="focusWindow(win.id)"
+                :class="win.maximized ? 'absolute inset-0 z-20 w-full h-full rounded-none my-0 border-0 shadow-none' : 'absolute rounded-t-lg rounded-b-sm border-2 border-slate-400 dark:border-slate-700 shadow-2xl resize overflow-hidden'"
+                :style="getWindowStyle(win) + (win.maximized ? '' : 'width: 860px; max-width: 94vw; height: 560px; max-height: 78vh; min-width: 420px; min-height: 280px;')"
+                class="delphi-window bg-slate-100 dark:bg-slate-900 flex flex-col transition-shadow duration-150"
+            >
+                <!-- WINDOW TITLE BAR (Draggable Desktop Caption & 3 Window Control Buttons) -->
+                <div 
+                    @mousedown="startDragWindow(win, $event)"
+                    @dblclick="win.maximized = !win.maximized"
+                    :class="win.maximized ? 'cursor-default' : (win.isDragging ? 'cursor-grabbing select-none' : 'cursor-grab')"
+                    title="Klik & tahan untuk menggeser/reposisi posisi jendela form (Drag to move)"
+                    class="bg-gradient-to-r from-slate-800 via-slate-700 to-indigo-950 text-white px-3 py-1.5 flex items-center justify-between border-b border-slate-600 font-mono text-xs select-none shrink-0"
+                >
+                    <!-- Left Title & Icon -->
+                    <div class="flex items-center gap-2 font-bold truncate pointer-events-none">
+                        <span class="p-0.5 bg-amber-500/20 border border-amber-400/40 rounded">
+                            <i :data-lucide="win.icon" class="w-3.5 h-3.5 text-amber-400"></i>
+                        </span>
+                        <span class="tracking-wide uppercase" x-text="win.title"></span>
+                    </div>
+
+                    <!-- Right Window Controls [ 🎯 Center ] [ _ ] [ 🗖 ] [ ✕ ] -->
+                    <div class="flex items-center gap-1 shrink-0" @mousedown.stop>
+                        <!-- Center Button (shown when window is moved away from center) -->
+                        <button 
+                            x-show="win.posX !== 0 || win.posY !== 0"
+                            x-transition
+                            @click="resetWindowPos(win)"
+                            type="button"
+                            title="Kembalikan Posisi Form Window ke Tengah Layar"
+                            class="px-1.5 py-0.5 bg-slate-700/80 hover:bg-amber-600 border border-slate-600 rounded text-amber-300 hover:text-white text-[10px] font-bold transition active:scale-95 flex items-center gap-1 mr-1 shadow"
+                        >
+                            <i data-lucide="crosshair" class="w-3 h-3 text-amber-400"></i>
+                            <span>Center</span>
+                        </button>
+
+                        <!-- 1. MINIMIZE BUTTON [-] -->
+                        <button 
+                            @click="win.minimized = true" 
+                            type="button" 
+                            title="Minimize Jendela Form ke Taskbar" 
+                            class="w-6 h-6 flex items-center justify-center bg-slate-700/90 hover:bg-slate-600 border border-slate-600 rounded text-slate-200 text-xs font-black transition active:scale-95 cursor-pointer shadow-xs"
+                        >
+                            –
+                        </button>
+
+                        <!-- 2. MAXIMIZE / RESTORE BUTTON [🗖] -->
+                        <button 
+                            @click="win.maximized = !win.maximized" 
+                            type="button" 
+                            title="Maximize / Restore Ukuran Jendela Form" 
+                            class="w-6 h-6 flex items-center justify-center bg-slate-700/90 hover:bg-slate-600 border border-slate-600 rounded text-slate-200 text-xs font-black transition active:scale-95 cursor-pointer shadow-xs"
+                        >
+                            <span x-text="win.maximized ? '❐' : '🗖'"></span>
+                        </button>
+
+                        <!-- 3. CLOSE BUTTON [✕] (Red Delphi / Windows Standard) -->
+                        <button 
+                            @click="closeWindow(win.id)" 
+                            type="button" 
+                            title="Tutup Jendela Form Ini" 
+                            class="w-6 h-6 flex items-center justify-center bg-rose-600 hover:bg-rose-500 border border-rose-500 rounded text-white text-xs font-black transition active:scale-95 cursor-pointer shadow-xs"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                </div>
+
+                <!-- WINDOW IFRAME CONTAINER (ISOLATED FORM EMBED CONTENT) -->
+                <div class="flex-1 bg-white dark:bg-slate-900 relative overflow-hidden">
+                    <iframe 
+                        :id="'iframe-' + win.id"
+                        :src="win.url" 
+                        :class="activeDragWin ? 'pointer-events-none' : ''"
+                        class="w-full h-full border-0 block"
+                    ></iframe>
+                </div>
+            </div>
+        </template>
     </main>
 
-    <!-- 5. WINDOWS BOTTOM STATUS BAR PANEL -->
-    <footer class="bg-slate-900 text-slate-300 text-[11px] px-3 py-1 flex items-center justify-between border-t border-slate-800 shrink-0 font-mono z-30">
+    <!-- 5. WINDOWS BOTTOM STATUS BAR PANEL (TStatusBar) -->
+    <footer class="bg-slate-900 text-slate-300 text-[11px] px-3 py-1 flex items-center justify-between border-t border-slate-800 shrink-0 font-mono z-30 select-none">
         <div class="flex items-center gap-3">
-            <template x-if="minimized">
-                <button 
-                    @click="minimized = false" 
-                    type="button"
-                    class="px-2.5 py-0.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/50 rounded text-[11px] font-bold flex items-center gap-1.5 transition active:scale-95 mr-2"
-                >
-                    <i data-lucide="window" class="w-3.5 h-3.5 text-amber-400"></i>
-                    <span>Restore Window Form</span>
-                </button>
-            </template>
             <span class="flex items-center gap-1.5 text-emerald-400 font-bold">
                 <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> SYSTEM READY
             </span>
@@ -453,33 +641,125 @@
                     <span>MEM: <strong x-text="memUsage + '%'">38%</strong></span>
                 </span>
             </div>
-            <span class="text-slate-400">|</span>
-            <span>USER: <strong class="text-white">{{ auth()->user()->name }}</strong> ({{ auth()->user()->department->code ?? 'DEPT' }})</span>
+
+            <!-- Minimized Window Taskbar Items -->
+            <template x-for="win in openWindows.filter(w => w.minimized)" :key="win.id">
+                <button 
+                    @click="win.minimized = false; focusWindow(win.id)" 
+                    type="button"
+                    class="px-2 py-0.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/50 rounded text-[10px] font-bold flex items-center gap-1 transition active:scale-95 cursor-pointer"
+                >
+                    <i :data-lucide="win.icon" class="w-3 h-3 text-amber-400"></i>
+                    <span x-text="win.title"></span>
+                </button>
+            </template>
         </div>
-        <div class="hidden sm:flex items-center gap-4 text-slate-400">
-            <span>HOTKEYS: F2:Baru | F5:Refresh | F8:Pinjam | F9:Cetak Label | Ctrl+F:Cari</span>
-            <span class="text-slate-400">|</span>
-            <span>develope by Web Dev Indraco</span>
+
+        <!-- MDI Cascade / Tile & Window Counter Controls in Footer Status Bar -->
+        <div class="flex items-center gap-3">
+            <div class="flex items-center gap-1.5">
+                <template x-if="openWindows.length > 1">
+                    <div class="flex items-center gap-1 mr-1">
+                        <button 
+                            @click="cascadeWindows()" 
+                            type="button" 
+                            class="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-bold rounded border border-slate-700 flex items-center gap-1 transition shadow active:scale-95 cursor-pointer"
+                            title="Susun Jendela Secara Bertingkat (Cascade)"
+                        >
+                            <i data-lucide="layers" class="w-3 h-3 text-amber-400"></i>
+                            <span>Cascade</span>
+                        </button>
+                        <button 
+                            @click="tileWindows()" 
+                            type="button" 
+                            class="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-bold rounded border border-slate-700 flex items-center gap-1 transition shadow active:scale-95 cursor-pointer"
+                            title="Susun Jendela Berdampingan (Tile)"
+                        >
+                            <i data-lucide="grid" class="w-3 h-3 text-amber-400"></i>
+                            <span>Tile</span>
+                        </button>
+                    </div>
+                </template>
+
+                <span class="px-2 py-0.5 bg-slate-800 text-amber-300 rounded border border-slate-700 text-[10px] font-bold">
+                    <span x-text="openWindows.length"></span> Form Terbuka
+                </span>
+            </div>
+
+            <div class="hidden sm:flex items-center gap-3 text-slate-400 border-l border-slate-800 pl-3">
+                <span>USER: <strong class="text-white">{{ auth()->user()->name }}</strong> ({{ auth()->user()->department->code ?? 'DEPT' }})</span>
+                <span class="text-slate-500">|</span>
+                <span>develope by Web Dev Indraco</span>
+            </div>
         </div>
     </footer>
 
-    <!-- Lucide Icons & Desktop Hotkeys Engine Script -->
+    <!-- Lucide Icons & Desktop PIC Hotkeys / Window Management Engine Script -->
     <script>
-        function desktopAppLayout() {
+        function desktopPicAppLayout() {
             return {
                 theme: localStorage.getItem('theme') || 'light',
-                posX: 0,
-                posY: 0,
-                isDragging: false,
-                startX: 0,
-                startY: 0,
-                maximized: false,
-                minimized: false,
+                openWindows: [],
+                activeWinId: null,
+                maxZIndex: 10,
+                activeDragWin: null,
+                isFullscreen: false,
                 cpuUsage: 12,
                 memUsage: 38,
 
-                init() {
+                availableForms: [
+                    { 
+                        id: 'archives', 
+                        title: '[Form 1] Katalog Arsip {{ auth()->user()->department->code ?? "" }}', 
+                        icon: 'folder-archive', 
+                        url: '{{ route("archives.index") }}?embed=1' 
+                    },
+                    { 
+                        id: 'borrowings', 
+                        title: '[Form 2] Peminjaman Berkas', 
+                        icon: 'file-check-2', 
+                        url: '{{ route("borrowings.index") }}?embed=1' 
+                    },
+                    { 
+                        id: 'destructions', 
+                        title: '[Form Status] Expiry Retention', 
+                        icon: 'shield-alert', 
+                        url: '{{ route("destructions.index") }}?embed=1' 
+                    },
+                    { 
+                        id: 'logs', 
+                        title: 'Audit Trail', 
+                        icon: 'history', 
+                        url: '{{ route("logs.index") }}?embed=1' 
+                    },
+                    { 
+                        id: 'archives_create', 
+                        title: 'Draft Pengajuan Box Baru', 
+                        icon: 'plus-circle', 
+                        url: '{{ route("archives.create") }}?embed=1' 
+                    }
+                ],
+
+                initMdi() {
+                    let initialId = 'archives';
+                    @if(request()->routeIs('archives.create')) initialId = 'archives_create';
+                    @elseif(request()->routeIs('borrowings.*')) initialId = 'borrowings';
+                    @elseif(request()->routeIs('destructions.*')) initialId = 'destructions';
+                    @elseif(request()->routeIs('logs.*')) initialId = 'logs';
+                    @elseif(request()->routeIs('archives.*')) initialId = 'archives';
+                    @endif
+
+                    this.openFormWindow(initialId);
                     this.startSystemMonitor();
+
+                    document.addEventListener('fullscreenchange', () => {
+                        this.isFullscreen = !!document.fullscreenElement;
+                        if (this.isFullscreen) {
+                            sessionStorage.setItem('app_fullscreen', 'true');
+                        }
+                    });
+
+                    this.checkFullscreenPersistence();
                 },
 
                 startSystemMonitor() {
@@ -493,73 +773,374 @@
                         const usedPct = Math.round((mem.usedJSHeapSize / mem.jsHeapSizeLimit) * 100);
                         this.memUsage = Math.min(Math.max(usedPct + 24, 28), 75);
                     } else {
-                        this.memUsage = Math.floor(Math.random() * 10) + 34; // 34% - 44%
+                        this.memUsage = Math.floor(Math.random() * 10) + 34;
                     }
-                    this.cpuUsage = Math.floor(Math.random() * 14) + 6; // 6% - 20%
+                    this.cpuUsage = Math.floor(Math.random() * 14) + 6;
                 },
 
-                startDrag(e) {
-                    if (this.maximized) return;
-                    if (e.target.closest('button') || e.target.closest('input') || e.target.closest('textarea') || e.target.closest('select') || e.target.closest('a')) return;
-                    this.isDragging = true;
-                    this.startX = e.clientX - this.posX;
-                    this.startY = e.clientY - this.posY;
+                checkFullscreenPersistence() {
+                    if (sessionStorage.getItem('app_fullscreen') === 'true') {
+                        const attemptFullscreen = () => {
+                            if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+                                document.documentElement.requestFullscreen().then(() => {
+                                    this.isFullscreen = true;
+                                }).catch(() => {});
+                            }
+                        };
+                        attemptFullscreen();
+                        const autoRestore = () => {
+                            attemptFullscreen();
+                            document.removeEventListener('click', autoRestore);
+                            document.removeEventListener('keydown', autoRestore);
+                        };
+                        document.addEventListener('click', autoRestore);
+                        document.addEventListener('keydown', autoRestore);
+                    }
+                },
+
+                toggleFullscreen() {
+                    if (!document.fullscreenElement) {
+                        if (document.documentElement.requestFullscreen) {
+                            document.documentElement.requestFullscreen().then(() => {
+                                this.isFullscreen = true;
+                                sessionStorage.setItem('app_fullscreen', 'true');
+                            }).catch(() => {
+                                sessionStorage.setItem('app_fullscreen', 'true');
+                            });
+                        }
+                    } else {
+                        if (document.exitFullscreen) {
+                            document.exitFullscreen().then(() => {
+                                this.isFullscreen = false;
+                                sessionStorage.setItem('app_fullscreen', 'false');
+                            }).catch(() => {
+                                sessionStorage.setItem('app_fullscreen', 'false');
+                            });
+                        }
+                    }
+                },
+
+                isWindowOpen(formId) {
+                    return this.openWindows.some(w => w.id === formId);
+                },
+
+                openFormWindow(formId) {
+                    let win = this.openWindows.find(w => w.id === formId);
+                    if (win) {
+                        win.minimized = false;
+                        this.focusWindow(win.id);
+                    } else {
+                        const form = this.availableForms.find(f => f.id === formId);
+                        if (!form) return;
+                        
+                        const count = this.openWindows.length;
+                        const offsetX = (count * 30) % 180;
+                        const offsetY = (count * 25) % 120;
+
+                        win = {
+                            id: form.id,
+                            title: form.title,
+                            icon: form.icon,
+                            url: form.url,
+                            posX: offsetX,
+                            posY: offsetY,
+                            zIndex: ++this.maxZIndex,
+                            maximized: false,
+                            minimized: false,
+                            isDragging: false,
+                            startX: 0,
+                            startY: 0
+                        };
+                        this.openWindows.push(win);
+                        this.activeWinId = win.id;
+                    }
+                    setTimeout(() => lucide.createIcons(), 50);
+                },
+
+                openFormWindowWithCustom(id, title, icon, url) {
+                    let win = this.openWindows.find(w => w.id === id);
+                    if (win) {
+                        win.minimized = false;
+                        win.url = url;
+                        this.focusWindow(win.id);
+                    } else {
+                        const count = this.openWindows.length;
+                        const offsetX = (count * 30) % 180;
+                        const offsetY = (count * 25) % 120;
+
+                        win = {
+                            id: id,
+                            title: title,
+                            icon: icon || 'folder-open',
+                            url: url,
+                            posX: offsetX,
+                            posY: offsetY,
+                            zIndex: ++this.maxZIndex,
+                            maximized: false,
+                            minimized: false,
+                            isDragging: false,
+                            startX: 0,
+                            startY: 0
+                        };
+                        this.openWindows.push(win);
+                        this.activeWinId = win.id;
+                    }
+                    setTimeout(() => lucide.createIcons(), 50);
+                },
+
+                closeWindow(formId) {
+                    this.openWindows = this.openWindows.filter(w => w.id !== formId);
+                    if (this.activeWinId === formId) {
+                        const remaining = this.openWindows.filter(w => !w.minimized);
+                        if (remaining.length > 0) {
+                            this.focusWindow(remaining[remaining.length - 1].id);
+                        } else {
+                            this.activeWinId = null;
+                        }
+                    }
+                },
+
+                focusWindow(formId) {
+                    const win = this.openWindows.find(w => w.id === formId);
+                    if (win) {
+                        this.maxZIndex++;
+                        win.zIndex = this.maxZIndex;
+                        this.activeWinId = win.id;
+                        if (win.minimized) win.minimized = false;
+                    }
+                },
+
+                refreshActiveWindow() {
+                    if (this.activeWinId) {
+                        const iframe = document.getElementById('iframe-' + this.activeWinId);
+                        if (iframe && iframe.contentWindow) {
+                            iframe.contentWindow.location.reload();
+                            return;
+                        }
+                    }
+                    window.location.reload();
+                },
+
+                cascadeWindows() {
+                    const visibleWins = this.openWindows.filter(w => !w.minimized);
+                    visibleWins.forEach((win, index) => {
+                        win.maximized = false;
+                        win.posX = (index - (visibleWins.length - 1) / 2) * 45;
+                        win.posY = (index - (visibleWins.length - 1) / 2) * 35;
+                        win.zIndex = ++this.maxZIndex;
+                    });
+                    if (visibleWins.length > 0) {
+                        this.activeWinId = visibleWins[visibleWins.length - 1].id;
+                    }
+                },
+
+                tileWindows() {
+                    const visibleWins = this.openWindows.filter(w => !w.minimized);
+                    const count = visibleWins.length;
+                    if (count === 0) return;
+
+                    visibleWins.forEach((win, index) => {
+                        win.maximized = false;
+                        if (count === 1) {
+                            win.posX = 0;
+                            win.posY = 0;
+                        } else if (count === 2) {
+                            win.posX = index === 0 ? -200 : 200;
+                            win.posY = 0;
+                        } else {
+                            const cols = Math.ceil(Math.sqrt(count));
+                            const row = Math.floor(index / cols);
+                            const col = index % cols;
+                            win.posX = (col - (cols - 1) / 2) * 240;
+                            win.posY = (row - (Math.ceil(count / cols) - 1) / 2) * 160;
+                        }
+                        win.zIndex = ++this.maxZIndex;
+                    });
+                },
+
+                startDragWindow(win, e) {
+                    if (win.maximized) return;
+                    if (e.target.closest('button') || e.target.closest('input') || e.target.closest('select') || e.target.closest('a')) return;
+                    this.focusWindow(win.id);
+                    this.activeDragWin = win;
+                    win.isDragging = true;
+                    win.startX = e.clientX - win.posX;
+                    win.startY = e.clientY - win.posY;
                 },
 
                 onDrag(e) {
-                    if (!this.isDragging || this.maximized) return;
-                    this.posX = e.clientX - this.startX;
-                    this.posY = e.clientY - this.startY;
+                    if (!this.activeDragWin || !this.activeDragWin.isDragging || this.activeDragWin.maximized) return;
+                    this.activeDragWin.posX = e.clientX - this.activeDragWin.startX;
+                    this.activeDragWin.posY = e.clientY - this.activeDragWin.startY;
                 },
 
                 stopDrag() {
-                    this.isDragging = false;
-                },
-
-                resetPosition() {
-                    this.posX = 0;
-                    this.posY = 0;
-                },
-
-                getWindowStyle() {
-                    if (this.maximized || (this.posX === 0 && this.posY === 0)) {
-                        return '';
+                    if (this.activeDragWin) {
+                        this.activeDragWin.isDragging = false;
+                        this.activeDragWin = null;
                     }
-                    return `transform: translate3d(${this.posX}px, ${this.posY}px, 0px);`;
+                },
+
+                resetWindowPos(win) {
+                    win.posX = 0;
+                    win.posY = 0;
+                },
+
+                getWindowStyle(win) {
+                    let style = `z-index: ${win.zIndex};`;
+                    if (!win.maximized && (win.posX !== 0 || win.posY !== 0)) {
+                        style += ` transform: translate3d(${win.posX}px, ${win.posY}px, 0px);`;
+                    }
+                    return style;
+                }
+            }
+        }
+
+        // PIC Department Quick Search & Live Suggestion Component
+        function picQuickSearch() {
+            return {
+                searchQuery: '',
+                showSuggestions: false,
+                isLoading: false,
+                searchResults: [],
+                suggestedKeywords: [],
+                selectedIndex: -1,
+
+                async loadDefaultSuggestions() {
+                    this.isLoading = true;
+                    try {
+                        const res = await fetch('{{ route("archives.search_api") }}');
+                        const data = await res.json();
+                        if (data.type === 'suggestions') {
+                            this.suggestedKeywords = data.keywords || [];
+                            this.searchResults = data.recent || [];
+                        }
+                    } catch (err) {
+                        console.error('Search API error:', err);
+                    } finally {
+                        this.isLoading = false;
+                    }
+                },
+
+                async doSearch() {
+                    if (!this.searchQuery.trim()) {
+                        this.loadDefaultSuggestions();
+                        return;
+                    }
+                    this.isLoading = true;
+                    this.showSuggestions = true;
+                    this.selectedIndex = -1;
+                    try {
+                        const res = await fetch('{{ route("archives.search_api") }}?q=' + encodeURIComponent(this.searchQuery.trim()));
+                        const data = await res.json();
+                        if (data.type === 'results') {
+                            this.searchResults = data.items || [];
+                        }
+                    } catch (err) {
+                        console.error('Search API query error:', err);
+                    } finally {
+                        this.isLoading = false;
+                    }
+                },
+
+                selectKeyword(keyword) {
+                    this.searchQuery = keyword;
+                    this.doSearch();
+                },
+
+                selectArchive(archive) {
+                    // Keep suggestions open as requested so user can open multiple documents simultaneously
+                    const detailId = 'archive_detail_' + archive.id;
+                    const boxLabel = archive.box_number ? archive.box_number : ('ID #' + archive.id);
+                    const title = `[Detail] ${boxLabel} - ${archive.title || 'Dokumen'}`;
+                    let url = archive.url || ('{{ url("/archives") }}/' + archive.id);
+                    url += (url.includes('?') ? '&embed=1' : '?embed=1');
+
+                    window.dispatchEvent(new CustomEvent('open-form-window', {
+                        detail: {
+                            id: detailId,
+                            title: title,
+                            icon: 'file-text',
+                            url: url
+                        }
+                    }));
+                },
+
+                navigateResults(direction) {
+                    if (!this.searchResults.length) return;
+                    this.selectedIndex = (this.selectedIndex + direction + this.searchResults.length) % this.searchResults.length;
+                },
+
+                selectActiveResult() {
+                    if (this.selectedIndex >= 0 && this.selectedIndex < this.searchResults.length) {
+                        this.selectArchive(this.searchResults[this.selectedIndex]);
+                    }
+                },
+
+                clearSearch() {
+                    this.searchQuery = '';
+                    this.loadDefaultSuggestions();
+                },
+
+                closeDropdown() {
+                    this.showSuggestions = false;
+                    this.selectedIndex = -1;
                 }
             }
         }
 
         document.addEventListener("DOMContentLoaded", function() {
-            lucide.createIcons();
+            if (window.lucide) {
+                lucide.createIcons();
+            }
 
-            // Keyboard Shortcuts Handler
+            // Desktop Keyboard Shortcuts Handler
             document.addEventListener('keydown', function(e) {
                 // F2: Buka Form Draft Baru
                 if (e.key === 'F2') {
                     e.preventDefault();
-                    window.location.href = "{{ route('archives.create') }}";
+                    window.dispatchEvent(new CustomEvent('open-form-window', {
+                        detail: {
+                            id: 'archives_create',
+                            title: 'Draft Pengajuan Box Baru',
+                            icon: 'plus-circle',
+                            url: '{{ route("archives.create") }}?embed=1'
+                        }
+                    }));
                 }
-                // F5: Refresh Halaman
-                if (e.key === 'F5') {
+                // F5: Refresh Halaman / Active Window
+                else if (e.key === 'F5') {
                     e.preventDefault();
+                    const app = document.querySelector('[x-data="desktopPicAppLayout()"]');
+                    if (app && window.Alpine) {
+                        const alpineData = Alpine.$data(app);
+                        if (alpineData && alpineData.refreshActiveWindow) {
+                            alpineData.refreshActiveWindow();
+                            return;
+                        }
+                    }
                     window.location.reload();
                 }
                 // F8: Form Peminjaman Dokumen
                 else if (e.key === 'F8') {
                     e.preventDefault();
-                    window.location.href = "{{ route('borrowings.create') }}";
-                }
-                // F9: Cetak Custom Label
-                else if (e.key === 'F9') {
-                    e.preventDefault();
-                    window.open("{{ route('archives.print_labels') }}", '_blank');
+                    window.dispatchEvent(new CustomEvent('open-form-window', {
+                        detail: {
+                            id: 'borrowings',
+                            title: '[Form 2] Peminjaman Berkas',
+                            icon: 'file-check-2',
+                            url: '{{ route("borrowings.index") }}?embed=1'
+                        }
+                    }));
                 }
                 // Ctrl + F: Focus Search Input
                 else if (e.ctrlKey && e.key.toLowerCase() === 'f') {
                     e.preventDefault();
-                    const searchInput = document.querySelector('input[name="search"], input[type="text"][placeholder*="Cari"]');
-                    if (searchInput) searchInput.focus();
+                    const searchInput = document.getElementById('picHeaderSearchInput');
+                    if (searchInput) {
+                        searchInput.focus();
+                        searchInput.select();
+                    }
                 }
             });
         });

@@ -441,4 +441,247 @@ class Revisi1UatTest extends TestCase
         $this->assertEquals('empty', $slot->status);
         $this->assertNull($slot->archive_id);
     }
+
+    /**
+     * Test Master Department and Sub-Department CRUD with retention configuration
+     */
+    public function test_department_and_sub_department_crud_management()
+    {
+        $this->actingAs($this->adminUser);
+
+        // 1. Create Department with retention
+        $deptResponse = $this->post(route('master.departments.store'), [
+            'code' => 'ITD',
+            'name' => 'Information Technology',
+            'retention_years' => 7,
+            'description' => 'Departemen IT & Digital Systems',
+        ]);
+
+        $deptResponse->assertRedirect(route('master.departments'));
+        $department = Department::where('code', 'ITD')->first();
+        $this->assertNotNull($department);
+        $this->assertEquals(7, $department->retention_years);
+
+        // 2. Create Sub-Department
+        $subResponse = $this->post(route('master.sub_departments.store'), [
+            'department_id' => $department->id,
+            'code' => 'DEV',
+            'name' => 'Software Engineering',
+            'retention_years' => 10,
+            'description' => 'Sub-dept source code & sistem IT',
+        ]);
+
+        $subResponse->assertRedirect(route('master.departments'));
+        $subDept = SubDepartment::where('department_id', $department->id)->where('code', 'DEV')->first();
+        $this->assertNotNull($subDept);
+        $this->assertEquals('Software Engineering', $subDept->name);
+        $this->assertEquals(10, $subDept->retention_years);
+
+        // 3. Update Sub-Department
+        $updateSubResponse = $this->put(route('master.sub_departments.update', $subDept->id), [
+            'department_id' => $department->id,
+            'code' => 'DEV',
+            'name' => 'Software & Cloud Engineering',
+            'retention_years' => 12,
+            'description' => 'Sub-dept rekayasa perangkat lunak',
+        ]);
+
+        $updateSubResponse->assertRedirect(route('master.departments'));
+        $subDept->refresh();
+        $this->assertEquals('Software & Cloud Engineering', $subDept->name);
+        $this->assertEquals(12, $subDept->retention_years);
+
+        // 4. Update Department
+        $updateDeptResponse = $this->put(route('master.departments.update', $department->id), [
+            'code' => 'ITD',
+            'name' => 'Information Technology & Data',
+            'retention_years' => 8,
+            'description' => 'Departemen IT, Cloud & Big Data',
+        ]);
+
+        $updateDeptResponse->assertRedirect(route('master.departments'));
+        $department->refresh();
+        $this->assertEquals('Information Technology & Data', $department->name);
+        $this->assertEquals(8, $department->retention_years);
+
+        // 5. Delete Sub-Department
+        $deleteSubResponse = $this->delete(route('master.sub_departments.destroy', $subDept->id));
+        $deleteSubResponse->assertRedirect(route('master.departments'));
+        $this->assertNull(SubDepartment::find($subDept->id));
+
+        // 6. Delete Department
+        $deleteDeptResponse = $this->delete(route('master.departments.destroy', $department->id));
+        $deleteDeptResponse->assertRedirect(route('master.departments'));
+        $this->assertNull(Department::find($department->id));
+    }
+
+    /**
+     * Test Archive Box Creation with Multi-Month Period Range (e.g. 2026/07 - 2026/09)
+     */
+    public function test_archive_creation_with_multi_month_period_range()
+    {
+        $this->actingAs($this->picDeptFatUser);
+
+        $archiveData = [
+            'department_id' => $this->fatDepartment->id,
+            'title' => 'Faktur Pajak & Bukti Kas Q3 2026',
+            'periode_doc' => '2026/07 - 2026/09',
+            'tgl_penyerahan' => '2026-09-22',
+            'period_text' => 'Juli - September 2026',
+            'content_description' => "1. Faktur Pajak Juli 2026\n2. Faktur Pajak Agustus 2026\n3. Faktur Pajak September 2026",
+            'masa_simpan_custom' => 5,
+            'physical_condition' => 'Baik / Box TB 30g',
+        ];
+
+        $response = $this->post(route('archives.store'), $archiveData);
+        $response->assertRedirect(route('archives.index'));
+
+        $archive = Archive::where('title', 'Faktur Pajak & Bukti Kas Q3 2026')->first();
+        $this->assertNotNull($archive);
+        $this->assertEquals('2026/07 - 2026/09', $archive->periode_doc);
+        $this->assertEquals('2026-07-01', $archive->period_start_date->format('Y-m-d'));
+        $this->assertEquals('2026-09-30', $archive->period_end_date->format('Y-m-d'));
+        // Expiry date must be calculated from end of period (2026-09-30 + 5 years = 2031-09-30)
+        $this->assertEquals('2031-09-30', $archive->retention_expiry_date->format('Y-m-d'));
+    }
+
+    /**
+     * Test PIC Department Search API with Auto-Suggestion, Keywords, and Physical Location
+     */
+    public function test_pic_department_search_api_with_auto_suggestion_and_location()
+    {
+        // 1. Create FAT Archive
+        $fatArchive = Archive::create([
+            'department_id' => $this->fatDepartment->id,
+            'box_number' => 'IND/FIN/2026/IX/0001',
+            'title' => 'Laporan Keuangan & Faktur Pajak Q3',
+            'periode_doc' => '2026/07 - 2026/09',
+            'tgl_penyerahan' => '2026-09-22',
+            'period_start_date' => '2026-07-01',
+            'period_end_date' => '2026-09-30',
+            'retention_years' => 10,
+            'retention_expiry_date' => Carbon::parse('2036-09-30'),
+            'content_description' => 'Bukti Kas Masuk No. 001 - 150 dan Faktur Keluaran',
+            'physical_condition' => 'Baik / Box TB 30g',
+            'status' => 'in_warehouse',
+            'warehouse_location_id' => $this->generalLocation->id,
+            'created_by_user_id' => $this->picDeptFatUser->id,
+        ]);
+
+        // 2. Create HR Archive (different department)
+        $hrArchive = Archive::create([
+            'department_id' => $this->hrDepartment->id,
+            'box_number' => 'IND/HR/2026/IX/0002',
+            'title' => 'Berkas Absensi Karyawan & Faktur Pajak Pribadi',
+            'periode_doc' => '2026/09',
+            'tgl_penyerahan' => '2026-09-22',
+            'period_start_date' => '2026-09-01',
+            'period_end_date' => '2026-09-30',
+            'retention_years' => 5,
+            'retention_expiry_date' => Carbon::parse('2031-09-30'),
+            'content_description' => 'Rekapitulasi Gaji dan Slip Pajak HR',
+            'physical_condition' => 'Baik',
+            'status' => 'in_warehouse',
+            'warehouse_location_id' => $this->generalLocation->id,
+            'created_by_user_id' => $this->picDeptHrUser->id,
+        ]);
+
+        // 3. Act as PIC Dept FAT
+        $this->actingAs($this->picDeptFatUser);
+
+        // Search by content keyword "Bukti Kas"
+        $response1 = $this->getJson(route('archives.search_api', ['q' => 'Bukti Kas']));
+        $response1->assertStatus(200);
+        $response1->assertJsonFragment(['title' => 'Laporan Keuangan & Faktur Pajak Q3']);
+        $response1->assertJsonFragment(['box_number' => 'IND/FIN/2026/IX/0001']);
+        $this->assertStringContainsString($this->generalLocation->rack_code, $response1->json('items.0.location'));
+
+        // Search by generic keyword "Faktur Pajak" -> FAT user must only get FAT documents, and NEVER HR documents
+        $response2 = $this->getJson(route('archives.search_api', ['q' => 'Faktur Pajak']));
+        $response2->assertStatus(200);
+        $items = $response2->json('items');
+        $this->assertNotEmpty($items);
+        foreach ($items as $item) {
+            $this->assertNotEquals('IND/HR/2026/IX/0002', $item['box_number']);
+            $this->assertEquals($this->fatDepartment->code, $item['dept_code']);
+        }
+
+        // Search for HR exclusive keyword "Absensi Karyawan" as FAT user -> Returns 0 results (forbidden)
+        $responseHr = $this->getJson(route('archives.search_api', ['q' => 'Absensi Karyawan']));
+        $responseHr->assertStatus(200);
+        $this->assertEmpty($responseHr->json('items'));
+
+        // Empty query gives suggestions and recent FAT documents
+        $response3 = $this->getJson(route('archives.search_api'));
+        $response3->assertStatus(200);
+        $this->assertEquals('suggestions', $response3->json('type'));
+        $this->assertNotEmpty($response3->json('keywords'));
+        $this->assertNotEmpty($response3->json('recent'));
+    }
+
+    /**
+     * Test Super Admin global quick search API across all departments.
+     */
+    public function test_superadmin_search_api_with_global_multi_department_documents()
+    {
+        // 1. Create FAT Archive
+        $fatArchive = Archive::create([
+            'department_id' => $this->fatDepartment->id,
+            'box_number' => 'IND/FIN/2026/IX/0001',
+            'title' => 'Laporan Keuangan & Faktur Pajak Q3',
+            'periode_doc' => '2026/07 - 2026/09',
+            'tgl_penyerahan' => '2026-09-22',
+            'period_start_date' => '2026-07-01',
+            'period_end_date' => '2026-09-30',
+            'retention_years' => 10,
+            'retention_expiry_date' => Carbon::parse('2036-09-30'),
+            'content_description' => 'Bukti Kas Masuk No. 001 - 150 dan Faktur Keluaran',
+            'physical_condition' => 'Baik / Box TB 30g',
+            'status' => 'in_warehouse',
+            'warehouse_location_id' => $this->generalLocation->id,
+            'created_by_user_id' => $this->picDeptFatUser->id,
+        ]);
+
+        // 2. Create HR Archive
+        $hrArchive = Archive::create([
+            'department_id' => $this->hrDepartment->id,
+            'box_number' => 'IND/HR/2026/IX/0002',
+            'title' => 'Berkas Absensi Karyawan & Faktur Pajak Pribadi',
+            'periode_doc' => '2026/09',
+            'tgl_penyerahan' => '2026-09-22',
+            'period_start_date' => '2026-09-01',
+            'period_end_date' => '2026-09-30',
+            'retention_years' => 5,
+            'retention_expiry_date' => Carbon::parse('2031-09-30'),
+            'content_description' => 'Rekapitulasi Gaji dan Slip Pajak HR',
+            'physical_condition' => 'Baik',
+            'status' => 'in_warehouse',
+            'warehouse_location_id' => $this->generalLocation->id,
+            'created_by_user_id' => $this->picDeptHrUser->id,
+        ]);
+
+        // 3. Act as Super Admin
+        $this->actingAs($this->adminUser);
+
+        // Super Admin searches "Faktur Pajak" -> MUST get BOTH FAT and HR archives
+        $response = $this->getJson(route('archives.search_api', ['q' => 'Faktur Pajak']));
+        $response->assertStatus(200);
+        $boxNumbers = collect($response->json('items'))->pluck('box_number')->toArray();
+        $this->assertContains('IND/FIN/2026/IX/0001', $boxNumbers);
+        $this->assertContains('IND/HR/2026/IX/0002', $boxNumbers);
+
+        // Super Admin searches "Absensi Karyawan" -> Gets HR document
+        $responseHr = $this->getJson(route('archives.search_api', ['q' => 'Absensi Karyawan']));
+        $responseHr->assertStatus(200);
+        $this->assertNotEmpty($responseHr->json('items'));
+        $this->assertEquals('IND/HR/2026/IX/0002', $responseHr->json('items.0.box_number'));
+
+        // Super Admin empty query suggestions
+        $responseSuggestions = $this->getJson(route('archives.search_api'));
+        $responseSuggestions->assertStatus(200);
+        $this->assertEquals('suggestions', $responseSuggestions->json('type'));
+        $this->assertNotEmpty($responseSuggestions->json('keywords'));
+    }
 }
+
+

@@ -175,14 +175,8 @@
 
                 <!-- 1. Header Box: Logo Indraco (Left) & Label Box TB 30g (Right) -->
                 <div class="flex items-center justify-between border-b-2 border-slate-900 pb-2 mb-2">
-                    <div class="flex items-center gap-2">
-                        <div x-show="showLogo" class="font-black text-lg tracking-tighter text-slate-950 font-serif border-r-2 border-slate-900 pr-2.5">
-                            PT INDRACO
-                        </div>
-                        <div>
-                            <span class="font-mono text-[9px] font-bold text-slate-500 uppercase tracking-widest block">SISTEM ARSIP DIGITAL</span>
-                            <span class="font-extrabold text-xs text-slate-900 tracking-tight block">D-ARSIP INDRACO VERSI 1.0</span>
-                        </div>
+                    <div class="flex items-center" x-show="showLogo">
+                        <img src="{{ asset('images/logo-indraco.png') }}" alt="PT Indraco" class="h-8 sm:h-9 w-auto object-contain max-h-9">
                     </div>
 
                     <div class="text-right">

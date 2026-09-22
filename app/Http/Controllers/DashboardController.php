@@ -114,6 +114,7 @@ class DashboardController extends Controller
                     'location' => $archive->location ? $archive->location->full_location : 'Belum Dialokasikan',
                     'rack_code' => $archive->location ? $archive->location->rack_code : null,
                     'slot_code' => $archive->rackSlot ? $archive->rackSlot->slot_code : null,
+                    'content_description' => $archive->content_description ? \Illuminate\Support\Str::limit($archive->content_description, 80) : null,
                     'status' => $archive->status,
                     'is_expired' => $archive->is_expired,
                     'status_label' => $this->getStatusLabel($archive->status),
@@ -122,17 +123,21 @@ class DashboardController extends Controller
             });
 
             // Extract smart keywords from active archives, departments, sub-departments & periods
-            $deptCodes = Department::pluck('code')->toArray();
-            $recentTitles = Archive::latest()->take(10)->pluck('title')->map(function ($t) {
+            $deptKeywords = $user->isPicDept() && $user->department 
+                ? [$user->department->name, $user->department->code] 
+                : Department::pluck('code')->take(5)->toArray();
+
+            $recentTitles = (clone $query)->latest()->take(10)->pluck('title')->map(function ($t) {
                 return explode(' - ', $t)[0];
             })->filter()->unique()->take(5)->toArray();
-            $recentPeriods = Archive::whereNotNull('periode_doc')->latest()->take(10)->pluck('periode_doc')->unique()->take(3)->toArray();
+
+            $recentPeriods = (clone $query)->whereNotNull('periode_doc')->latest()->take(10)->pluck('periode_doc')->unique()->take(3)->toArray();
 
             $suggestedKeywords = array_unique(array_filter(array_merge(
-                ['Laporan Pajak', 'Faktur Penjualan', 'Surat Perjanjian', 'Berkas HRD', 'Laporan Keuangan', 'Audit'],
+                $deptKeywords,
                 $recentTitles,
                 $recentPeriods,
-                $deptCodes
+                ['Faktur Pajak', 'Laporan Keuangan', 'Surat Perjanjian', 'Bukti Kas']
             )));
 
             return response()->json([
@@ -180,6 +185,7 @@ class DashboardController extends Controller
                     'location' => $archive->location ? $archive->location->full_location : 'Belum Dialokasikan',
                     'rack_code' => $archive->location ? $archive->location->rack_code : null,
                     'slot_code' => $archive->rackSlot ? $archive->rackSlot->slot_code : null,
+                    'content_description' => $archive->content_description ? \Illuminate\Support\Str::limit($archive->content_description, 100) : null,
                     'status' => $archive->status,
                     'is_expired' => $archive->is_expired,
                     'status_label' => $this->getStatusLabel($archive->status),
