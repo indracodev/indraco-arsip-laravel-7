@@ -207,8 +207,18 @@ class ArchiveController extends Controller
             'status' => 'pending_verification',
         ]);
 
-        return redirect()->route('archives.index')
+        $redirectParams = $this->getEmbedParams($request);
+
+        return redirect()->route('archives.index', $redirectParams)
             ->with('success', 'Pengajuan booking arsip dokumen (Periode ' . $validated['periode_doc'] . ') berhasil disubmit untuk diverifikasi PIC Gudang.');
+    }
+
+    protected function getEmbedParams(Request $request)
+    {
+        if ($request->has('embed') || $request->input('embed') || $request->header('Sec-Fetch-Dest') === 'iframe' || \Illuminate\Support\Str::contains($request->header('referer', ''), 'embed=1')) {
+            return ['embed' => 1];
+        }
+        return [];
     }
 
     public function show(Archive $archive)

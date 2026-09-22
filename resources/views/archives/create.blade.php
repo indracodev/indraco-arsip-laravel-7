@@ -17,15 +17,18 @@
             </div>
         </div>
 
-        <a href="{{ route('archives.index') }}" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded text-xs font-bold transition flex items-center gap-1 shadow-sm shrink-0">
+        <a href="{{ route('archives.index', request()->has('embed') ? ['embed' => 1] : []) }}" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded text-xs font-bold transition flex items-center gap-1 shadow-sm shrink-0">
             <i data-lucide="arrow-left" class="w-3.5 h-3.5 text-amber-500"></i>
             <span>Kembali ke Katalog (Esc)</span>
         </a>
     </div>
 
     <!-- MAIN FORM WINDOW CARD -->
-    <form action="{{ route('archives.store') }}" method="POST" enctype="multipart/form-data" class="space-y-3">
+    <form action="{{ route('archives.store', request()->has('embed') ? ['embed' => 1] : []) }}" method="POST" enctype="multipart/form-data" class="space-y-3">
         @csrf
+        @if(request()->has('embed'))
+            <input type="hidden" name="embed" value="1">
+        @endif
 
         <!-- SECTION 1: UNIT & DEPARTEMEN -->
         <fieldset class="border border-slate-300 dark:border-slate-800 p-3.5 rounded bg-white dark:bg-slate-950 shadow-sm space-y-3">

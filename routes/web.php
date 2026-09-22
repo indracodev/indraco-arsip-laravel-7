@@ -22,6 +22,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/', 'DashboardController@index')->name('dashboard');
     Route::get('/dashboard', 'DashboardController@index');
     Route::get('/api/search-archives', 'DashboardController@searchApi')->name('archives.search_api');
+    Route::get('/api/realtime/check-new-archives', 'DashboardController@realtimeCheck')->name('api.realtime.check');
     Route::get('/api/departments/{department}/sub-departments', 'ArchiveController@apiGetSubDepartments')->name('api.departments.sub_departments');
     Route::get('/api/archives/calculate-retention', 'ArchiveController@apiCalculateRetention')->name('api.archives.calculate_retention');
 

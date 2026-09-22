@@ -31,7 +31,7 @@
         <!-- Header Brand & Letterhead -->
         <div class="flex items-center justify-between border-b-2 border-slate-900 pb-6">
             <div class="flex items-center gap-4">
-                <img src="{{ asset('images/logo-indraco-est.png') }}" alt="PT Indraco Logo" class="h-14 w-auto object-contain">
+                <img src="{{ asset('images/logo-indraco.png') }}" alt="PT Indraco Logo" class="h-14 w-auto object-contain">
                 <div>
                     <h1 class="text-2xl font-black tracking-tight text-slate-900">PT INDRACO</h1>
                     <span class="text-xs font-semibold text-slate-600 uppercase tracking-widest block">Gudang & Depo Manajemen Arsip Perusahaan</span>

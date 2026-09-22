@@ -136,6 +136,13 @@ echo [OK] PHP 8.2 Portable siap digunakan!
 echo.
 
 :VERIFY_PHP
+set "PHPRC=!FOUND_PHP!"
+
+:: Pastikan ekstensi OpenSSL, SQLite, Fileinfo, Mbstring, Curl aktif di php.ini
+if exist "!FOUND_PHP!\php.ini" (
+    powershell -NoProfile -Command "$ini = '!FOUND_PHP!\php.ini'; $c = Get-Content $ini; if ($c -match ';extension=openssl' -or $c -match ';extension_dir = \"ext\"') { $c = $c -replace ';extension_dir = \"ext\"', 'extension_dir = \"ext\"' -replace ';extension=curl', 'extension=curl' -replace ';extension=fileinfo', 'extension=fileinfo' -replace ';extension=mbstring', 'extension=mbstring' -replace ';extension=openssl', 'extension=openssl' -replace ';extension=pdo_sqlite', 'extension=pdo_sqlite' -replace ';extension=sqlite3', 'extension=sqlite3' -replace ';extension=zip', 'extension=zip' -replace ';extension=gd', 'extension=gd' -replace ';extension=intl', 'extension=intl'; Set-Content $ini $c }" >nul 2>&1
+)
+
 for /f "tokens=1,2 delims= " %%a in ('php -v 2^>nul') do (
     if not defined PHP_VERSION_INFO (
         set "PHP_VERSION_INFO=%%a %%b"

@@ -199,6 +199,81 @@ class DashboardController extends Controller
         ]);
     }
 
+    public function realtimeCheck(Request $request)
+    {
+        $user = auth()->user();
+        $lastId = (int) $request->get('last_id', 0);
+        $initial = (bool) $request->get('initial', false);
+
+        $latestArchive = Archive::latest('id')->first();
+        $maxId = $latestArchive ? $latestArchive->id : 0;
+
+        // Base query for current user permissions
+        $baseQuery = Archive::query();
+        if ($user && $user->isPicDept()) {
+            $baseQuery->where('department_id', $user->department_id);
+        }
+
+        $stats = [
+            'total' => (clone $baseQuery)->count(),
+            'pending' => Archive::where('status', 'pending_verification')
+                ->when($user && $user->isPicDept(), function ($q) use ($user) {
+                    return $q->where('department_id', $user->department_id);
+                })->count(),
+            'in_warehouse' => (clone $baseQuery)->where('status', 'in_warehouse')->count(),
+            'borrowed' => (clone $baseQuery)->where('status', 'borrowed')->count(),
+        ];
+
+        // If initial load or lastId is 0 or not provided, return the baseline without triggering alert
+        if ($initial || $lastId <= 0) {
+            return response()->json([
+                'has_new' => false,
+                'latest_id' => $maxId,
+                'new_archives' => [],
+                'count' => 0,
+                'stats' => $stats,
+            ]);
+        }
+
+        // Query new archives created after lastId
+        $newArchivesQuery = Archive::with(['department', 'creator', 'location', 'subDepartment'])
+            ->where('id', '>', $lastId);
+
+        if ($user && $user->isPicDept()) {
+            $newArchivesQuery->where('department_id', $user->department_id);
+        }
+
+        $newArchives = $newArchivesQuery->orderBy('id', 'desc')->take(10)->get();
+        $hasNew = $newArchives->isNotEmpty();
+
+        $items = $newArchives->map(function ($archive) {
+            return [
+                'id' => $archive->id,
+                'title' => $archive->title,
+                'box_number' => $archive->box_number ?? 'Penomoran Pending',
+                'dept_name' => $archive->department->name ?? 'Semua Dept',
+                'dept_code' => $archive->department->code ?? 'GEN',
+                'creator_name' => $archive->creator->name ?? 'User Client',
+                'creator_role' => $archive->creator->role_label ?? 'Client',
+                'periode_doc' => $archive->periode_doc ?? $archive->period_text ?? '-',
+                'location' => $archive->location ? $archive->location->full_location : 'Belum Dialokasikan',
+                'status' => $archive->status,
+                'status_label' => $this->getStatusLabel($archive->status),
+                'created_at_human' => $archive->created_at ? $archive->created_at->diffForHumans() : 'Baru saja',
+                'created_at_time' => $archive->created_at ? $archive->created_at->format('H:i:s') : '',
+                'url' => route('archives.show', $archive->id) . '?embed=1',
+            ];
+        });
+
+        return response()->json([
+            'has_new' => $hasNew,
+            'latest_id' => max($maxId, $lastId),
+            'new_archives' => $items,
+            'count' => $newArchives->count(),
+            'stats' => $stats,
+        ]);
+    }
+
     private function getStatusLabel($status)
     {
         switch ($status) {

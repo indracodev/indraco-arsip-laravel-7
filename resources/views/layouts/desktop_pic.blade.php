@@ -98,6 +98,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'DMS PT Indraco - Workstation Desktop Edition')</title>
+
+    <!-- Anti-Nested MDI Shell Protection: If rendered inside an iframe without embed=1, automatically reload as embed -->
+    <script>
+        if (window.self !== window.top && !window.location.search.includes('embed=')) {
+            const sep = window.location.search ? '&' : '?';
+            window.location.replace(window.location.pathname + window.location.search + sep + 'embed=1');
+        }
+    </script>
     
     <!-- PWA Manifest & Theme -->
     <link rel="manifest" href="/manifest.json">
@@ -238,19 +246,98 @@
         </div>
 
         <!-- Right User Info & Controls -->
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2">
+            <!-- Audio Sound Notification Toggle Button -->
+            <button 
+                @click="toggleSound()" 
+                type="button" 
+                class="px-2 py-0.5 rounded text-[11px] font-mono flex items-center gap-1.5 transition border cursor-pointer select-none"
+                :class="soundEnabled ? 'bg-slate-900 hover:bg-slate-800 text-emerald-300 border-emerald-500/40 shadow-xs' : 'bg-slate-900 hover:bg-slate-800 text-slate-400 border-slate-800'"
+                :title="soundEnabled ? 'Suara Notifikasi: AKTIF (Klik untuk Mute)' : 'Suara Notifikasi: MUTE (Klik untuk Aktifkan)'"
+            >
+                <template x-if="soundEnabled">
+                    <span class="flex items-center gap-1"><i data-lucide="volume-2" class="w-3.5 h-3.5 text-emerald-400"></i> <span class="hidden sm:inline">Suara ON</span></span>
+                </template>
+                <template x-if="!soundEnabled">
+                    <span class="flex items-center gap-1"><i data-lucide="volume-x" class="w-3.5 h-3.5 text-rose-400"></i> <span class="hidden sm:inline">Mute</span></span>
+                </template>
+            </button>
+
+            <!-- Real-Time Notification Bell & Dropdown -->
+            <div class="relative" @click.outside="showNotificationDropdown = false">
+                <button 
+                    @click="showNotificationDropdown = !showNotificationDropdown; if(showNotificationDropdown) unreadNotificationsCount = 0;" 
+                    type="button" 
+                    class="relative px-2 py-0.5 bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 rounded text-[11px] font-mono flex items-center gap-1.5 transition cursor-pointer"
+                    title="Aktivitas Dokumen Real-Time (Live Feed)"
+                >
+                    <i data-lucide="bell" class="w-3.5 h-3.5" :class="unreadNotificationsCount > 0 ? 'text-amber-400 animate-bounce' : 'text-slate-400'"></i>
+                    <span class="hidden md:inline">Notifikasi</span>
+                    <template x-if="unreadNotificationsCount > 0">
+                        <span class="px-1.5 py-0.2 bg-rose-500 text-white rounded-full text-[10px] font-black animate-pulse" x-text="unreadNotificationsCount"></span>
+                    </template>
+                </button>
+
+                <!-- Notification Dropdown History Menu -->
+                <div 
+                    x-show="showNotificationDropdown" 
+                    x-transition 
+                    x-cloak 
+                    class="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-slate-900 border-2 border-amber-500 rounded-lg shadow-2xl z-50 overflow-hidden text-xs font-mono"
+                >
+                    <div class="p-2.5 bg-slate-900 text-white flex items-center justify-between border-b border-slate-700">
+                        <div class="flex items-center gap-1.5 font-bold text-amber-400 text-[11px]">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                            <span>LIVE INCOMING DOCUMENTS</span>
+                        </div>
+                        <button @click="playChime()" type="button" class="text-[10px] px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 rounded flex items-center gap-1 transition cursor-pointer">
+                            <i data-lucide="volume-2" class="w-3 h-3 text-emerald-400"></i> Tes Suara
+                        </button>
+                    </div>
+
+                    <div class="max-h-80 overflow-y-auto divide-y divide-slate-200 dark:divide-slate-800">
+                        <template x-if="realtimeNotifications.length === 0">
+                            <div class="p-6 text-center text-slate-500 dark:text-slate-400 space-y-1">
+                                <i data-lucide="inbox" class="w-6 h-6 mx-auto text-slate-400 mb-1"></i>
+                                <p class="font-bold">Belum ada aktivitas dokumen baru</p>
+                                <p class="text-[10px]">Dokumen yang ditambahkan akan muncul otomatis di sini secara real-time.</p>
+                            </div>
+                        </template>
+
+                        <template x-for="item in realtimeNotifications" :key="item.id">
+                            <div @click="openArchiveFromNotification(item)" class="p-2.5 hover:bg-amber-500/10 dark:hover:bg-slate-800/80 cursor-pointer transition flex flex-col gap-1 border-b border-slate-100 dark:border-slate-800">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-blue-500/20 text-blue-700 dark:text-blue-300" x-text="item.deptCode"></span>
+                                        <span class="text-xs font-bold text-amber-600 dark:text-amber-400" x-text="item.boxNumber"></span>
+                                    </div>
+                                    <span class="text-[10px] text-slate-400" x-text="item.time"></span>
+                                </div>
+                                <div class="text-xs font-bold text-slate-900 dark:text-white truncate" x-text="item.title"></div>
+                                <div class="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 pt-0.5">
+                                    <span>Oleh: <strong class="text-slate-700 dark:text-slate-300" x-text="item.creatorName"></strong></span>
+                                    <span class="text-amber-500 font-bold hover:underline flex items-center gap-0.5">
+                                        Buka Form <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                                    </span>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
             <!-- Light/Dark Mode Switcher -->
             <button 
                 @click="theme = (theme === 'dark' ? 'light' : 'dark'); localStorage.setItem('theme', theme)" 
                 type="button" 
-                class="px-2 py-0.5 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 rounded text-[11px] font-mono flex items-center gap-1.5 transition"
+                class="px-2 py-0.5 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 rounded text-[11px] font-mono flex items-center gap-1.5 transition cursor-pointer"
                 title="Ganti Mode Tampilan (Alt+T)"
             >
                 <template x-if="theme === 'dark'">
-                    <span class="flex items-center gap-1 text-amber-300"><i data-lucide="sun" class="w-3 h-3"></i> Light Mode</span>
+                    <span class="flex items-center gap-1 text-amber-300"><i data-lucide="sun" class="w-3 h-3"></i> <span class="hidden xl:inline">Light Mode</span></span>
                 </template>
                 <template x-if="theme !== 'dark'">
-                    <span class="flex items-center gap-1 text-sky-300"><i data-lucide="moon" class="w-3 h-3"></i> Dark Mode</span>
+                    <span class="flex items-center gap-1 text-sky-300"><i data-lucide="moon" class="w-3 h-3"></i> <span class="hidden xl:inline">Dark Mode</span></span>
                 </template>
             </button>
 
@@ -259,7 +346,7 @@
                 @click="toggleFullscreen()" 
                 type="button" 
                 :title="isFullscreen ? 'Keluar Full Screen (Esc / F11)' : 'Layar Penuh (Full Screen / Maximize)'"
-                class="w-6 h-6 flex items-center justify-center bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded text-amber-400 font-bold transition active:scale-95 shrink-0"
+                class="w-6 h-6 flex items-center justify-center bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded text-amber-400 font-bold transition active:scale-95 shrink-0 cursor-pointer"
             >
                 <template x-if="isFullscreen">
                     <span class="text-[13px] font-black leading-none select-none">❐</span>
@@ -618,6 +705,66 @@
                 </div>
             </div>
         </template>
+
+        <!-- REAL-TIME FLOATING TOAST NOTIFICATIONS (TOP-RIGHT) -->
+        <div class="fixed top-12 right-3 sm:right-5 z-[999] flex flex-col gap-2.5 max-w-sm sm:max-w-md pointer-events-none font-mono">
+            <template x-for="toast in activeToasts" :key="toast.id">
+                <div 
+                    x-transition:enter="transition ease-out duration-300 transform"
+                    x-transition:enter-start="opacity-0 translate-x-8 scale-95"
+                    x-transition:enter-end="opacity-100 translate-x-0 scale-100"
+                    x-transition:leave="transition ease-in duration-200 transform"
+                    x-transition:leave-start="opacity-100 translate-x-0 scale-100"
+                    x-transition:leave-end="opacity-0 translate-x-8 scale-95"
+                    class="pointer-events-auto bg-white dark:bg-slate-900 border-2 border-amber-500 rounded-lg shadow-2xl p-3 text-slate-900 dark:text-white flex flex-col gap-2 relative overflow-hidden backdrop-blur-md ring-1 ring-black/20"
+                >
+                    <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 via-emerald-400 to-amber-500 animate-pulse"></div>
+
+                    <div class="flex items-center justify-between gap-2 pt-0.5">
+                        <div class="flex items-center gap-1.5 font-black text-xs text-amber-600 dark:text-amber-400">
+                            <span class="p-1 bg-amber-500/20 rounded border border-amber-500/30">
+                                <i data-lucide="bell-ring" class="w-3.5 h-3.5 text-amber-500"></i>
+                            </span>
+                            <span>DOKUMEN BARU MASUK!</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] text-slate-400 font-bold" x-text="toast.time"></span>
+                            <button @click="dismissToast(toast.id)" class="text-slate-400 hover:text-rose-500 p-0.5 rounded transition cursor-pointer">
+                                <i data-lucide="x" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <span class="px-1.5 py-0.2 rounded text-[10px] font-black bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-500/30" x-text="toast.deptCode + ' (' + toast.deptName + ')'"></span>
+                            <span class="text-xs font-bold text-amber-600 dark:text-amber-400" x-text="toast.boxNumber"></span>
+                            <span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/20" x-text="toast.statusLabel"></span>
+                        </div>
+                        <div class="text-xs font-bold text-slate-900 dark:text-white leading-tight line-clamp-2 font-sans" x-text="toast.title"></div>
+                        <div class="text-[11px] text-slate-500 dark:text-slate-400">
+                            Dibuat oleh: <strong class="text-slate-800 dark:text-slate-200" x-text="toast.creatorName"></strong>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between gap-2 pt-1 border-t border-slate-200 dark:border-slate-800 text-xs">
+                        <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span> Realtime Sync
+                        </span>
+                        <div class="flex items-center gap-1.5">
+                            <button 
+                                @click="openArchiveFromNotification(toast)" 
+                                type="button" 
+                                class="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded border border-amber-600 text-xs transition flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer"
+                            >
+                                <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                                <span>Buka Dokumen</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
     </main>
 
     <!-- 5. WINDOWS BOTTOM STATUS BAR PANEL (TStatusBar) -->
@@ -707,6 +854,17 @@
                 cpuUsage: 12,
                 memUsage: 38,
 
+                // Real-time Notification & Audio State
+                soundEnabled: localStorage.getItem('sound_enabled') !== 'false',
+                lastArchiveId: 0,
+                realtimeNotifications: [],
+                activeToasts: [],
+                unreadNotificationsCount: 0,
+                showNotificationDropdown: false,
+                audioContext: null,
+                audioUnlocked: false,
+                pollTimer: null,
+
                 availableForms: [
                     { 
                         id: 'archives', 
@@ -751,6 +909,7 @@
 
                     this.openFormWindow(initialId);
                     this.startSystemMonitor();
+                    this.initRealtimePoller();
 
                     document.addEventListener('fullscreenchange', () => {
                         this.isFullscreen = !!document.fullscreenElement;
@@ -760,6 +919,163 @@
                     });
 
                     this.checkFullscreenPersistence();
+                },
+
+                unlockAudio() {
+                    if (this.audioUnlocked) return;
+                    try {
+                        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                        if (AudioCtx) {
+                            if (!this.audioContext) {
+                                this.audioContext = new AudioCtx();
+                            }
+                            if (this.audioContext.state === 'suspended') {
+                                this.audioContext.resume();
+                            }
+                            this.audioUnlocked = true;
+                        }
+                    } catch(e) {}
+                },
+
+                playChime() {
+                    if (!this.soundEnabled) return;
+                    try {
+                        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                        if (!AudioCtx) return;
+                        if (!this.audioContext) {
+                            this.audioContext = new AudioCtx();
+                        }
+                        if (this.audioContext.state === 'suspended') {
+                            this.audioContext.resume();
+                        }
+
+                        const ctx = this.audioContext;
+                        const now = ctx.currentTime;
+
+                        const notes = [
+                            { freq: 659.25, time: 0.00, dur: 0.22, gain: 0.25 }, // E5
+                            { freq: 880.00, time: 0.10, dur: 0.32, gain: 0.30 }, // A5
+                            { freq: 1108.73, time: 0.22, dur: 0.55, gain: 0.35 }  // C#6
+                        ];
+
+                        notes.forEach(n => {
+                            const osc = ctx.createOscillator();
+                            const gain = ctx.createGain();
+                            osc.type = 'sine';
+                            osc.frequency.setValueAtTime(n.freq, now + n.time);
+
+                            gain.gain.setValueAtTime(0.001, now + n.time);
+                            gain.gain.linearRampToValueAtTime(n.gain, now + n.time + 0.02);
+                            gain.gain.exponentialRampToValueAtTime(0.0001, now + n.time + n.dur);
+
+                            osc.connect(gain);
+                            gain.connect(ctx.destination);
+                            osc.start(now + n.time);
+                            osc.stop(now + n.time + n.dur);
+                        });
+                    } catch (err) {
+                        console.warn('Audio chime error:', err);
+                    }
+                },
+
+                async initRealtimePoller() {
+                    try {
+                        const res = await fetch('{{ route("api.realtime.check") }}?initial=1');
+                        if (res.ok) {
+                            const data = await res.json();
+                            this.lastArchiveId = data.latest_id || 0;
+                        }
+                    } catch (e) {
+                        console.warn('Realtime init poller error:', e);
+                    }
+
+                    const unlockHandler = () => {
+                        this.unlockAudio();
+                        document.removeEventListener('click', unlockHandler);
+                        document.removeEventListener('keydown', unlockHandler);
+                    };
+                    document.addEventListener('click', unlockHandler);
+                    document.addEventListener('keydown', unlockHandler);
+
+                    if (this.pollTimer) clearInterval(this.pollTimer);
+                    this.pollTimer = setInterval(() => this.pollNewArchives(), 4000);
+                },
+
+                async pollNewArchives() {
+                    if (this.lastArchiveId === undefined || this.lastArchiveId === null) return;
+                    try {
+                        const res = await fetch(`{{ route("api.realtime.check") }}?last_id=${this.lastArchiveId}`);
+                        if (!res.ok) return;
+                        const data = await res.json();
+
+                        if (data.has_new && data.new_archives && data.new_archives.length > 0) {
+                            this.lastArchiveId = data.latest_id;
+
+                            this.playChime();
+
+                            data.new_archives.forEach(item => {
+                                const toast = {
+                                    id: 'toast_' + item.id + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                                    archiveId: item.id,
+                                    title: item.title,
+                                    boxNumber: item.box_number,
+                                    deptCode: item.dept_code,
+                                    deptName: item.dept_name,
+                                    creatorName: item.creator_name,
+                                    statusLabel: item.status_label,
+                                    time: item.created_at_time || new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+                                    url: item.url
+                                };
+
+                                this.activeToasts.unshift(toast);
+                                this.realtimeNotifications.unshift(toast);
+                                this.unreadNotificationsCount++;
+
+                                setTimeout(() => {
+                                    this.dismissToast(toast.id);
+                                }, 9000);
+                            });
+
+                            if (this.realtimeNotifications.length > 25) {
+                                this.realtimeNotifications = this.realtimeNotifications.slice(0, 25);
+                            }
+
+                            setTimeout(() => lucide.createIcons(), 60);
+                        } else if (data.latest_id && data.latest_id > this.lastArchiveId) {
+                            this.lastArchiveId = data.latest_id;
+                        }
+                    } catch (err) {
+                        // Silent error
+                    }
+                },
+
+                dismissToast(toastId) {
+                    this.activeToasts = this.activeToasts.filter(t => t.id !== toastId);
+                },
+
+                openArchiveFromNotification(item) {
+                    const detailId = 'archive_detail_' + (item.archiveId || item.id);
+                    const boxLabel = item.boxNumber || item.box_number || ('ID #' + (item.archiveId || item.id));
+                    const title = `[Detail] ${boxLabel} - ${item.title || 'Dokumen'}`;
+                    let url = item.url || ('{{ url("/archives") }}/' + (item.archiveId || item.id));
+                    if (!url.includes('embed=1')) {
+                        url += (url.includes('?') ? '&embed=1' : '?embed=1');
+                    }
+
+                    this.openFormWindowWithCustom(detailId, title, 'file-text', url);
+                    if (item.id) {
+                        this.dismissToast(item.id);
+                    }
+                    this.showNotificationDropdown = false;
+                },
+
+                toggleSound() {
+                    this.soundEnabled = !this.soundEnabled;
+                    localStorage.setItem('sound_enabled', this.soundEnabled ? 'true' : 'false');
+                    if (this.soundEnabled) {
+                        this.unlockAudio();
+                        this.playChime();
+                    }
                 },
 
                 startSystemMonitor() {

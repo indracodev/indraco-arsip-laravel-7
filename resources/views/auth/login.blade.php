@@ -220,7 +220,7 @@
                     <div class="space-y-4 w-full flex flex-col items-center pt-2">
                         <!-- Company Logo in Beveled Box -->
                         <div class="p-4 bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 rounded-xl shadow-lg w-full flex justify-center items-center">
-                            <img src="{{ asset('images/logo-indraco-est.png') }}" alt="PT Indraco Logo" class="h-14 w-auto object-contain">
+                            <img src="{{ asset('images/logo-indraco.png') }}" alt="PT Indraco Logo" class="h-12 sm:h-14 w-auto object-contain">
                         </div>
 
                         <div>
