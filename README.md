@@ -111,11 +111,18 @@ Halaman login dilengkapi dengan **Tombol Pintasan Login Cepat (One-Click Demo Lo
    php artisan migrate:fresh --seed
    ```
 
-5. **Jalankan Development Server:**
-   ```bash
-   php artisan serve --port=8001
-   ```
-   Buka browser di `http://127.0.0.1:8001`
+5. **Jalankan Development Server (Manual atau 1-Click Launcher):**
+   - **Metode 1: Menggunakan 1-Click Desktop Launcher (Paling Mudah)**
+     - Cukup klik 2x file `START-DMS-INDRACO.bat`.
+     - Server akan otomatis berjalan di `0.0.0.0:8000`, mendeteksi IP komputer Anda, dan otomatis membuka web browser.
+   - **Metode 2: Manual Terminal**
+     ```bash
+     php artisan serve --host=0.0.0.0 --port=8000
+     ```
+
+   Aplikasi dapat diakses melalui browser di:
+   - **Localhost:** `http://127.0.0.1:8000` atau `http://localhost:8000`
+   - **Jaringan Lokal (LAN / IP Komputer):** `http://<IP-KOMPUTER-ANDA>:8000` (dapat diakses dari komputer/HP lain dalam satu jaringan WiFi/LAN)
 
 ---
 
