@@ -95,7 +95,7 @@ class DashboardController extends Controller
         $user = auth()->user();
         $search = trim($request->get('q', ''));
 
-        $query = Archive::with(['department', 'location.warehouse']);
+        $query = Archive::with(['department', 'subDepartment', 'location.warehouse', 'rackSlot']);
 
         if ($user->isPicDept()) {
             $query->where('department_id', $user->department_id);
@@ -103,25 +103,37 @@ class DashboardController extends Controller
 
         if (empty($search)) {
             // Get recent documents as default suggestions
-            $recent = (clone $query)->latest()->take(5)->get()->map(function ($archive) {
+            $recent = (clone $query)->latest()->take(6)->get()->map(function ($archive) {
                 return [
                     'id' => $archive->id,
                     'title' => $archive->title,
                     'box_number' => $archive->box_number ?? 'Penomoran Pending',
+                    'periode_doc' => $archive->periode_doc ?? $archive->period_text ?? '-',
                     'dept_code' => $archive->department->code ?? 'GEN',
-                    'location' => $archive->location->full_location ?? 'Belum Ditentukan',
+                    'sub_dept' => $archive->subDepartment->name ?? null,
+                    'location' => $archive->location ? $archive->location->full_location : 'Belum Dialokasikan',
+                    'rack_code' => $archive->location ? $archive->location->rack_code : null,
+                    'slot_code' => $archive->rackSlot ? $archive->rackSlot->slot_code : null,
                     'status' => $archive->status,
+                    'is_expired' => $archive->is_expired,
                     'status_label' => $this->getStatusLabel($archive->status),
                     'url' => route('archives.show', $archive->id),
                 ];
             });
 
-            // Get dynamic keyword suggestions from departments & common archive topics
+            // Extract smart keywords from active archives, departments, sub-departments & periods
             $deptCodes = Department::pluck('code')->toArray();
-            $suggestedKeywords = array_unique(array_merge(
-                ['Laporan Pajak', 'Faktur Pembelian', 'Surat Perjanjian', 'Berkas HRD', 'Laporan Keuangan', 'Audit'],
+            $recentTitles = Archive::latest()->take(10)->pluck('title')->map(function ($t) {
+                return explode(' - ', $t)[0];
+            })->filter()->unique()->take(5)->toArray();
+            $recentPeriods = Archive::whereNotNull('periode_doc')->latest()->take(10)->pluck('periode_doc')->unique()->take(3)->toArray();
+
+            $suggestedKeywords = array_unique(array_filter(array_merge(
+                ['Laporan Pajak', 'Faktur Penjualan', 'Surat Perjanjian', 'Berkas HRD', 'Laporan Keuangan', 'Audit'],
+                $recentTitles,
+                $recentPeriods,
                 $deptCodes
-            ));
+            )));
 
             return response()->json([
                 'type' => 'suggestions',
@@ -133,20 +145,43 @@ class DashboardController extends Controller
         $archives = $query->where(function ($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
                   ->orWhere('box_number', 'like', "%{$search}%")
+                  ->orWhere('periode_doc', 'like', "%{$search}%")
                   ->orWhere('period_text', 'like', "%{$search}%")
-                  ->orWhere('content_description', 'like', "%{$search}%");
+                  ->orWhere('content_description', 'like', "%{$search}%")
+                  ->orWhere('custom_doc_name', 'like', "%{$search}%")
+                  ->orWhere('notes', 'like', "%{$search}%")
+                  ->orWhereHas('department', function ($dq) use ($search) {
+                      $dq->where('name', 'like', "%{$search}%")
+                         ->orWhere('code', 'like', "%{$search}%");
+                  })
+                  ->orWhereHas('subDepartment', function ($sq) use ($search) {
+                      $sq->where('name', 'like', "%{$search}%")
+                         ->orWhere('code', 'like', "%{$search}%");
+                  })
+                  ->orWhereHas('location', function ($lq) use ($search) {
+                      $lq->where('rack_code', 'like', "%{$search}%")
+                         ->orWhere('room_sector', 'like', "%{$search}%");
+                  })
+                  ->orWhereHas('rackSlot', function ($rq) use ($search) {
+                      $rq->where('slot_code', 'like', "%{$search}%");
+                  });
             })
             ->latest()
-            ->take(8)
+            ->take(10)
             ->get()
             ->map(function ($archive) {
                 return [
                     'id' => $archive->id,
                     'title' => $archive->title,
                     'box_number' => $archive->box_number ?? 'Penomoran Pending',
+                    'periode_doc' => $archive->periode_doc ?? $archive->period_text ?? '-',
                     'dept_code' => $archive->department->code ?? 'GEN',
-                    'location' => $archive->location->full_location ?? 'Belum Ditentukan',
+                    'sub_dept' => $archive->subDepartment->name ?? null,
+                    'location' => $archive->location ? $archive->location->full_location : 'Belum Dialokasikan',
+                    'rack_code' => $archive->location ? $archive->location->rack_code : null,
+                    'slot_code' => $archive->rackSlot ? $archive->rackSlot->slot_code : null,
                     'status' => $archive->status,
+                    'is_expired' => $archive->is_expired,
                     'status_label' => $this->getStatusLabel($archive->status),
                     'url' => route('archives.show', $archive->id),
                 ];

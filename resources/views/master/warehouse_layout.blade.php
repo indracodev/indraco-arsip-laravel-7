@@ -176,6 +176,7 @@
                     @mousedown="handleCanvasMouseDown($event)"
                     @mousemove="handleCanvasMouseMove($event)"
                     @mouseup="handleCanvasMouseUp($event)"
+                    @dblclick="handleCanvasDoubleClick($event)"
                     @contextmenu.prevent="handleCanvasContextMenu($event)"
                     class="cursor-crosshair border border-slate-800/80 rounded-2xl shadow-inner bg-[#0b1120] transition-transform duration-75 block"
                 ></canvas>
@@ -193,242 +194,359 @@
                 </div>
             </div>
 
-            <!-- Floating Right-Click Context Menu -->
+            <!-- Floating Right-Click Context Menu (Delphi & Win32 Workstation Style) -->
             <div 
                 x-show="contextMenuOpen" 
                 x-cloak 
                 @click.away="contextMenuOpen = false"
                 :style="{ top: contextMenuY + 'px', left: contextMenuX + 'px' }"
-                class="fixed z-50 bg-slate-900 border border-slate-700/80 shadow-2xl rounded-2xl p-2 w-64 text-xs font-semibold text-slate-200 space-y-1 backdrop-blur-md"
+                class="fixed z-50 bg-slate-900/98 dark:bg-slate-950/98 border border-slate-700/90 shadow-[0_15px_40px_-5px_rgba(0,0,0,0.8)] rounded-lg p-1.5 w-72 text-xs font-mono text-slate-200 select-none backdrop-blur-md space-y-0.5"
             >
-                <div class="px-3 py-1.5 border-b border-slate-800 text-[11px] font-bold text-amber-400 uppercase tracking-wider flex items-center justify-between">
-                    <span x-text="selectedLocations.length > 1 ? '✨ KELOMPOK (' + selectedLocations.length + ' OBJEK)' : (contextMenuTarget ? (contextMenuTarget.location_type === 'room' ? 'GUDANG: ' + contextMenuTarget.rack_code : 'RAK: ' + contextMenuTarget.rack_code) : '+ TAMBAH OBJECT LAYOUT')"></span>
-                    <span class="font-mono text-slate-400 text-[10px]" x-text="'X:' + clickedCanvasX + ' Y:' + clickedCanvasY"></span>
+                <!-- Context Menu Title Header -->
+                <div class="px-2.5 py-1.5 mb-1 bg-slate-800/90 dark:bg-slate-900 border-b border-slate-700/60 rounded flex items-center justify-between gap-2 select-none">
+                    <div class="flex items-center gap-1.5 min-w-0">
+                        <span class="w-2 h-2 rounded-full shrink-0" 
+                              :class="contextMenuTarget?.is_locked ? 'bg-amber-400 animate-pulse' : (contextMenuTarget?.is_fat_locked ? 'bg-purple-400' : 'bg-emerald-400')"></span>
+                        <span class="font-mono font-bold text-xs text-amber-400 truncate uppercase" 
+                              x-text="selectedLocations.length > 1 
+                                  ? 'MULTI-SELECT (' + selectedLocations.length + ')' 
+                                  : (contextMenuTarget 
+                                      ? (contextMenuTarget.location_type === 'room' ? 'GUDANG: ' + contextMenuTarget.rack_code : 'RAK: ' + contextMenuTarget.rack_code) 
+                                      : 'CANVAS MENU')">
+                        </span>
+                    </div>
+                    <span class="font-mono text-[10px] text-slate-400 shrink-0 bg-slate-950/70 px-1.5 py-0.5 rounded border border-slate-800" 
+                          x-text="'X:' + clickedCanvasX + ' Y:' + clickedCanvasY">
+                    </span>
                 </div>
                 
                 <!-- Actions when MULTIPLE objects are selected (Multi-Selection Batch Actions) -->
                 <template x-if="selectedLocations.length > 1">
-                    <div class="space-y-1 border-b border-slate-800 pb-1 mb-1">
-                        <div class="px-2 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-[10px] font-bold text-indigo-400 mb-1 flex items-center justify-between">
-                            <span>✨ BATCH SETUP (MULTI-SELECT)</span>
+                    <div class="space-y-0.5">
+                        <div class="px-2 py-1 bg-indigo-500/15 border border-indigo-500/30 rounded text-[10px] font-bold text-indigo-300 mb-1 flex items-center justify-between">
+                            <span class="flex items-center gap-1"><i data-lucide="layers" class="w-3 h-3 text-indigo-400"></i> BATCH SETUP</span>
                             <span class="font-mono" x-text="selectedLocations.length + ' OBJEK'"></span>
                         </div>
 
                         <button 
                             @click="bulkToggleLockLocations(false); contextMenuOpen = false;" 
                             type="button" 
-                            class="w-full text-left px-3 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-xl transition flex items-center gap-2.5 font-bold"
+                            class="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 text-slate-200 hover:text-emerald-300 rounded transition flex items-center justify-between"
                         >
-                            <i data-lucide="unlock" class="w-4 h-4 text-emerald-400"></i>
-                            <span>🔓 Buka Kunci (Unlock) Kelompok</span>
+                            <div class="flex items-center gap-2 min-w-0">
+                                <i data-lucide="unlock" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+                                <span class="truncate">Buka Kunci (Unlock) Kelompok</span>
+                            </div>
                         </button>
 
                         <button 
                             @click="bulkToggleLockLocations(true); contextMenuOpen = false;" 
                             type="button" 
-                            class="w-full text-left px-3 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded-xl transition flex items-center gap-2.5 font-bold"
+                            class="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 text-slate-200 hover:text-amber-300 rounded transition flex items-center justify-between"
                         >
-                            <i data-lucide="lock" class="w-4 h-4 text-amber-400"></i>
-                            <span>🔒 Kunci (Lock) Kelompok</span>
+                            <div class="flex items-center gap-2 min-w-0">
+                                <i data-lucide="lock" class="w-4 h-4 text-amber-400 shrink-0"></i>
+                                <span class="truncate">Kunci (Lock) Kelompok</span>
+                            </div>
                         </button>
+
+                        <div class="border-t border-slate-800/80 my-1"></div>
 
                         <button 
                             @click="openBatchResizeModal(); contextMenuOpen = false;" 
                             type="button" 
-                            class="w-full text-left px-3 py-2 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 rounded-xl transition flex items-center gap-2.5 font-bold"
+                            class="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 text-slate-200 hover:text-blue-300 rounded transition flex items-center justify-between"
                         >
-                            <i data-lucide="scaling" class="w-4 h-4 text-blue-400"></i>
-                            <span>📐 Ubah Ukuran Massal (W & H)...</span>
+                            <div class="flex items-center gap-2 min-w-0">
+                                <i data-lucide="scaling" class="w-4 h-4 text-blue-400 shrink-0"></i>
+                                <span class="truncate">Ubah Ukuran Massal (W & H)...</span>
+                            </div>
                         </button>
 
                         <button 
                             @click="openBatchDeptModal(); contextMenuOpen = false;" 
                             type="button" 
-                            class="w-full text-left px-3 py-2 bg-purple-600/10 hover:bg-purple-600/20 text-purple-400 rounded-xl transition flex items-center gap-2.5 font-bold"
+                            class="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 text-slate-200 hover:text-purple-300 rounded transition flex items-center justify-between"
                         >
-                            <i data-lucide="building-2" class="w-4 h-4 text-purple-400"></i>
-                            <span>🏢 Set Alokasi Dept Massal...</span>
+                            <div class="flex items-center gap-2 min-w-0">
+                                <i data-lucide="building-2" class="w-4 h-4 text-purple-400 shrink-0"></i>
+                                <span class="truncate">Set Alokasi Departemen...</span>
+                            </div>
                         </button>
 
                         <button 
                             @click="openBatchColorModal(); contextMenuOpen = false;" 
                             type="button" 
-                            class="w-full text-left px-3 py-2 bg-pink-600/10 hover:bg-pink-600/20 text-pink-400 rounded-xl transition flex items-center gap-2.5 font-bold"
+                            class="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 text-slate-200 hover:text-pink-300 rounded transition flex items-center justify-between"
                         >
-                            <i data-lucide="palette" class="w-4 h-4 text-pink-400"></i>
-                            <span>🎨 Set Warna Custom Massal...</span>
+                            <div class="flex items-center gap-2 min-w-0">
+                                <i data-lucide="palette" class="w-4 h-4 text-pink-400 shrink-0"></i>
+                                <span class="truncate">Set Warna Custom Massal...</span>
+                            </div>
                         </button>
 
                         <button 
                             @click="rotateLocation(null, 90); contextMenuOpen = false;" 
                             type="button" 
-                            class="w-full text-left px-3 py-2 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 rounded-xl transition flex items-center gap-2.5 font-bold"
+                            class="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 text-slate-200 hover:text-cyan-300 rounded transition flex items-center justify-between"
                         >
-                            <i data-lucide="rotate-cw" class="w-4 h-4 text-indigo-400"></i>
-                            <span>🔄 Putar (Rotate) Kelompok 90°</span>
+                            <div class="flex items-center gap-2 min-w-0">
+                                <i data-lucide="rotate-cw" class="w-4 h-4 text-cyan-400 shrink-0"></i>
+                                <span class="truncate">Putar Kelompok 90°</span>
+                            </div>
+                            <kbd class="text-[10px] text-slate-500 font-mono shrink-0">R</kbd>
                         </button>
+
+                        <div class="border-t border-slate-800/80 my-1"></div>
 
                         <button 
                             @click="alignGroupHorizontally(); contextMenuOpen = false;" 
                             type="button" 
-                            class="w-full text-left px-3 py-2 bg-teal-600/10 hover:bg-teal-600/20 text-teal-400 rounded-xl transition flex items-center gap-2.5 font-bold"
+                            class="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 text-slate-200 hover:text-teal-300 rounded transition flex items-center justify-between"
                         >
-                            <i data-lucide="align-horizontal-space-around" class="w-4 h-4 text-teal-400"></i>
-                            <span>↔️ Rapatkan Sisi Lebar (Horizontal Row)</span>
+                            <div class="flex items-center gap-2 min-w-0">
+                                <i data-lucide="align-horizontal-space-around" class="w-4 h-4 text-teal-400 shrink-0"></i>
+                                <span class="truncate">Rapatkan Horizontal (Baris)</span>
+                            </div>
                         </button>
 
                         <button 
                             @click="alignGroupVertically(); contextMenuOpen = false;" 
                             type="button" 
-                            class="w-full text-left px-3 py-2 bg-cyan-600/10 hover:bg-cyan-600/20 text-cyan-400 rounded-xl transition flex items-center gap-2.5 font-bold"
+                            class="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 text-slate-200 hover:text-teal-300 rounded transition flex items-center justify-between"
                         >
-                            <i data-lucide="align-vertical-space-around" class="w-4 h-4 text-cyan-400"></i>
-                            <span>↕️ Rapatkan Sisi Panjang (Vertical Column)</span>
+                            <div class="flex items-center gap-2 min-w-0">
+                                <i data-lucide="align-vertical-space-around" class="w-4 h-4 text-teal-400 shrink-0"></i>
+                                <span class="truncate">Rapatkan Vertikal (Kolom)</span>
+                            </div>
                         </button>
+
+                        <div class="border-t border-slate-800/80 my-1"></div>
 
                         <button 
                             @click="deleteSelectedLocation(); contextMenuOpen = false;" 
                             type="button" 
-                            class="w-full text-left px-3 py-2 hover:bg-rose-600/20 hover:text-rose-400 rounded-xl transition flex items-center gap-2.5 font-bold text-rose-400"
+                            class="w-full text-left px-2.5 py-1.5 hover:bg-rose-900/30 text-rose-400 hover:text-rose-300 rounded transition flex items-center justify-between"
                         >
-                            <i data-lucide="trash-2" class="w-4 h-4 text-rose-500"></i>
-                            <span>Hapus Kelompok Object (Delete)</span>
+                            <div class="flex items-center gap-2 min-w-0">
+                                <i data-lucide="trash-2" class="w-4 h-4 text-rose-500 shrink-0"></i>
+                                <span class="truncate">Hapus Kelompok Objek</span>
+                            </div>
+                            <kbd class="text-[10px] text-rose-500/70 font-mono shrink-0">Del</kbd>
                         </button>
                     </div>
                 </template>
 
                 <!-- Actions when Right Clicked on a SINGLE GUDANG / ROOM object -->
                 <template x-if="selectedLocations.length <= 1 && contextMenuTarget && contextMenuTarget.location_type === 'room'">
-                    <div class="space-y-1 border-b border-slate-800 pb-1 mb-1">
+                    <div class="space-y-0.5">
                         <button 
                             @click="addRackInsideRoom(contextMenuTarget, clickedCanvasX, clickedCanvasY, 1)" 
                             type="button" 
-                            class="w-full text-left px-3 py-2 bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-400 rounded-xl transition flex items-center justify-between font-bold"
+                            class="w-full text-left px-2.5 py-1.5 bg-gradient-to-r from-emerald-500/20 to-teal-500/10 hover:from-emerald-500/30 hover:to-teal-500/20 text-emerald-300 rounded border border-emerald-500/40 transition flex items-center justify-between font-bold shadow-xs group mb-1"
                         >
-                            <div class="flex items-center gap-2.5">
-                                <i data-lucide="plus-square" class="w-4 h-4 text-emerald-500"></i>
-                                <span>+ Tambah Rak (Single / Multi)</span>
+                            <div class="flex items-center gap-2 min-w-0">
+                                <i data-lucide="plus-square" class="w-4 h-4 text-emerald-400 group-hover:scale-110 transition shrink-0"></i>
+                                <span class="truncate">Tambah Rak ke Gudang...</span>
                             </div>
-                            <span class="text-[10px] px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300 rounded font-mono font-black">1 - 50 Rak</span>
+                            <span class="text-[9px] px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300 rounded font-mono font-black border border-emerald-500/30 shrink-0">1 - 50 Rak</span>
                         </button>
+
+                        <div class="border-t border-slate-800/80 my-1"></div>
+
                         <button 
                             @click="toggleLockLocation(contextMenuTarget); contextMenuOpen = false;" 
                             type="button" 
-                            class="w-full text-left px-3 py-2 bg-amber-500/10 hover:bg-amber-500/20 rounded-xl transition flex items-center gap-2.5 font-bold"
-                            :class="contextMenuTarget?.is_locked !== false ? 'text-amber-400' : 'text-emerald-400'"
+                            class="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 text-slate-200 hover:text-amber-300 rounded transition flex items-center justify-between"
                         >
-                            <i data-lucide="lock" class="w-4 h-4"></i>
-                            <span x-text="contextMenuTarget?.is_locked !== false ? '🔓 Buka Kunci (Unlock) Gudang' : '🔒 Kunci (Lock) Gudang'"></span>
+                            <div class="flex items-center gap-2 min-w-0">
+                                <i :data-lucide="contextMenuTarget?.is_locked !== false ? 'unlock' : 'lock'" 
+                                   class="w-4 h-4" 
+                                   :class="contextMenuTarget?.is_locked !== false ? 'text-amber-400' : 'text-slate-400'"></i>
+                                <span class="truncate" x-text="contextMenuTarget?.is_locked !== false ? 'Buka Kunci (Unlock) Gudang' : 'Kunci (Lock) Posisi Gudang'"></span>
+                            </div>
+                            <kbd class="text-[10px] text-slate-500 font-mono shrink-0">L</kbd>
                         </button>
+
                         <button 
                             @click="rotateLocation(contextMenuTarget, 90); contextMenuOpen = false;" 
                             type="button" 
-                            class="w-full text-left px-3 py-2 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 rounded-xl transition flex items-center gap-2.5 font-bold"
+                            class="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 text-slate-200 hover:text-cyan-300 rounded transition flex items-center justify-between"
                         >
-                            <i data-lucide="rotate-cw" class="w-4 h-4 text-indigo-400"></i>
-                            <span>🔄 Putar (Rotate) Gudang 90°</span>
+                            <div class="flex items-center gap-2 min-w-0">
+                                <i data-lucide="rotate-cw" class="w-4 h-4 text-cyan-400 shrink-0"></i>
+                                <span class="truncate">Putar Gudang 90°</span>
+                            </div>
+                            <kbd class="text-[10px] text-slate-500 font-mono shrink-0">R</kbd>
                         </button>
+
                         <button 
                             @click="duplicateRack(contextMenuTarget); contextMenuOpen = false;" 
                             type="button" 
-                            class="w-full text-left px-3 py-2 bg-purple-600/10 hover:bg-purple-600/20 text-purple-400 rounded-xl transition flex items-center gap-2.5 font-bold"
+                            class="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 text-slate-200 hover:text-purple-300 rounded transition flex items-center justify-between"
                         >
-                            <i data-lucide="copy" class="w-4 h-4 text-purple-400"></i>
-                            <span>📋 Duplikat (Copy) Gudang Ini</span>
+                            <div class="flex items-center gap-2 min-w-0">
+                                <i data-lucide="copy" class="w-4 h-4 text-purple-400 shrink-0"></i>
+                                <span class="truncate">Duplikat Gudang (Copy)</span>
+                            </div>
+                            <kbd class="text-[10px] text-slate-500 font-mono shrink-0">Ctrl+D</kbd>
                         </button>
+
+                        <div class="border-t border-slate-800/80 my-1"></div>
+
                         <button 
                             @click="openEditModal(); contextMenuOpen = false;" 
                             type="button" 
-                            class="w-full text-left px-3 py-2 hover:bg-blue-600/20 hover:text-blue-400 rounded-xl transition flex items-center gap-2.5 font-bold"
+                            class="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 text-slate-200 hover:text-sky-300 rounded transition flex items-center justify-between"
                         >
-                            <i data-lucide="edit-3" class="w-4 h-4 text-blue-500"></i>
-                            <span>Edit Details Gudang</span>
+                            <div class="flex items-center gap-2 min-w-0">
+                                <i data-lucide="sliders" class="w-4 h-4 text-sky-400 shrink-0"></i>
+                                <span class="truncate">Properti & Detail Gudang...</span>
+                            </div>
+                            <kbd class="text-[10px] text-slate-500 font-mono shrink-0">F2</kbd>
                         </button>
+
                         <button 
                             @click="deleteSelectedLocation(); contextMenuOpen = false;" 
                             type="button" 
-                            class="w-full text-left px-3 py-2 hover:bg-rose-600/20 hover:text-rose-400 rounded-xl transition flex items-center gap-2.5 font-bold text-rose-400"
+                            class="w-full text-left px-2.5 py-1.5 hover:bg-rose-900/30 text-rose-400 hover:text-rose-300 rounded transition flex items-center justify-between"
                         >
-                            <i data-lucide="trash-2" class="w-4 h-4 text-rose-500"></i>
-                            <span>Hapus Gudang dari Canvas</span>
+                            <div class="flex items-center gap-2 min-w-0">
+                                <i data-lucide="trash-2" class="w-4 h-4 text-rose-500 shrink-0"></i>
+                                <span class="truncate">Hapus Gudang dari Canvas</span>
+                            </div>
+                            <kbd class="text-[10px] text-rose-500/70 font-mono shrink-0">Del</kbd>
                         </button>
                     </div>
                 </template>
 
                 <!-- Actions when Right Clicked on a SINGLE RAK object -->
                 <template x-if="selectedLocations.length <= 1 && contextMenuTarget && contextMenuTarget.location_type !== 'room'">
-                    <div class="space-y-1 border-b border-slate-800 pb-1 mb-1">
+                    <div class="space-y-0.5">
+                        <!-- Primary Action: Visualisasi 100 Slot Rak -->
+                        <button 
+                            @click="openRackGridModal(contextMenuTarget); contextMenuOpen = false;" 
+                            type="button" 
+                            class="w-full text-left px-2.5 py-1.5 bg-gradient-to-r from-amber-500/20 to-orange-500/10 hover:from-amber-500/30 hover:to-orange-500/20 text-amber-300 rounded border border-amber-500/40 transition flex items-center justify-between font-bold shadow-xs group mb-1"
+                        >
+                            <div class="flex items-center gap-2 min-w-0">
+                                <i data-lucide="layout-grid" class="w-4 h-4 text-amber-400 group-hover:scale-110 transition shrink-0"></i>
+                                <span class="truncate">Visualisasi 100 Slot Rak</span>
+                            </div>
+                            <span class="text-[9px] px-1.5 py-0.5 bg-amber-500/20 text-amber-300 rounded font-mono font-black border border-amber-500/30 shrink-0">5 Sap</span>
+                        </button>
+
+                        <div class="border-t border-slate-800/80 my-1"></div>
+
+                        <!-- Kunci / Buka Kunci Posisi -->
                         <button 
                             @click="toggleLockLocation(contextMenuTarget); contextMenuOpen = false;" 
                             type="button" 
-                            class="w-full text-left px-3 py-2 bg-amber-500/10 hover:bg-amber-500/20 rounded-xl transition flex items-center gap-2.5 font-bold"
-                            :class="contextMenuTarget?.is_locked !== false ? 'text-amber-400' : 'text-emerald-400'"
+                            class="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 text-slate-200 hover:text-amber-300 rounded transition flex items-center justify-between"
                         >
-                            <i data-lucide="lock" class="w-4 h-4"></i>
-                            <span x-text="contextMenuTarget?.is_locked !== false ? '🔓 Buka Kunci (Unlock) Rak' : '🔒 Kunci (Lock) Rak'"></span>
+                            <div class="flex items-center gap-2 min-w-0">
+                                <i :data-lucide="contextMenuTarget?.is_locked !== false ? 'unlock' : 'lock'" 
+                                   class="w-4 h-4" 
+                                   :class="contextMenuTarget?.is_locked !== false ? 'text-amber-400' : 'text-slate-400'"></i>
+                                <span class="truncate" x-text="contextMenuTarget?.is_locked !== false ? 'Buka Kunci (Unlock) Rak' : 'Kunci (Lock) Posisi Rak'"></span>
+                            </div>
+                            <kbd class="text-[10px] text-slate-500 font-mono shrink-0">L</kbd>
                         </button>
+
+                        <!-- Putar Rak 90° -->
                         <button 
                             @click="rotateLocation(contextMenuTarget, 90); contextMenuOpen = false;" 
                             type="button" 
-                            class="w-full text-left px-3 py-2 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 rounded-xl transition flex items-center gap-2.5 font-bold"
+                            class="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 text-slate-200 hover:text-cyan-300 rounded transition flex items-center justify-between"
                         >
-                            <i data-lucide="rotate-cw" class="w-4 h-4 text-indigo-400"></i>
-                            <span>🔄 Putar (Rotate) Rak 90°</span>
+                            <div class="flex items-center gap-2 min-w-0">
+                                <i data-lucide="rotate-cw" class="w-4 h-4 text-cyan-400 shrink-0"></i>
+                                <span class="truncate">Putar Posisi Rak 90°</span>
+                            </div>
+                            <kbd class="text-[10px] text-slate-500 font-mono shrink-0">R</kbd>
                         </button>
+
+                        <!-- Duplikat Rak -->
                         <button 
                             @click="duplicateRack(contextMenuTarget); contextMenuOpen = false;" 
                             type="button" 
-                            class="w-full text-left px-3 py-2 bg-purple-600/10 hover:bg-purple-600/20 text-purple-400 rounded-xl transition flex items-center gap-2.5 font-bold"
+                            class="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 text-slate-200 hover:text-purple-300 rounded transition flex items-center justify-between"
                         >
-                            <i data-lucide="copy" class="w-4 h-4 text-purple-400"></i>
-                            <span>📋 Duplikat (Copy) Rak Ini</span>
+                            <div class="flex items-center gap-2 min-w-0">
+                                <i data-lucide="copy" class="w-4 h-4 text-purple-400 shrink-0"></i>
+                                <span class="truncate">Duplikat Rak (Copy)</span>
+                            </div>
+                            <kbd class="text-[10px] text-slate-500 font-mono shrink-0">Ctrl+D</kbd>
                         </button>
+
+                        <!-- Pindahkan ke Gudang Lain -->
                         <button 
                             @click="openMoveModal(contextMenuTarget); contextMenuOpen = false;" 
                             type="button" 
-                            class="w-full text-left px-3 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded-xl transition flex items-center gap-2.5 font-bold"
+                            class="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 text-slate-200 hover:text-amber-300 rounded transition flex items-center justify-between"
                         >
-                            <i data-lucide="truck" class="w-4 h-4 text-amber-500"></i>
-                            <span>🚚 Move / Pindahkan Rak Ke Gudang...</span>
+                            <div class="flex items-center gap-2 min-w-0">
+                                <i data-lucide="truck" class="w-4 h-4 text-amber-400 shrink-0"></i>
+                                <span class="truncate">Pindahkan ke Gudang...</span>
+                            </div>
+                            <kbd class="text-[10px] text-slate-500 font-mono shrink-0">M</kbd>
                         </button>
+
+                        <div class="border-t border-slate-800/80 my-1"></div>
+
+                        <!-- Properti & Edit Details -->
                         <button 
                             @click="openEditModal(); contextMenuOpen = false;" 
                             type="button" 
-                            class="w-full text-left px-3 py-2 hover:bg-blue-600/20 hover:text-blue-400 rounded-xl transition flex items-center gap-2.5 font-bold"
+                            class="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 text-slate-200 hover:text-sky-300 rounded transition flex items-center justify-between"
                         >
-                            <i data-lucide="edit-3" class="w-4 h-4 text-blue-500"></i>
-                            <span>Edit Details, Nama & Warna</span>
+                            <div class="flex items-center gap-2 min-w-0">
+                                <i data-lucide="sliders" class="w-4 h-4 text-sky-400 shrink-0"></i>
+                                <span class="truncate">Properti, Nama & Warna...</span>
+                            </div>
+                            <kbd class="text-[10px] text-slate-500 font-mono shrink-0">F2</kbd>
                         </button>
+
+                        <!-- Hapus Rak -->
                         <button 
                             @click="deleteSelectedLocation(); contextMenuOpen = false;" 
                             type="button" 
-                            class="w-full text-left px-3 py-2 hover:bg-rose-600/20 hover:text-rose-400 rounded-xl transition flex items-center gap-2.5 font-bold text-rose-400"
+                            class="w-full text-left px-2.5 py-1.5 hover:bg-rose-900/30 text-rose-400 hover:text-rose-300 rounded transition flex items-center justify-between"
                         >
-                            <i data-lucide="trash-2" class="w-4 h-4 text-rose-500"></i>
-                            <span>Hapus Rak dari Canvas</span>
+                            <div class="flex items-center gap-2 min-w-0">
+                                <i data-lucide="trash-2" class="w-4 h-4 text-rose-500 shrink-0"></i>
+                                <span class="truncate">Hapus Rak dari Canvas</span>
+                            </div>
+                            <kbd class="text-[10px] text-rose-500/70 font-mono shrink-0">Del</kbd>
                         </button>
                     </div>
                 </template>
 
                 <!-- Actions when Right Clicked on Empty Canvas Space -->
                 <template x-if="selectedLocations.length <= 1 && !contextMenuTarget">
-                    <div class="space-y-1">
+                    <div class="space-y-0.5">
                         <button 
                             @click="openAddRoomModal(clickedCanvasX, clickedCanvasY); contextMenuOpen = false;" 
                             type="button" 
-                            class="w-full text-left px-3 py-2 hover:bg-emerald-600/20 hover:text-emerald-400 rounded-xl transition flex items-center gap-2.5 font-bold"
+                            class="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 text-slate-200 hover:text-emerald-300 rounded transition flex items-center justify-between"
                         >
-                            <i data-lucide="square" class="w-4 h-4 text-emerald-500"></i>
-                            <span>Tambah Gudang (Square)</span>
+                            <div class="flex items-center gap-2 min-w-0">
+                                <i data-lucide="square" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+                                <span class="truncate">Tambah Gudang (Square)</span>
+                            </div>
+                            <kbd class="text-[10px] text-slate-500 font-mono shrink-0">G</kbd>
                         </button>
                         
                         <button 
                             @click="openAddRackModal(clickedCanvasX, clickedCanvasY); contextMenuOpen = false;" 
                             type="button" 
-                            class="w-full text-left px-3 py-2 hover:bg-blue-600/20 hover:text-blue-400 rounded-xl transition flex items-center gap-2.5 font-bold"
+                            class="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 text-slate-200 hover:text-blue-300 rounded transition flex items-center justify-between"
                         >
-                            <i data-lucide="rectangle-horizontal" class="w-4 h-4 text-blue-500"></i>
-                            <span>Tambah Rak (Rectangle)</span>
+                            <div class="flex items-center gap-2 min-w-0">
+                                <i data-lucide="rectangle-horizontal" class="w-4 h-4 text-blue-400 shrink-0"></i>
+                                <span class="truncate">Tambah Rak (Rectangle)</span>
+                            </div>
+                            <kbd class="text-[10px] text-slate-500 font-mono shrink-0">R</kbd>
                         </button>
                     </div>
                 </template>
@@ -545,18 +663,55 @@
 
                     <!-- Capacity Progress Bar (If Rack) -->
                     <template x-if="selectedLocation?.location_type !== 'room'">
-                        <div class="space-y-1.5">
-                            <div class="flex justify-between items-center text-xs font-bold">
-                                <div class="flex items-center gap-1.5">
-                                    <span class="text-slate-600 dark:text-slate-400">Kapasitas Terisi:</span>
-                                    <button @click="openEditModal()" type="button" title="Edit Kapasitas Box" class="p-0.5 text-slate-400 hover:text-blue-500 transition">
-                                        <i data-lucide="pencil" class="w-3 h-3"></i>
-                                    </button>
+                        <div class="space-y-3">
+                            <div class="space-y-1.5">
+                                <div class="flex justify-between items-center text-xs font-bold">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-slate-600 dark:text-slate-400">Kapasitas Terisi:</span>
+                                        <button @click="openEditModal()" type="button" title="Edit Kapasitas Box" class="p-0.5 text-slate-400 hover:text-blue-500 transition">
+                                            <i data-lucide="pencil" class="w-3 h-3"></i>
+                                        </button>
+                                    </div>
+                                    <span :style="{ color: selectedLocation?.status_color }" x-text="(selectedLocation?.current_box_count || 0) + ' / ' + (selectedLocation?.box_capacity || 0) + ' Box (' + (selectedLocation?.capacity_percentage || 0) + '%)'"></span>
                                 </div>
-                                <span :style="{ color: selectedLocation?.status_color }" x-text="(selectedLocation?.current_box_count || 0) + ' / ' + (selectedLocation?.box_capacity || 0) + ' Box (' + (selectedLocation?.capacity_percentage || 0) + '%)'"></span>
+                                <div class="w-full bg-slate-100 dark:bg-slate-900 rounded-full h-3 overflow-hidden border border-slate-200 dark:border-slate-800">
+                                    <div class="h-full transition-all duration-300 rounded-full" :style="{ width: (selectedLocation?.capacity_percentage || 0) + '%', backgroundColor: selectedLocation?.status_color }"></div>
+                                </div>
                             </div>
-                            <div class="w-full bg-slate-100 dark:bg-slate-900 rounded-full h-3 overflow-hidden border border-slate-200 dark:border-slate-800">
-                                <div class="h-full transition-all duration-300 rounded-full" :style="{ width: (selectedLocation?.capacity_percentage || 0) + '%', backgroundColor: selectedLocation?.status_color }"></div>
+
+                            <!-- 100-Box Grid Highlight CTA Card -->
+                            <div class="p-3.5 bg-gradient-to-br from-indigo-950/60 via-slate-900 to-slate-900 border border-indigo-500/30 rounded-2xl space-y-3 shadow-md">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[11px] font-black text-indigo-300 uppercase tracking-wide flex items-center gap-1.5">
+                                        <i data-lucide="layout-grid" class="w-4 h-4 text-indigo-400"></i>
+                                        Visualisasi 100 Slot Box (TB 30g)
+                                    </span>
+                                    <span class="px-2 py-0.5 bg-indigo-500/20 text-indigo-300 text-[10px] font-mono font-bold rounded-md">5 Sap × 20</span>
+                                </div>
+
+                                <div class="grid grid-cols-3 gap-1.5 text-center text-[10px] font-bold">
+                                    <div class="p-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400">
+                                        <span class="block text-[8px] uppercase tracking-wider text-emerald-500">Kosong</span>
+                                        <span class="text-xs font-mono font-black" x-text="getRackSlotStats(selectedLocation).empty"></span>
+                                    </div>
+                                    <div class="p-1.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-400">
+                                        <span class="block text-[8px] uppercase tracking-wider text-amber-500">Terisi</span>
+                                        <span class="text-xs font-mono font-black" x-text="getRackSlotStats(selectedLocation).filled"></span>
+                                    </div>
+                                    <div class="p-1.5 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-400">
+                                        <span class="block text-[8px] uppercase tracking-wider text-rose-500">Expired</span>
+                                        <span class="text-xs font-mono font-black" x-text="getRackSlotStats(selectedLocation).expired"></span>
+                                    </div>
+                                </div>
+
+                                <button 
+                                    @click="openRackGridModal(selectedLocation)" 
+                                    type="button" 
+                                    class="w-full py-2 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-extrabold text-xs rounded-xl shadow transition flex items-center justify-center gap-2 transform active:scale-95"
+                                >
+                                    <i data-lucide="grid" class="w-3.5 h-3.5"></i>
+                                    <span>Buka Grid Rak 5 Sap (100 Box)</span>
+                                </button>
                             </div>
                         </div>
                     </template>
@@ -609,6 +764,12 @@
 
                     <!-- Action Buttons -->
                     <div class="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
+                        <template x-if="selectedLocation?.location_type !== 'room'">
+                            <button @click="openRackGridModal(selectedLocation)" type="button" class="w-full py-2.5 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-extrabold text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-2">
+                                <i data-lucide="layout-grid" class="w-4 h-4"></i> Visualisasi 100 Slot Rak (5 Sap)
+                            </button>
+                        </template>
+
                         <template x-if="selectedLocation?.location_type === 'room'">
                             <button @click="addRackInsideRoom(selectedLocation, selectedLocation.canvas_x + 20, selectedLocation.canvas_y + 40)" type="button" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow transition flex items-center justify-center gap-2">
                                 <i data-lucide="plus-square" class="w-4 h-4"></i> + Tambah Rak di Dalam Sektor Ini
@@ -1129,6 +1290,539 @@
         </div>
     </div>
 
+    <!-- Modal: 100-Box Rack Visualizer (5 Sap x 20 Box) - Desktop Delphi Edition -->
+    <div x-show="rackGridModalOpen" x-cloak class="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-hidden">
+        <div @click.away="rackGridModalOpen = false" class="bg-slate-900 border border-slate-700/90 rounded-xl max-w-6xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+            <!-- Modal Header (Delphi Window Titlebar) -->
+            <div class="px-5 py-3.5 bg-slate-950 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-lg bg-indigo-600/30 border border-indigo-500/40 text-indigo-400 flex items-center justify-center shadow-sm">
+                        <i data-lucide="layout-grid" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <h2 class="text-base font-bold text-white tracking-wide flex items-center gap-2 font-mono">
+                                <span x-text="'Denah Rak: ' + (selectedRackForModal?.rack_code || 'RAK')"></span>
+                            </h2>
+                            <span class="px-2 py-0.5 bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 font-mono text-[11px] font-semibold rounded">
+                                100 Box (TB 30g)
+                            </span>
+                            <template x-if="selectedRackForModal?.is_fat_locked">
+                                <span class="px-2 py-0.5 bg-rose-500/20 border border-rose-500/40 text-rose-300 text-[10px] font-bold rounded flex items-center gap-1">
+                                    <i data-lucide="lock" class="w-3 h-3 text-rose-400"></i> RUANGAN KHUSUS FAT
+                                </span>
+                            </template>
+                        </div>
+                        <p class="text-xs text-slate-400">
+                            <span x-text="'Sektor: ' + (selectedRackForModal?.room_sector || 'Umum')"></span>
+                            <span class="text-slate-600 mx-1.5">•</span>
+                            <span x-text="'Alokasi Dept: ' + (selectedRackForModal?.assigned_department ? (selectedRackForModal?.assigned_department.code + ' - ' + selectedRackForModal?.assigned_department.name) : 'Umum (Bebas)')"></span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Stats & Close Button -->
+                <div class="flex items-center gap-3">
+                    <!-- Status Legends -->
+                    <div class="hidden sm:flex items-center gap-3 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-300">
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+                            <span class="text-[11px]">Kosong (<strong class="font-mono text-emerald-400" x-text="getRackSlotStats(selectedRackForModal).empty"></strong>)</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+                            <span class="text-[11px]">Terisi (<strong class="font-mono text-amber-300" x-text="getRackSlotStats(selectedRackForModal).filled"></strong>)</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                            <span class="text-[11px]">Expired (<strong class="font-mono text-rose-300" x-text="getRackSlotStats(selectedRackForModal).expired"></strong>)</span>
+                        </div>
+                    </div>
+
+                    <!-- Delphi Style Close Button -->
+                    <button @click="rackGridModalOpen = false" type="button" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-white bg-slate-800/80 hover:bg-rose-600/80 rounded-lg transition" title="Tutup Jendela (Esc)">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filter Toolbar (Delphi TToolBar) -->
+            <div class="px-5 py-2.5 bg-slate-950/60 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
+                <!-- Status Filter Segmented Buttons -->
+                <div class="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
+                    <button 
+                        @click="slotFilterStatus = 'all'" 
+                        type="button" 
+                        class="px-3 py-1.5 rounded font-semibold transition text-xs flex items-center gap-1.5" 
+                        :class="slotFilterStatus === 'all' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'"
+                    >
+                        <span>Semua Slot</span>
+                        <span class="text-[10px] font-mono opacity-80">(100)</span>
+                    </button>
+                    <button 
+                        @click="slotFilterStatus = 'empty'" 
+                        type="button" 
+                        class="px-2.5 py-1.5 rounded font-semibold transition text-xs flex items-center gap-1.5" 
+                        :class="slotFilterStatus === 'empty' ? 'bg-emerald-600 text-white shadow-sm' : 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/30'"
+                    >
+                        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                        <span>Kosong</span>
+                        <span class="text-[10px] font-mono" x-text="'(' + getRackSlotStats(selectedRackForModal).empty + ')'"></span>
+                    </button>
+                    <button 
+                        @click="slotFilterStatus = 'filled'" 
+                        type="button" 
+                        class="px-2.5 py-1.5 rounded font-semibold transition text-xs flex items-center gap-1.5" 
+                        :class="slotFilterStatus === 'filled' ? 'bg-amber-600 text-white shadow-sm' : 'text-amber-400 hover:text-amber-300 hover:bg-amber-950/30'"
+                    >
+                        <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                        <span>Terisi</span>
+                        <span class="text-[10px] font-mono" x-text="'(' + getRackSlotStats(selectedRackForModal).filled + ')'"></span>
+                    </button>
+                    <button 
+                        @click="slotFilterStatus = 'expired'" 
+                        type="button" 
+                        class="px-2.5 py-1.5 rounded font-semibold transition text-xs flex items-center gap-1.5" 
+                        :class="slotFilterStatus === 'expired' ? 'bg-rose-600 text-white shadow-sm' : 'text-rose-400 hover:text-rose-300 hover:bg-rose-950/30'"
+                    >
+                        <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+                        <span>Expired</span>
+                        <span class="text-[10px] font-mono" x-text="'(' + getRackSlotStats(selectedRackForModal).expired + ')'"></span>
+                    </button>
+                </div>
+
+                <!-- Search Input Box -->
+                <div class="relative w-full sm:w-80">
+                    <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
+                    <input 
+                        type="text" 
+                        x-model="slotSearchQuery" 
+                        placeholder="Cari No. Box / Judul / Periode / Slot..." 
+                        class="w-full pl-9 pr-3 py-1.5 bg-slate-950 border border-slate-700/80 rounded-lg text-xs text-white placeholder-slate-500 font-medium focus:outline-none focus:border-indigo-500 transition"
+                    >
+                </div>
+            </div>
+
+            <!-- Modal Content Layout: 5 Saps Grid (Left) + Detail Inspector (Right) -->
+            <div class="flex-1 flex flex-col lg:flex-row overflow-hidden min-h-0">
+                <!-- Left: 5 Saps Scrollable Area -->
+                <div class="flex-1 overflow-y-auto p-4 space-y-3.5 bg-slate-950/40">
+                    <template x-for="sapNum in [5, 4, 3, 2, 1]" :key="sapNum">
+                        <div class="bg-slate-900 border border-slate-800 rounded-lg p-3.5 shadow-sm space-y-3 hover:border-slate-700 transition">
+                            <!-- Sap Shelf Level Header -->
+                            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-5 h-5 rounded bg-indigo-600/30 border border-indigo-500/40 text-indigo-400 flex items-center justify-center font-mono font-bold text-xs">
+                                        <span x-text="sapNum"></span>
+                                    </div>
+                                    <h3 class="text-xs font-bold text-slate-200 uppercase tracking-wide font-mono" x-text="'SAP ' + sapNum + (sapNum === 5 ? ' (TINGKAT 5 - PALING ATAS)' : (sapNum === 1 ? ' (TINGKAT 1 - PALING BAWAH)' : ' (TINGKAT ' + sapNum + ')'))"></h3>
+                                </div>
+                                <span class="text-[11px] font-mono text-slate-400">20 Box (10 Atas + 10 Bawah)</span>
+                            </div>
+
+                            <!-- Row 1: Baris Atas (Layer Top - 10 Slots) -->
+                            <div class="space-y-1.5">
+                                <div class="flex items-center justify-between text-[11px] font-semibold text-slate-400">
+                                    <span class="flex items-center gap-1 text-slate-300">
+                                        <i data-lucide="arrow-up" class="w-3 h-3 text-indigo-400"></i>
+                                        <span>Baris Atas (10 Box TB 30g)</span>
+                                    </span>
+                                    <span class="text-[10px] text-slate-500 font-mono">T01 — T10</span>
+                                </div>
+                                <div class="grid grid-cols-5 sm:grid-cols-10 gap-1.5">
+                                    <template x-for="slot in getSapSlots(sapNum, 'top')" :key="slot.slot_code || slot.id">
+                                        <div 
+                                            @click="selectSlotForDetail(slot)"
+                                            class="p-1.5 rounded border transition cursor-pointer flex flex-col justify-between items-center text-center select-none min-h-[62px]"
+                                            :class="[
+                                                getSlotStyleClasses(slot),
+                                                selectedSlotDetail?.slot_code === slot.slot_code ? 'ring-2 ring-cyan-400 scale-[1.03] shadow-md !border-cyan-400 !bg-cyan-950/40' : '',
+                                                !isSlotMatchFilter(slot) ? 'opacity-20 grayscale' : 'opacity-100'
+                                            ]"
+                                            :title="slot.archive ? (slot.slot_code + ': ' + (slot.archive.box_number || 'Box') + ' - ' + slot.archive.title) : (slot.slot_code + ': Slot Kosong')"
+                                        >
+                                            <div class="w-full flex items-center justify-between text-[9px] font-mono font-bold opacity-90 mb-0.5">
+                                                <span x-text="'T' + String(slot.slot_number).padStart(2, '0')"></span>
+                                                <template x-if="slot.status === 'expired' || slot.archive?.is_expired">
+                                                    <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+                                                </template>
+                                                <template x-if="(slot.status === 'filled' || slot.archive) && !(slot.status === 'expired' || slot.archive?.is_expired)">
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                                                </template>
+                                                <template x-if="!slot.archive && slot.status === 'empty'">
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400/80"></span>
+                                                </template>
+                                            </div>
+
+                                            <!-- Content / Box Title -->
+                                            <div class="w-full flex-1 flex flex-col items-center justify-center">
+                                                <template x-if="slot.archive">
+                                                    <div class="space-y-0.5 w-full">
+                                                        <span class="font-mono font-bold text-[10px] leading-tight block truncate text-amber-300 max-w-[80px] mx-auto" x-text="slot.archive.box_number || 'TERISI'"></span>
+                                                        <span class="text-[8px] text-slate-400 font-mono block truncate max-w-[80px] mx-auto" x-text="slot.archive.periode_doc || slot.archive.department || ''"></span>
+                                                    </div>
+                                                </template>
+                                                <template x-if="!slot.archive">
+                                                    <span class="text-[10px] font-semibold text-emerald-400 font-mono">Kosong</span>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <!-- Shelf Separator Beam -->
+                            <div class="border-t border-slate-800/80"></div>
+
+                            <!-- Row 2: Baris Bawah (Layer Bottom - 10 Slots) -->
+                            <div class="space-y-1.5">
+                                <div class="flex items-center justify-between text-[11px] font-semibold text-slate-400">
+                                    <span class="flex items-center gap-1 text-slate-300">
+                                        <i data-lucide="arrow-down" class="w-3 h-3 text-blue-400"></i>
+                                        <span>Baris Bawah (10 Box TB 30g)</span>
+                                    </span>
+                                    <span class="text-[10px] text-slate-500 font-mono">B01 — B10</span>
+                                </div>
+                                <div class="grid grid-cols-5 sm:grid-cols-10 gap-1.5">
+                                    <template x-for="slot in getSapSlots(sapNum, 'bottom')" :key="slot.slot_code || slot.id">
+                                        <div 
+                                            @click="selectSlotForDetail(slot)"
+                                            class="p-1.5 rounded border transition cursor-pointer flex flex-col justify-between items-center text-center select-none min-h-[62px]"
+                                            :class="[
+                                                getSlotStyleClasses(slot),
+                                                selectedSlotDetail?.slot_code === slot.slot_code ? 'ring-2 ring-cyan-400 scale-[1.03] shadow-md !border-cyan-400 !bg-cyan-950/40' : '',
+                                                !isSlotMatchFilter(slot) ? 'opacity-20 grayscale' : 'opacity-100'
+                                            ]"
+                                            :title="slot.archive ? (slot.slot_code + ': ' + (slot.archive.box_number || 'Box') + ' - ' + slot.archive.title) : (slot.slot_code + ': Slot Kosong')"
+                                        >
+                                            <div class="w-full flex items-center justify-between text-[9px] font-mono font-bold opacity-90 mb-0.5">
+                                                <span x-text="'B' + String(slot.slot_number).padStart(2, '0')"></span>
+                                                <template x-if="slot.status === 'expired' || slot.archive?.is_expired">
+                                                    <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+                                                </template>
+                                                <template x-if="(slot.status === 'filled' || slot.archive) && !(slot.status === 'expired' || slot.archive?.is_expired)">
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                                                </template>
+                                                <template x-if="!slot.archive && slot.status === 'empty'">
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400/80"></span>
+                                                </template>
+                                            </div>
+
+                                            <!-- Content / Box Title -->
+                                            <div class="w-full flex-1 flex flex-col items-center justify-center">
+                                                <template x-if="slot.archive">
+                                                    <div class="space-y-0.5 w-full">
+                                                        <span class="font-mono font-bold text-[10px] leading-tight block truncate text-amber-300 max-w-[80px] mx-auto" x-text="slot.archive.box_number || 'TERISI'"></span>
+                                                        <span class="text-[8px] text-slate-400 font-mono block truncate max-w-[80px] mx-auto" x-text="slot.archive.periode_doc || slot.archive.department || ''"></span>
+                                                    </div>
+                                                </template>
+                                                <template x-if="!slot.archive">
+                                                    <span class="text-[10px] font-semibold text-emerald-400 font-mono">Kosong</span>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Right: Slot Detail Inspector (Delphi Property Inspector / TValueListEditor) -->
+                <div class="w-full lg:w-96 bg-slate-950 border-t lg:border-t-0 lg:border-l border-slate-800 p-4 overflow-y-auto flex flex-col justify-between space-y-4 shadow-xl">
+                    <!-- If Slot NOT Selected -->
+                    <div x-show="!selectedSlotDetail" class="py-12 text-center space-y-3 my-auto">
+                        <div class="w-12 h-12 rounded-lg bg-indigo-500/10 text-indigo-400 mx-auto flex items-center justify-center border border-indigo-500/20">
+                            <i data-lucide="mouse-pointer-click" class="w-6 h-6"></i>
+                        </div>
+                        <h4 class="text-xs font-bold text-slate-200 uppercase tracking-wider font-mono">Inspector Slot Rak</h4>
+                        <p class="text-xs text-slate-400 max-w-xs mx-auto leading-relaxed">
+                            Klik salah satu dari 100 kotak slot kardus (TB 30g) pada denah di sebelah kiri untuk melihat rincian dokumen dan opsi cetak label.
+                        </p>
+                    </div>
+
+                    <!-- If Slot IS Selected -->
+                    <div x-show="selectedSlotDetail" class="space-y-3.5" x-cloak>
+                        <!-- Inspector Header -->
+                        <div class="border-b border-slate-800 pb-3 flex items-start justify-between">
+                            <div>
+                                <span class="text-[10px] font-bold uppercase text-indigo-400 tracking-wider block font-mono" x-text="'Sap ' + (selectedSlotDetail?.sap_level || '') + ' • ' + (selectedSlotDetail?.layer_label || '')"></span>
+                                <h3 class="text-base font-bold text-white font-mono" x-text="selectedSlotDetail?.slot_code"></h3>
+                            </div>
+                            <span 
+                                class="px-2 py-0.5 text-[10px] font-bold uppercase rounded tracking-wider"
+                                :class="(selectedSlotDetail?.status === 'expired' || selectedSlotDetail?.archive?.is_expired) ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' : (selectedSlotDetail?.archive ? 'bg-amber-400/20 text-amber-300 border border-amber-400/40' : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40')"
+                                x-text="(selectedSlotDetail?.status === 'expired' || selectedSlotDetail?.archive?.is_expired) ? 'EXPIRED' : (selectedSlotDetail?.archive ? 'TERISI' : 'KOSONG')"
+                            ></span>
+                        </div>
+
+                        <!-- Delphi Property Table for Occupied Archive -->
+                        <template x-if="selectedSlotDetail?.archive">
+                            <div class="space-y-3 text-xs">
+                                <!-- Property Sheet Table -->
+                                <div class="bg-slate-900 border border-slate-800 rounded-lg divide-y divide-slate-800 overflow-hidden text-xs">
+                                    <div class="p-2.5 flex items-center justify-between">
+                                        <span class="text-slate-400 text-[10px] font-mono uppercase font-bold">No. Box:</span>
+                                        <span class="font-mono text-xs font-bold text-amber-300" x-text="selectedSlotDetail.archive.box_number || '-'"></span>
+                                    </div>
+                                    <div class="p-2.5 space-y-0.5">
+                                        <span class="text-slate-400 text-[10px] font-mono uppercase font-bold block">Judul Dokumen:</span>
+                                        <h4 class="font-medium text-white text-xs leading-snug" x-text="selectedSlotDetail.archive.title"></h4>
+                                    </div>
+                                    <div class="p-2.5 flex items-center justify-between">
+                                        <span class="text-slate-400 text-[10px] font-mono uppercase font-bold">Periode:</span>
+                                        <span class="font-mono text-xs text-slate-200" x-text="selectedSlotDetail.archive.periode_doc || '-'"></span>
+                                    </div>
+                                    <div class="p-2.5 flex items-center justify-between">
+                                        <span class="text-slate-400 text-[10px] font-mono uppercase font-bold">Departemen:</span>
+                                        <span class="text-xs text-slate-200 font-medium" x-text="selectedSlotDetail.archive.department_name ? (selectedSlotDetail.archive.department + ' - ' + selectedSlotDetail.archive.department_name) : (selectedSlotDetail.archive.department || '-')"></span>
+                                    </div>
+                                    <template x-if="selectedSlotDetail.archive.sub_department || selectedSlotDetail.archive.sub_department_name">
+                                        <div class="p-2.5 flex items-center justify-between">
+                                            <span class="text-slate-400 text-[10px] font-mono uppercase font-bold">Sub-Dept:</span>
+                                            <span class="text-xs text-indigo-300 font-medium" x-text="selectedSlotDetail.archive.sub_department_name ? (selectedSlotDetail.archive.sub_department + ' - ' + selectedSlotDetail.archive.sub_department_name) : selectedSlotDetail.archive.sub_department"></span>
+                                        </div>
+                                    </template>
+                                    <div class="p-2.5 flex items-center justify-between">
+                                        <span class="text-slate-400 text-[10px] font-mono uppercase font-bold">Masa Simpan:</span>
+                                        <span class="font-mono text-xs" :class="(selectedSlotDetail.status === 'expired' || selectedSlotDetail.archive.is_expired) ? 'text-rose-400 font-bold' : 'text-slate-200'" x-text="selectedSlotDetail.archive.retention_expiry_date || '-'"></span>
+                                    </div>
+                                </div>
+
+                                <!-- Expired Warning Alert -->
+                                <template x-if="selectedSlotDetail.status === 'expired' || selectedSlotDetail.archive.is_expired">
+                                    <div class="p-2.5 bg-rose-500/10 border border-rose-500/30 rounded-lg space-y-1">
+                                        <div class="flex items-center gap-1.5 text-rose-400 font-bold text-xs">
+                                            <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-rose-400"></i>
+                                            <span>Masa Simpan Kedaluwarsa</span>
+                                        </div>
+                                        <p class="text-[11px] text-slate-300">
+                                            Arsip pada box ini telah melewati masa retensi dan dapat diproses untuk pemusnahan dokumen.
+                                        </p>
+                                    </div>
+                                </template>
+
+                                <!-- Action Buttons (Desktop Push Buttons) -->
+                                <div class="pt-1 space-y-1.5">
+                                    <a 
+                                        :href="'/archives/' + selectedSlotDetail.archive.id" 
+                                        target="_blank"
+                                        class="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-lg shadow-sm transition flex items-center justify-center gap-1.5"
+                                    >
+                                        <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                                        <span>Buka Detail Halaman Arsip</span>
+                                    </a>
+
+                                    <a 
+                                        :href="'/archives/print-labels?archive_id=' + selectedSlotDetail.archive.id" 
+                                        target="_blank"
+                                        class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs rounded-lg transition flex items-center justify-center gap-1.5 border border-slate-700"
+                                    >
+                                        <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+                                        <span>Cetak Label Box Form A5 (TB 30g)</span>
+                                    </a>
+
+                                    <button 
+                                        type="button" 
+                                        @click="unassignCurrentSlot()"
+                                        :disabled="slotAssignLoading"
+                                        class="w-full py-2 bg-rose-950/40 hover:bg-rose-900/50 text-rose-300 hover:text-rose-200 border border-rose-600/50 font-bold text-xs rounded-lg transition flex items-center justify-center gap-1.5"
+                                    >
+                                        <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+                                        <span x-text="slotAssignLoading ? 'Memproses...' : 'Kosongkan / Lepas Box Dari Slot Ini'"></span>
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+
+                        <!-- If Empty Slot: Form Pengisian Dokumen / Alokasi Box -->
+                        <template x-if="!selectedSlotDetail?.archive">
+                            <div class="space-y-3 text-xs">
+                                <div class="p-2.5 bg-emerald-500/10 border border-emerald-500/30 rounded-lg flex items-center justify-between">
+                                    <div class="flex items-center gap-1.5 text-emerald-400 font-bold">
+                                        <i data-lucide="inbox" class="w-4 h-4"></i>
+                                        <span>Isi Dokumen ke Slot Ini</span>
+                                    </div>
+                                    <span class="text-[10px] font-mono text-emerald-300 font-bold">Slot Kosong</span>
+                                </div>
+
+                                <!-- Segmented Mode Switch Tabs -->
+                                <div class="flex items-center gap-1 bg-slate-900 p-1 rounded-lg border border-slate-800">
+                                    <button 
+                                        type="button" 
+                                        @click="slotAssignMode = 'create_new'"
+                                        class="flex-1 py-1.5 rounded font-semibold text-[11px] transition text-center"
+                                        :class="slotAssignMode === 'create_new' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'"
+                                    >
+                                        Input Dokumen Baru
+                                    </button>
+                                    <button 
+                                        type="button" 
+                                        @click="slotAssignMode = 'existing_archive'"
+                                        class="flex-1 py-1.5 rounded font-semibold text-[11px] transition text-center"
+                                        :class="slotAssignMode === 'existing_archive' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'"
+                                    >
+                                        Pilih Antrean Arsip
+                                    </button>
+                                </div>
+
+                                <!-- Mode 1: Form Input Dokumen Baru -->
+                                <div x-show="slotAssignMode === 'create_new'" class="space-y-2.5">
+                                    <!-- Departemen Dropdown -->
+                                    <div class="space-y-1">
+                                        <label class="text-[10px] font-mono font-bold uppercase text-slate-300 block">Departemen: <span class="text-rose-400">*</span></label>
+                                        <select 
+                                            x-model="slotAssignForm.department_id" 
+                                            @change="onDepartmentChange()"
+                                            class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-500 font-medium"
+                                        >
+                                            <option value="">-- Pilih Departemen --</option>
+                                            <template x-for="dept in departments" :key="dept.id">
+                                                <option :value="dept.id" x-text="dept.code + ' - ' + dept.name" :disabled="selectedRackForModal?.is_fat_locked && (dept.code || '').toUpperCase() !== 'FIN'"></option>
+                                            </template>
+                                        </select>
+                                    </div>
+
+                                    <!-- Sub Departemen Dropdown -->
+                                    <div class="space-y-1">
+                                        <label class="text-[10px] font-mono font-bold uppercase text-slate-300 block">Sub-Departemen / Bagian: <span class="text-slate-500 font-normal font-sans">(Opsional)</span></label>
+                                        <select 
+                                            x-model="slotAssignForm.sub_department_id"
+                                            @change="onSubDepartmentChange()"
+                                            :disabled="!slotAssignForm.department_id || getAvailableSubDepartments().length === 0"
+                                            class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-500 font-medium disabled:opacity-50"
+                                        >
+                                            <option value="" x-text="getAvailableSubDepartments().length === 0 ? '-- Tidak Ada Sub-Dept --' : '-- Pilih Sub-Departemen (Opsional) --'"></option>
+                                            <template x-for="sub in getAvailableSubDepartments()" :key="sub.id">
+                                                <option :value="sub.id" x-text="sub.code + ' - ' + sub.name"></option>
+                                            </template>
+                                        </select>
+                                    </div>
+
+                                    <!-- Judul Dokumen -->
+                                    <div class="space-y-1">
+                                        <label class="text-[10px] font-mono font-bold uppercase text-slate-300 block">Judul / Uraian Dokumen: <span class="text-rose-400">*</span></label>
+                                        <input 
+                                            type="text" 
+                                            x-model="slotAssignForm.title"
+                                            placeholder="Contoh: Faktur Pajak Masukan & Keluaran"
+                                            class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-medium"
+                                        >
+                                    </div>
+
+                                    <!-- Grid 2 Kolom: No. Box & Periode -->
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <div class="space-y-1">
+                                            <label class="text-[10px] font-mono font-bold uppercase text-slate-300 block">No. Box Kardus:</label>
+                                            <input 
+                                                type="text" 
+                                                x-model="slotAssignForm.box_number"
+                                                placeholder="Otomatis..."
+                                                class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-amber-300 placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono"
+                                            >
+                                        </div>
+                                        <div class="space-y-1">
+                                            <label class="text-[10px] font-mono font-bold uppercase text-slate-300 block">Periode (YYYY/MM):</label>
+                                            <input 
+                                                type="text" 
+                                                x-model="slotAssignForm.periode_doc"
+                                                placeholder="2024/01"
+                                                class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono"
+                                            >
+                                        </div>
+                                    </div>
+
+                                    <!-- Grid 2 Kolom: Tipe Dokumen & Masa Retensi -->
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <div class="space-y-1">
+                                            <label class="text-[10px] font-mono font-bold uppercase text-slate-300 block">Tipe Dokumen:</label>
+                                            <select 
+                                                x-model="slotAssignForm.document_type"
+                                                class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-500 font-medium"
+                                            >
+                                                <option value="UMUM">UMUM</option>
+                                                <option value="KEUANGAN">KEUANGAN</option>
+                                                <option value="PAJAK">PAJAK</option>
+                                                <option value="LEGAL">LEGAL</option>
+                                                <option value="SDM">SDM</option>
+                                            </select>
+                                        </div>
+                                        <div class="space-y-1">
+                                            <label class="text-[10px] font-mono font-bold uppercase text-slate-300 block">Masa Retensi (Thn):</label>
+                                            <input 
+                                                type="number" 
+                                                x-model="slotAssignForm.retention_years"
+                                                min="1" max="50"
+                                                class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-500 font-mono"
+                                            >
+                                        </div>
+                                    </div>
+
+                                    <!-- Submit Button -->
+                                    <div class="pt-1">
+                                        <button 
+                                            type="button" 
+                                            @click="submitAssignSlot()"
+                                            :disabled="slotAssignLoading"
+                                            class="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg shadow-sm transition flex items-center justify-center gap-1.5"
+                                        >
+                                            <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                                            <span x-text="slotAssignLoading ? 'Menyimpan Dokumen...' : 'Simpan & Tempatkan Kardus di Slot'"></span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Mode 2: Form Pilih Dari Antrean Arsip -->
+                                <div x-show="slotAssignMode === 'existing_archive'" class="space-y-2.5">
+                                    <div class="space-y-1">
+                                        <label class="text-[10px] font-mono font-bold uppercase text-slate-300 block">Pilih Dokumen Arsip Terdaftar:</label>
+                                        <select 
+                                            x-model="slotAssignForm.archive_id"
+                                            class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-500 font-medium"
+                                        >
+                                            <option value="">-- Pilih Dari Antrean Arsip --</option>
+                                            <template x-for="arc in unassignedArchivesList" :key="arc.id">
+                                                <option :value="arc.id" x-text="'[' + arc.department_code + '] ' + (arc.box_number ? arc.box_number + ' - ' : '') + arc.title"></option>
+                                            </template>
+                                        </select>
+                                        <template x-if="unassignedArchivesList.length === 0">
+                                            <p class="text-[11px] text-slate-400 italic pt-1">
+                                                Tidak ada antrean arsip yang belum memiliki rak. Gunakan tab 'Input Dokumen Baru' untuk membuat kardus baru.
+                                            </p>
+                                        </template>
+                                    </div>
+
+                                    <div class="pt-1">
+                                        <button 
+                                            type="button" 
+                                            @click="submitAssignSlot()"
+                                            :disabled="slotAssignLoading || !slotAssignForm.archive_id"
+                                            class="w-full py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold text-xs rounded-lg shadow-sm transition flex items-center justify-center gap-1.5"
+                                        >
+                                            <i data-lucide="folder-check" class="w-3.5 h-3.5"></i>
+                                            <span x-text="slotAssignLoading ? 'Menempatkan...' : 'Alokasikan Arsip Terpilih ke Slot'"></span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                    <!-- Footer Close Button -->
+                    <div class="pt-2 border-t border-slate-800">
+                        <button 
+                            @click="rackGridModalOpen = false" 
+                            type="button" 
+                            class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-semibold text-xs rounded-lg transition text-center"
+                        >
+                            Tutup Modal Denah Rak
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Floating Toast Notification Banner -->
     <div 
         x-show="toastOpen" 
@@ -1178,6 +1872,25 @@ function warehouseCanvasApp() {
         toastTimer: null,
         scale: 1.0,
         isFullscreen: false,
+        rackGridModalOpen: false,
+        selectedRackForModal: null,
+        selectedSlotDetail: null,
+        slotFilterStatus: 'all',
+        slotSearchQuery: '',
+        slotAssignMode: 'create_new',
+        slotAssignLoading: false,
+        slotAssignForm: {
+            department_id: '',
+            sub_department_id: '',
+            title: '',
+            box_number: '',
+            periode_doc: '',
+            document_type: 'UMUM',
+            retention_years: 5,
+            content_description: '',
+            archive_id: '',
+        },
+        unassignedArchivesList: [],
         canvasWidth: parseInt(localStorage.getItem('wh_canvas_w')) || 950,
         canvasHeight: parseInt(localStorage.getItem('wh_canvas_h')) || 750,
         canvasResizeModalOpen: false,
@@ -2060,8 +2773,14 @@ function warehouseCanvasApp() {
                 this.contextMenuTarget = null;
             }
 
-            this.contextMenuX = e.clientX;
-            this.contextMenuY = e.clientY;
+            // Viewport boundary guard for context menu
+            const menuWidth = 295;
+            const menuHeight = 350;
+            const posX = (e.clientX + menuWidth > window.innerWidth) ? Math.max(10, e.clientX - menuWidth) : e.clientX;
+            const posY = (e.clientY + menuHeight > window.innerHeight) ? Math.max(10, e.clientY - menuHeight) : e.clientY;
+
+            this.contextMenuX = posX;
+            this.contextMenuY = posY;
             this.contextMenuOpen = true;
             this.renderCanvas();
             if (window.lucide) setTimeout(() => lucide.createIcons(), 50);
@@ -2075,6 +2794,11 @@ function warehouseCanvasApp() {
                 if (data.success) {
                     this.locations = data.locations;
                     this.departments = data.departments;
+                    this.unassignedArchivesList = data.unassigned_archives || [];
+                    if (this.selectedRackForModal) {
+                        const updated = this.locations.find(l => l.id === this.selectedRackForModal.id);
+                        if (updated) this.selectedRackForModal = updated;
+                    }
                     this.renderCanvas();
                 }
             } catch (err) {
@@ -3771,6 +4495,303 @@ function warehouseCanvasApp() {
 
             this.showToast(`🗑️ ${toDelete.length} object berhasil dihapus dari canvas layout.`);
             await this.fetchData();
+        },
+
+        // --- 100-Box Rack Visualizer (Tahap 3) Methods ---
+        openRackGridModal(rack = null) {
+            const target = rack || this.selectedLocation;
+            if (!target || target.location_type === 'room') return;
+            this.selectedRackForModal = target;
+            this.selectedSlotDetail = null;
+            this.slotFilterStatus = 'all';
+            this.slotSearchQuery = '';
+            this.rackGridModalOpen = true;
+            this.$nextTick(() => {
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            });
+        },
+
+        getSapSlots(sapLevel, layer) {
+            if (!this.selectedRackForModal) return [];
+            const allSlots = this.selectedRackForModal.slots || [];
+            const matching = allSlots.filter(s => parseInt(s.sap_level) === parseInt(sapLevel) && s.layer === layer);
+
+            const result = [];
+            for (let i = 1; i <= 10; i++) {
+                const found = matching.find(s => parseInt(s.slot_number) === i);
+                if (found) {
+                    result.push(found);
+                } else {
+                    const padNum = String(i).padStart(2, '0');
+                    const layerCode = layer === 'top' ? 'T' : 'B';
+                    result.push({
+                        id: `synth-${sapLevel}-${layer}-${i}`,
+                        sap_level: sapLevel,
+                        layer: layer,
+                        layer_label: layer === 'top' ? 'Baris Atas' : 'Baris Bawah',
+                        slot_number: i,
+                        slot_code: `SAP-${sapLevel}-${layerCode}${padNum}`,
+                        status: 'empty',
+                        archive: null
+                    });
+                }
+            }
+            return result;
+        },
+
+        getRackSlotStats(rack) {
+            if (!rack) return { total: 100, empty: 100, filled: 0, expired: 0 };
+            const slots = rack.slots || [];
+            let empty = 0, filled = 0, expired = 0;
+
+            if (slots.length > 0) {
+                slots.forEach(s => {
+                    if (s.status === 'expired' || s.archive?.is_expired) {
+                        expired++;
+                    } else if (s.status === 'filled' || s.archive) {
+                        filled++;
+                    } else {
+                        empty++;
+                    }
+                });
+                const unrecorded = Math.max(0, 100 - slots.length);
+                empty += unrecorded;
+            } else {
+                empty = rack.box_capacity || 100;
+            }
+
+            return {
+                total: 100,
+                empty: empty,
+                filled: filled,
+                expired: expired
+            };
+        },
+
+        getSlotStyleClasses(slot) {
+            if (!slot) return 'bg-slate-950 text-slate-500 border-slate-800';
+            const isExpired = slot.status === 'expired' || slot.archive?.is_expired;
+            const isFilled = (slot.status === 'filled' || slot.archive) && !isExpired;
+
+            if (isExpired) {
+                return 'bg-rose-950/40 text-rose-200 border-rose-600/60 hover:bg-rose-900/50 hover:border-rose-400 shadow-sm';
+            }
+            if (isFilled) {
+                return 'bg-amber-950/35 text-amber-200 border-amber-600/50 hover:bg-amber-900/40 hover:border-amber-400 shadow-sm';
+            }
+            return 'bg-slate-950/80 text-emerald-400 border-slate-800 hover:border-emerald-500/60 hover:bg-emerald-950/25 shadow-sm';
+        },
+
+        isSlotMatchFilter(slot) {
+            if (!slot) return false;
+            const isExpired = slot.status === 'expired' || slot.archive?.is_expired;
+            const isFilled = (slot.status === 'filled' || slot.archive) && !isExpired;
+            const isEmpty = !isExpired && !isFilled;
+
+            if (this.slotFilterStatus === 'empty' && !isEmpty) return false;
+            if (this.slotFilterStatus === 'filled' && !isFilled) return false;
+            if (this.slotFilterStatus === 'expired' && !isExpired) return false;
+
+            if (this.slotSearchQuery && this.slotSearchQuery.trim() !== '') {
+                const q = this.slotSearchQuery.toLowerCase().trim();
+                const slotCode = (slot.slot_code || '').toLowerCase();
+                const boxNum = (slot.archive?.box_number || '').toLowerCase();
+                const title = (slot.archive?.title || '').toLowerCase();
+                const period = (slot.archive?.periode_doc || '').toLowerCase();
+                const dept = (slot.archive?.department || '').toLowerCase();
+
+                return slotCode.includes(q) || boxNum.includes(q) || title.includes(q) || period.includes(q) || dept.includes(q);
+            }
+
+            return true;
+        },
+
+        onDepartmentChange() {
+            const dept = this.departments.find(d => d.id == this.slotAssignForm.department_id);
+            if (dept) {
+                if (dept.retention_years) {
+                    this.slotAssignForm.retention_years = dept.retention_years;
+                }
+                this.slotAssignForm.sub_department_id = '';
+            }
+        },
+
+        onSubDepartmentChange() {
+            const subDept = this.getAvailableSubDepartments().find(s => s.id == this.slotAssignForm.sub_department_id);
+            if (subDept && subDept.retention_years) {
+                this.slotAssignForm.retention_years = subDept.retention_years;
+            }
+        },
+
+        getAvailableSubDepartments() {
+            if (!this.slotAssignForm.department_id) return [];
+            const dept = this.departments.find(d => d.id == this.slotAssignForm.department_id);
+            return dept && dept.sub_departments ? dept.sub_departments : [];
+        },
+
+        selectSlotForDetail(slot) {
+            this.selectedSlotDetail = slot;
+            if (!slot.archive) {
+                let defaultDeptId = '';
+                if (this.selectedRackForModal?.assigned_department_id) {
+                    defaultDeptId = this.selectedRackForModal.assigned_department_id;
+                } else if (this.selectedRackForModal?.is_fat_locked) {
+                    const fin = this.departments.find(d => (d.code || '').toUpperCase() === 'FIN');
+                    if (fin) defaultDeptId = fin.id;
+                }
+
+                const now = new Date();
+                const yyyy = now.getFullYear();
+                const mm = String(now.getMonth() + 1).padStart(2, '0');
+
+                this.slotAssignMode = 'create_new';
+                this.slotAssignForm = {
+                    department_id: defaultDeptId,
+                    sub_department_id: '',
+                    title: '',
+                    box_number: '',
+                    periode_doc: `${yyyy}/${mm}`,
+                    document_type: 'UMUM',
+                    retention_years: 5,
+                    content_description: '',
+                    archive_id: '',
+                };
+                if (defaultDeptId) {
+                    this.onDepartmentChange();
+                }
+            }
+            this.$nextTick(() => {
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            });
+        },
+
+        async submitAssignSlot() {
+            if (!this.selectedSlotDetail || !this.selectedRackForModal) return;
+
+            if (this.slotAssignMode === 'create_new') {
+                if (!this.slotAssignForm.department_id) {
+                    alert('Silakan pilih Departemen terlebih dahulu!');
+                    return;
+                }
+                if (!this.slotAssignForm.title || !this.slotAssignForm.title.trim()) {
+                    alert('Silakan isi Judul Dokumen!');
+                    return;
+                }
+            } else {
+                if (!this.slotAssignForm.archive_id) {
+                    alert('Silakan pilih salah satu kardus arsip dari antrean!');
+                    return;
+                }
+            }
+
+            this.slotAssignLoading = true;
+            try {
+                const payload = {
+                    sap_level: this.selectedSlotDetail.sap_level,
+                    layer: this.selectedSlotDetail.layer,
+                    slot_number: this.selectedSlotDetail.slot_number,
+                    slot_code: this.selectedSlotDetail.slot_code,
+                    mode: this.slotAssignMode,
+                    ...this.slotAssignForm,
+                };
+
+                const res = await fetch(`/api/warehouse/locations/${this.selectedRackForModal.id}/slots/assign`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    this.showToast(`✅ ${data.message}`);
+                    if (data.slot) {
+                        if (!this.selectedRackForModal.slots) this.selectedRackForModal.slots = [];
+                        const idx = this.selectedRackForModal.slots.findIndex(s => s.sap_level == data.slot.sap_level && s.layer == data.slot.layer && s.slot_number == data.slot.slot_number);
+                        if (idx >= 0) {
+                            this.selectedRackForModal.slots[idx] = data.slot;
+                        } else {
+                            this.selectedRackForModal.slots.push(data.slot);
+                        }
+                        this.selectedSlotDetail = data.slot;
+                    }
+                    await this.fetchData();
+                } else {
+                    alert(data.message || 'Gagal menyimpan dokumen ke slot.');
+                }
+            } catch (err) {
+                console.error('Error assigning slot:', err);
+                alert('Terjadi kesalahan jaringan saat menyimpan dokumen.');
+            } finally {
+                this.slotAssignLoading = false;
+                this.$nextTick(() => {
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
+                });
+            }
+        },
+
+        async unassignCurrentSlot() {
+            if (!this.selectedSlotDetail || !this.selectedRackForModal) return;
+            if (!confirm(`Apakah Anda yakin ingin mengosongkan slot ${this.selectedSlotDetail.slot_code}? Kardus arsip akan dilepaskan dari slot rak ini.`)) {
+                return;
+            }
+
+            this.slotAssignLoading = true;
+            try {
+                const payload = {
+                    sap_level: this.selectedSlotDetail.sap_level,
+                    layer: this.selectedSlotDetail.layer,
+                    slot_number: this.selectedSlotDetail.slot_number,
+                };
+
+                const res = await fetch(`/api/warehouse/locations/${this.selectedRackForModal.id}/slots/unassign`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    this.showToast(`🗑️ ${data.message}`);
+                    this.selectedSlotDetail.archive = null;
+                    this.selectedSlotDetail.status = 'empty';
+                    const idx = this.selectedRackForModal.slots.findIndex(s => s.sap_level == payload.sap_level && s.layer == payload.layer && s.slot_number == payload.slot_number);
+                    if (idx >= 0) {
+                        this.selectedRackForModal.slots[idx].archive = null;
+                        this.selectedRackForModal.slots[idx].status = 'empty';
+                    }
+                    await this.fetchData();
+                    this.selectSlotForDetail(this.selectedSlotDetail);
+                } else {
+                    alert(data.message || 'Gagal mengosongkan slot.');
+                }
+            } catch (err) {
+                console.error('Error unassigning slot:', err);
+                alert('Terjadi kesalahan jaringan.');
+            } finally {
+                this.slotAssignLoading = false;
+                this.$nextTick(() => {
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
+                });
+            }
+        },
+
+        handleCanvasDoubleClick(e) {
+            const rect = this.canvas.getBoundingClientRect();
+            const mouseX = (e.clientX - rect.left) / this.scale;
+            const mouseY = (e.clientY - rect.top) / this.scale;
+
+            const clicked = this.getObjectAtPosition(mouseX, mouseY);
+            if (clicked && clicked.location_type !== 'room') {
+                this.openRackGridModal(clicked);
+            }
         }
     }
 }

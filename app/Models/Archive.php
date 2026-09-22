@@ -13,22 +13,29 @@ class Archive extends Model
     protected $fillable = [
         'box_number',
         'department_id',
+        'sub_department_id',
         'company_name',
         'document_type',
         'created_by_user_id',
         'title',
+        'is_custom_doc_name',
+        'custom_doc_name',
         'period_start_date',
         'period_end_date',
         'period_text',
         'period_yy_mm',
+        'periode_doc',
+        'tgl_penyerahan',
         'content_description',
         'retention_years',
+        'masa_simpan_custom',
         'retention_expiry_date',
         'physical_condition',
         'file_path',
         'scan_input_form',
         'scan_approval_input',
         'warehouse_location_id',
+        'warehouse_rack_slot_id',
         'status',
         'rejection_note',
         'extension_reason',
@@ -38,13 +45,21 @@ class Archive extends Model
     protected $casts = [
         'period_start_date' => 'date',
         'period_end_date' => 'date',
+        'tgl_penyerahan' => 'date',
         'retention_expiry_date' => 'date',
         'retention_years' => 'integer',
+        'masa_simpan_custom' => 'integer',
+        'is_custom_doc_name' => 'boolean',
     ];
 
     public function department(): BelongsTo
     {
         return $this->belongsTo(Department::class);
+    }
+
+    public function subDepartment(): BelongsTo
+    {
+        return $this->belongsTo(SubDepartment::class);
     }
 
     public function creator(): BelongsTo
@@ -55,6 +70,11 @@ class Archive extends Model
     public function location(): BelongsTo
     {
         return $this->belongsTo(WarehouseLocation::class, 'warehouse_location_id');
+    }
+
+    public function rackSlot(): BelongsTo
+    {
+        return $this->belongsTo(WarehouseRackSlot::class, 'warehouse_rack_slot_id');
     }
 
     public function entryLogs(): HasMany
@@ -75,6 +95,31 @@ class Archive extends Model
     public function destructionLog(): HasOne
     {
         return $this->hasOne(DestructionLog::class);
+    }
+
+    public function getEffectiveTitleAttribute(): string
+    {
+        if ($this->is_custom_doc_name && !empty($this->custom_doc_name)) {
+            return $this->custom_doc_name;
+        }
+        return $this->title;
+    }
+
+    public function getEffectiveRetentionYearsAttribute(): int
+    {
+        if ($this->masa_simpan_custom !== null && $this->masa_simpan_custom > 0) {
+            return (int) $this->masa_simpan_custom;
+        }
+        if ($this->retention_years !== null && $this->retention_years > 0) {
+            return (int) $this->retention_years;
+        }
+        if ($this->subDepartment && $this->subDepartment->retention_years) {
+            return (int) $this->subDepartment->retention_years;
+        }
+        if ($this->department && $this->department->retention_years) {
+            return (int) $this->department->retention_years;
+        }
+        return 5;
     }
 
     public function getStatusLabelAttribute(): string

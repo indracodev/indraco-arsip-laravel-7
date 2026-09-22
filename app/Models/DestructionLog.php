@@ -18,6 +18,10 @@ class DestructionLog extends Model
         'method',
         'certificate_file',
         'scan_approval_destruction',
+        'approval_file',
+        'is_approval_uploaded',
+        'approval_status',
+        'approval_notes',
         'extension_reason',
         'scan_extension_form',
         'notes',
@@ -26,6 +30,7 @@ class DestructionLog extends Model
     protected $casts = [
         'destruction_date' => 'date',
         'department_approved_at' => 'datetime',
+        'is_approval_uploaded' => 'boolean',
     ];
 
     public function archive(): BelongsTo
@@ -46,5 +51,10 @@ class DestructionLog extends Model
     public function approvedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by_dept_pic_id');
+    }
+
+    public function getEffectiveApprovalFileAttribute(): ?string
+    {
+        return $this->approval_file ?: $this->scan_approval_destruction;
     }
 }

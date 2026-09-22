@@ -117,21 +117,32 @@
                 </div>
             </form>
 
-            <!-- Quick Filter Badges -->
-            <div class="flex flex-wrap items-center gap-1.5 text-[11px] pt-1">
-                <span class="text-slate-500 dark:text-slate-400 font-bold">Shortcut Filter:</span>
-                <a href="{{ route('archives.index', ['status' => 'in_warehouse']) }}" class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20 border border-emerald-500/30 font-bold flex items-center gap-1">
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Di Gudang
+            <!-- Quick Filter Badges & Admin Shortcut -->
+            <div class="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-200 dark:border-slate-800/80">
+                <div class="flex flex-wrap items-center gap-1.5 text-[11px]">
+                    <span class="text-slate-500 dark:text-slate-400 font-bold">Shortcut Filter:</span>
+                    <a href="{{ route('archives.index', ['status' => 'in_warehouse']) }}" class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20 border border-emerald-500/30 font-bold flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Di Gudang
+                    </a>
+                    <a href="{{ route('archives.index', ['status' => 'pending_verification']) }}" class="px-2 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20 border border-amber-500/30 font-bold flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span> Antrean Verifikasi
+                    </a>
+                    <a href="{{ route('archives.index', ['status' => 'borrowed']) }}" class="px-2 py-0.5 rounded bg-purple-500/10 text-purple-700 dark:text-purple-300 hover:bg-purple-500/20 border border-purple-500/30 font-bold flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-purple-400"></span> Sedang Dipinjam
+                    </a>
+                    <a href="{{ route('archives.index', ['expiry_filter' => 'expiring_soon']) }}" class="px-2 py-0.5 rounded bg-rose-500/10 text-rose-700 dark:text-rose-300 hover:bg-rose-500/20 border border-rose-500/30 font-bold flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span> Expiring Soon
+                    </a>
+                </div>
+
+                @if(auth()->check() && (auth()->user()->isSuperAdmin() || auth()->user()->isPicGudang()))
+                <!-- Shortcut Khusus Admin Webdev & PIC Gudang ke Layout 2D -->
+                <a href="{{ route('master.warehouses.layout') }}" class="px-3 py-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-mono font-bold text-xs rounded border border-emerald-500/40 shadow transition flex items-center gap-1.5 group shrink-0">
+                    <i data-lucide="layout-grid" class="w-3.5 h-3.5 text-emerald-200 group-hover:scale-110 transition"></i>
+                    <span>Input & Layout Gudang (2D)</span>
+                    <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-emerald-200 group-hover:translate-x-0.5 transition"></i>
                 </a>
-                <a href="{{ route('archives.index', ['status' => 'pending_verification']) }}" class="px-2 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20 border border-amber-500/30 font-bold flex items-center gap-1">
-                    <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span> Antrean Verifikasi
-                </a>
-                <a href="{{ route('archives.index', ['status' => 'borrowed']) }}" class="px-2 py-0.5 rounded bg-purple-500/10 text-purple-700 dark:text-purple-300 hover:bg-purple-500/20 border border-purple-500/30 font-bold flex items-center gap-1">
-                    <span class="w-1.5 h-1.5 rounded-full bg-purple-400"></span> Sedang Dipinjam
-                </a>
-                <a href="{{ route('archives.index', ['expiry_filter' => 'expiring_soon']) }}" class="px-2 py-0.5 rounded bg-rose-500/10 text-rose-700 dark:text-rose-300 hover:bg-rose-500/20 border border-rose-500/30 font-bold flex items-center gap-1">
-                    <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span> Expiring Soon
-                </a>
+                @endif
             </div>
         </fieldset>
 
@@ -148,21 +159,21 @@
                 <div class="p-3 bg-slate-50 dark:bg-slate-900/60">
                     <div class="flex items-center gap-1.5 text-[11px] font-bold text-amber-600 dark:text-amber-400 uppercase mb-2">
                         <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
-                        Saran Kata Kunci Popular
+                        Saran Kata Kunci & Metadata Label Box Populer
                     </div>
                     <div class="flex flex-wrap gap-1.5">
                         <template x-for="kw in keywords" :key="kw">
                             <button type="button" @click="selectKeyword(kw)" class="px-2.5 py-1 rounded bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:border-amber-500 text-xs font-bold text-slate-800 dark:text-slate-200 hover:text-amber-500 transition shadow-xs flex items-center gap-1">
-                                <i data-lucide="search" class="w-3 h-3 text-slate-400"></i>
+                                <i data-lucide="tag" class="w-3 h-3 text-slate-400"></i>
                                 <span x-text="kw"></span>
                             </button>
                         </template>
                     </div>
                 </div>
 
-                <div class="max-h-64 overflow-y-auto">
+                <div class="max-h-72 overflow-y-auto">
                     <div class="px-3 py-1.5 bg-slate-100 dark:bg-slate-900 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center justify-between">
-                        <span>Rekomendasi Dokumen Terbaru</span>
+                        <span>Rekomendasi Berkas Label Terkini</span>
                         <span>Akses Cepat</span>
                     </div>
                     <template x-for="item in recentDocs" :key="item.id">
@@ -171,19 +182,33 @@
                                 <div class="flex items-center gap-2">
                                     <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300" x-text="item.dept_code"></span>
                                     <span class="text-xs font-bold text-amber-600 dark:text-amber-400" x-text="item.box_number"></span>
+                                    <template x-if="item.periode_doc && item.periode_doc !== '-'">
+                                        <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/10 text-amber-600 dark:text-amber-300 border border-amber-500/20" x-text="'Periode: ' + item.periode_doc"></span>
+                                    </template>
                                 </div>
                                 <h4 class="text-xs font-bold text-slate-900 dark:text-white truncate" x-text="item.title"></h4>
+                                <div class="flex items-center gap-2 text-[10px] text-slate-500 dark:text-slate-400">
+                                    <span x-text="'Lokasi: ' + item.location"></span>
+                                    <template x-if="item.sub_dept">
+                                        <span x-text="'• ' + item.sub_dept"></span>
+                                    </template>
+                                </div>
                             </div>
-                            <span class="px-2 py-0.5 rounded text-[10px] font-bold shrink-0 font-mono" 
-                                  :class="{
-                                      'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-400': item.status === 'draft',
-                                      'bg-amber-500/20 text-amber-700 dark:text-amber-300': item.status === 'pending_verification',
-                                      'bg-blue-500/20 text-blue-700 dark:text-blue-300': item.status === 'approved_booked',
-                                      'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300': item.status === 'in_warehouse',
-                                      'bg-purple-500/20 text-purple-700 dark:text-purple-300': item.status === 'borrowed'
-                                  }" 
-                                  x-text="item.status_label">
-                            </span>
+                            <div class="flex flex-col items-end gap-1 shrink-0 font-mono">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold" 
+                                      :class="{
+                                          'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-400': item.status === 'draft',
+                                          'bg-amber-500/20 text-amber-700 dark:text-amber-300': item.status === 'pending_verification',
+                                          'bg-blue-500/20 text-blue-700 dark:text-blue-300': item.status === 'approved_booked',
+                                          'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300': item.status === 'in_warehouse',
+                                          'bg-purple-500/20 text-purple-700 dark:text-purple-300': item.status === 'borrowed'
+                                      }" 
+                                      x-text="item.status_label">
+                                </span>
+                                <template x-if="item.is_expired">
+                                    <span class="px-1.5 py-0.2 rounded text-[9px] font-black bg-rose-500 text-white">EXPIRED</span>
+                                </template>
+                            </div>
                         </a>
                     </template>
                 </div>
@@ -194,17 +219,43 @@
                 <div x-show="results.length === 0" class="p-4 text-center text-xs font-bold text-slate-500">
                     Tidak ada dokumen ditemukan untuk kata kunci ini.
                 </div>
-                <div x-show="results.length > 0" class="divide-y divide-slate-200 dark:divide-slate-800 max-h-64 overflow-y-auto">
+                <div x-show="results.length > 0" class="divide-y divide-slate-200 dark:divide-slate-800 max-h-72 overflow-y-auto">
                     <template x-for="item in results" :key="item.id">
                         <a :href="item.url" class="p-2.5 flex items-center justify-between gap-3 hover:bg-amber-500/10 dark:hover:bg-amber-500/20 transition font-mono border-b border-slate-100 dark:border-slate-900">
                             <div class="space-y-0.5 min-w-0">
                                 <div class="flex items-center gap-2">
                                     <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300" x-text="item.dept_code"></span>
                                     <span class="text-xs font-bold text-amber-600 dark:text-amber-400" x-text="item.box_number"></span>
+                                    <template x-if="item.periode_doc && item.periode_doc !== '-'">
+                                        <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/10 text-amber-600 dark:text-amber-300 border border-amber-500/20" x-text="'Periode: ' + item.periode_doc"></span>
+                                    </template>
                                 </div>
                                 <h4 class="text-xs font-bold text-slate-900 dark:text-white truncate" x-text="item.title"></h4>
+                                <div class="flex items-center gap-2 text-[10px] text-slate-500 dark:text-slate-400">
+                                    <span x-text="'Lokasi: ' + item.location"></span>
+                                    <template x-if="item.slot_code">
+                                        <span class="text-amber-500" x-text="'[' + item.slot_code + ']'"></span>
+                                    </template>
+                                    <template x-if="item.sub_dept">
+                                        <span x-text="'• ' + item.sub_dept"></span>
+                                    </template>
+                                </div>
                             </div>
-                            <span class="px-2 py-0.5 rounded text-[10px] font-bold shrink-0 font-mono" x-text="item.status_label"></span>
+                            <div class="flex flex-col items-end gap-1 shrink-0 font-mono">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold" 
+                                      :class="{
+                                          'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-400': item.status === 'draft',
+                                          'bg-amber-500/20 text-amber-700 dark:text-amber-300': item.status === 'pending_verification',
+                                          'bg-blue-500/20 text-blue-700 dark:text-blue-300': item.status === 'approved_booked',
+                                          'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300': item.status === 'in_warehouse',
+                                          'bg-purple-500/20 text-purple-700 dark:text-purple-300': item.status === 'borrowed'
+                                      }" 
+                                      x-text="item.status_label">
+                                </span>
+                                <template x-if="item.is_expired">
+                                    <span class="px-1.5 py-0.2 rounded text-[9px] font-black bg-rose-500 text-white">EXPIRED</span>
+                                </template>
+                            </div>
                         </a>
                     </template>
                 </div>

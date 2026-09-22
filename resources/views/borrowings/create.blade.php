@@ -15,7 +15,7 @@
             Formulir Permintaan Peminjaman Dokumen Arsip
         </h1>
         <p class="text-slate-600 dark:text-slate-400 text-xs sm:text-sm font-medium">
-            Cari berkas fisik di gudang yang sesuai dengan departemen Anda, periksa detail dokumen, lalu ajukan pinjam.
+            Wajib mengunggah berkas persetujuan (approval) peminjaman. Tombol pengajuan akan aktif setelah berkas approval diunggah.
         </p>
     </div>
 
@@ -25,6 +25,7 @@
              search: '',
              selectedArchive: null,
              isOpen: false,
+             hasApprovalFile: false,
              archives: {!! json_encode($archives) !!},
              init() {
                  const initialId = {{ $selectedArchiveId ?? 'null' }};
@@ -55,6 +56,9 @@
                  this.search = '';
                  this.isOpen = true;
                  this.$nextTick(() => this.$refs.searchInput.focus());
+             },
+             onFileChange(event) {
+                 this.hasApprovalFile = event.target.files && event.target.files.length > 0;
              }
          }">
 
@@ -69,7 +73,7 @@
         </div>
         @endif
 
-        <form action="{{ route('borrowings.store') }}" method="POST" class="space-y-6">
+        <form action="{{ route('borrowings.store') }}" method="POST" enctype="multipart/form-data" class="space-y-6">
             @csrf
 
             <!-- Hidden Archive ID input -->
@@ -170,7 +174,7 @@
 
                     <div class="p-3 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
                         <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 block uppercase">PERIODE BERKAS</span>
-                        <span class="font-extrabold text-amber-600 dark:text-amber-400" x-text="selectedArchive?.period_text || '-'"></span>
+                        <span class="font-extrabold text-amber-600 dark:text-amber-400" x-text="selectedArchive?.period_text || selectedArchive?.periode_doc || '-'"></span>
                     </div>
 
                     <div class="p-3 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
@@ -180,7 +184,7 @@
                 </div>
             </div>
 
-            <!-- STEP 2 & 3: RETURN DATE & PURPOSE IN BALANCED GRID -->
+            <!-- STEP 2 & 3: RETURN DATE & PURPOSE -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
                 <!-- Step 2: Expected Return Date (1 Column) -->
                 <div class="space-y-1.5 md:col-span-1">
@@ -216,18 +220,52 @@
                 </div>
             </div>
 
-            <!-- Form Actions Footer -->
-            <div class="pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-3">
-                <a href="{{ route('borrowings.index') }}" class="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs sm:text-sm transition">
-                    Batal
-                </a>
-                <button type="submit" 
-                        :disabled="!selectedArchive" 
-                        :class="selectedArchive ? 'bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-400 text-slate-950 font-black shadow-lg shadow-emerald-500/20' : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed font-bold'"
-                        class="px-6 py-2.5 rounded-xl text-xs sm:text-sm transition flex items-center gap-2">
-                    <i data-lucide="send" class="w-4 h-4"></i>
-                    Kirim Permintaan Peminjaman
-                </button>
+            <!-- STEP 4: MANDATORY APPROVAL FILE UPLOAD (BUSINESS RULE) -->
+            <div class="p-5 rounded-2xl bg-amber-500/10 border-2 border-dashed border-amber-500/40 space-y-2">
+                <div class="flex items-center justify-between">
+                    <label for="approval_file" class="block text-xs font-black uppercase tracking-wider text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
+                        <i data-lucide="file-check" class="w-4 h-4 text-amber-600 dark:text-amber-400"></i>
+                        4. Upload Berkas Dokumen Persetujuan (Approval) <span class="text-rose-500">* (Wajib)</span>
+                    </label>
+                    <span class="text-[11px] font-bold text-amber-700 dark:text-amber-400 bg-amber-500/20 px-2 py-0.5 rounded">PDF, JPG, PNG (Max 10MB)</span>
+                </div>
+                <p class="text-[11px] text-amber-800 dark:text-amber-300 font-medium">
+                    Sesuai aturan bisnis, tombol pengajuan peminjaman hanya akan aktif setelah berkas approval bertandatangan diunggah.
+                </p>
+                <input 
+                    type="file" 
+                    name="approval_file" 
+                    id="approval_file" 
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    @change="onFileChange($event)"
+                    required
+                    class="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-700 rounded-xl text-xs text-slate-700 dark:text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-amber-500 file:text-slate-950 hover:file:bg-amber-400 cursor-pointer"
+                >
+                @error('approval_file') <span class="text-rose-500 text-xs font-bold block mt-1">{{ $message }}</span> @enderror
+            </div>
+
+            <!-- Form Actions Footer (Conditional Button) -->
+            <div class="pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3">
+                <div class="text-xs text-slate-500 font-medium">
+                    <span x-show="!selectedArchive" class="text-amber-600 dark:text-amber-400 font-bold">• Pilih berkas arsip terlebih dahulu</span>
+                    <span x-show="selectedArchive && !hasApprovalFile" class="text-rose-500 font-bold">• Unggah berkas dokumen approval untuk mengaktifkan tombol</span>
+                    <span x-show="selectedArchive && hasApprovalFile" class="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                        <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i> Berkas & approval lengkap, siap diajukan
+                    </span>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <a href="{{ route('borrowings.index') }}" class="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs sm:text-sm transition">
+                        Batal
+                    </a>
+                    <button type="submit" 
+                            :disabled="!selectedArchive || !hasApprovalFile" 
+                            :class="(selectedArchive && hasApprovalFile) ? 'bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-400 text-slate-950 font-black shadow-lg shadow-emerald-500/20 cursor-pointer' : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed font-bold'"
+                            class="px-6 py-2.5 rounded-xl text-xs sm:text-sm transition flex items-center gap-2">
+                        <i data-lucide="send" class="w-4 h-4"></i>
+                        Ajukan Peminjaman Arsip
+                    </button>
+                </div>
             </div>
         </form>
     </div>

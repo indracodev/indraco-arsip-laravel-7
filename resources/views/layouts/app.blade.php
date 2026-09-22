@@ -314,7 +314,7 @@
             <div 
                 x-show="!win.minimized" 
                 @mousedown="focusWindow(win.id)"
-                :class="win.maximized ? 'fixed inset-0 z-[60] w-full h-full rounded-none my-0' : 'absolute rounded-t-lg rounded-b-sm border-2 border-slate-400 dark:border-slate-700 shadow-2xl resize overflow-hidden'"
+                :class="win.maximized ? 'absolute inset-0 z-20 w-full h-full rounded-none my-0 border-0 shadow-none' : 'absolute rounded-t-lg rounded-b-sm border-2 border-slate-400 dark:border-slate-700 shadow-2xl resize overflow-hidden'"
                 :style="getWindowStyle(win) + (win.maximized ? '' : 'width: 820px; max-width: 90vw; height: 530px; max-height: 75vh; min-width: 420px; min-height: 280px;')"
                 class="delphi-window bg-slate-100 dark:bg-slate-900 flex flex-col transition-shadow duration-150"
             >

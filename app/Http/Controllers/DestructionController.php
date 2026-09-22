@@ -19,7 +19,7 @@ class DestructionController extends Controller
             ->when($user->isPicDept(), function ($q) use ($user) {
                 return $q->where('department_id', $user->department_id);
             })
-            ->with(['department', 'location.warehouse'])
+            ->with(['department', 'subDepartment', 'location.warehouse', 'rackSlot'])
             ->orderBy('retention_expiry_date', 'asc')
             ->get();
 
@@ -50,8 +50,9 @@ class DestructionController extends Controller
             'destruction_date' => 'required|date',
             'method' => 'required|string|max:100',
             'notes' => 'nullable|string',
+            'approval_file' => 'required_without:scan_approval_destruction|nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
+            'scan_approval_destruction' => 'required_without:approval_file|nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
             'certificate_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
-            'scan_approval_destruction' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
         ]);
 
         $certPath = null;
@@ -60,18 +61,36 @@ class DestructionController extends Controller
         }
 
         $scanApprovalPath = null;
-        if ($request->hasFile('scan_approval_destruction')) {
-            $scanApprovalPath = $request->file('scan_approval_destruction')->store('destruction_scans', 'public');
+        if ($request->hasFile('approval_file')) {
+            $scanApprovalPath = $request->file('approval_file')->store('destruction_approvals', 'public');
+        } elseif ($request->hasFile('scan_approval_destruction')) {
+            $scanApprovalPath = $request->file('scan_approval_destruction')->store('destruction_approvals', 'public');
+        }
+
+        // Release slot if mapped
+        if ($archive->warehouse_rack_slot_id) {
+            $slot = $archive->rackSlot;
+            if ($slot) {
+                $slot->update([
+                    'archive_id' => null,
+                    'status' => 'empty',
+                ]);
+            }
+        }
+
+        // Decrement capacity count of warehouse location if assigned
+        if ($archive->warehouse_location_id) {
+            $loc = $archive->location;
+            if ($loc && $loc->current_box_count > 0) {
+                $loc->decrement('current_box_count');
+            }
         }
 
         $archive->update([
             'status' => 'destroyed',
+            'warehouse_location_id' => null,
+            'warehouse_rack_slot_id' => null,
         ]);
-
-        // Decrement capacity count of warehouse location if assigned
-        if ($archive->warehouse_location_id) {
-            $archive->location()->decrement('current_box_count');
-        }
 
         DestructionLog::create([
             'archive_id' => $archive->id,
@@ -83,12 +102,15 @@ class DestructionController extends Controller
             'destruction_date' => $validated['destruction_date'],
             'method' => $validated['method'],
             'certificate_file' => $certPath,
+            'approval_file' => $scanApprovalPath,
             'scan_approval_destruction' => $scanApprovalPath,
+            'is_approval_uploaded' => true,
+            'approval_status' => 'approved',
             'notes' => $validated['notes'],
         ]);
 
         return redirect()->route('destructions.index')
-            ->with('success', "Proses pemusnahan berkas ({$archive->title}) telah disahkan dengan No. BAP {$validated['bap_number']}.");
+            ->with('success', "Proses pemusnahan berkas ({$archive->title}) dengan lampiran persetujuan telah disahkan dengan No. BAP {$validated['bap_number']}.");
     }
 
     public function showBap(DestructionLog $destructionLog)
@@ -105,7 +127,7 @@ class DestructionController extends Controller
     public function extendStore(Request $request, Archive $archive)
     {
         $validated = $request->validate([
-            'additional_years' => 'required|integer|min:1|max:5',
+            'additional_years' => 'required|integer|min:1|max:10',
             'extension_reason' => 'required|string|max:1000',
             'scan_extension_form' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
         ]);
@@ -115,9 +137,9 @@ class DestructionController extends Controller
             $scanExtensionPath = $request->file('scan_extension_form')->store('archive_extensions', 'public');
         }
 
-        $newRetentionYears = min(5, $archive->retention_years + (int)$validated['additional_years']);
-        $endDate = Carbon::parse($archive->period_end_date);
-        $newExpiryDate = $endDate->copy()->addYears($newRetentionYears);
+        $newRetentionYears = ($archive->retention_years ?: 5) + (int)$validated['additional_years'];
+        $baseDate = $archive->period_end_date ? Carbon::parse($archive->period_end_date) : Carbon::now();
+        $newExpiryDate = $baseDate->copy()->addYears($newRetentionYears);
 
         $archive->update([
             'retention_years' => $newRetentionYears,
@@ -133,7 +155,7 @@ class DestructionController extends Controller
 
     public function extendPrint(Archive $archive)
     {
-        $archive->load(['department', 'location.warehouse', 'creator']);
+        $archive->load(['department', 'subDepartment', 'location.warehouse', 'creator']);
         return view('destructions.print_extension', compact('archive'));
     }
 }

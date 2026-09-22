@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Archive;
 use App\Models\Department;
+use App\Models\SubDepartment;
 use App\Models\WarehouseEntryLog;
 use App\Models\WarehouseLocation;
 use App\Services\NumberingService;
@@ -16,7 +17,7 @@ class ArchiveController extends Controller
     {
         $user = auth()->user();
 
-        $query = Archive::with(['department', 'location.warehouse', 'creator']);
+        $query = Archive::with(['department', 'subDepartment', 'location.warehouse', 'creator']);
 
         if ($user->isPicDept()) {
             $query->where('department_id', $user->department_id);
@@ -27,7 +28,9 @@ class ArchiveController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
+                  ->orWhere('custom_doc_name', 'like', "%{$search}%")
                   ->orWhere('box_number', 'like', "%{$search}%")
+                  ->orWhere('periode_doc', 'like', "%{$search}%")
                   ->orWhere('period_text', 'like', "%{$search}%")
                   ->orWhere('content_description', 'like', "%{$search}%");
             });
@@ -35,6 +38,10 @@ class ArchiveController extends Controller
 
         if ($request->filled('department_id')) {
             $query->where('department_id', $request->department_id);
+        }
+
+        if ($request->filled('sub_department_id')) {
+            $query->where('sub_department_id', $request->sub_department_id);
         }
 
         if ($request->filled('status')) {
@@ -65,7 +72,7 @@ class ArchiveController extends Controller
         }
 
         $archives = $query->paginate(10)->withQueryString();
-        $departments = Department::all();
+        $departments = Department::with('subDepartments')->get();
 
         return view('archives.index', compact('archives', 'departments'));
     }
@@ -73,7 +80,10 @@ class ArchiveController extends Controller
     public function create()
     {
         $user = auth()->user();
-        $departments = Department::all();
+        $departments = Department::with(['subDepartments' => function ($q) {
+            $q->where('is_active', true);
+        }])->where('is_active', true)->get();
+
         return view('archives.create', compact('user', 'departments'));
     }
 
@@ -83,15 +93,18 @@ class ArchiveController extends Controller
 
         $validated = $request->validate([
             'department_id' => 'required|exists:departments,id',
+            'sub_department_id' => 'nullable|exists:sub_departments,id',
             'company_name' => 'nullable|string|max:150',
             'document_type' => 'nullable|string|max:100',
-            'title' => 'required|string|max:255',
-            'period_start_date' => 'required|date',
-            'period_end_date' => 'required|date|after_or_equal:period_start_date',
-            'period_yy_mm' => 'nullable|string|max:7',
+            'is_custom_doc_name' => 'nullable|boolean',
+            'custom_doc_name' => 'required_if:is_custom_doc_name,1,true|nullable|string|max:255',
+            'title' => 'required_without:custom_doc_name|nullable|string|max:255',
+            'periode_doc' => ['required', 'string', 'regex:/^\d{4}\/(0[1-9]|1[0-2])$/'], // Format YYYY/MM
+            'tgl_penyerahan' => 'required|date',
             'period_text' => 'nullable|string|max:100',
             'content_description' => 'required|string',
-            'retention_years' => 'required|integer|min:1|max:5', // Strictly max 5 years per revisi 1
+            'retention_years' => 'nullable|integer|min:1|max:30',
+            'masa_simpan_custom' => 'nullable|integer|min:1|max:30',
             'physical_condition' => 'required|string|max:100',
             'file' => 'nullable|file|mimes:pdf,jpg,png,doc,docx,zip|max:10240',
             'scan_input_form' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
@@ -102,6 +115,37 @@ class ArchiveController extends Controller
             $validated['department_id'] = $user->department_id;
         }
 
+        // 1. Business Rule: 1 Box 1 Periode Dokumen (YYYY/MM)
+        [$year, $month] = explode('/', $validated['periode_doc']);
+        $startDate = Carbon::createFromDate((int)$year, (int)$month, 1)->startOfDay();
+        $endDate = $startDate->copy()->endOfMonth()->endOfDay();
+
+        $periodText = $validated['period_text'] ?? ($startDate->isoFormat('MMMM Y'));
+        $periodYyMm = $validated['periode_doc'];
+
+        // 2. Title & Custom Doc Name Handling
+        $isCustomDocName = !empty($validated['is_custom_doc_name']);
+        $customDocName = $isCustomDocName ? $validated['custom_doc_name'] : null;
+        $finalTitle = $isCustomDocName ? $customDocName : ($validated['title'] ?? 'Dokumen Periode ' . $validated['periode_doc']);
+
+        // 3. Automated Retention Years & Expiry Calculation
+        $department = Department::find($validated['department_id']);
+        $subDepartment = !empty($validated['sub_department_id']) ? SubDepartment::find($validated['sub_department_id']) : null;
+
+        $effectiveRetentionYears = 5;
+        if (!empty($validated['masa_simpan_custom']) && (int)$validated['masa_simpan_custom'] > 0) {
+            $effectiveRetentionYears = (int)$validated['masa_simpan_custom'];
+        } elseif ($subDepartment && $subDepartment->retention_years > 0) {
+            $effectiveRetentionYears = (int)$subDepartment->retention_years;
+        } elseif ($department && $department->retention_years > 0) {
+            $effectiveRetentionYears = (int)$department->retention_years;
+        } elseif (!empty($validated['retention_years']) && (int)$validated['retention_years'] > 0) {
+            $effectiveRetentionYears = (int)$validated['retention_years'];
+        }
+
+        $retentionExpiryDate = $endDate->copy()->addYears($effectiveRetentionYears)->format('Y-m-d');
+
+        // 4. File uploads
         $filePath = null;
         if ($request->hasFile('file')) {
             $filePath = $request->file('file')->store('archive_digital', 'public');
@@ -117,52 +161,44 @@ class ArchiveController extends Controller
             $scanApprovalInputPath = $request->file('scan_approval_input')->store('archive_scans', 'public');
         }
 
-        // Calculate retention expiry date
-        $endDate = Carbon::parse($validated['period_end_date']);
-        $retentionExpiryDate = $endDate->copy()->addYears((int)$validated['retention_years']);
-
-        // Generate period text if empty
-        $periodText = $validated['period_text'];
-        if (empty($periodText)) {
-            $periodText = Carbon::parse($validated['period_start_date'])->isoFormat('MMMM Y') . ' - ' . $endDate->isoFormat('MMMM Y');
-        }
-
-        // Generate period YY-MM if empty (e.g., "26-03")
-        $periodYyMm = $validated['period_yy_mm'] ?? null;
-        if (empty($periodYyMm)) {
-            $periodYyMm = $endDate->format('y-m');
-        }
-
         Archive::create([
             'department_id' => $validated['department_id'],
+            'sub_department_id' => $validated['sub_department_id'] ?? null,
             'company_name' => $validated['company_name'] ?? 'PT Indraco',
             'document_type' => $validated['document_type'] ?? 'UMUM',
             'created_by_user_id' => $user->id,
-            'title' => $validated['title'],
-            'period_start_date' => $validated['period_start_date'],
-            'period_end_date' => $validated['period_end_date'],
+            'title' => $finalTitle,
+            'is_custom_doc_name' => $isCustomDocName,
+            'custom_doc_name' => $customDocName,
+            'period_start_date' => $startDate->format('Y-m-d'),
+            'period_end_date' => $endDate->format('Y-m-d'),
             'period_text' => $periodText,
             'period_yy_mm' => $periodYyMm,
+            'periode_doc' => $validated['periode_doc'],
+            'tgl_penyerahan' => $validated['tgl_penyerahan'],
             'content_description' => $validated['content_description'],
-            'retention_years' => $validated['retention_years'],
+            'retention_years' => $effectiveRetentionYears,
+            'masa_simpan_custom' => $validated['masa_simpan_custom'] ?? null,
             'retention_expiry_date' => $retentionExpiryDate,
             'physical_condition' => $validated['physical_condition'],
             'file_path' => $filePath,
             'scan_input_form' => $scanInputFormPath,
             'scan_approval_input' => $scanApprovalInputPath,
-            'status' => 'pending_verification', // Submit directly to PIC Gudang queue
+            'status' => 'pending_verification',
         ]);
 
         return redirect()->route('archives.index')
-            ->with('success', 'Pengajuan booking arsip dokumen berhasil disubmit untuk diverifikasi oleh PIC Gudang.');
+            ->with('success', 'Pengajuan booking arsip dokumen (Periode ' . $validated['periode_doc'] . ') berhasil disubmit untuk diverifikasi PIC Gudang.');
     }
 
     public function show(Archive $archive)
     {
         $archive->load([
             'department',
+            'subDepartment',
             'creator',
             'location.warehouse',
+            'rackSlot',
             'entryLogs.picGudang',
             'entryLogs.location.warehouse',
             'borrowingLogs.borrower',
@@ -183,7 +219,7 @@ class ArchiveController extends Controller
             abort(403, 'Anda tidak memiliki akses ke label arsip departemen lain.');
         }
 
-        $archive->load(['department', 'location.warehouse', 'creator']);
+        $archive->load(['department', 'subDepartment', 'location.warehouse', 'rackSlot', 'creator']);
         $archives = collect([$archive]);
         return view('archives.print_sticker', compact('archives', 'archive'));
     }
@@ -197,9 +233,8 @@ class ArchiveController extends Controller
             $ids = array_filter(explode(',', $ids));
         }
 
-        $query = Archive::with(['department', 'location.warehouse', 'creator']);
+        $query = Archive::with(['department', 'subDepartment', 'location.warehouse', 'rackSlot', 'creator']);
 
-        // Scope to user's department if PIC Dept
         if ($user->isPicDept()) {
             $query->where('department_id', $user->department_id);
         }
@@ -207,12 +242,12 @@ class ArchiveController extends Controller
         if (!empty($ids) && is_array($ids)) {
             $query->whereIn('id', $ids);
         } else {
-            // Apply search & department filter if no specific IDs passed
             if ($request->filled('search')) {
                 $search = $request->search;
                 $query->where(function ($q) use ($search) {
                     $q->where('title', 'like', "%{$search}%")
                       ->orWhere('box_number', 'like', "%{$search}%")
+                      ->orWhere('periode_doc', 'like', "%{$search}%")
                       ->orWhere('period_text', 'like', "%{$search}%");
                 });
             }
@@ -248,7 +283,6 @@ class ArchiveController extends Controller
         ]);
 
         if ($request->action === 'approve') {
-            // Generate Custom Box Code if not already set
             if (!$archive->box_number) {
                 $archive->box_number = $numberingService->generateBoxCode($archive);
             }
@@ -279,7 +313,26 @@ class ArchiveController extends Controller
             'notes' => 'nullable|string',
         ]);
 
-        $location = WarehouseLocation::findOrFail($request->warehouse_location_id);
+        $location = WarehouseLocation::with('warehouse')->findOrFail($request->warehouse_location_id);
+
+        // Business Rule: Room Locking for FAT (2 Ruangan Khusus FAT)
+        $isLocationFat = $location->is_fat_locked || ($location->warehouse && $location->warehouse->is_fat_locked);
+        $isArchiveFat = ($archive->department && strtoupper($archive->department->code) === 'FIN');
+
+        if ($isLocationFat && !$isArchiveFat) {
+            $deptName = $archive->department ? $archive->department->name : 'Non-FAT';
+            return back()->with('error', "Akses Ditolak: Lokasi rak '{$location->rack_code}' berada di Ruangan Khusus FAT (Finance, Accounting & Tax). Departemen {$deptName} tidak diizinkan menempatkan arsip di ruangan ini.");
+        }
+
+        // Allocate slot if standard slots exist
+        $availableSlot = $location->slots()->where('status', 'empty')->first();
+        if ($availableSlot) {
+            $availableSlot->update([
+                'archive_id' => $archive->id,
+                'status' => 'filled',
+            ]);
+            $archive->warehouse_rack_slot_id = $availableSlot->id;
+        }
 
         // Update location capacity counter
         $location->increment('current_box_count');
@@ -301,5 +354,62 @@ class ArchiveController extends Controller
 
         return redirect()->route('archives.show', $archive)
             ->with('success', "Berkas fisik berhasil di-checkin ke lokasi {$location->full_location} & Log Masuk Gudang telah dicatat.");
+    }
+
+    public function apiGetSubDepartments(Department $department)
+    {
+        $subDepts = $department->subDepartments()->where('is_active', true)->get(['id', 'code', 'name', 'retention_years']);
+        return response()->json([
+            'success' => true,
+            'sub_departments' => $subDepts,
+            'department_retention_years' => $department->retention_years ?? 5,
+        ]);
+    }
+
+    public function apiCalculateRetention(Request $request)
+    {
+        $periodeDoc = $request->query('periode_doc'); // e.g. 2026/09
+        $deptId = $request->query('department_id');
+        $subDeptId = $request->query('sub_department_id');
+        $customYears = $request->query('masa_simpan_custom');
+
+        if (!$periodeDoc || !preg_match('/^\d{4}\/(0[1-9]|1[0-2])$/', $periodeDoc)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Format periode harus YYYY/MM (contoh: 2026/09)',
+            ], 422);
+        }
+
+        [$year, $month] = explode('/', $periodeDoc);
+        $startDate = Carbon::createFromDate((int)$year, (int)$month, 1)->startOfDay();
+        $endDate = $startDate->copy()->endOfMonth()->endOfDay();
+
+        $effectiveRetentionYears = 5;
+        if (!empty($customYears) && (int)$customYears > 0) {
+            $effectiveRetentionYears = (int)$customYears;
+        } elseif (!empty($subDeptId)) {
+            $subDept = SubDepartment::find($subDeptId);
+            if ($subDept && $subDept->retention_years > 0) {
+                $effectiveRetentionYears = (int)$subDept->retention_years;
+            }
+        } elseif (!empty($deptId)) {
+            $dept = Department::find($deptId);
+            if ($dept && $dept->retention_years > 0) {
+                $effectiveRetentionYears = (int)$dept->retention_years;
+            }
+        }
+
+        $expiryDate = $endDate->copy()->addYears($effectiveRetentionYears);
+
+        return response()->json([
+            'success' => true,
+            'periode_doc' => $periodeDoc,
+            'period_start_date' => $startDate->format('Y-m-d'),
+            'period_end_date' => $endDate->format('Y-m-d'),
+            'period_text' => $startDate->isoFormat('MMMM Y'),
+            'effective_retention_years' => $effectiveRetentionYears,
+            'retention_expiry_date' => $expiryDate->format('Y-m-d'),
+            'retention_expiry_formatted' => $expiryDate->isoFormat('D MMMM Y'),
+        ]);
     }
 }

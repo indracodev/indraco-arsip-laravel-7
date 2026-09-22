@@ -12,7 +12,7 @@ class BorrowingController extends Controller
     {
         $user = auth()->user();
 
-        $query = BorrowingLog::with(['archive.department', 'borrower', 'picGudang']);
+        $query = BorrowingLog::with(['archive.department', 'borrower', 'picGudang', 'departmentApprovedBy']);
 
         if ($user->isPicDept()) {
             $query->where('borrower_user_id', $user->id);
@@ -60,7 +60,7 @@ class BorrowingController extends Controller
         $user = auth()->user();
 
         // Get archives available for borrowing (status in_warehouse)
-        $archivesQuery = Archive::with(['department', 'location.warehouse'])->where('status', 'in_warehouse');
+        $archivesQuery = Archive::with(['department', 'subDepartment', 'location.warehouse'])->where('status', 'in_warehouse');
 
         if ($user->isPicDept()) {
             $archivesQuery->where('department_id', $user->department_id);
@@ -80,6 +80,7 @@ class BorrowingController extends Controller
             'archive_id' => 'required|exists:archives,id',
             'purpose' => 'required|string|max:500',
             'expected_return_date' => 'required|date|after:today',
+            'approval_file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240',
         ]);
 
         $archive = Archive::findOrFail($validated['archive_id']);
@@ -88,6 +89,8 @@ class BorrowingController extends Controller
             return back()->with('error', 'Arsip dokumen saat ini tidak tersedia di gudang untuk dipinjam.');
         }
 
+        $approvalPath = $request->file('approval_file')->store('borrowing_approvals', 'public');
+
         BorrowingLog::create([
             'archive_id' => $archive->id,
             'borrower_user_id' => $user->id,
@@ -95,35 +98,44 @@ class BorrowingController extends Controller
             'expected_return_date' => $validated['expected_return_date'],
             'purpose' => $validated['purpose'],
             'status' => 'requested',
+            'approval_file' => $approvalPath,
+            'scan_approval_borrow' => $approvalPath,
+            'is_approval_uploaded' => true,
+            'approval_status' => 'pending',
         ]);
 
         return redirect()->route('borrowings.index')
-            ->with('success', 'Permintaan peminjaman berkas arsip telah diajukan ke PIC Gudang.');
+            ->with('success', 'Permintaan peminjaman berkas arsip dengan lampiran approval berhasil diajukan ke PIC Gudang.');
     }
 
     public function deptApprove(BorrowingLog $borrowing, Request $request)
     {
         $user = auth()->user();
 
-        // Must be PIC Dept of archive's department or Admin
         if (!$user->isSuperAdmin() && (!$user->isPicDept() || $user->department_id !== $borrowing->archive->department_id)) {
             abort(403, 'Hanya PIC Departemen pemilik berkas atau Admin yang dapat menyetujui peminjaman ini.');
         }
 
         $request->validate([
+            'approval_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
             'scan_approval_borrow' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
         ]);
 
-        $scanPath = $borrowing->scan_approval_borrow;
-        if ($request->hasFile('scan_approval_borrow')) {
-            $scanPath = $request->file('scan_approval_borrow')->store('borrowing_scans', 'public');
+        $scanPath = $borrowing->approval_file ?? $borrowing->scan_approval_borrow;
+        if ($request->hasFile('approval_file')) {
+            $scanPath = $request->file('approval_file')->store('borrowing_approvals', 'public');
+        } elseif ($request->hasFile('scan_approval_borrow')) {
+            $scanPath = $request->file('scan_approval_borrow')->store('borrowing_approvals', 'public');
         }
 
         $borrowing->update([
             'status' => 'dept_approved',
             'department_approval_by' => $user->id,
             'department_approved_at' => now(),
+            'approval_file' => $scanPath,
             'scan_approval_borrow' => $scanPath,
+            'is_approval_uploaded' => !empty($scanPath),
+            'approval_status' => 'approved',
         ]);
 
         return redirect()->route('borrowings.index')
@@ -139,6 +151,7 @@ class BorrowingController extends Controller
         $borrowing->update([
             'status' => 'approved',
             'pic_gudang_id' => auth()->id(),
+            'approval_status' => 'approved',
         ]);
 
         return redirect()->route('borrowings.index')
@@ -152,18 +165,22 @@ class BorrowingController extends Controller
         }
 
         $request->validate([
+            'approval_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
             'scan_approval_borrow' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
         ]);
 
-        $scanPath = $borrowing->scan_approval_borrow;
-        if ($request->hasFile('scan_approval_borrow')) {
-            $scanPath = $request->file('scan_approval_borrow')->store('borrowing_scans', 'public');
+        $scanPath = $borrowing->approval_file ?? $borrowing->scan_approval_borrow;
+        if ($request->hasFile('approval_file')) {
+            $scanPath = $request->file('approval_file')->store('borrowing_approvals', 'public');
+        } elseif ($request->hasFile('scan_approval_borrow')) {
+            $scanPath = $request->file('scan_approval_borrow')->store('borrowing_approvals', 'public');
         }
 
         $borrowing->update([
             'status' => 'dispatched',
             'borrow_date' => now(),
             'pic_gudang_id' => auth()->id(),
+            'approval_file' => $scanPath,
             'scan_approval_borrow' => $scanPath,
         ]);
 
