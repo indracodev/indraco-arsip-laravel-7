@@ -34,8 +34,10 @@ class WarehouseLayoutController extends Controller
             'archives.department',
             'archives.subDepartment',
             'archives.creator',
+            'archives.items',
             'slots.archive.department',
-            'slots.archive.subDepartment'
+            'slots.archive.subDepartment',
+            'slots.archive.items',
         ]);
 
         if ($warehouseId) {
@@ -45,7 +47,7 @@ class WarehouseLayoutController extends Controller
         $locations = $query->get()->map(function ($loc) {
             if ($loc->location_type === 'rack' && $loc->slots->count() === 0) {
                 $loc->generateStandardSlots();
-                $loc->load(['slots.archive.department', 'slots.archive.subDepartment']);
+                $loc->load(['slots.archive.department', 'slots.archive.subDepartment', 'slots.archive.items']);
             }
 
             $isFatLocked = (bool) ($loc->is_fat_locked || ($loc->warehouse && $loc->warehouse->is_fat_locked));
@@ -104,14 +106,23 @@ class WarehouseLayoutController extends Controller
                         'archive' => $slot->archive ? [
                             'id' => $slot->archive->id,
                             'box_number' => $slot->archive->box_number,
-                            'title' => $slot->archive->title,
-                            'periode_doc' => $slot->archive->periode_doc,
+                            'title' => $slot->archive->effective_title ?? $slot->archive->title,
+                            'periode_doc' => $slot->archive->periode_doc ?? $slot->archive->period_text ?? '-',
                             'retention_expiry_date' => $slot->archive->retention_expiry_date ? $slot->archive->retention_expiry_date->format('d M Y') : '-',
                             'department' => $slot->archive->department ? $slot->archive->department->code : 'Dept',
                             'department_name' => $slot->archive->department ? $slot->archive->department->name : '',
                             'sub_department' => $slot->archive->subDepartment ? $slot->archive->subDepartment->code : null,
                             'sub_department_name' => $slot->archive->subDepartment ? $slot->archive->subDepartment->name : null,
                             'is_expired' => $isExpired,
+                            'items_count' => $slot->archive->items ? $slot->archive->items->count() : 0,
+                            'items' => $slot->archive->items ? $slot->archive->items->map(function ($it) {
+                                return [
+                                    'item_number' => $it->item_number,
+                                    'document_name' => $it->document_name,
+                                    'period_text' => $it->period_text,
+                                    'notes' => $it->notes,
+                                ];
+                            }) : [],
                         ] : null,
                     ];
                 }),
@@ -119,8 +130,8 @@ class WarehouseLayoutController extends Controller
                     return [
                         'id' => $arc->id,
                         'box_number' => $arc->box_number,
-                        'title' => $arc->title,
-                        'company_name' => $arc->company_name ?? 'PT Indraco',
+                        'title' => $arc->effective_title ?? $arc->title,
+                        'company_name' => $arc->company_name ?? 'PT Indraco Jaya Perkasa',
                         'document_type' => $arc->document_type ?? 'UMUM',
                         'department' => $arc->department ? $arc->department->code : 'Dept',
                         'sub_department' => $arc->subDepartment ? $arc->subDepartment->code : null,
@@ -131,6 +142,15 @@ class WarehouseLayoutController extends Controller
                         'is_expired' => $arc->is_expired,
                         'scan_input_form' => $arc->scan_input_form ? asset('storage/' . $arc->scan_input_form) : null,
                         'scan_approval_input' => $arc->scan_approval_input ? asset('storage/' . $arc->scan_approval_input) : null,
+                        'items_count' => $arc->items ? $arc->items->count() : 0,
+                        'items' => $arc->items ? $arc->items->map(function ($it) {
+                            return [
+                                'item_number' => $it->item_number,
+                                'document_name' => $it->document_name,
+                                'period_text' => $it->period_text,
+                                'notes' => $it->notes,
+                            ];
+                        }) : [],
                     ];
                 }),
             ];

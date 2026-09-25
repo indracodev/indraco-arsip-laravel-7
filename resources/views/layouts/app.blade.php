@@ -288,25 +288,102 @@
                     x-transition:leave="transition ease-in duration-75"
                     x-transition:leave-start="opacity-100 scale-100 translate-y-0"
                     x-transition:leave-end="opacity-0 scale-95 -translate-y-1"
-                    class="absolute left-0 mt-1.5 w-[680px] sm:w-[760px] max-w-[94vw] bg-white dark:bg-slate-900 border-2 border-amber-500 rounded-lg shadow-2xl z-[100] overflow-hidden font-mono text-xs text-slate-800 dark:text-slate-100"
+                    class="absolute left-0 mt-1.5 w-[680px] sm:w-[780px] max-w-[94vw] bg-white dark:bg-slate-900 border-2 border-amber-500 rounded-lg shadow-2xl z-[100] overflow-hidden font-mono text-xs text-slate-800 dark:text-slate-100"
                     x-cloak
                 >
-                    <!-- Header Dropdown Info -->
+                    <!-- Header Dropdown Info with Close Suggestion Button -->
                     <div class="px-3 py-2 bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white flex items-center justify-between border-b border-slate-700 text-[11px]">
                         <span class="font-bold flex items-center gap-2 text-amber-300">
-                            <svg class="w-4 h-4 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <svg class="w-4 h-4 text-amber-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <circle cx="11" cy="11" r="8"></circle>
                                 <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                             </svg>
                             PENCARIAN GLOBAL SELURUH ARSIP & LOKASI GUDANG
                         </span>
-                        <span class="px-2 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-400/40 rounded text-[11px] font-bold">
-                            SUPER ADMIN • ALL DEPARTMENTS
-                        </span>
+                        <div class="flex items-center gap-2">
+                            <span class="hidden sm:inline-block px-2 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-400/40 rounded text-[10px] font-bold">
+                                SUPER ADMIN • ALL DEPARTMENTS
+                            </span>
+                            <!-- CLOSE SUGGESTION BUTTON IN HEADER -->
+                            <button 
+                                type="button" 
+                                @click="closeDropdown()" 
+                                class="px-2 py-0.5 bg-rose-600/90 hover:bg-rose-600 text-white rounded text-[11px] font-bold flex items-center gap-1 transition shadow cursor-pointer"
+                                title="Tutup Sugesti (Esc)"
+                            >
+                                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                                <span>Tutup Sugesti</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- DROPDOWN FILTER CONTROLS BAR (Departemen, Sub-Departemen, Periode) -->
+                    <div class="p-2.5 bg-slate-100 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800">
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            <!-- Filter Departemen -->
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-0.5 uppercase tracking-wider">Departemen:</label>
+                                <select 
+                                    x-model="selectedDept" 
+                                    @change="onDeptChange()" 
+                                    class="w-full px-2 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-[11px] font-mono text-slate-800 dark:text-slate-200 focus:ring-1 focus:ring-amber-500 focus:outline-none"
+                                >
+                                    <option value="">-- Semua Departemen --</option>
+                                    <template x-for="dept in filterDepartments" :key="dept.id">
+                                        <option :value="dept.id" x-text="dept.code + ' - ' + dept.name"></option>
+                                    </template>
+                                </select>
+                            </div>
+
+                            <!-- Filter Sub-Departemen -->
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-0.5 uppercase tracking-wider">Sub Departemen:</label>
+                                <select 
+                                    x-model="selectedSubDept" 
+                                    @change="onSubDeptChange()" 
+                                    :disabled="!selectedDept || subDepartmentsList().length === 0"
+                                    class="w-full px-2 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-[11px] font-mono text-slate-800 dark:text-slate-200 focus:ring-1 focus:ring-amber-500 focus:outline-none disabled:opacity-50 disabled:bg-slate-200 dark:disabled:bg-slate-800"
+                                >
+                                    <option value="">-- Semua Sub-Unit --</option>
+                                    <template x-for="sub in subDepartmentsList()" :key="sub.id">
+                                        <option :value="sub.id" x-text="(sub.code ? '[' + sub.code + '] ' : '') + sub.name"></option>
+                                    </template>
+                                </select>
+                            </div>
+
+                            <!-- Filter Periode Dokumen -->
+                            <div>
+                                <div class="flex items-center justify-between mb-0.5">
+                                    <label class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Periode:</label>
+                                    <button 
+                                        x-show="hasActiveFilters()" 
+                                        @click="resetFilters()" 
+                                        type="button" 
+                                        class="text-[10px] text-rose-500 hover:text-rose-600 font-bold transition cursor-pointer"
+                                        title="Reset semua filter"
+                                    >
+                                        ✕ Reset
+                                    </button>
+                                </div>
+                                <select 
+                                    x-model="selectedPeriod" 
+                                    @change="onPeriodChange()" 
+                                    class="w-full px-2 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-[11px] font-mono text-slate-800 dark:text-slate-200 focus:ring-1 focus:ring-amber-500 focus:outline-none"
+                                >
+                                    <option value="">-- Semua Periode --</option>
+                                    <template x-for="p in availablePeriods" :key="p">
+                                        <option :value="p" x-text="p"></option>
+                                    </template>
+                                </select>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Suggestion / Quick Filters Chips -->
-                    <div x-show="suggestedKeywords.length > 0" class="px-3.5 py-2 bg-slate-50 dark:bg-slate-950/80 border-b border-slate-200 dark:border-slate-800">
+                    <div x-show="suggestedKeywords.length > 0 && !searchQuery && !hasActiveFilters()" class="px-3.5 py-2 bg-slate-50 dark:bg-slate-950/80 border-b border-slate-200 dark:border-slate-800">
                         <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1.5">Filter Cepat / Topik Dokumen:</span>
                         <div class="flex flex-wrap gap-1.5">
                             <template x-for="kw in suggestedKeywords" :key="kw">
@@ -322,8 +399,20 @@
                         </div>
                     </div>
 
+                    <!-- Section Title Bar -->
+                    <div class="px-3.5 py-1.5 bg-slate-50 dark:bg-slate-950/90 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between text-[11px]">
+                        <span class="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 flex-wrap">
+                            <svg class="w-3.5 h-3.5 text-amber-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                            </svg>
+                            <span x-show="!searchQuery && !hasActiveFilters()">Sugesti Berkas Arsip Terkini:</span>
+                            <span x-show="searchQuery || hasActiveFilters()">Hasil Arsip: <span class="text-amber-600 dark:text-amber-400 font-bold" x-text="searchResults.length + ' item ditemukan'"></span></span>
+                        </span>
+                        <span class="text-[10px] text-slate-500 font-medium hidden sm:inline">Klik item untuk membuka form detail</span>
+                    </div>
+
                     <!-- Results List Scroll Container -->
-                    <div class="max-h-96 overflow-y-auto divide-y divide-slate-200 dark:divide-slate-800 bg-white dark:bg-slate-900">
+                    <div class="max-h-[380px] overflow-y-auto divide-y divide-slate-200 dark:divide-slate-800 bg-white dark:bg-slate-900">
                         <!-- Loading State -->
                         <div x-show="isLoading" class="p-6 text-center text-slate-500 flex items-center justify-center gap-2.5 font-bold">
                             <svg class="w-5 h-5 text-amber-500 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -336,12 +425,12 @@
                         <template x-for="(item, idx) in searchResults" :key="item.id">
                             <div 
                                 @click="selectArchive(item)"
-                                :class="selectedIndex === idx ? 'bg-amber-500/15 dark:bg-amber-950/40 border-l-4 border-amber-500' : 'hover:bg-slate-100 dark:hover:bg-slate-800/80'"
+                                :class="selectedIndex === idx ? 'bg-amber-500/15 dark:bg-amber-950/40 border-l-4 border-amber-500' : 'hover:bg-slate-50 dark:hover:bg-slate-800/80'"
                                 class="p-3 cursor-pointer transition flex flex-col gap-1.5 select-none"
                             >
-                                <!-- Top Row: No Box, Dept Badge, Status Badge, Period -->
+                                <!-- Top Row: Box Number (Left) and Department / Sub-Department (Right Kanan Atas) -->
                                 <div class="flex items-center justify-between gap-2">
-                                    <div class="flex items-center gap-2 flex-wrap">
+                                    <div class="flex items-center gap-2">
                                         <span class="font-black text-amber-600 dark:text-amber-400 text-xs sm:text-sm flex items-center gap-1.5">
                                             <svg class="w-4 h-4 text-amber-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                 <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
@@ -350,27 +439,48 @@
                                             </svg>
                                             <span x-text="item.box_number || 'Penomoran Pending'"></span>
                                         </span>
-
-                                        <!-- Department Badge -->
-                                        <span class="px-2 py-0.5 rounded bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20 text-[10px] font-black uppercase" x-text="item.dept_code + (item.sub_dept ? ' / ' + item.sub_dept : '')"></span>
                                     </div>
 
-                                    <div class="flex items-center gap-2">
-                                        <span class="px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-bold" x-text="item.periode_doc"></span>
+                                    <!-- Right: Department & Sub-Department Badge (Kanan Atas) -->
+                                    <span class="px-2 py-0.5 rounded bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20 text-[10px] font-bold uppercase flex items-center gap-1 shrink-0" title="Departemen / Sub Departemen">
+                                        <svg class="w-3 h-3 text-blue-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                                            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                                        </svg>
+                                        <span x-text="item.dept_code + (item.sub_dept ? ' / ' + item.sub_dept : (item.dept_name ? ' - ' + item.dept_name : ''))"></span>
+                                    </span>
+                                </div>
+
+                                <!-- Middle Row: Judul / Nama Dokumen Arsip (Left) & Periode + Status (Right, di bawah Departemen) -->
+                                <div class="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
+                                    <div class="font-bold text-slate-900 dark:text-white text-xs sm:text-sm leading-snug flex items-center gap-2 min-w-0">
+                                        <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                            <polyline points="14 2 14 8 20 8"></polyline>
+                                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                                            <polyline points="10 9 9 9 8 9"></polyline>
+                                        </svg>
+                                        <span class="truncate" x-text="item.document_name || item.title"></span>
+                                    </div>
+
+                                    <!-- Periode & Status Badge (Di Bawah Departemen) -->
+                                    <div class="flex items-center gap-1.5 shrink-0">
+                                        <!-- Periode Dokumen -->
+                                        <span class="px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-bold whitespace-nowrap" x-text="item.periode_doc"></span>
+
+                                        <!-- Status Badge -->
                                         <span 
                                             :class="item.status === 'in_warehouse' ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30' : (item.status === 'borrowed' ? 'bg-purple-500/20 text-purple-700 dark:text-purple-300 border-purple-500/30' : 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/30')"
-                                            class="px-2 py-0.5 rounded border text-[11px] font-bold"
+                                            class="px-2 py-0.5 rounded border text-[11px] font-bold whitespace-nowrap"
                                             x-text="item.status_label"
                                         ></span>
                                     </div>
                                 </div>
 
-                                <!-- Middle Row: Judul / Nama Dokumen -->
-                                <div class="font-bold text-slate-900 dark:text-white text-xs sm:text-sm leading-snug" x-text="item.title"></div>
-
                                 <!-- Content Description snippet if matched -->
-                                <div x-show="item.content_description" class="text-xs text-slate-500 dark:text-slate-400 italic line-clamp-2">
-                                    <span class="text-slate-400 font-bold not-italic">Isi:</span> <span x-text="item.content_description"></span>
+                                <div x-show="item.content_description" class="text-xs text-slate-500 dark:text-slate-400 italic line-clamp-2 pl-5">
+                                    <span class="text-slate-400 font-bold not-italic">Catatan:</span> <span x-text="item.content_description"></span>
                                 </div>
 
                                 <!-- Bottom Row: Physical Warehouse & Rack Location -->
@@ -399,6 +509,20 @@
                             <p class="font-bold text-xs text-slate-700 dark:text-slate-300">Tidak ada dokumen ditemukan</p>
                             <p class="text-[11px] text-slate-500 mt-0.5">Tidak ditemukan berkas dengan kata kunci "<span class="font-bold text-amber-600 dark:text-amber-400" x-text="searchQuery"></span>"</p>
                         </div>
+                    </div>
+
+                    <!-- Dropdown Footer with Close Button and Keyboard Hint -->
+                    <div class="px-3.5 py-2 bg-slate-100 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+                        <span class="flex items-center gap-2">
+                            <span>Gunakan <kbd class="px-1.5 py-0.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded font-mono text-[10px]">↑</kbd> <kbd class="px-1.5 py-0.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded font-mono text-[10px]">↓</kbd> untuk memilih, <kbd class="px-1.5 py-0.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded font-mono text-[10px]">Enter</kbd> untuk membuka</span>
+                        </span>
+                        <button 
+                            type="button" 
+                            @click="closeDropdown()" 
+                            class="px-2.5 py-1 bg-slate-200 dark:bg-slate-800 hover:bg-rose-600 hover:text-white text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 rounded font-bold transition flex items-center gap-1 cursor-pointer"
+                        >
+                            <span>✕ Tutup Sugesti (Esc)</span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -1244,20 +1368,65 @@
         function superAdminQuickSearch() {
             return {
                 searchQuery: '',
+                selectedDept: '',
+                selectedSubDept: '',
+                selectedPeriod: '',
+                filterDepartments: [],
+                availablePeriods: [],
                 showSuggestions: false,
                 isLoading: false,
                 searchResults: [],
                 suggestedKeywords: [],
                 selectedIndex: -1,
 
+                subDepartmentsList() {
+                    if (!this.selectedDept) return [];
+                    const dept = this.filterDepartments.find(d => String(d.id) === String(this.selectedDept));
+                    return dept ? (dept.sub_departments || []) : [];
+                },
+
+                hasActiveFilters() {
+                    return Boolean(this.selectedDept || this.selectedSubDept || this.selectedPeriod);
+                },
+
+                onDeptChange() {
+                    this.selectedSubDept = '';
+                    this.doSearch();
+                },
+
+                onSubDeptChange() {
+                    this.doSearch();
+                },
+
+                onPeriodChange() {
+                    this.doSearch();
+                },
+
+                resetFilters() {
+                    this.selectedDept = '';
+                    this.selectedSubDept = '';
+                    this.selectedPeriod = '';
+                    this.doSearch();
+                },
+
                 async loadDefaultSuggestions() {
                     this.isLoading = true;
                     try {
-                        const res = await fetch('{{ route("archives.search_api") }}');
+                        const params = new URLSearchParams();
+                        if (this.selectedDept) params.append('department_id', this.selectedDept);
+                        if (this.selectedSubDept) params.append('sub_department_id', this.selectedSubDept);
+                        if (this.selectedPeriod) params.append('period', this.selectedPeriod);
+
+                        const res = await fetch('{{ route("archives.search_api") }}?' + params.toString());
                         const data = await res.json();
+                        if (data.departments) this.filterDepartments = data.departments;
+                        if (data.periods) this.availablePeriods = data.periods;
+
                         if (data.type === 'suggestions') {
                             this.suggestedKeywords = data.keywords || [];
                             this.searchResults = data.recent || [];
+                        } else if (data.type === 'results') {
+                            this.searchResults = data.items || [];
                         }
                     } catch (err) {
                         console.error('Super Admin Search API error:', err);
@@ -1267,7 +1436,7 @@
                 },
 
                 async doSearch() {
-                    if (!this.searchQuery.trim()) {
+                    if (!this.searchQuery.trim() && !this.hasActiveFilters()) {
                         this.loadDefaultSuggestions();
                         return;
                     }
@@ -1275,10 +1444,22 @@
                     this.showSuggestions = true;
                     this.selectedIndex = -1;
                     try {
-                        const res = await fetch('{{ route("archives.search_api") }}?q=' + encodeURIComponent(this.searchQuery.trim()));
+                        const params = new URLSearchParams();
+                        if (this.searchQuery.trim()) params.append('q', this.searchQuery.trim());
+                        if (this.selectedDept) params.append('department_id', this.selectedDept);
+                        if (this.selectedSubDept) params.append('sub_department_id', this.selectedSubDept);
+                        if (this.selectedPeriod) params.append('period', this.selectedPeriod);
+
+                        const res = await fetch('{{ route("archives.search_api") }}?' + params.toString());
                         const data = await res.json();
+                        if (data.departments) this.filterDepartments = data.departments;
+                        if (data.periods) this.availablePeriods = data.periods;
+
                         if (data.type === 'results') {
                             this.searchResults = data.items || [];
+                        } else if (data.type === 'suggestions') {
+                            this.suggestedKeywords = data.keywords || [];
+                            this.searchResults = data.recent || [];
                         }
                     } catch (err) {
                         console.error('Super Admin Search query error:', err);
@@ -1293,10 +1474,12 @@
                 },
 
                 selectArchive(archive) {
-                    const detailId = 'archive_detail_' + archive.id;
-                    const boxLabel = archive.box_number ? archive.box_number : ('ID #' + archive.id);
-                    const title = `[Detail] ${boxLabel} - ${archive.title || 'Dokumen'}`;
-                    let url = archive.url || ('{{ url("/archives") }}/' + archive.id);
+                    const parentArchiveId = archive.archive_id || archive.id;
+                    const detailId = 'archive_detail_' + parentArchiveId;
+                    const boxLabel = archive.box_number ? archive.box_number : ('ID #' + parentArchiveId);
+                    const docTitle = archive.document_name || archive.title || 'Dokumen Arsip';
+                    const title = `[Detail] ${boxLabel} - ${docTitle}`;
+                    let url = archive.url || ('{{ url("/archives") }}/' + parentArchiveId);
                     url += (url.includes('?') ? '&embed=1' : '?embed=1');
 
                     window.dispatchEvent(new CustomEvent('open-form-window', {
@@ -1307,6 +1490,7 @@
                             url: url
                         }
                     }));
+                    this.closeDropdown();
                 },
 
                 navigateResults(direction) {
@@ -1322,7 +1506,11 @@
 
                 clearSearch() {
                     this.searchQuery = '';
-                    this.loadDefaultSuggestions();
+                    if (this.hasActiveFilters()) {
+                        this.doSearch();
+                    } else {
+                        this.loadDefaultSuggestions();
+                    }
                 },
 
                 closeDropdown() {

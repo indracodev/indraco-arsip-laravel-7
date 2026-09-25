@@ -97,6 +97,22 @@ class Archive extends Model
         return $this->hasOne(DestructionLog::class);
     }
 
+    public function items(): HasMany
+    {
+        return $this->hasMany(ArchiveItem::class)->orderBy('item_number', 'asc');
+    }
+
+    public function getFormattedItemsSummaryAttribute(): string
+    {
+        if ($this->items->isEmpty()) {
+            return (string) ($this->content_description ?? '-');
+        }
+        return (string) $this->items->map(function ($item, $idx) {
+            $p = $item->period_text ? " ({$item->period_text})" : "";
+            return ($idx + 1) . ". {$item->document_name}{$p}";
+        })->implode("\n");
+    }
+
     public function getEffectiveTitleAttribute(): string
     {
         if ($this->is_custom_doc_name && !empty($this->custom_doc_name)) {

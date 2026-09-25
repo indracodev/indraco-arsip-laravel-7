@@ -24,6 +24,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/api/search-archives', 'DashboardController@searchApi')->name('archives.search_api');
     Route::get('/api/realtime/check-new-archives', 'DashboardController@realtimeCheck')->name('api.realtime.check');
     Route::get('/api/departments/{department}/sub-departments', 'ArchiveController@apiGetSubDepartments')->name('api.departments.sub_departments');
+    Route::get('/api/departments/{department}/archives', 'DepartmentController@apiGetDepartmentArchives')->name('api.departments.archives');
+    Route::get('/api/sub-departments/{subDepartment}/archives', 'DepartmentController@apiGetSubDepartmentArchives')->name('api.sub_departments.archives');
     Route::get('/api/archives/calculate-retention', 'ArchiveController@apiCalculateRetention')->name('api.archives.calculate_retention');
 
     // Archives Management
@@ -68,6 +70,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/api/warehouse/locations/{location}/delete', 'WarehouseLayoutController@destroyLocation')->name('api.warehouse.locations.delete');
     Route::post('/api/warehouse/locations/{location}/slots/assign', 'WarehouseLayoutController@assignSlotArchive')->name('api.warehouse.locations.slots.assign');
     Route::post('/api/warehouse/locations/{location}/slots/unassign', 'WarehouseLayoutController@unassignSlotArchive')->name('api.warehouse.locations.slots.unassign');
+
+    // Master Department & Sub-Department Archives Drill-Down API
+    Route::get('/api/departments/{department}/archives', 'DepartmentController@apiGetDepartmentArchives')->name('api.departments.archives');
+    Route::get('/api/sub-departments/{subDepartment}/archives', 'DepartmentController@apiGetSubDepartmentArchives')->name('api.sub_departments.archives');
 
     // Master Data Management (Admin & PIC Gudang)
     Route::middleware('role:admin,pic_gudang')->prefix('master')->name('master.')->group(function () {

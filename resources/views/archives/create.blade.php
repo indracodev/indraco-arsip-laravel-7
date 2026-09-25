@@ -13,7 +13,7 @@
             </span>
             <div>
                 <h1 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Form Pengajuan Box Arsip (TB 30g) & Label A5</h1>
-                <p class="text-[11px] text-slate-500 dark:text-slate-400">Periode 1 Bulan / Rentang Multi-Bulan (YYYY/MM) • Kalkulasi Masa Simpan Otomatis • Standar Box TB 30g</p>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400">Pencatatan Master Kardus & Multi-Item Butir Dokumen Arsip • Standar Box TB 30g</p>
             </div>
         </div>
 
@@ -82,7 +82,7 @@
                     <label for="sub_department_id" class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
                         SUB-DEPARTEMEN <span class="text-slate-400 font-normal">(Opsional)</span>
                     </label>
-                    <select name="sub_department_id" id="sub_department_id" x-model="selectedSubDeptId" @change="calculateRetention()" class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition">
+                    <select name="sub_department_id" id="sub_department_id" x-model="selectedSubDeptId" class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition">
                         <option value="">-- Pilih Sub-Departemen (Induk) --</option>
                         <template x-for="sub in subDepartments" :key="sub.id">
                             <option :value="sub.id" x-text="`${sub.code} - ${sub.name}`" :selected="sub.id == selectedSubDeptId"></option>
@@ -92,11 +92,11 @@
             </div>
         </fieldset>
 
-        <!-- SECTION 2: KATEGORI & JUDUL DOKUMEN -->
+        <!-- SECTION 2: KATEGORI & IDENTITAS INDUK DOKUMEN -->
         <fieldset class="border border-slate-300 dark:border-slate-800 p-3.5 rounded bg-white dark:bg-slate-950 shadow-sm space-y-3">
             <legend class="px-2 font-mono text-[11px] font-bold text-blue-700 dark:text-blue-400 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded shadow-sm flex items-center gap-1.5">
                 <i data-lucide="file-text" class="w-3.5 h-3.5 text-blue-500"></i>
-                2. Kategori & Identitas Dokumen
+                2. Kategori & Identitas Utama Kardus
             </legend>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -110,6 +110,7 @@
                         <option value="MOU_SPONSOR" {{ old('document_type') == 'MOU_SPONSOR' ? 'selected' : '' }}>MOU / KERJASAMA / SALES</option>
                         <option value="SURAT_JALAN" {{ old('document_type') == 'SURAT_JALAN' ? 'selected' : '' }}>SURAT JALAN & LOGISTIK</option>
                         <option value="PRODUKSI_QC" {{ old('document_type') == 'PRODUKSI_QC' ? 'selected' : '' }}>PRODUKSI & QUALITY CONTROL</option>
+                        <option value="MAINTENANCE" {{ old('document_type') == 'MAINTENANCE' ? 'selected' : '' }}>MAINTENANCE & FASILITAS</option>
                         <option value="UMUM" {{ old('document_type') == 'UMUM' ? 'selected' : '' }}>UMUM / LAIN-LAIN</option>
                     </select>
                 </div>
@@ -117,11 +118,11 @@
                 <div class="md:col-span-2">
                     <div class="flex items-center justify-between mb-1 font-mono">
                         <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300">
-                            JUDUL / NAMA DOKUMEN <span class="text-rose-500">*</span>
+                            JUDUL UTAMA / LABEL KARDUS <span class="text-slate-400 font-normal">(Opsional - otomatis mengambil butir ke-1)</span>
                         </label>
                         <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
                             <input type="checkbox" name="is_custom_doc_name" value="1" x-model="isCustomDocName" class="rounded border-slate-300 text-amber-500 focus:ring-amber-400 h-3.5 w-3.5">
-                            <span class="text-[11px] font-bold text-amber-600 dark:text-amber-400">Aktifkan Custom Nama Dokumen</span>
+                            <span class="text-[11px] font-bold text-amber-600 dark:text-amber-400">Custom Nama Dokumen</span>
                         </label>
                     </div>
 
@@ -132,7 +133,7 @@
                             name="title" 
                             id="title" 
                             x-model="title"
-                            placeholder="Contoh: Laporan Keuangan & Faktur Pajak Q3" 
+                            placeholder="Contoh: Laporan Maintenance & Faktur Operasional" 
                             class="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 transition"
                         >
                     </div>
@@ -144,90 +145,23 @@
                             name="custom_doc_name" 
                             id="custom_doc_name" 
                             x-model="customDocName"
-                            placeholder="Ketik nama/judul dokumen kustom jika tidak ada pada master data..." 
+                            placeholder="Ketik judul khusus kardus jika diperlukan..." 
                             class="w-full px-3 py-1.5 bg-amber-500/10 dark:bg-amber-950/30 border-2 border-amber-500 rounded text-xs font-mono font-bold text-amber-950 dark:text-amber-200 placeholder-amber-600/50 focus:outline-none focus:border-amber-600 transition"
                         >
                     </div>
-                    @error('title') <span class="text-rose-500 text-[11px] mt-1 block font-bold font-mono">{{ $message }}</span> @enderror
-                    @error('custom_doc_name') <span class="text-rose-500 text-[11px] mt-1 block font-bold font-mono">{{ $message }}</span> @enderror
                 </div>
             </div>
         </fieldset>
 
-        <!-- SECTION 3: PERIODE DOKUMEN (1 BULAN ATAU RENTANG MULTI-BULAN) & RETENSI -->
+        <!-- SECTION 3: TANGGAL PENYERAHAN & SPESIFIKASI WADAH -->
         <fieldset class="border border-amber-500/40 p-3.5 rounded bg-amber-500/5 dark:bg-amber-950/20 shadow-sm space-y-3">
             <legend class="px-2 font-mono text-[11px] font-bold text-amber-800 dark:text-amber-400 bg-amber-100 dark:bg-slate-800 border border-amber-400 dark:border-amber-700 rounded shadow-sm flex items-center gap-1.5">
-                <i data-lucide="calendar-range" class="w-3.5 h-3.5 text-amber-600"></i>
-                3. Periode Dokumen (1 Bulan / Rentang Periode) & Kalkulasi Masa Simpan
+                <i data-lucide="calendar" class="w-3.5 h-3.5 text-amber-600"></i>
+                3. Tanggal Penyerahan & Wadah Fisik Box
             </legend>
 
-            <!-- Mode Selector: 1 Bulan vs Rentang Multi-Bulan -->
-            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-amber-500/20 pb-2.5 font-mono text-xs">
-                <span class="font-bold text-slate-700 dark:text-slate-300">PILIHAN FORMAT PERIODE:</span>
-                <div class="flex items-center gap-4">
-                    <label class="inline-flex items-center gap-1.5 cursor-pointer">
-                        <input type="radio" value="single" x-model="periodMode" @change="onPeriodModeChange()" class="text-amber-500 focus:ring-amber-400">
-                        <span :class="periodMode === 'single' ? 'font-bold text-amber-700 dark:text-amber-300' : 'text-slate-600 dark:text-slate-400'">1 Bulan Saja (cth: 2026/07)</span>
-                    </label>
-                    <label class="inline-flex items-center gap-1.5 cursor-pointer">
-                        <input type="radio" value="range" x-model="periodMode" @change="onPeriodModeChange()" class="text-amber-500 focus:ring-amber-400">
-                        <span :class="periodMode === 'range' ? 'font-bold text-amber-700 dark:text-amber-300' : 'text-slate-600 dark:text-slate-400'">Rentang Multi-Bulan (cth: 2026/07 s/d 2026/09)</span>
-                    </label>
-                </div>
-            </div>
-
-            <!-- Hidden input that submits the final formatted periode_doc -->
-            <input type="hidden" name="periode_doc" :value="periodeDoc">
-
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <!-- Single Month Input -->
-                <div x-show="periodMode === 'single'">
-                    <label for="period_single" class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                        PERIODE BULAN (YYYY/MM) <span class="text-rose-500">*</span>
-                    </label>
-                    <input 
-                        type="text" 
-                        id="period_single" 
-                        x-model="periodStart" 
-                        @input="updatePeriodDoc()"
-                        placeholder="2026/07" 
-                        pattern="^\d{4}\/(0[1-9]|1[0-2])$"
-                        class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-amber-600 dark:text-amber-400 focus:outline-none focus:border-amber-500 transition"
-                    >
-                    <span class="text-[10px] text-slate-500 dark:text-slate-400 font-mono block mt-0.5">Format: YYYY/MM (contoh: 2026/07)</span>
-                </div>
-
-                <!-- Range Multi-Month Inputs -->
-                <div x-show="periodMode === 'range'" class="sm:col-span-1 grid grid-cols-2 gap-2" x-cloak>
-                    <div>
-                        <label for="period_range_start" class="block font-mono text-[10px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                            PERIODE AWAL <span class="text-rose-500">*</span>
-                        </label>
-                        <input 
-                            type="text" 
-                            id="period_range_start" 
-                            x-model="periodStart" 
-                            @input="updatePeriodDoc()"
-                            placeholder="2026/07" 
-                            class="w-full px-2 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-amber-600 dark:text-amber-400 focus:outline-none focus:border-amber-500 transition"
-                        >
-                    </div>
-                    <div>
-                        <label for="period_range_end" class="block font-mono text-[10px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                            HINGGA (AKHIR) <span class="text-rose-500">*</span>
-                        </label>
-                        <input 
-                            type="text" 
-                            id="period_range_end" 
-                            x-model="periodEnd" 
-                            @input="updatePeriodDoc()"
-                            placeholder="2026/09" 
-                            class="w-full px-2 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-amber-600 dark:text-amber-400 focus:outline-none focus:border-amber-500 transition"
-                        >
-                    </div>
-                </div>
-
-                <!-- Tgl Penyerahan -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <!-- Tgl Penyerahan (Disatukan sebagai tanggal serah terima & periode pengajuan) -->
                 <div>
                     <label for="tgl_penyerahan" class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
                         TGL. PENYERAHAN DOKUMEN <span class="text-rose-500">*</span>
@@ -238,64 +172,12 @@
                         id="tgl_penyerahan" 
                         x-model="tglPenyerahan"
                         required 
-                        class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition"
-                    >
-                    <span class="text-[10px] text-slate-500 dark:text-slate-400 font-mono block mt-0.5">Tanggal serah terima fisik ke Gudang</span>
-                </div>
-
-                <!-- Custom Masa Simpan -->
-                <div>
-                    <label for="masa_simpan_custom" class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                        OVERRIDE MASA SIMPAN (TAHUN)
-                    </label>
-                    <input 
-                        type="number" 
-                        name="masa_simpan_custom" 
-                        id="masa_simpan_custom" 
-                        x-model="masaSimpanCustom"
-                        @input="calculateRetention()"
-                        min="1" 
-                        max="30" 
-                        placeholder="Ikut Standar Dept" 
                         class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition"
                     >
-                    <span class="text-[10px] text-slate-500 dark:text-slate-400 font-mono block mt-0.5">Kosongkan jika mengikuti standar unit</span>
+                    <span class="text-[10px] text-slate-500 dark:text-slate-400 font-mono block mt-0.5">Tanggal serah terima fisik ke Gudang Arsip</span>
                 </div>
-            </div>
 
-            <!-- Auto Calculation Retention Banner -->
-            <div class="p-3 rounded bg-white/90 dark:bg-slate-900/90 border border-amber-300 dark:border-amber-900 space-y-1.5 font-mono">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div class="flex flex-wrap items-center gap-2">
-                        <span class="text-[11px] font-bold text-slate-600 dark:text-slate-400">Periode Terdaftar:</span>
-                        <span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-800 dark:text-amber-300 text-xs font-black" x-text="periodeDoc || '-'"></span>
-                        <span class="text-slate-400">•</span>
-                        <span class="text-[11px] font-bold text-slate-600 dark:text-slate-400">Masa Simpan:</span>
-                        <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 text-xs font-bold" x-text="`${effectiveYearsPreview} Tahun`"></span>
-                        <span class="text-slate-400">•</span>
-                        <span class="text-[11px] font-bold text-slate-600 dark:text-slate-400">Expired:</span>
-                        <span class="px-2 py-0.5 rounded bg-rose-500/20 text-rose-700 dark:text-rose-300 text-xs font-black" x-text="expiryDatePreview"></span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <span class="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded bg-emerald-500/10">
-                            Standar Box: TB 30g
-                        </span>
-                    </div>
-                </div>
-                <p class="text-[10px] text-slate-500 dark:text-slate-400 italic">
-                    * Masa simpan dihitung otomatis dari tanggal akhir periode dokumen untuk menjamin seluruh isi berkas tetap terlindungi.
-                </p>
-            </div>
-        </fieldset>
-
-        <!-- SECTION 4: KONDISI & RINCIAN ISI METADATA A5 -->
-        <fieldset class="border border-slate-300 dark:border-slate-800 p-3.5 rounded bg-white dark:bg-slate-950 shadow-sm space-y-3">
-            <legend class="px-2 font-mono text-[11px] font-bold text-emerald-700 dark:text-emerald-400 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded shadow-sm flex items-center gap-1.5">
-                <i data-lucide="align-left" class="w-3.5 h-3.5 text-emerald-500"></i>
-                4. Spesifikasi Wadah & Rincian Butir Dokumen (Label A5)
-            </legend>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <!-- Kondisi Fisik -->
                 <div>
                     <label for="physical_condition" class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
                         KONDISI / WADAH FISIK BERKAS <span class="text-rose-500">*</span>
@@ -306,36 +188,121 @@
                         id="physical_condition" 
                         value="{{ old('physical_condition', 'Baik / Box Karton Standar TB 30g') }}" 
                         required 
-                        class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition"
+                        class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition"
                     >
-                </div>
-                <div>
-                    <label for="period_text" class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                        LABEL PERIODE TAMBAHAN <span class="text-slate-400 font-normal">(Opsional)</span>
-                    </label>
-                    <input 
-                        type="text" 
-                        name="period_text" 
-                        id="period_text" 
-                        value="{{ old('period_text') }}" 
-                        placeholder="Contoh: Juli - September 2026" 
-                        class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 transition"
-                    >
+                    <span class="text-[10px] text-slate-500 dark:text-slate-400 font-mono block mt-0.5">Standar Box: TB 30g (Kapasitas 100 per Rak)</span>
                 </div>
             </div>
+        </fieldset>
 
-            <div>
-                <label for="content_description" class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    RINCIAN ISI DOKUMEN (DICETAK PADA FORM LABEL A5) <span class="text-rose-500">*</span>
-                </label>
-                <textarea 
-                    name="content_description" 
-                    id="content_description" 
-                    rows="4" 
-                    required 
-                    placeholder="Tuliskan butir-butir rincian dokumen di dalam box ini (akan dicetak pada label box A5 dengan auto-font scaling):&#10;- Bukti Kas Masuk No. 001 - 150 (Juli - September 2026)&#10;- Bukti Kas Keluar Cabang Surabaya&#10;- Faktur Pajak Masukan & Keluaran" 
-                    class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 transition leading-relaxed"
-                >{{ old('content_description') }}</textarea>
+        <!-- SECTION 4: DYNAMIC REPEATER GRID (1 BOX -> BANYAK DOKUMEN ARSIP) -->
+        <fieldset class="border border-emerald-500/40 p-3.5 rounded bg-emerald-500/5 dark:bg-emerald-950/20 shadow-sm space-y-3">
+            <legend class="px-2 font-mono text-[11px] font-bold text-emerald-800 dark:text-emerald-400 bg-emerald-100 dark:bg-slate-800 border border-emerald-400 dark:border-emerald-700 rounded shadow-sm flex items-center gap-1.5">
+                <i data-lucide="list-plus" class="w-3.5 h-3.5 text-emerald-600"></i>
+                4. Rincian Butir Dokumen / Berkas Arsip dalam Box (Label A5)
+            </legend>
+
+            <div class="flex items-center justify-between border-b border-emerald-500/20 pb-2 font-mono text-xs">
+                <span class="font-bold text-slate-700 dark:text-slate-300">
+                    Setiap kardus/box berisi banyak arsip. Tuliskan butir dokumen di bawah ini:
+                </span>
+                <button 
+                    @click="addItem()" 
+                    type="button" 
+                    class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded text-xs shadow transition flex items-center gap-1.5"
+                >
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                    <span>+ Tambah Baris Dokumen</span>
+                </button>
+            </div>
+
+            <!-- Repeater Table -->
+            <div class="border border-slate-300 dark:border-slate-700 rounded bg-white dark:bg-slate-950 overflow-hidden shadow-xs">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                        <tr class="bg-slate-100 dark:bg-slate-900 border-b border-slate-300 dark:border-slate-700 font-mono text-[11px] text-slate-700 dark:text-slate-300">
+                            <th class="py-2 px-2.5 w-10 text-center">NO</th>
+                            <th class="py-2 px-3">NAMA DOKUMEN / BERKAS ARSIP <span class="text-rose-500">*</span></th>
+                            <th class="py-2 px-2.5 w-44">PERIODE MULAI (BLN/THN) <span class="text-rose-500">*</span></th>
+                            <th class="py-2 px-2.5 w-44">PERIODE SELESAI (BLN/THN) <span class="text-rose-500">*</span></th>
+                            <th class="py-2 px-3 w-48">KETERANGAN (OPSIONAL)</th>
+                            <th class="py-2 px-2.5 w-12 text-center">AKSI</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                        <template x-for="(item, index) in items" :key="item.id">
+                            <tr class="hover:bg-emerald-500/5 transition">
+                                <td class="py-2 px-2.5 text-center font-mono font-bold text-slate-600 dark:text-slate-400" x-text="index + 1"></td>
+                                <td class="py-2 px-3">
+                                    <input 
+                                        type="text" 
+                                        :name="'items[' + index + '][document_name]'" 
+                                        x-model="item.document_name" 
+                                        required 
+                                        :placeholder="'Contoh: ' + (index === 0 ? 'maintenance kendaraan' : (index === 1 ? 'form verifikasi faktur' : 'perawatan ac'))"
+                                        class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500"
+                                    >
+                                </td>
+                                <td class="py-2 px-2.5">
+                                    <div class="relative flex items-center">
+                                        <input 
+                                            type="month" 
+                                            :name="'items[' + index + '][period_start]'" 
+                                            x-model="item.period_start" 
+                                            required 
+                                            class="w-full px-2 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-purple-700 dark:text-purple-300 focus:outline-none focus:border-emerald-500"
+                                            title="Pilih Bulan & Tahun Mulai"
+                                        >
+                                    </div>
+                                </td>
+                                <td class="py-2 px-2.5">
+                                    <div class="relative flex items-center">
+                                        <input 
+                                            type="month" 
+                                            :name="'items[' + index + '][period_end]'" 
+                                            x-model="item.period_end" 
+                                            required 
+                                            class="w-full px-2 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-purple-700 dark:text-purple-300 focus:outline-none focus:border-emerald-500"
+                                            title="Pilih Bulan & Tahun Selesai"
+                                        >
+                                    </div>
+                                </td>
+                                <td class="py-2 px-3">
+                                    <input 
+                                        type="text" 
+                                        :name="'items[' + index + '][notes]'" 
+                                        x-model="item.notes" 
+                                        placeholder="No. berkas fisik / catatan" 
+                                        class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-700 dark:text-slate-300 placeholder-slate-400 focus:outline-none focus:border-emerald-500"
+                                    >
+                                </td>
+                                <td class="py-2 px-2.5 text-center">
+                                    <button 
+                                        @click="removeItem(index)" 
+                                        type="button" 
+                                        class="p-1.5 text-rose-500 hover:bg-rose-500/20 rounded transition" 
+                                        title="Hapus baris dokumen ini"
+                                    >
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Quick Add Button bar -->
+            <div class="flex items-center justify-between font-mono text-[11px] text-slate-500 dark:text-slate-400 pt-1">
+                <span>Total Butir Terdaftar: <strong class="text-emerald-600 dark:text-emerald-400 font-bold" x-text="items.length"></strong> Dokumen</span>
+                <button 
+                    @click="addItem()" 
+                    type="button" 
+                    class="text-emerald-600 dark:text-emerald-400 hover:underline font-bold inline-flex items-center gap-1"
+                >
+                    <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+                    <span>+ Tambah Baris Dokumen Lainnya</span>
+                </button>
             </div>
         </fieldset>
 
@@ -398,20 +365,6 @@
 @push('scripts')
 <script>
 function archiveCreateApp() {
-    const rawOldPeriod = '{{ old('periode_doc', date('Y/m')) }}';
-    let initialMode = 'single';
-    let initialStart = '{{ date('Y/m') }}';
-    let initialEnd = '';
-
-    if (rawOldPeriod.includes('-') || rawOldPeriod.includes('s/d') || rawOldPeriod.includes('hingga')) {
-        initialMode = 'range';
-        const parts = rawOldPeriod.split(/[-]|(?:s\/d)|(?:hingga)/i).map(s => s.trim());
-        initialStart = parts[0] || '{{ date('Y/m') }}';
-        initialEnd = parts[1] || '';
-    } else {
-        initialStart = rawOldPeriod || '{{ date('Y/m') }}';
-    }
-
     return {
         departments: @json($departments),
         selectedDeptId: '{{ old('department_id', auth()->user()->isPicDept() ? auth()->user()->department_id : ($departments->first()->id ?? '')) }}',
@@ -420,36 +373,37 @@ function archiveCreateApp() {
         isCustomDocName: {{ old('is_custom_doc_name') ? 'true' : 'false' }},
         customDocName: @json(old('custom_doc_name', '')),
         title: @json(old('title', '')),
-        periodMode: initialMode,
-        periodStart: initialStart,
-        periodEnd: initialEnd,
-        periodeDoc: rawOldPeriod,
         tglPenyerahan: '{{ old('tgl_penyerahan', date('Y-m-d')) }}',
-        masaSimpanCustom: '{{ old('masa_simpan_custom', '') }}',
-        expiryDatePreview: '-',
-        effectiveYearsPreview: 5,
+
+        // Dynamic items repeater (1 Box = Banyak Berkas Arsip)
+        items: [
+            { id: 1, document_name: 'maintenance kendaraan', period_start: '{{ date('Y-06') }}', period_end: '{{ date('Y-08') }}', notes: '' },
+            { id: 2, document_name: 'form verifikasi faktur', period_start: '{{ date('Y-07') }}', period_end: '{{ date('Y-07') }}', notes: '' },
+            { id: 3, document_name: 'perawatan ac januari', period_start: '{{ date('Y-01') }}', period_end: '{{ date('Y-12') }}', notes: '' }
+        ],
 
         init() {
             this.updateSubDepartments();
-            this.updatePeriodDoc();
+            this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
         },
 
-        onPeriodModeChange() {
-            if (this.periodMode === 'range' && !this.periodEnd) {
-                this.periodEnd = this.periodStart;
-            }
-            this.updatePeriodDoc();
+        addItem() {
+            this.items.push({
+                id: Date.now() + Math.random(),
+                document_name: '',
+                period_start: '{{ date('Y-m') }}',
+                period_end: '{{ date('Y-m') }}',
+                notes: ''
+            });
+            this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
         },
 
-        updatePeriodDoc() {
-            if (this.periodMode === 'range') {
-                const s = (this.periodStart || '').trim();
-                const e = (this.periodEnd || '').trim();
-                this.periodeDoc = (s && e) ? `${s} - ${e}` : (s || e);
+        removeItem(index) {
+            if (this.items.length > 1) {
+                this.items.splice(index, 1);
             } else {
-                this.periodeDoc = (this.periodStart || '').trim();
+                alert('Minimal harus terdapat 1 butir berkas arsip dalam box.');
             }
-            this.calculateRetention();
         },
 
         updateSubDepartments() {
@@ -459,49 +413,6 @@ function archiveCreateApp() {
             } else {
                 this.subDepartments = [];
             }
-            this.calculateRetention();
-        },
-
-        calculateRetention() {
-            let targetPeriod = (this.periodMode === 'range' && this.periodEnd) ? this.periodEnd.trim() : (this.periodStart || '').trim();
-            
-            // Also check if raw periodeDoc has a range pattern
-            if (this.periodeDoc && (this.periodeDoc.includes('-') || this.periodeDoc.includes('s/d'))) {
-                const parts = this.periodeDoc.split(/[-]|(?:s\/d)/i).map(s => s.trim());
-                if (parts[1]) targetPeriod = parts[1];
-            }
-
-            const regex = /^\d{4}\/(0[1-9]|1[0-2])$/;
-            if (!regex.test(targetPeriod)) {
-                this.expiryDatePreview = 'Format Periode Harus YYYY/MM (cth: 2026/09)';
-                return;
-            }
-
-            const parts = targetPeriod.split('/');
-            const year = parseInt(parts[0], 10);
-            const month = parseInt(parts[1], 10);
-
-            let years = 5;
-            if (this.masaSimpanCustom && parseInt(this.masaSimpanCustom, 10) > 0) {
-                years = parseInt(this.masaSimpanCustom, 10);
-            } else if (this.selectedSubDeptId) {
-                const sub = this.subDepartments.find(s => s.id == this.selectedSubDeptId);
-                if (sub && sub.retention_years > 0) {
-                    years = parseInt(sub.retention_years, 10);
-                }
-            } else {
-                const dept = this.departments.find(d => d.id == this.selectedDeptId);
-                if (dept && dept.retention_years > 0) {
-                    years = parseInt(dept.retention_years, 10);
-                }
-            }
-
-            this.effectiveYearsPreview = years;
-            const expiryYear = year + years;
-            const lastDay = new Date(expiryYear, month, 0).getDate();
-            const padMonth = month.toString().padStart(2, '0');
-            const padDay = lastDay.toString().padStart(2, '0');
-            this.expiryDatePreview = `${padDay}/${padMonth}/${expiryYear}`;
         }
     };
 }

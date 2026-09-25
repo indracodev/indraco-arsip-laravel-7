@@ -174,8 +174,13 @@
                     </div>
 
                     <div class="p-3 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-800">
-                        <span class="text-slate-500 dark:text-slate-400 block mb-1">Departemen Pemilik:</span>
-                        <span class="font-bold text-slate-900 dark:text-white text-sm">{{ $archive->department->name }} ({{ $archive->department->code }})</span>
+                        <span class="text-slate-500 dark:text-slate-400 block mb-1">Departemen / Sub-Unit:</span>
+                        <span class="font-bold text-slate-900 dark:text-white text-sm">
+                            {{ $archive->department->name }} ({{ $archive->department->code }})
+                            @if($archive->subDepartment)
+                                <span class="block text-xs text-indigo-600 dark:text-indigo-400 font-mono mt-0.5">↳ Sub: {{ $archive->subDepartment->name }} ({{ $archive->subDepartment->code }})</span>
+                            @endif
+                        </span>
                     </div>
 
                     <div class="p-3 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-800">
@@ -189,11 +194,11 @@
                     </div>
 
                     <div class="p-3 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-800">
-                        <span class="text-slate-500 dark:text-slate-400 block mb-1">Periode Dokumen:</span>
+                        <span class="text-slate-500 dark:text-slate-400 block mb-1">Tgl. Penyerahan & Periode:</span>
                         <span class="font-bold text-amber-600 dark:text-amber-400 text-sm">
-                            {{ $archive->period_text ?? $archive->period_start_date->format('M Y') }}
-                            @if($archive->period_yy_mm)
-                                <span class="font-mono text-xs bg-amber-500/20 px-1.5 py-0.5 rounded ml-1">({{ $archive->period_yy_mm }})</span>
+                            {{ $archive->tgl_penyerahan ? $archive->tgl_penyerahan->format('d/m/Y') : ($archive->period_text ?? '-') }}
+                            @if($archive->periode_doc)
+                                <span class="font-mono text-xs bg-amber-500/20 px-1.5 py-0.5 rounded ml-1">({{ $archive->periode_doc }})</span>
                             @endif
                         </span>
                     </div>
@@ -204,11 +209,44 @@
                     </div>
                 </div>
 
+                <!-- Structured Items Table (1 Box -> Banyak Dokumen Arsip) -->
                 <div>
-                    <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-2">Rincian Isi Berkas & Metadata:</span>
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                            <i data-lucide="list-checks" class="w-4 h-4 text-emerald-500"></i>
+                            Rincian Butir Dokumen Arsip Dalam Box ({{ $archive->items->count() }} Berkas):
+                        </span>
+                        <span class="text-[11px] font-mono text-slate-500">Standar Box TB 30g</span>
+                    </div>
+
+                    @if($archive->items->isNotEmpty())
+                    <div class="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xs">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 font-mono text-[11px] text-slate-700 dark:text-slate-300">
+                                    <th class="py-2 px-3 w-12 text-center">NO</th>
+                                    <th class="py-2 px-3">NAMA DOKUMEN / BERKAS ARSIP</th>
+                                    <th class="py-2 px-3 w-48">PERIODE</th>
+                                    <th class="py-2 px-3 w-48">KETERANGAN</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                                @foreach($archive->items as $it)
+                                <tr class="hover:bg-slate-50 dark:hover:bg-slate-900/50">
+                                    <td class="py-2.5 px-3 text-center font-mono font-bold text-purple-600 dark:text-purple-400">{{ $it->item_number }}</td>
+                                    <td class="py-2.5 px-3 font-bold text-slate-800 dark:text-slate-200">{{ $it->document_name }}</td>
+                                    <td class="py-2.5 px-3 font-mono text-amber-700 dark:text-amber-300 font-semibold">{{ $it->period_text ?? '-' }}</td>
+                                    <td class="py-2.5 px-3 text-slate-600 dark:text-slate-400">{{ $it->notes ?? '-' }}</td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                    @else
                     <div class="p-4 bg-slate-50 dark:bg-slate-900/90 rounded-2xl border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200 whitespace-pre-line leading-relaxed font-medium">
                         {{ $archive->content_description }}
                     </div>
+                    @endif
                 </div>
 
                 <!-- Digital Attachments & Scans -->

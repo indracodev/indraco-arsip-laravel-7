@@ -98,25 +98,33 @@ class ArchiveController extends Controller
             'document_type' => 'nullable|string|max:100',
             'is_custom_doc_name' => 'nullable|boolean',
             'custom_doc_name' => 'nullable|string|max:255',
-            'title' => 'required_without:custom_doc_name|nullable|string|max:255',
-            'periode_doc' => ['required', 'string', 'max:100'],
+            'title' => 'nullable|string|max:255',
+            'periode_doc' => 'nullable|string|max:100',
             'tgl_penyerahan' => 'required|date',
             'period_text' => 'nullable|string|max:100',
-            'content_description' => 'required|string',
+            'content_description' => 'nullable|string',
             'retention_years' => 'nullable|integer|min:1|max:30',
             'masa_simpan_custom' => 'nullable|integer|min:1|max:30',
             'physical_condition' => 'required|string|max:100',
             'file' => 'nullable|file|mimes:pdf,jpg,png,doc,docx,zip|max:10240',
             'scan_input_form' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
             'scan_approval_input' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
+            'items' => 'nullable|array',
+            'items.*.document_name' => 'nullable|string|max:255',
+            'items.*.period_start' => 'nullable|string|max:50',
+            'items.*.period_end' => 'nullable|string|max:50',
+            'items.*.period_text' => 'nullable|string|max:150',
+            'items.*.notes' => 'nullable|string|max:255',
         ]);
 
         if ($user->isPicDept()) {
             $validated['department_id'] = $user->department_id;
         }
 
-        // 1. Business Rule: Periode Dokumen (1 Bulan atau Rentang Multi-Bulan YYYY/MM)
-        $rawPeriod = trim($validated['periode_doc']);
+        // 1. Business Rule: Periode Dokumen (derived from tgl_penyerahan or explicit input)
+        $tglPenyerahan = Carbon::parse($validated['tgl_penyerahan']);
+        $rawPeriod = !empty($validated['periode_doc']) ? trim($validated['periode_doc']) : $tglPenyerahan->format('Y/m');
+        
         if (preg_match('/^(\d{4}\/(?:0[1-9]|1[0-2]))\s*(?:-|s\/d|hingga|to)\s*(\d{4}\/(?:0[1-9]|1[0-2]))$/i', $rawPeriod, $matches)) {
             $startPeriodStr = $matches[1];
             $endPeriodStr = $matches[2];
@@ -134,21 +142,99 @@ class ArchiveController extends Controller
             $formattedPeriodDoc = $periodStr;
             $periodText = !empty($validated['period_text']) ? $validated['period_text'] : $startDate->isoFormat('MMMM Y');
         } else {
-            $startDate = Carbon::now()->startOfMonth();
-            $endDate = Carbon::now()->endOfMonth();
+            $startDate = $tglPenyerahan->copy()->startOfMonth();
+            $endDate = $tglPenyerahan->copy()->endOfMonth();
             $formattedPeriodDoc = $rawPeriod;
-            $periodText = !empty($validated['period_text']) ? $validated['period_text'] : $rawPeriod;
+            $periodText = !empty($validated['period_text']) ? $validated['period_text'] : $tglPenyerahan->isoFormat('MMMM Y');
         }
 
         $validated['periode_doc'] = $formattedPeriodDoc;
         $periodYyMm = $formattedPeriodDoc;
 
-        // 2. Title & Custom Doc Name Handling
+        // 2. Parse Items Repeater
+        $itemsInput = $request->input('items', []);
+        $parsedItems = [];
+        $itemLines = [];
+
+        if (is_array($itemsInput) && count($itemsInput) > 0) {
+            $idx = 1;
+            foreach ($itemsInput as $rawItem) {
+                if (is_array($rawItem) && !empty(trim($rawItem['document_name'] ?? ''))) {
+                    $docName = trim($rawItem['document_name']);
+                    $pStart = trim($rawItem['period_start'] ?? '');
+                    $pEnd = trim($rawItem['period_end'] ?? '');
+                    
+                    // Format period_text nicely if not explicitly given
+                    $pText = trim($rawItem['period_text'] ?? '');
+                    if (empty($pText)) {
+                        if (!empty($pStart) && !empty($pEnd)) {
+                            $pText = ($pStart === $pEnd) ? $pStart : "{$pStart} s/d {$pEnd}";
+                        } elseif (!empty($pStart)) {
+                            $pText = $pStart;
+                        } elseif (!empty($pEnd)) {
+                            $pText = $pEnd;
+                        } else {
+                            $pText = $formattedPeriodDoc;
+                        }
+                    }
+                    
+                    $notes = trim($rawItem['notes'] ?? '');
+                    
+                    $parsedItems[] = [
+                        'item_number' => $idx,
+                        'document_name' => $docName,
+                        'period_start' => !empty($pStart) ? $pStart : null,
+                        'period_end' => !empty($pEnd) ? $pEnd : null,
+                        'period_text' => $pText,
+                        'notes' => $notes,
+                    ];
+                    
+                    $itemLines[] = "{$idx}. {$docName}" . ($pText ? " ({$pText})" : "");
+                    $idx++;
+                }
+            }
+        }
+
+        // Fallback from content_description if no repeater items provided
+        if (empty($parsedItems) && !empty($validated['content_description'])) {
+            $lines = array_filter(array_map('trim', explode("\n", $validated['content_description'])));
+            $idx = 1;
+            foreach ($lines as $line) {
+                $clean = ltrim($line, "-* \t0..9.");
+                if (!empty($clean)) {
+                    $parsedItems[] = [
+                        'item_number' => $idx,
+                        'document_name' => $clean,
+                        'period_text' => $formattedPeriodDoc,
+                        'notes' => null,
+                    ];
+                    $itemLines[] = "{$idx}. {$clean}";
+                    $idx++;
+                }
+            }
+        }
+
+        // If still empty, create at least 1 default item
+        if (empty($parsedItems)) {
+            $fallbackTitle = !empty($validated['title']) ? $validated['title'] : 'Arsip Dokumen ' . $tglPenyerahan->isoFormat('MMMM Y');
+            $parsedItems[] = [
+                'item_number' => 1,
+                'document_name' => $fallbackTitle,
+                'period_text' => $formattedPeriodDoc,
+                'notes' => null,
+            ];
+            $itemLines[] = "1. {$fallbackTitle}";
+        }
+
+        $formattedContentDescription = !empty($itemLines) ? implode("\n", $itemLines) : ($validated['content_description'] ?? 'Rincian Berkas');
+
+        // 3. Title & Custom Doc Name Handling
         $isCustomDocName = !empty($validated['is_custom_doc_name']);
         $customDocName = $isCustomDocName ? ($validated['custom_doc_name'] ?? $request->input('custom_doc_name')) : null;
-        $finalTitle = $isCustomDocName ? $customDocName : ($validated['title'] ?? 'Dokumen Periode ' . $formattedPeriodDoc);
+        $primaryItemName = $parsedItems[0]['document_name'] ?? ('Arsip ' . $formattedPeriodDoc);
+        $finalTitle = $isCustomDocName ? $customDocName : (!empty($validated['title']) ? $validated['title'] : $primaryItemName);
 
-        // 3. Automated Retention Years & Expiry Calculation
+        // 4. Automated Retention Years & Expiry Calculation
         $department = Department::find($validated['department_id']);
         $subDepartment = !empty($validated['sub_department_id']) ? SubDepartment::find($validated['sub_department_id']) : null;
 
@@ -165,7 +251,7 @@ class ArchiveController extends Controller
 
         $retentionExpiryDate = $endDate->copy()->addYears($effectiveRetentionYears)->format('Y-m-d');
 
-        // 4. File uploads
+        // 5. File uploads
         $filePath = null;
         if ($request->hasFile('file')) {
             $filePath = $request->file('file')->store('archive_digital', 'public');
@@ -181,10 +267,10 @@ class ArchiveController extends Controller
             $scanApprovalInputPath = $request->file('scan_approval_input')->store('archive_scans', 'public');
         }
 
-        Archive::create([
+        $archive = Archive::create([
             'department_id' => $validated['department_id'],
             'sub_department_id' => $validated['sub_department_id'] ?? null,
-            'company_name' => $validated['company_name'] ?? 'PT Indraco',
+            'company_name' => $validated['company_name'] ?? 'PT Indraco Jaya Perkasa',
             'document_type' => $validated['document_type'] ?? 'UMUM',
             'created_by_user_id' => $user->id,
             'title' => $finalTitle,
@@ -196,7 +282,7 @@ class ArchiveController extends Controller
             'period_yy_mm' => $periodYyMm,
             'periode_doc' => $validated['periode_doc'],
             'tgl_penyerahan' => $validated['tgl_penyerahan'],
-            'content_description' => $validated['content_description'],
+            'content_description' => $formattedContentDescription,
             'retention_years' => $effectiveRetentionYears,
             'masa_simpan_custom' => $validated['masa_simpan_custom'] ?? null,
             'retention_expiry_date' => $retentionExpiryDate,
@@ -207,10 +293,15 @@ class ArchiveController extends Controller
             'status' => 'pending_verification',
         ]);
 
+        // 6. Save items in archive_items table
+        foreach ($parsedItems as $itemData) {
+            $archive->items()->create($itemData);
+        }
+
         $redirectParams = $this->getEmbedParams($request);
 
         return redirect()->route('archives.index', $redirectParams)
-            ->with('success', 'Pengajuan booking arsip dokumen (Periode ' . $validated['periode_doc'] . ') berhasil disubmit untuk diverifikasi PIC Gudang.');
+            ->with('success', 'Pengajuan booking box arsip (' . count($parsedItems) . ' butir dokumen) berhasil disubmit untuk diverifikasi PIC Gudang.');
     }
 
     protected function getEmbedParams(Request $request)
@@ -227,6 +318,7 @@ class ArchiveController extends Controller
             'department',
             'subDepartment',
             'creator',
+            'items',
             'location.warehouse',
             'rackSlot',
             'entryLogs.picGudang',
@@ -249,7 +341,7 @@ class ArchiveController extends Controller
             abort(403, 'Anda tidak memiliki akses ke label arsip departemen lain.');
         }
 
-        $archive->load(['department', 'subDepartment', 'location.warehouse', 'rackSlot', 'creator']);
+        $archive->load(['department', 'subDepartment', 'items', 'location.warehouse', 'rackSlot', 'creator']);
         $archives = collect([$archive]);
         return view('archives.print_sticker', compact('archives', 'archive'));
     }
@@ -263,7 +355,7 @@ class ArchiveController extends Controller
             $ids = array_filter(explode(',', $ids));
         }
 
-        $query = Archive::with(['department', 'subDepartment', 'location.warehouse', 'rackSlot', 'creator']);
+        $query = Archive::with(['department', 'subDepartment', 'items', 'location.warehouse', 'rackSlot', 'creator']);
 
         if ($user->isPicDept()) {
             $query->where('department_id', $user->department_id);

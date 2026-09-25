@@ -163,9 +163,16 @@
                 $rackCode = $item->location ? $item->location->rack_code : null;
                 $slotLabel = $item->rackSlot ? ("Sap {$item->rackSlot->sap_level}, {$item->rackSlot->layer_label} Slot {$item->rackSlot->slot_number}") : null;
 
-                $contentLines = array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', $item->content_description ?? '')));
-                if (empty($contentLines)) {
-                    $contentLines = [$item->title];
+                if ($item->items && $item->items->isNotEmpty()) {
+                    $contentLines = $item->items->map(function ($it) {
+                        $p = $it->period_text ? " ({$it->period_text})" : "";
+                        return "{$it->item_number}. {$it->document_name}{$p}";
+                    })->toArray();
+                } else {
+                    $contentLines = array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', $item->content_description ?? '')));
+                    if (empty($contentLines)) {
+                        $contentLines = [$item->title];
+                    }
                 }
             @endphp
 
