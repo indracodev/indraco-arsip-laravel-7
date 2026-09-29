@@ -217,11 +217,12 @@
                         <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-850 transition">
                             <!-- Time & IP Address -->
                             <td class="py-3.5 px-4 whitespace-nowrap">
-                                <div class="font-bold text-slate-900 dark:text-white font-mono">
-                                    {{ $log->created_at->format('d/m/Y H:i:s') }}
+                                <div class="font-bold text-slate-900 dark:text-white font-mono flex items-center gap-1.5">
+                                    <span>{{ $log->created_at->timezone('Asia/Jakarta')->format('d/m/Y H:i:s') }}</span>
+                                    <span class="text-[9px] px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded font-semibold border border-slate-200 dark:border-slate-700">WIB</span>
                                 </div>
                                 <div class="text-[10px] text-slate-400 flex items-center gap-1.5 mt-0.5">
-                                    <span>{{ $log->created_at->diffForHumans() }}</span>
+                                    <span>{{ $log->created_at->timezone('Asia/Jakarta')->diffForHumans() }}</span>
                                     <span>•</span>
                                     <span class="font-mono text-cyan-600 dark:text-cyan-400">{{ $log->ip_address ?? '127.0.0.1' }}</span>
                                 </div>
@@ -290,7 +291,7 @@
                                         'reference_id' => $log->reference_id ?? '-',
                                         'ip_address' => $log->ip_address ?? '127.0.0.1',
                                         'user_agent' => $log->user_agent ?? '-',
-                                        'created_at' => $log->created_at->format('d F Y, H:i:s'),
+                                        'created_at' => $log->created_at->timezone('Asia/Jakarta')->format('d F Y, H:i:s') . ' WIB',
                                         'properties' => $log->properties,
                                     ]) }})"
                                     class="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-cyan-500/10 hover:text-cyan-600 dark:hover:text-cyan-400 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-xl font-bold transition flex items-center gap-1.5 mx-auto cursor-pointer"
@@ -333,7 +334,7 @@
                         @forelse($entryLogs as $eLog)
                         <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-850 transition font-medium">
                             <td class="py-3.5 px-4 font-bold text-cyan-700 dark:text-cyan-300 font-mono">
-                                {{ $eLog->entry_date ? $eLog->entry_date->format('d M Y H:i') : '-' }}
+                                {{ $eLog->entry_date ? $eLog->entry_date->timezone('Asia/Jakarta')->format('d M Y H:i') . ' WIB' : '-' }}
                             </td>
                             <td class="py-3.5 px-4 font-mono font-extrabold text-amber-600 dark:text-amber-400">
                                 {{ $eLog->archive->box_number ?? 'Pending' }}
