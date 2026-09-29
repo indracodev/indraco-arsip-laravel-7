@@ -136,12 +136,18 @@
                 </div>
 
                 @if(auth()->check() && (auth()->user()->isSuperAdmin() || auth()->user()->isPicGudang()))
-                <!-- Shortcut Khusus Admin Webdev & PIC Gudang ke Layout 2D -->
-                <a href="{{ route('master.warehouses.layout') }}" class="px-3 py-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-mono font-bold text-xs rounded border border-emerald-500/40 shadow transition flex items-center gap-1.5 group shrink-0">
-                    <i data-lucide="layout-grid" class="w-3.5 h-3.5 text-emerald-200 group-hover:scale-110 transition"></i>
-                    <span>Input & Layout Gudang (2D)</span>
-                    <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-emerald-200 group-hover:translate-x-0.5 transition"></i>
-                </a>
+                <!-- Shortcut Khusus Admin Webdev & PIC Gudang -->
+                <div class="flex items-center gap-2">
+                    <a href="{{ route('logs.index') }}" class="px-2.5 py-1 bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-700 dark:text-cyan-300 font-mono font-bold text-xs rounded border border-cyan-500/40 shadow transition flex items-center gap-1.5 shrink-0">
+                        <i data-lucide="history" class="w-3.5 h-3.5 text-cyan-500"></i>
+                        <span>Log History</span>
+                    </a>
+                    <a href="{{ route('master.warehouses.layout') }}" class="px-3 py-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-mono font-bold text-xs rounded border border-emerald-500/40 shadow transition flex items-center gap-1.5 group shrink-0">
+                        <i data-lucide="layout-grid" class="w-3.5 h-3.5 text-emerald-200 group-hover:scale-110 transition"></i>
+                        <span>Input & Layout Gudang (2D)</span>
+                        <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-emerald-200 group-hover:translate-x-0.5 transition"></i>
+                    </a>
+                </div>
                 @endif
             </div>
         </fieldset>

@@ -7,6 +7,7 @@ use App\Models\Department;
 use App\Models\SubDepartment;
 use App\Models\WarehouseEntryLog;
 use App\Models\WarehouseLocation;
+use App\Services\ActivityLogger;
 use App\Services\NumberingService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -298,6 +299,23 @@ class ArchiveController extends Controller
             $archive->items()->create($itemData);
         }
 
+        ActivityLogger::log(
+            'ARCHIVE_CREATE',
+            "Pengajuan arsip baru '{$archive->title}' (" . count($parsedItems) . " butir berkas) oleh {$user->name} (" . ($department ? $department->name : '') . ").",
+            'DOKUMEN_ARSIP',
+            [
+                'archive_id' => $archive->id,
+                'title' => $archive->title,
+                'department_id' => $archive->department_id,
+                'sub_department_id' => $archive->sub_department_id,
+                'period_doc' => $archive->periode_doc,
+                'retention_years' => $archive->retention_years,
+                'retention_expiry_date' => $archive->retention_expiry_date,
+                'items_count' => count($parsedItems),
+            ],
+            $archive->box_number ?: "ID: {$archive->id}"
+        );
+
         $redirectParams = $this->getEmbedParams($request);
 
         return redirect()->route('archives.index', $redirectParams)
@@ -340,6 +358,18 @@ class ArchiveController extends Controller
         if ($user->isPicDept() && $archive->department_id !== $user->department_id) {
             abort(403, 'Anda tidak memiliki akses ke label arsip departemen lain.');
         }
+
+        ActivityLogger::log(
+            'ARCHIVE_PRINT',
+            "Mencetak label / barcode box arsip '{$archive->box_number}' - {$archive->title}.",
+            'DOKUMEN_ARSIP',
+            [
+                'archive_id' => $archive->id,
+                'box_number' => $archive->box_number,
+                'title' => $archive->title,
+            ],
+            $archive->box_number
+        );
 
         $archive->load(['department', 'subDepartment', 'items', 'location.warehouse', 'rackSlot', 'creator']);
         $archives = collect([$archive]);
@@ -388,6 +418,17 @@ class ArchiveController extends Controller
                 ->with('warning', 'Tidak ada data arsip yang ditemukan untuk dicetak label.');
         }
 
+        ActivityLogger::log(
+            'ARCHIVE_PRINT',
+            "Mencetak batch label box arsip sebanyak " . $archives->count() . " berkas.",
+            'DOKUMEN_ARSIP',
+            [
+                'count' => $archives->count(),
+                'archive_ids' => $archives->pluck('id')->toArray(),
+            ],
+            "Batch: {$archives->count()} Box"
+        );
+
         $archive = $archives->first();
 
         return view('archives.print_sticker', compact('archives', 'archive'));
@@ -412,12 +453,35 @@ class ArchiveController extends Controller
             $archive->rejection_note = null;
             $archive->save();
 
+            ActivityLogger::log(
+                'ARCHIVE_VERIFY',
+                "Verifikasi persetujuan arsip '{$archive->title}' & alokasi nomor box generated '{$archive->box_number}'.",
+                'DOKUMEN_ARSIP',
+                [
+                    'archive_id' => $archive->id,
+                    'box_number' => $archive->box_number,
+                    'status' => $archive->status,
+                ],
+                $archive->box_number
+            );
+
             return redirect()->route('archives.show', $archive)
                 ->with('success', "Pengajuan arsip disetujui! Nomor Box Generated: {$archive->box_number}");
         } else {
             $archive->status = 'draft';
             $archive->rejection_note = $request->rejection_note;
             $archive->save();
+
+            ActivityLogger::log(
+                'ARCHIVE_REJECT',
+                "Pengajuan arsip '{$archive->title}' ditolak oleh PIC Gudang dengan catatan: {$request->rejection_note}",
+                'DOKUMEN_ARSIP',
+                [
+                    'archive_id' => $archive->id,
+                    'rejection_note' => $request->rejection_note,
+                ],
+                $archive->box_number ?: "ID: {$archive->id}"
+            );
 
             return redirect()->route('archives.show', $archive)
                 ->with('warning', 'Pengajuan arsip ditolak dan dikembalikan ke PIC Departemen.');
@@ -473,6 +537,21 @@ class ArchiveController extends Controller
             'entry_date' => now(),
             'notes' => $request->notes ?? 'Penerimaan fisik berkas & penempatan di gudang arsip.',
         ]);
+
+        ActivityLogger::log(
+            'ARCHIVE_CHECKIN',
+            "Penerimaan fisik dan check-in berkas box '{$archive->box_number}' ke lokasi rak {$location->full_location}.",
+            'DOKUMEN_ARSIP',
+            [
+                'archive_id' => $archive->id,
+                'box_number' => $archive->box_number,
+                'location_id' => $location->id,
+                'location_name' => $location->full_location,
+                'slot_code' => $availableSlot ? $availableSlot->slot_code : null,
+                'notes' => $request->notes,
+            ],
+            $archive->box_number
+        );
 
         return redirect()->route('archives.show', $archive)
             ->with('success', "Berkas fisik berhasil di-checkin ke lokasi {$location->full_location} & Log Masuk Gudang telah dicatat.");

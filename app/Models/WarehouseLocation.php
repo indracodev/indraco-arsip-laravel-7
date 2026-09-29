@@ -32,12 +32,14 @@ class WarehouseLocation extends Model
         'booking_notes',
         'is_locked',
         'is_fat_locked',
+        'is_active',
     ];
 
     protected $casts = [
         'is_booked' => 'boolean',
         'is_locked' => 'boolean',
         'is_fat_locked' => 'boolean',
+        'is_active' => 'boolean',
         'canvas_x' => 'integer',
         'canvas_y' => 'integer',
         'canvas_width' => 'integer',
@@ -130,6 +132,30 @@ class WarehouseLocation extends Model
         $whName = $this->warehouse ? $this->warehouse->name : 'Gudang';
         $sector = $this->room_sector ? "[{$this->room_sector}] " : '';
         return "{$whName} - {$sector}{$this->rack_code} / {$this->shelf_code}";
+    }
+
+    /**
+     * Accurately calculate actual filled box count in this rack
+     */
+    public function getCurrentBoxCountAttribute($value): int
+    {
+        if ($this->relationLoaded('slots')) {
+            return $this->slots->filter(function ($s) {
+                return !empty($s->archive_id) || $s->status === 'filled';
+            })->count();
+        }
+
+        if ($this->relationLoaded('archives')) {
+            return $this->archives->where('status', '!=', 'destroyed')->count();
+        }
+
+        $filledSlots = $this->slots()->where(function ($q) {
+            $q->whereNotNull('archive_id')->orWhere('status', 'filled');
+        })->count();
+
+        $actualArchives = $this->archives()->where('status', '!=', 'destroyed')->count();
+
+        return max($filledSlots, $actualArchives);
     }
 
     public function getCapacityPercentageAttribute(): float

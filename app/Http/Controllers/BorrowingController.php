@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Archive;
 use App\Models\BorrowingLog;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 
 class BorrowingController extends Controller
@@ -91,7 +92,7 @@ class BorrowingController extends Controller
 
         $approvalPath = $request->file('approval_file')->store('borrowing_approvals', 'public');
 
-        BorrowingLog::create([
+        $borrowing = BorrowingLog::create([
             'archive_id' => $archive->id,
             'borrower_user_id' => $user->id,
             'request_date' => now(),
@@ -103,6 +104,20 @@ class BorrowingController extends Controller
             'is_approval_uploaded' => true,
             'approval_status' => 'pending',
         ]);
+
+        ActivityLogger::log(
+            'BORROW_CREATE',
+            "Pengajuan peminjaman arsip '{$archive->title}' (Box: {$archive->box_number}) oleh {$user->name} untuk keperluan: {$validated['purpose']}",
+            'PEMINJAMAN',
+            [
+                'borrowing_id' => $borrowing->id,
+                'archive_id' => $archive->id,
+                'box_number' => $archive->box_number,
+                'purpose' => $validated['purpose'],
+                'expected_return_date' => $validated['expected_return_date'],
+            ],
+            $archive->box_number
+        );
 
         return redirect()->route('borrowings.index')
             ->with('success', 'Permintaan peminjaman berkas arsip dengan lampiran approval berhasil diajukan ke PIC Gudang.');
@@ -138,6 +153,17 @@ class BorrowingController extends Controller
             'approval_status' => 'approved',
         ]);
 
+        ActivityLogger::log(
+            'BORROW_DEPT_APPROVE',
+            "Persetujuan Departemen atas peminjaman arsip '{$borrowing->archive->title}' (Box: {$borrowing->archive->box_number}) oleh {$user->name}",
+            'PEMINJAMAN',
+            [
+                'borrowing_id' => $borrowing->id,
+                'box_number' => $borrowing->archive->box_number,
+            ],
+            $borrowing->archive->box_number
+        );
+
         return redirect()->route('borrowings.index')
             ->with('success', 'Persetujuan Departemen berhasil disahkan. Pengajuan kini siap dikirimkan ke PIC Gudang.');
     }
@@ -153,6 +179,17 @@ class BorrowingController extends Controller
             'pic_gudang_id' => auth()->id(),
             'approval_status' => 'approved',
         ]);
+
+        ActivityLogger::log(
+            'BORROW_APPROVE',
+            "Persetujuan Gudang atas peminjaman arsip '{$borrowing->archive->title}' (Box: {$borrowing->archive->box_number}) oleh PIC Gudang " . auth()->user()->name,
+            'PEMINJAMAN',
+            [
+                'borrowing_id' => $borrowing->id,
+                'box_number' => $borrowing->archive->box_number,
+            ],
+            $borrowing->archive->box_number
+        );
 
         return redirect()->route('borrowings.index')
             ->with('success', 'Permintaan peminjaman disetujui Gudang. Silakan persiapkan berkas fisik untuk diserahkan.');
@@ -188,6 +225,18 @@ class BorrowingController extends Controller
             'status' => 'borrowed',
         ]);
 
+        ActivityLogger::log(
+            'BORROW_DISPATCH',
+            "Penyerahan dan pengeluaran fisik berkas arsip '{$borrowing->archive->title}' (Box: {$borrowing->archive->box_number}) kepada {$borrowing->borrower->name}",
+            'PEMINJAMAN',
+            [
+                'borrowing_id' => $borrowing->id,
+                'box_number' => $borrowing->archive->box_number,
+                'borrower_name' => $borrowing->borrower->name,
+            ],
+            $borrowing->archive->box_number
+        );
+
         return redirect()->route('borrowings.index')
             ->with('success', 'Pengeluaran berkas disahkan! Status arsip diubah menjadi "Sedang Dipinjam".');
     }
@@ -207,6 +256,18 @@ class BorrowingController extends Controller
         $borrowing->archive->update([
             'status' => 'in_warehouse',
         ]);
+
+        ActivityLogger::log(
+            'BORROW_RETURN',
+            "Pengembalian berkas fisik arsip '{$borrowing->archive->title}' (Box: {$borrowing->archive->box_number}) ke gudang.",
+            'PEMINJAMAN',
+            [
+                'borrowing_id' => $borrowing->id,
+                'box_number' => $borrowing->archive->box_number,
+                'notes' => $request->notes,
+            ],
+            $borrowing->archive->box_number
+        );
 
         return redirect()->route('borrowings.index')
             ->with('success', 'Pengembalian berkas dikonfirmasi! Status arsip kembali "Tersimpan di Gudang".');

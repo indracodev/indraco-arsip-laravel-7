@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Department;
 use App\Models\User;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
@@ -30,7 +31,20 @@ class UserController extends Controller
 
         $validated['password'] = Hash::make($validated['password']);
 
-        User::create($validated);
+        $newUser = User::create($validated);
+
+        ActivityLogger::log(
+            'USER_CREATE',
+            "Menambahkan pengguna baru '{$newUser->name}' dengan hak akses role {$newUser->role_label}.",
+            'USER_MANAGEMENT',
+            [
+                'user_id' => $newUser->id,
+                'email' => $newUser->email,
+                'role' => $newUser->role,
+                'department_id' => $newUser->department_id,
+            ],
+            $newUser->name
+        );
 
         return redirect()->route('master.users')
             ->with('success', "Pengguna {$validated['name']} berhasil ditambahkan.");
@@ -53,7 +67,22 @@ class UserController extends Controller
             unset($validated['password']);
         }
 
+        $oldRole = $user->role;
         $user->update($validated);
+
+        ActivityLogger::log(
+            'USER_UPDATE',
+            "Memperbarui data pengguna '{$user->name}' (Role: {$user->role_label}).",
+            'USER_MANAGEMENT',
+            [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'old_role' => $oldRole,
+                'new_role' => $user->role,
+                'department_id' => $user->department_id,
+            ],
+            $user->name
+        );
 
         return redirect()->route('master.users')
             ->with('success', "Data pengguna {$user->name} berhasil diperbarui.");
@@ -65,10 +94,22 @@ class UserController extends Controller
             return back()->with('error', 'Anda tidak dapat menghapus akun Anda sendiri.');
         }
 
+        $userName = $user->name;
+        $userEmail = $user->email;
+        $userRole = $user->role_label;
+
         $user->delete();
 
+        ActivityLogger::log(
+            'USER_DELETE',
+            "Menghapus akun pengguna '{$userName}' ({$userRole}, Email: {$userEmail}).",
+            'USER_MANAGEMENT',
+            ['deleted_user_email' => $userEmail, 'deleted_user_name' => $userName],
+            $userName
+        );
+
         return redirect()->route('master.users')
-            ->with('success', "Pengguna {$user->name} berhasil dihapus.");
+            ->with('success', "Pengguna {$userName} berhasil dihapus.");
     }
 
     public function impersonate(User $user)
@@ -88,6 +129,19 @@ class UserController extends Controller
             session(['impersonator_id' => $admin->id]);
         }
 
+        ActivityLogger::log(
+            'IMPERSONATE_START',
+            "Super Admin '{$admin->name}' memulai impersonasi sebagai pengguna '{$user->name}' ({$user->role_label}).",
+            'AUTH',
+            [
+                'admin_id' => $admin->id,
+                'target_user_id' => $user->id,
+                'target_role' => $user->role,
+            ],
+            $user->name,
+            $admin
+        );
+
         // Log in as target user
         auth()->login($user);
 
@@ -103,6 +157,19 @@ class UserController extends Controller
 
         $adminId = session('impersonator_id');
         $admin = User::findOrFail($adminId);
+        $currentUser = auth()->user();
+
+        ActivityLogger::log(
+            'IMPERSONATE_LEAVE',
+            "Super Admin '{$admin->name}' mengakhiri impersonasi dari pengguna '{$currentUser->name}'.",
+            'AUTH',
+            [
+                'admin_id' => $admin->id,
+                'previous_user_id' => $currentUser->id,
+            ],
+            $admin->name,
+            $admin
+        );
 
         // Clear impersonator session
         session()->forget('impersonator_id');

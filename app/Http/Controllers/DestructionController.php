@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Archive;
 use App\Models\DestructionLog;
+use App\Services\ActivityLogger;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -92,7 +93,7 @@ class DestructionController extends Controller
             'warehouse_rack_slot_id' => null,
         ]);
 
-        DestructionLog::create([
+        $dLog = DestructionLog::create([
             'archive_id' => $archive->id,
             'proposed_by_user_id' => $user->id,
             'department_approval_by' => $user->id,
@@ -109,6 +110,19 @@ class DestructionController extends Controller
             'notes' => $validated['notes'],
         ]);
 
+        ActivityLogger::log(
+            'DESTRUCTION_PROPOSE',
+            "Pemusnahan berkas kadaluwarsa '{$archive->title}' (Box: {$archive->box_number}) dengan No. BAP {$validated['bap_number']} via metode {$validated['method']}",
+            'PEMUSNAHAN_RETENSI',
+            [
+                'archive_id' => $archive->id,
+                'bap_number' => $validated['bap_number'],
+                'method' => $validated['method'],
+                'destruction_date' => $validated['destruction_date'],
+            ],
+            $validated['bap_number']
+        );
+
         return redirect()->route('destructions.index')
             ->with('success', "Proses pemusnahan berkas ({$archive->title}) dengan lampiran persetujuan telah disahkan dengan No. BAP {$validated['bap_number']}.");
     }
@@ -116,6 +130,18 @@ class DestructionController extends Controller
     public function showBap(DestructionLog $destructionLog)
     {
         $destructionLog->load(['archive.department', 'proposedBy', 'approvedBy', 'departmentApprovedBy', 'archive.location']);
+
+        ActivityLogger::log(
+            'DESTRUCTION_BAP_PRINT',
+            "Mencetak Berita Acara Pemusnahan (BAP) No: {$destructionLog->bap_number} untuk arsip '{$destructionLog->archive->title}'",
+            'PEMUSNAHAN_RETENSI',
+            [
+                'bap_number' => $destructionLog->bap_number,
+                'archive_id' => $destructionLog->archive_id,
+            ],
+            $destructionLog->bap_number
+        );
+
         return view('destructions.bap', compact('destructionLog'));
     }
 
@@ -148,6 +174,19 @@ class DestructionController extends Controller
             'scan_extension_form' => $scanExtensionPath,
             'status' => $archive->status === 'pending_destruction' ? 'in_warehouse' : $archive->status,
         ]);
+
+        ActivityLogger::log(
+            'RETENTION_EXTEND',
+            "Perpanjangan masa retensi berkas '{$archive->title}' (Box: {$archive->box_number}) sebanyak +{$validated['additional_years']} tahun hingga {$newExpiryDate->format('d M Y')}.",
+            'PEMUSNAHAN_RETENSI',
+            [
+                'archive_id' => $archive->id,
+                'additional_years' => $validated['additional_years'],
+                'new_expiry_date' => $newExpiryDate->format('Y-m-d'),
+                'extension_reason' => $validated['extension_reason'],
+            ],
+            $archive->box_number
+        );
 
         return redirect()->route('destructions.index')
             ->with('success', "Masa simpan berkas '{$archive->title}' berhasil diperpanjang (+{$validated['additional_years']} tahun). Expiry baru: {$newExpiryDate->format('d M Y')}.");

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Warehouse;
 use App\Models\WarehouseLocation;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 
 class WarehouseController extends Controller
@@ -46,7 +47,7 @@ class WarehouseController extends Controller
                   ->orWhere('room_sector', $sectorName)
                   ->orWhere('warehouse_id', $wh->id);
             })
-            ->withCount('archives')
+            ->with(['slots', 'archives'])
             ->get()
             ->map(function ($loc) {
                 return [
@@ -55,7 +56,7 @@ class WarehouseController extends Controller
                     'shelf_code' => $loc->shelf_code ?? 'BARIS-01',
                     'full_location' => $loc->rack_code . ' (' . ($loc->room_sector ?? 'Umum') . ')',
                     'box_capacity' => $loc->box_capacity ?? 100,
-                    'current_box_count' => $loc->current_box_count ?? 0,
+                    'current_box_count' => $loc->current_box_count,
                 ];
             });
 
@@ -64,6 +65,7 @@ class WarehouseController extends Controller
                 'code' => $wh->code,
                 'name' => $wh->name,
                 'address' => $wh->address,
+                'is_active' => (bool) ($wh->is_active ?? true),
                 'locations' => $racks,
                 'locations_count' => count($racks),
             ];
@@ -99,6 +101,12 @@ class WarehouseController extends Controller
             'is_locked' => true,
         ]);
 
+        ActivityLogger::log('MASTER_WAREHOUSE_CREATE', "Menambahkan data master gudang {$warehouse->name} ({$warehouse->code})", 'warehouse', [
+            'id' => $warehouse->id,
+            'code' => $warehouse->code,
+            'name' => $warehouse->name,
+        ], $warehouse->id);
+
         return redirect()->route('master.warehouses')
             ->with('success', "Gudang {$validated['name']} berhasil ditambahkan.");
     }
@@ -113,6 +121,7 @@ class WarehouseController extends Controller
             'address' => 'nullable|string',
         ]);
 
+        $oldData = $warehouse->only(['code', 'name', 'address']);
         $warehouse->update($validated);
 
         // Sync room object on 2D layout canvas
@@ -123,12 +132,22 @@ class WarehouseController extends Controller
                 'room_sector' => $validated['code'],
             ]);
 
+        ActivityLogger::log('MASTER_WAREHOUSE_UPDATE', "Memperbarui master gudang {$warehouse->name} ({$warehouse->code})", 'warehouse', [
+            'id' => $warehouse->id,
+            'old' => $oldData,
+            'new' => $validated,
+        ], $warehouse->id);
+
         return redirect()->route('master.warehouses')
             ->with('success', "Data gudang {$warehouse->name} berhasil diperbarui.");
     }
 
     public function destroyWarehouse(Warehouse $warehouse)
     {
+        $name = $warehouse->name;
+        $code = $warehouse->code;
+        $id = $warehouse->id;
+
         // Delete corresponding room object on 2D layout canvas
         WarehouseLocation::where('location_type', 'room')
             ->where('rack_code', $warehouse->code)
@@ -136,8 +155,66 @@ class WarehouseController extends Controller
 
         $warehouse->delete();
 
+        ActivityLogger::log('MASTER_WAREHOUSE_DELETE', "Menghapus master gudang {$name} ({$code})", 'warehouse', [
+            'id' => $id,
+            'code' => $code,
+            'name' => $name,
+        ], $id);
+
         return redirect()->route('master.warehouses')
-            ->with('success', "Gudang {$warehouse->name} berhasil dihapus.");
+            ->with('success', "Gudang {$name} berhasil dihapus.");
+    }
+
+    public function toggleWarehouseActive(Request $request, Warehouse $warehouse)
+    {
+        $user = auth()->user();
+        if (!$user || !$user->isSuperAdmin()) {
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return response()->json(['success' => false, 'message' => 'Hanya SuperAdmin yang berwenang mengubah status aktif gudang.'], 403);
+            }
+            return back()->with('error', 'Hanya SuperAdmin yang berwenang mengubah status aktif gudang.');
+        }
+
+        $newActive = $request->has('is_active') ? (bool) $request->input('is_active') : !$warehouse->is_active;
+        $oldActive = (bool) ($warehouse->is_active ?? true);
+
+        $warehouse->update(['is_active' => $newActive]);
+
+        // Sync room object in 2D layout canvas
+        WarehouseLocation::where('location_type', 'room')
+            ->where(function ($q) use ($warehouse) {
+                $q->where('rack_code', $warehouse->code)
+                  ->orWhere('room_sector', $warehouse->code);
+            })
+            ->update(['is_active' => $newActive]);
+
+        $statusStr = $newActive ? 'AKTIF' : 'NON-AKTIF';
+        $desc = "Mengubah status master gudang {$warehouse->name} ({$warehouse->code}) menjadi {$statusStr}";
+
+        ActivityLogger::log('MASTER_WAREHOUSE_STATUS_TOGGLE', $desc, 'warehouse', [
+            'id' => $warehouse->id,
+            'code' => $warehouse->code,
+            'name' => $warehouse->name,
+            'old_is_active' => $oldActive,
+            'new_is_active' => $newActive,
+        ], $warehouse->id);
+
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return response()->json([
+                'success' => true,
+                'message' => "Status gudang {$warehouse->name} berhasil diubah menjadi {$statusStr}.",
+                'is_active' => $newActive,
+                'warehouse' => [
+                    'id' => $warehouse->id,
+                    'code' => $warehouse->code,
+                    'name' => $warehouse->name,
+                    'is_active' => $newActive,
+                ]
+            ]);
+        }
+
+        return redirect()->route('master.warehouses')
+            ->with('success', "Status gudang {$warehouse->name} berhasil diubah menjadi {$statusStr}.");
     }
 
     public function storeLocation(Request $request)
@@ -158,7 +235,14 @@ class WarehouseController extends Controller
         $validated['canvas_height'] = 120;
         $validated['orientation'] = 'horizontal';
 
-        WarehouseLocation::create($validated);
+        $loc = WarehouseLocation::create($validated);
+
+        ActivityLogger::log('MASTER_RACK_CREATE', "Menambahkan rak penyimpanan baru {$loc->rack_code} di {$validated['room_sector']}", 'warehouse', [
+            'id' => $loc->id,
+            'rack_code' => $loc->rack_code,
+            'shelf_code' => $loc->shelf_code,
+            'box_capacity' => $loc->box_capacity,
+        ], $loc->id);
 
         return redirect()->route('master.warehouses')
             ->with('success', 'Lokasi penyimpanan rak/baris berhasil ditambahkan.');
@@ -170,7 +254,14 @@ class WarehouseController extends Controller
             return back()->with('error', 'Lokasi rak ini tidak dapat dihapus karena masih menampung box arsip aktif.');
         }
 
+        $code = $location->rack_code;
+        $id = $location->id;
         $location->delete();
+
+        ActivityLogger::log('MASTER_RACK_DELETE', "Menghapus rak penyimpanan {$code}", 'warehouse', [
+            'id' => $id,
+            'rack_code' => $code,
+        ], $id);
 
         return redirect()->route('master.warehouses')
             ->with('success', 'Lokasi rak berhasil dihapus.');

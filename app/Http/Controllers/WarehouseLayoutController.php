@@ -8,6 +8,7 @@ use App\Models\SubDepartment;
 use App\Models\Warehouse;
 use App\Models\WarehouseLocation;
 use App\Models\WarehouseRackSlot;
+use App\Services\ActivityLogger;
 use App\Services\NumberingService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -75,6 +76,7 @@ class WarehouseLayoutController extends Controller
                 'rotation_angle' => $loc->rotation_angle ?? 0,
                 'is_locked' => (bool) ($loc->is_locked ?? true),
                 'is_fat_locked' => $isFatLocked,
+                'is_active' => (bool) ($loc->is_active ?? true),
                 'assigned_department_id' => $loc->assigned_department_id,
                 'assigned_department' => $loc->assignedDepartment ? [
                     'id' => $loc->assignedDepartment->id,
@@ -93,6 +95,9 @@ class WarehouseLayoutController extends Controller
                     if ($slot->archive && $isExpired) {
                         $status = 'expired';
                     }
+                    if ($slot->is_active === false) {
+                        $status = 'inactive';
+                    }
 
                     return [
                         'id' => $slot->id,
@@ -103,6 +108,7 @@ class WarehouseLayoutController extends Controller
                         'slot_code' => $slot->slot_code,
                         'status' => $status,
                         'status_badge' => $slot->status_badge,
+                        'is_active' => $slot->is_active !== null ? (bool) $slot->is_active : true,
                         'archive' => $slot->archive ? [
                             'id' => $slot->archive->id,
                             'box_number' => $slot->archive->box_number,
@@ -239,6 +245,19 @@ class WarehouseLayoutController extends Controller
             );
         }
 
+        ActivityLogger::log(
+            'LAYOUT_OBJECT_CREATE',
+            "Menambahkan objek " . ($location->location_type === 'room' ? 'Gudang' : 'Rak') . " '{$location->rack_code}' pada denah layout 2D (Ukuran: {$location->canvas_width}x{$location->canvas_height}px).",
+            'LAYOUT_GUDANG',
+            [
+                'location_id' => $location->id,
+                'location_type' => $location->location_type,
+                'rack_code' => $location->rack_code,
+                'room_sector' => $location->room_sector,
+            ],
+            $location->rack_code
+        );
+
         return response()->json([
             'success' => true,
             'message' => "Object '{$location->rack_code}' berhasil ditambahkan ke canvas.",
@@ -273,6 +292,19 @@ class WarehouseLayoutController extends Controller
             'booking_notes' => $validated['booking_notes'],
         ]);
 
+        ActivityLogger::log(
+            'LAYOUT_SLOT_BOOK',
+            "Booking slot rak '{$location->rack_code}' untuk alokasi departemen {$department->code} ({$department->name}). Catatan: {$validated['booking_notes']}",
+            'LAYOUT_GUDANG',
+            [
+                'location_id' => $location->id,
+                'rack_code' => $location->rack_code,
+                'department_id' => $department->id,
+                'booking_notes' => $validated['booking_notes'],
+            ],
+            $location->rack_code
+        );
+
         return response()->json([
             'success' => true,
             'message' => "Slot rak '{$location->rack_code}' berhasil di-booking untuk departemen {$department->code}.",
@@ -287,6 +319,14 @@ class WarehouseLayoutController extends Controller
             'booked_by_user_id' => null,
             'booking_notes' => null,
         ]);
+
+        ActivityLogger::log(
+            'LAYOUT_SLOT_UNBOOK',
+            "Melepas status booking pada slot rak '{$location->rack_code}'.",
+            'LAYOUT_GUDANG',
+            ['location_id' => $location->id, 'rack_code' => $location->rack_code],
+            $location->rack_code
+        );
 
         return response()->json([
             'success' => true,
@@ -343,6 +383,22 @@ class WarehouseLayoutController extends Controller
             }
         }
 
+        ActivityLogger::log(
+            'LAYOUT_OBJECT_UPDATE',
+            "Memperbarui data / geometri objek '{$location->rack_code}' pada denah (W: {$location->canvas_width}px, H: {$location->canvas_height}px, Lock: " . ($location->is_locked ? 'Locked' : 'Unlocked') . ").",
+            'LAYOUT_GUDANG',
+            [
+                'location_id' => $location->id,
+                'rack_code' => $location->rack_code,
+                'canvas_x' => $location->canvas_x,
+                'canvas_y' => $location->canvas_y,
+                'canvas_width' => $location->canvas_width,
+                'canvas_height' => $location->canvas_height,
+                'is_locked' => $location->is_locked,
+            ],
+            $location->rack_code
+        );
+
         return response()->json([
             'success' => true,
             'message' => "Data object '{$location->rack_code}' berhasil diperbarui.",
@@ -358,6 +414,14 @@ class WarehouseLayoutController extends Controller
         }
 
         $location->delete();
+
+        ActivityLogger::log(
+            'LAYOUT_OBJECT_DELETE',
+            "Menghapus objek '{$name}' dari canvas layout gudang.",
+            'LAYOUT_GUDANG',
+            ['rack_code' => $name],
+            $name
+        );
 
         return response()->json([
             'success' => true,
@@ -420,8 +484,16 @@ class WarehouseLayoutController extends Controller
             [
                 'slot_code' => $slotCode,
                 'status' => 'empty',
+                'is_active' => true,
             ]
         );
+
+        if ($slot->is_active === false) {
+            return response()->json([
+                'success' => false,
+                'message' => "Akses Ditolak: Slot '{$slot->slot_code}' saat ini dalam status NON-AKTIF (Inactive). Silakan aktifkan slot terlebih dahulu untuk menempatkan arsip.",
+            ], 403);
+        }
 
         $archive = null;
 
@@ -499,6 +571,21 @@ class WarehouseLayoutController extends Controller
         $filledCount = $location->slots()->where('status', '!=', 'empty')->count();
         $location->update(['current_box_count' => $filledCount]);
 
+        ActivityLogger::log(
+            'SLOT_ASSIGN',
+            "Penempatan kardus box '{$archive->box_number}' di slot {$slot->slot_code} pada rak '{$location->rack_code}'.",
+            'LAYOUT_GUDANG',
+            [
+                'location_id' => $location->id,
+                'rack_code' => $location->rack_code,
+                'slot_code' => $slot->slot_code,
+                'archive_id' => $archive->id,
+                'box_number' => $archive->box_number,
+                'title' => $archive->title,
+            ],
+            $archive->box_number
+        );
+
         return response()->json([
             'success' => true,
             'message' => "Kardus arsip '{$archive->box_number}' berhasil ditempatkan di slot {$slot->slot_code}.",
@@ -540,9 +627,11 @@ class WarehouseLayoutController extends Controller
             ->where('slot_number', $validated['slot_number'])
             ->first();
 
+        $releasedBox = null;
         if ($slot && $slot->archive_id) {
             $archive = Archive::find($slot->archive_id);
             if ($archive) {
+                $releasedBox = $archive->box_number;
                 $archive->update([
                     'warehouse_rack_slot_id' => null,
                 ]);
@@ -556,9 +645,104 @@ class WarehouseLayoutController extends Controller
         $filledCount = $location->slots()->where('status', '!=', 'empty')->count();
         $location->update(['current_box_count' => $filledCount]);
 
+        ActivityLogger::log(
+            'SLOT_UNASSIGN',
+            "Pengosongan slot {$slot->slot_code} pada rak '{$location->rack_code}'" . ($releasedBox ? " (Box {$releasedBox} dilepas)" : "") . ".",
+            'LAYOUT_GUDANG',
+            [
+                'location_id' => $location->id,
+                'rack_code' => $location->rack_code,
+                'slot_code' => $slot ? $slot->slot_code : null,
+                'released_box' => $releasedBox,
+            ],
+            $location->rack_code
+        );
+
         return response()->json([
             'success' => true,
             'message' => "Slot berhasil dikosongkan.",
+        ]);
+    }
+
+    public function toggleSlotActive(Request $request, WarehouseLocation $location)
+    {
+        if (!auth()->user()->isSuperAdmin()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akses Ditolak: Hanya Super Admin yang diizinkan mengubah status aktif/non-aktif slot rak.',
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'slot_id' => 'nullable|exists:warehouse_rack_slots,id',
+            'sap_level' => 'required|integer|min:1|max:10',
+            'layer' => 'required|string|in:top,bottom',
+            'slot_number' => 'required|integer|min:1|max:20',
+            'is_active' => 'nullable|boolean',
+        ]);
+
+        $slotCode = "SAP-{$validated['sap_level']}-" . ($validated['layer'] === 'top' ? 'T' : 'B') . str_pad($validated['slot_number'], 2, '0', STR_PAD_LEFT);
+
+        $slot = WarehouseRackSlot::firstOrCreate(
+            [
+                'warehouse_location_id' => $location->id,
+                'sap_level' => $validated['sap_level'],
+                'layer' => $validated['layer'],
+                'slot_number' => $validated['slot_number'],
+            ],
+            [
+                'slot_code' => $slotCode,
+                'status' => 'empty',
+                'is_active' => true,
+            ]
+        );
+
+        $newActiveState = isset($validated['is_active']) ? (bool) $validated['is_active'] : !((bool) ($slot->is_active ?? true));
+        $slot->is_active = $newActiveState;
+
+        if (!$newActiveState) {
+            if (!$slot->archive_id) {
+                $slot->status = 'inactive';
+            }
+        } else {
+            $slot->status = $slot->archive_id ? 'filled' : 'empty';
+        }
+        $slot->save();
+
+        $statusText = $slot->is_active ? 'AKTIF (Active)' : 'NON-AKTIF (Inactive)';
+
+        ActivityLogger::log(
+            'SLOT_STATUS_TOGGLE',
+            "SuperAdmin mengubah status slot rak {$location->rack_code} [{$slot->slot_code}] (Sap {$slot->sap_level}, {$slot->layer_label}, Slot {$slot->slot_number}) menjadi {$statusText}.",
+            'LAYOUT_GUDANG',
+            [
+                'location_id' => $location->id,
+                'rack_code' => $location->rack_code,
+                'slot_id' => $slot->id,
+                'slot_code' => $slot->slot_code,
+                'sap_level' => $slot->sap_level,
+                'layer' => $slot->layer,
+                'slot_number' => $slot->slot_number,
+                'is_active' => (bool) $slot->is_active,
+            ],
+            $location->rack_code
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => "Status slot {$slot->slot_code} berhasil diubah menjadi {$statusText}.",
+            'is_active' => (bool) $slot->is_active,
+            'status' => $slot->status,
+            'slot' => [
+                'id' => $slot->id,
+                'slot_code' => $slot->slot_code,
+                'sap_level' => (int) $slot->sap_level,
+                'layer' => $slot->layer,
+                'layer_label' => $slot->layer_label,
+                'slot_number' => (int) $slot->slot_number,
+                'status' => $slot->status,
+                'is_active' => (bool) $slot->is_active,
+            ]
         ]);
     }
 }

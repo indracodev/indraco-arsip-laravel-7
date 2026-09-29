@@ -15,12 +15,14 @@ class WarehouseRackSlot extends Model
         'slot_code',
         'archive_id',
         'status',
+        'is_active',
         'notes',
     ];
 
     protected $casts = [
         'sap_level' => 'integer',
         'slot_number' => 'integer',
+        'is_active' => 'boolean',
     ];
 
     public function location(): BelongsTo

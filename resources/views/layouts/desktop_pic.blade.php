@@ -241,7 +241,7 @@
                 <button @click="openFormWindow('archives')" type="button" class="hover:text-amber-400 transition" :class="activeWinId === 'archives' ? 'text-amber-400 font-bold' : ''">Catalog</button>
                 <button @click="openFormWindow('borrowings')" type="button" class="hover:text-amber-400 transition" :class="activeWinId === 'borrowings' ? 'text-amber-400 font-bold' : ''">Borrowings</button>
                 <button @click="openFormWindow('destructions')" type="button" class="hover:text-amber-400 transition" :class="activeWinId === 'destructions' ? 'text-amber-400 font-bold' : ''">Retention</button>
-                <button @click="openFormWindow('logs')" type="button" class="hover:text-amber-400 transition" :class="activeWinId === 'logs' ? 'text-amber-400 font-bold' : ''">Audit Logs</button>
+                <button @click="openFormWindow('logs')" type="button" class="hover:text-amber-400 transition" :class="activeWinId === 'logs' ? 'text-amber-400 font-bold' : ''">Log History</button>
             </nav>
         </div>
 
@@ -886,7 +886,7 @@
                     },
                     { 
                         id: 'logs', 
-                        title: 'Audit Trail', 
+                        title: 'Log History', 
                         icon: 'history', 
                         url: '{{ route("logs.index") }}?embed=1' 
                     },

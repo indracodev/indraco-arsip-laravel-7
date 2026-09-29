@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Department;
 use App\Models\SubDepartment;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 
 class DepartmentController extends Controller
@@ -38,7 +39,14 @@ class DepartmentController extends Controller
             $validated['retention_years'] = 5;
         }
 
-        Department::create($validated);
+        $dept = Department::create($validated);
+
+        ActivityLogger::log('MASTER_DEPT_CREATE', "Menambahkan departemen baru {$dept->name} ({$dept->code})", 'master', [
+            'id' => $dept->id,
+            'code' => $dept->code,
+            'name' => $dept->name,
+            'retention_years' => $dept->retention_years,
+        ], $dept->id);
 
         return redirect()->route('master.departments')
             ->with('success', "Departemen {$validated['name']} ({$validated['code']}) berhasil ditambahkan.");
@@ -59,7 +67,14 @@ class DepartmentController extends Controller
             $validated['retention_years'] = 5;
         }
 
+        $oldData = $department->only(['code', 'name', 'retention_years']);
         $department->update($validated);
+
+        ActivityLogger::log('MASTER_DEPT_UPDATE', "Memperbarui departemen {$department->name} ({$department->code})", 'master', [
+            'id' => $department->id,
+            'old' => $oldData,
+            'new' => $validated,
+        ], $department->id);
 
         return redirect()->route('master.departments')
             ->with('success', "Departemen {$validated['name']} berhasil diperbarui.");
@@ -79,10 +94,19 @@ class DepartmentController extends Controller
             }
         }
 
+        $name = $department->name;
+        $code = $department->code;
+        $id = $department->id;
         $department->delete();
 
+        ActivityLogger::log('MASTER_DEPT_DELETE', "Menghapus departemen {$name} ({$code})", 'master', [
+            'id' => $id,
+            'code' => $code,
+            'name' => $name,
+        ], $id);
+
         return redirect()->route('master.departments')
-            ->with('success', "Departemen {$department->name} berhasil dihapus.");
+            ->with('success', "Departemen {$name} berhasil dihapus.");
     }
 
     public function storeSubDepartment(Request $request)
@@ -106,7 +130,14 @@ class DepartmentController extends Controller
             return back()->with('error', "Kode sub-departemen {$validated['code']} sudah digunakan pada departemen ini.");
         }
 
-        SubDepartment::create($validated);
+        $sub = SubDepartment::create($validated);
+
+        ActivityLogger::log('MASTER_SUBDEPT_CREATE', "Menambahkan sub-departemen baru {$sub->name} ({$sub->code})", 'master', [
+            'id' => $sub->id,
+            'department_id' => $sub->department_id,
+            'code' => $sub->code,
+            'name' => $sub->name,
+        ], $sub->id);
 
         return redirect()->route('master.departments')
             ->with('success', "Sub-Departemen {$validated['name']} ({$validated['code']}) berhasil ditambahkan.");
@@ -134,7 +165,14 @@ class DepartmentController extends Controller
             return back()->with('error', "Kode sub-departemen {$validated['code']} sudah digunakan pada departemen ini.");
         }
 
+        $oldData = $subDepartment->only(['department_id', 'code', 'name']);
         $subDepartment->update($validated);
+
+        ActivityLogger::log('MASTER_SUBDEPT_UPDATE', "Memperbarui sub-departemen {$subDepartment->name} ({$subDepartment->code})", 'master', [
+            'id' => $subDepartment->id,
+            'old' => $oldData,
+            'new' => $validated,
+        ], $subDepartment->id);
 
         return redirect()->route('master.departments')
             ->with('success', "Sub-Departemen {$validated['name']} berhasil diperbarui.");
@@ -146,10 +184,19 @@ class DepartmentController extends Controller
             return back()->with('error', "Sub-Departemen {$subDepartment->name} tidak dapat dihapus karena memiliki data arsip terkait.");
         }
 
+        $name = $subDepartment->name;
+        $code = $subDepartment->code;
+        $id = $subDepartment->id;
         $subDepartment->delete();
 
+        ActivityLogger::log('MASTER_SUBDEPT_DELETE', "Menghapus sub-departemen {$name} ({$code})", 'master', [
+            'id' => $id,
+            'code' => $code,
+            'name' => $name,
+        ], $id);
+
         return redirect()->route('master.departments')
-            ->with('success', "Sub-Departemen {$subDepartment->name} berhasil dihapus.");
+            ->with('success', "Sub-Departemen {$name} berhasil dihapus.");
     }
 
     public function apiGetDepartmentArchives(Request $request, Department $department)

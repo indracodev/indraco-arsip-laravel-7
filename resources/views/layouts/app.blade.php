@@ -943,7 +943,7 @@
                     @endif
                     { id: 'users', title: 'Kelola User & Hak Akses', icon: 'users', url: '{{ route("master.users") }}?embed=1' },
                     { id: 'archives', title: 'Katalog Arsip', icon: 'folder-archive', url: '{{ route("archives.index") }}?embed=1' },
-                    { id: 'logs', title: 'Audit Trail', icon: 'history', url: '{{ route("logs.index") }}?embed=1' }
+                    { id: 'logs', title: 'Log History', icon: 'history', url: '{{ route("logs.index") }}?embed=1' }
                 ],
 
                 initMdi() {

@@ -70,6 +70,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/api/warehouse/locations/{location}/delete', 'WarehouseLayoutController@destroyLocation')->name('api.warehouse.locations.delete');
     Route::post('/api/warehouse/locations/{location}/slots/assign', 'WarehouseLayoutController@assignSlotArchive')->name('api.warehouse.locations.slots.assign');
     Route::post('/api/warehouse/locations/{location}/slots/unassign', 'WarehouseLayoutController@unassignSlotArchive')->name('api.warehouse.locations.slots.unassign');
+    Route::post('/api/warehouse/locations/{location}/slots/toggle-active', 'WarehouseLayoutController@toggleSlotActive')->name('api.warehouse.locations.slots.toggle_active');
 
     // Master Department & Sub-Department Archives Drill-Down API
     Route::get('/api/departments/{department}/archives', 'DepartmentController@apiGetDepartmentArchives')->name('api.departments.archives');
@@ -90,6 +91,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/warehouses', 'WarehouseController@storeWarehouse')->name('warehouses.store');
         Route::put('/warehouses/{warehouse}', 'WarehouseController@updateWarehouse')->name('warehouses.update');
         Route::delete('/warehouses/{warehouse}', 'WarehouseController@destroyWarehouse')->name('warehouses.destroy');
+        Route::post('/warehouses/{warehouse}/toggle-active', 'WarehouseController@toggleWarehouseActive')->name('warehouses.toggle_active');
 
         Route::post('/warehouses/locations', 'WarehouseController@storeLocation')->name('warehouses.locations.store');
         Route::delete('/warehouses/locations/{location}', 'WarehouseController@destroyLocation')->name('warehouses.locations.destroy');

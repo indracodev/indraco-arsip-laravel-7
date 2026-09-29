@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Archive;
 use App\Models\NumberingFormat;
+use App\Services\ActivityLogger;
 use App\Services\NumberingService;
 use Illuminate\Http\Request;
 
@@ -53,7 +54,14 @@ class NumberingFormatController extends Controller
             $validated['is_active'] = false;
         }
 
-        NumberingFormat::create($validated);
+        $format = NumberingFormat::create($validated);
+
+        ActivityLogger::log('MASTER_NUMBERING_CREATE', "Menambahkan pola format penomoran: {$format->name} ({$format->pattern})", 'master', [
+            'id' => $format->id,
+            'pattern' => $format->pattern,
+            'padding' => $format->padding,
+            'is_active' => $format->is_active,
+        ], $format->id);
 
         return redirect()->route('master.numbering')
             ->with('success', 'Format penomoran box arsip baru berhasil ditambahkan.');
@@ -76,7 +84,14 @@ class NumberingFormatController extends Controller
             $validated['is_active'] = false;
         }
 
+        $old = $numberingFormat->only(['name', 'pattern', 'current_counter', 'padding', 'is_active']);
         $numberingFormat->update($validated);
+
+        ActivityLogger::log('MASTER_NUMBERING_UPDATE', "Memperbarui format penomoran: {$numberingFormat->name} ({$numberingFormat->pattern})", 'master', [
+            'id' => $numberingFormat->id,
+            'old' => $old,
+            'new' => $validated,
+        ], $numberingFormat->id);
 
         return redirect()->route('master.numbering')
             ->with('success', 'Pengaturan format penomoran box arsip berhasil diperbarui.');
