@@ -9,10 +9,18 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class SubDepartment extends Model
 {
     protected $fillable = [
+        'sidar_id',
         'department_id',
         'code',
         'name',
         'description',
+        'retention_years',
+        'is_active',
+    ];
+
+    protected $casts = [
+        'retention_years' => 'integer',
+        'is_active' => 'boolean',
     ];
 
     public function department(): BelongsTo
@@ -22,11 +30,11 @@ class SubDepartment extends Model
 
     public function archives(): HasMany
     {
-        return $this->hasMany(Archive::class, 'sub_department_id');
+        return $this->hasMany(Archive::class);
     }
 
     public function users(): HasMany
     {
-        return $this->hasMany(User::class, 'sub_department_id');
+        return $this->hasMany(User::class);
     }
 }

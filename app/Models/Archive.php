@@ -18,18 +18,24 @@ class Archive extends Model
         'document_type',
         'created_by_user_id',
         'title',
+        'is_custom_doc_name',
+        'custom_doc_name',
         'period_start_date',
         'period_end_date',
         'period_text',
         'period_yy_mm',
+        'periode_doc',
+        'tgl_penyerahan',
         'content_description',
         'retention_years',
+        'masa_simpan_custom',
         'retention_expiry_date',
         'physical_condition',
         'file_path',
         'scan_input_form',
         'scan_approval_input',
         'warehouse_location_id',
+        'warehouse_rack_slot_id',
         'status',
         'rejection_note',
         'extension_reason',
@@ -39,61 +45,12 @@ class Archive extends Model
     protected $casts = [
         'period_start_date' => 'date',
         'period_end_date' => 'date',
+        'tgl_penyerahan' => 'date',
         'retention_expiry_date' => 'date',
         'retention_years' => 'integer',
+        'masa_simpan_custom' => 'integer',
+        'is_custom_doc_name' => 'boolean',
     ];
-
-    public function getDocumentTypesAttribute(): array
-    {
-        $raw = $this->attributes['document_type'] ?? null;
-        if (empty($raw)) {
-            return ['UMUM'];
-        }
-
-        $decoded = json_decode($raw, true);
-        if (is_array($decoded)) {
-            return !empty($decoded) ? $decoded : ['UMUM'];
-        }
-
-        if (strpos($raw, ',') !== false) {
-            $parts = array_filter(array_map('trim', explode(',', $raw)));
-            return !empty($parts) ? $parts : ['UMUM'];
-        }
-
-        return [$raw];
-    }
-
-    public function getDocumentTypeFormattedAttribute(): string
-    {
-        $types = $this->document_types;
-        if (empty($types)) {
-            return 'UMUM';
-        }
-        return implode(', ', $types);
-    }
-
-    public function getDocumentTypeAttribute($value): ?string
-    {
-        if (empty($value)) {
-            return 'UMUM';
-        }
-
-        $decoded = json_decode($value, true);
-        if (is_array($decoded)) {
-            return implode(', ', $decoded);
-        }
-
-        return $value;
-    }
-
-    public function setDocumentTypeAttribute($value): void
-    {
-        if (is_array($value)) {
-            $this->attributes['document_type'] = json_encode(array_values(array_filter($value)));
-        } else {
-            $this->attributes['document_type'] = $value;
-        }
-    }
 
     public function department(): BelongsTo
     {
@@ -102,16 +59,7 @@ class Archive extends Model
 
     public function subDepartment(): BelongsTo
     {
-        return $this->belongsTo(SubDepartment::class, 'sub_department_id');
-    }
-
-    public function getFullDepartmentAttribute(): string
-    {
-        $dept = $this->department ? $this->department->code : 'GEN';
-        if ($this->subDepartment) {
-            return $dept . ' - ' . $this->subDepartment->name;
-        }
-        return $dept;
+        return $this->belongsTo(SubDepartment::class);
     }
 
     public function creator(): BelongsTo
@@ -122,6 +70,11 @@ class Archive extends Model
     public function location(): BelongsTo
     {
         return $this->belongsTo(WarehouseLocation::class, 'warehouse_location_id');
+    }
+
+    public function rackSlot(): BelongsTo
+    {
+        return $this->belongsTo(WarehouseRackSlot::class, 'warehouse_rack_slot_id');
     }
 
     public function entryLogs(): HasMany
@@ -142,6 +95,47 @@ class Archive extends Model
     public function destructionLog(): HasOne
     {
         return $this->hasOne(DestructionLog::class);
+    }
+
+    public function items(): HasMany
+    {
+        return $this->hasMany(ArchiveItem::class)->orderBy('item_number', 'asc');
+    }
+
+    public function getFormattedItemsSummaryAttribute(): string
+    {
+        if ($this->items->isEmpty()) {
+            return (string) ($this->content_description ?? '-');
+        }
+        return (string) $this->items->map(function ($item, $idx) {
+            $p = $item->period_text ? " ({$item->period_text})" : "";
+            return ($idx + 1) . ". {$item->document_name}{$p}";
+        })->implode("\n");
+    }
+
+    public function getEffectiveTitleAttribute(): string
+    {
+        if ($this->is_custom_doc_name && !empty($this->custom_doc_name)) {
+            return $this->custom_doc_name;
+        }
+        return $this->title;
+    }
+
+    public function getEffectiveRetentionYearsAttribute(): int
+    {
+        if ($this->masa_simpan_custom !== null && $this->masa_simpan_custom > 0) {
+            return (int) $this->masa_simpan_custom;
+        }
+        if ($this->retention_years !== null && $this->retention_years > 0) {
+            return (int) $this->retention_years;
+        }
+        if ($this->subDepartment && $this->subDepartment->retention_years) {
+            return (int) $this->subDepartment->retention_years;
+        }
+        if ($this->department && $this->department->retention_years) {
+            return (int) $this->department->retention_years;
+        }
+        return 5;
     }
 
     public function getStatusLabelAttribute(): string

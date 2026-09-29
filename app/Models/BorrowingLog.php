@@ -21,6 +21,10 @@ class BorrowingLog extends Model
         'status',
         'notes',
         'scan_approval_borrow',
+        'approval_file',
+        'is_approval_uploaded',
+        'approval_status',
+        'approval_notes',
     ];
 
     protected $casts = [
@@ -29,6 +33,7 @@ class BorrowingLog extends Model
         'borrow_date' => 'datetime',
         'expected_return_date' => 'date',
         'actual_return_date' => 'datetime',
+        'is_approval_uploaded' => 'boolean',
     ];
 
     public function archive(): BelongsTo
@@ -49,6 +54,11 @@ class BorrowingLog extends Model
     public function picGudang(): BelongsTo
     {
         return $this->belongsTo(User::class, 'pic_gudang_id');
+    }
+
+    public function getEffectiveApprovalFileAttribute(): ?string
+    {
+        return $this->approval_file ?: $this->scan_approval_borrow;
     }
 
     public function getStatusLabelAttribute(): string

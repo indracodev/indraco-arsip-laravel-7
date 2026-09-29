@@ -11,6 +11,11 @@ class Warehouse extends Model
         'code',
         'name',
         'address',
+        'is_fat_locked',
+    ];
+
+    protected $casts = [
+        'is_fat_locked' => 'boolean',
     ];
 
     public function locations(): HasMany

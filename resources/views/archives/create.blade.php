@@ -1,94 +1,61 @@
 @extends(auth()->check() && auth()->user()->isPicDept() ? 'layouts.desktop_pic' : 'layouts.app')
 
-@section('title', 'Form Draft & Booking Tempat Arsip - DMS PT Indraco')
-
-@php
-    $oldDocTypes = old('document_types', []);
-    if (!is_array($oldDocTypes)) {
-        $oldDocTypes = [];
-    }
-@endphp
+@section('title', 'Form Pengajuan Box Arsip (TB 30g) - DMS PT Indraco')
 
 @section('content')
-<div class="w-full space-y-[10px] font-mono" x-data="archiveCreateForm()">
+<div class="max-w-5xl mx-auto space-y-3 font-sans pb-10" x-data="archiveCreateApp()">
+
     <!-- DELPHI FORM TOOLBAR HEADER -->
-    <div class="bg-gradient-to-r from-slate-100 via-slate-50 to-slate-100 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 border border-slate-300 dark:border-slate-800 rounded-[4px] px-[12px] py-[8px] shadow-2xs flex items-center justify-between gap-[8px]">
-        <div class="flex items-center gap-[8px]">
-            <span class="p-[4px] bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 rounded-[3px]">
-                <i data-lucide="file-plus" class="w-[15px] h-[15px]"></i>
+    <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-3 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 font-mono">
+        <div class="flex items-center gap-2.5">
+            <span class="p-2 bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 rounded">
+                <i data-lucide="package-plus" class="w-4 h-4"></i>
             </span>
             <div>
-                <h1 class="text-[12px] font-bold text-slate-900 dark:text-white uppercase tracking-wider">Form Pengajuan Draft & Booking Storage</h1>
-                <p class="text-[10px] text-slate-500 dark:text-slate-400">Isi rincian berkas arsip, entitas, subdepartemen & tipe dokumen untuk diverifikasi (TForm Window)</p>
+                <h1 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Form Pengajuan Box Arsip (TB 30g) & Label A5</h1>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400">Pencatatan Master Kardus & Multi-Item Butir Dokumen Arsip • Standar Box TB 30g</p>
             </div>
         </div>
 
-        <a href="{{ route('archives.index') }}" class="px-[10px] py-[3px] bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded-[3px] text-[11px] font-bold transition flex items-center gap-[4px] shadow-2xs">
-            <i data-lucide="arrow-left" class="w-[12px] h-[12px] text-amber-500"></i>
-            <span>Kembali (Esc)</span>
+        <a href="{{ route('archives.index', request()->has('embed') ? ['embed' => 1] : []) }}" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded text-xs font-bold transition flex items-center gap-1 shadow-sm shrink-0">
+            <i data-lucide="arrow-left" class="w-3.5 h-3.5 text-amber-500"></i>
+            <span>Kembali ke Katalog (Esc)</span>
         </a>
     </div>
 
-    <!-- DELPHI TGROUPBOX MAIN FORM CARD -->
-    <fieldset class="border border-slate-300 dark:border-slate-800 p-[10px] rounded-[4px] bg-white dark:bg-slate-950 text-[11px] shadow-xs">
-        <legend class="px-[6px] text-[10px] font-bold text-amber-700 dark:text-amber-400 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-[2px] shadow-2xs flex items-center gap-[4px]">
-            <i data-lucide="edit-3" class="w-[12px] h-[12px] text-amber-500"></i>
-            <span>[Form Controls] Input Metadata & Rincian Berkas</span>
-        </legend>
+    <!-- MAIN FORM WINDOW CARD -->
+    <form action="{{ route('archives.store', request()->has('embed') ? ['embed' => 1] : []) }}" method="POST" enctype="multipart/form-data" class="space-y-3">
+        @csrf
+        @if(request()->has('embed'))
+            <input type="hidden" name="embed" value="1">
+        @endif
 
-        <form action="{{ route('archives.store') }}" method="POST" enctype="multipart/form-data" class="space-y-[8px] pt-[4px]">
-            @csrf
+        <!-- SECTION 1: UNIT & DEPARTEMEN -->
+        <fieldset class="border border-slate-300 dark:border-slate-800 p-3.5 rounded bg-white dark:bg-slate-950 shadow-sm space-y-3">
+            <legend class="px-2 font-mono text-[11px] font-bold text-purple-700 dark:text-purple-400 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded shadow-sm flex items-center gap-1.5">
+                <i data-lucide="building-2" class="w-3.5 h-3.5 text-purple-500"></i>
+                1. Identitas Unit Kerja & Kepemilikan Dokumen
+            </legend>
 
-            <!-- 1. Perusahaan Entitas, Departemen, & Subdepartemen (Parent > Child) -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-[8px]">
-                
-                <!-- Company Name / Perusahaan Entitas (Custom Company Control) -->
-                <div class="flex flex-col gap-[2px]">
-                    <div class="flex items-center justify-between">
-                        <label for="company_name" class="text-[10px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-400">
-                            PERUSAHAAN ENTITAS <span class="text-rose-500">*</span>
-                        </label>
-                        <!-- Quick Add Button for PIC Dept & Super Admin -->
-                        <button 
-                            type="button" 
-                            @click="openAddCompanyModal = true"
-                            class="text-[9px] font-bold text-amber-600 dark:text-amber-400 hover:underline flex items-center gap-[2px]"
-                            title="Tambah Perusahaan Entitas Baru / Custom"
-                        >
-                            <i data-lucide="plus" class="w-[10px] h-[10px]"></i>
-                            <span>+ Tambah Entitas</span>
-                        </button>
-                    </div>
-
-                    <div class="flex items-center gap-[4px]">
-                        <select 
-                            name="company_name" 
-                            id="company_name" 
-                            x-model="selectedCompany"
-                            required 
-                            class="w-full px-[8px] h-[28px] bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-[3px] text-[11px] font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition"
-                        >
-                            <template x-for="comp in companyList" :key="comp.id">
-                                <option :value="comp.name" x-text="comp.name + (comp.code ? ' (' + comp.code + ')' : '')"></option>
-                            </template>
-                        </select>
-
-                        <button 
-                            type="button" 
-                            @click="openAddCompanyModal = true" 
-                            class="px-[6px] h-[28px] bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 rounded-[3px] text-[10px] font-bold transition shrink-0"
-                            title="Buka form input entitas baru"
-                        >
-                            +
-                        </button>
-                    </div>
-                    @error('company_name') <span class="text-rose-500 text-[10px] block font-bold">{{ $message }}</span> @enderror
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <!-- Company Entity -->
+                <div>
+                    <label for="company_name" class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        PERUSAHAAN ENTITAS <span class="text-rose-500">*</span>
+                    </label>
+                    <select name="company_name" id="company_name" required class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition">
+                        <option value="PT Indraco Jaya Perkasa" {{ old('company_name') == 'PT Indraco Jaya Perkasa' ? 'selected' : '' }}>PT Indraco Jaya Perkasa</option>
+                        <option value="PT Indraco Global" {{ old('company_name') == 'PT Indraco Global' ? 'selected' : '' }}>PT Indraco Global</option>
+                        <option value="PT Indraco Trading" {{ old('company_name') == 'PT Indraco Trading' ? 'selected' : '' }}>PT Indraco Trading</option>
+                        <option value="PT Indraco Enterprise" {{ old('company_name') == 'PT Indraco Enterprise' ? 'selected' : '' }}>PT Indraco Enterprise</option>
+                        <option value="PT Indraco International" {{ old('company_name') == 'PT Indraco International' ? 'selected' : '' }}>PT Indraco International</option>
+                    </select>
                 </div>
 
-                <!-- Department Selection (Parent Department) -->
-                <div class="flex flex-col gap-[2px]">
-                    <label for="department_id" class="text-[10px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-400">
-                        DEPARTEMEN PEMILIK <span class="text-rose-500">*</span>
+                <!-- Department Selection -->
+                <div>
+                    <label for="department_id" class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        DEPARTEMEN <span class="text-rose-500">*</span>
                     </label>
                     @if(auth()->user()->isPicDept())
                         <input type="hidden" name="department_id" value="{{ auth()->user()->department_id }}">
@@ -96,655 +63,359 @@
                             type="text" 
                             value="{{ auth()->user()->department->code }} - {{ auth()->user()->department->name }}" 
                             disabled 
-                            class="w-full px-[8px] h-[28px] bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-[3px] text-[11px] font-mono font-bold text-slate-800 dark:text-slate-300 cursor-not-allowed"
+                            class="w-full px-2.5 py-1.5 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-800 dark:text-slate-300 cursor-not-allowed"
                         >
                     @else
-                        <select 
-                            name="department_id" 
-                            id="department_id" 
-                            x-model="selectedDeptId"
-                            required 
-                            class="w-full px-[8px] h-[28px] bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-[3px] text-[11px] font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition"
-                        >
+                        <select name="department_id" id="department_id" x-model="selectedDeptId" @change="updateSubDepartments()" required class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition">
                             <option value="">-- Pilih Departemen --</option>
                             @foreach($departments as $dept)
-                            <option value="{{ $dept->id }}">
+                            <option value="{{ $dept->id }}" {{ old('department_id') == $dept->id ? 'selected' : '' }}>
                                 {{ $dept->code }} - {{ $dept->name }}
                             </option>
                             @endforeach
                         </select>
                     @endif
-                    @error('department_id') <span class="text-rose-500 text-[10px] block font-bold">{{ $message }}</span> @enderror
                 </div>
 
-                <!-- SubDepartment Selection (Child Hierarchy: Parent > Child) -->
-                <div class="flex flex-col gap-[2px]">
-                    <label for="sub_department_id" class="text-[10px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-400">
-                        SUBDEPARTEMEN / DIVISI <span class="text-amber-600 font-bold">(Unit Kerja)</span>
+                <!-- Sub-Department Selection -->
+                <div>
+                    <label for="sub_department_id" class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        SUB-DEPARTEMEN <span class="text-slate-400 font-normal">(Opsional)</span>
                     </label>
-
-                    @if(auth()->user()->isPicDept())
-                        <select 
-                            name="sub_department_id" 
-                            id="sub_department_id" 
-                            class="w-full px-[8px] h-[28px] bg-slate-50 dark:bg-slate-900 border border-amber-300 dark:border-amber-700 rounded-[3px] text-[11px] font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition"
-                        >
-                            <option value="">-- Pilih Subdepartemen --</option>
-                            @if(auth()->user()->department && auth()->user()->department->subDepartments->count() > 0)
-                                @foreach(auth()->user()->department->subDepartments as $sub)
-                                    <option value="{{ $sub->id }}" {{ old('sub_department_id', auth()->user()->sub_department_id) == $sub->id ? 'selected' : '' }}>
-                                        {{ $sub->name }} {{ $sub->code ? '('.$sub->code.')' : '' }}
-                                    </option>
-                                @endforeach
-                            @else
-                                <option value="" disabled>(Unit Utama - Belum ada subdepartemen)</option>
-                            @endif
-                        </select>
-                    @else
-                        <!-- Dynamic Cascading SubDepartment for Super Admin -->
-                        <select 
-                            name="sub_department_id" 
-                            id="sub_department_id" 
-                            x-model="selectedSubDeptId"
-                            class="w-full px-[8px] h-[28px] bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-[3px] text-[11px] font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition"
-                        >
-                            <option value="">-- Pilih Subdepartemen --</option>
-                            <template x-for="sub in subDeptList" :key="sub.id">
-                                <option :value="sub.id" x-text="sub.name + (sub.code ? ' (' + sub.code + ')' : '')"></option>
-                            </template>
-                            <template x-if="selectedDeptId && subDeptList.length === 0">
-                                <option value="" disabled>(Tidak ada subdepartemen terdaftar)</option>
-                            </template>
-                        </select>
-                    @endif
-                    @error('sub_department_id') <span class="text-rose-500 text-[10px] block font-bold">{{ $message }}</span> @enderror
+                    <select name="sub_department_id" id="sub_department_id" x-model="selectedSubDeptId" class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition">
+                        <option value="">-- Pilih Sub-Departemen (Induk) --</option>
+                        <template x-for="sub in subDepartments" :key="sub.id">
+                            <option :value="sub.id" x-text="`${sub.code} - ${sub.name}`" :selected="sub.id == selectedSubDeptId"></option>
+                        </template>
+                    </select>
                 </div>
-
             </div>
+        </fieldset>
 
-            <!-- 2. Document Types Multi-Check Selection GroupBox (Dynamic Catalog & Custom Document) -->
-            <fieldset class="border border-slate-300 dark:border-slate-800 p-[8px] sm:p-[10px] rounded-[3px] bg-slate-50/70 dark:bg-slate-900/60 space-y-[6px]">
-                <legend class="px-[6px] text-[10px] font-bold uppercase text-amber-700 dark:text-amber-400 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[2px] shadow-2xs flex items-center gap-[4px]">
-                    <i data-lucide="check-square" class="w-[12px] h-[12px] text-amber-500"></i>
-                    <span>TIPE DOKUMEN DALAM SATU BOX BENDEL <span class="text-rose-500">*</span> (Pilihan Formulir Ceklis)</span>
-                </legend>
+        <!-- SECTION 2: KATEGORI & IDENTITAS INDUK DOKUMEN -->
+        <fieldset class="border border-slate-300 dark:border-slate-800 p-3.5 rounded bg-white dark:bg-slate-950 shadow-sm space-y-3">
+            <legend class="px-2 font-mono text-[11px] font-bold text-blue-700 dark:text-blue-400 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded shadow-sm flex items-center gap-1.5">
+                <i data-lucide="file-text" class="w-3.5 h-3.5 text-blue-500"></i>
+                2. Kategori & Identitas Utama Kardus
+            </legend>
 
-                <!-- Helper buttons, Counter Ribbon, & Add to Catalog Button -->
-                <div class="flex flex-wrap items-center justify-between gap-[6px] pb-[4px] border-b border-slate-200 dark:border-slate-800">
-                    <div class="flex items-center gap-[6px] text-[10px] text-slate-600 dark:text-slate-400 font-mono">
-                        <span>Terpilih:</span>
-                        <span class="px-[6px] py-[1px] bg-amber-500 text-slate-950 font-black rounded font-mono text-[10px]" x-text="selectedTypes.length + ' Dokumen'"></span>
-                        <span class="text-slate-400 text-[9px] hidden sm:inline">(Bisa mencakup beberapa jenis dokumen dalam satu box)</span>
-                    </div>
-
-                    <div class="flex flex-wrap items-center gap-[4px] text-[10px] font-mono">
-                        <button type="button" @click="selectAll()" class="px-[6px] py-[1px] bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded border border-slate-300 dark:border-slate-700 font-bold transition">
-                            Pilih Semua
-                        </button>
-                        <button type="button" @click="clearAll()" class="px-[6px] py-[1px] bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded border border-slate-300 dark:border-slate-700 font-bold transition">
-                            Kosongkan
-                        </button>
-                        <span class="text-slate-300 dark:text-slate-700">|</span>
-                        <button type="button" @click="presetFinance()" class="px-[6px] py-[1px] bg-amber-100 hover:bg-amber-200 dark:bg-amber-950/50 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 rounded border border-amber-300 dark:border-amber-800 font-bold transition">
-                            + Paket Finance/Purchasing
-                        </button>
-                        <button type="button" @click="presetHRD()" class="px-[6px] py-[1px] bg-sky-100 hover:bg-sky-200 dark:bg-sky-950/50 dark:hover:bg-sky-900/60 text-sky-800 dark:text-sky-300 rounded border border-sky-300 dark:border-sky-800 font-bold transition">
-                            + Paket HRD/GA
-                        </button>
-
-                        <span class="text-slate-300 dark:text-slate-700">|</span>
-                        
-                        <!-- HIGH VISIBILITY ACTION: TAMBAH KATALOG DOKUMEN (PIC DEPT FULL CONTROL) -->
-                        <button 
-                            type="button" 
-                            @click="openAddDocModal = true" 
-                            class="px-[8px] py-[1px] bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black rounded border border-amber-600 shadow-2xs transition flex items-center gap-[3px]"
-                            title="Tambahkan jenis dokumen baru ke dalam katalog sistem"
-                        >
-                            <i data-lucide="plus-circle" class="w-[11px] h-[11px] text-slate-950"></i>
-                            <span>+ Tambah Katalog Dokumen</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Dynamic Checkbox Grid loaded from Database Catalog -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-[6px]">
-                    <template x-for="doc in docList" :key="doc.id">
-                        <label 
-                            class="relative flex items-start gap-[6px] p-[6px] rounded-[3px] border cursor-pointer select-none transition"
-                            :class="selectedTypes.includes(doc.id) 
-                                ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-400 dark:border-amber-600 shadow-2xs' 
-                                : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'"
-                        >
-                            <input 
-                                type="checkbox" 
-                                name="document_types[]" 
-                                :value="doc.id" 
-                                x-model="selectedTypes"
-                                @change="checkCustom()"
-                                class="mt-[2px] rounded border-slate-300 dark:border-slate-700 text-amber-500 focus:ring-0"
-                            >
-                            <div class="flex-1 min-w-0">
-                                <div class="flex items-center gap-[4px]">
-                                    <span class="font-bold text-[10.5px] block leading-tight font-mono" :class="selectedTypes.includes(doc.id) ? 'text-amber-900 dark:text-amber-300' : 'text-slate-800 dark:text-slate-200'" x-text="doc.name"></span>
-                                    <template x-if="!doc.is_preset">
-                                        <span class="px-[3px] py-[0.5px] bg-purple-100 dark:bg-purple-950/60 border border-purple-300 dark:border-purple-800 text-purple-700 dark:text-purple-300 text-[8px] font-bold rounded" title="Custom Catalog">Custom</span>
-                                    </template>
-                                </div>
-                                <span class="text-[9px] text-slate-500 dark:text-slate-400 block leading-tight mt-[1px]" x-text="doc.desc"></span>
-                            </div>
-                        </label>
-                    </template>
-                </div>
-
-                <!-- Custom Document Type Input (shown if LAINNYA is checked) -->
-                <div x-show="showCustom" x-transition class="pt-[4px] border-t border-slate-200 dark:border-slate-800 flex flex-col gap-[2px]">
-                    <label for="custom_document_type" class="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase">
-                        Keterangan Spesifik Dokumen Lainnya (Spesifik Box Ini):
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                    <label for="document_type" class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        KATEGORI DOKUMEN <span class="text-rose-500">*</span>
                     </label>
-                    <input 
-                        type="text" 
-                        name="custom_document_type" 
-                        id="custom_document_type" 
-                        value="{{ old('custom_document_type') }}" 
-                        placeholder="Contoh: Polis Asuransi Kendaraan Operasional, Bilyet Deposito No 123..."
-                        class="w-full px-[8px] h-[28px] bg-white dark:bg-slate-950 border border-amber-300 dark:border-amber-700 rounded-[3px] text-[11px] font-mono text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 transition"
-                    >
-                </div>
-
-                @error('document_types') 
-                    <span class="text-rose-500 text-[10px] font-bold block pt-[2px]">{{ $message }}</span> 
-                @enderror
-            </fieldset>
-
-            <!-- 3. Archive Title -->
-            <div class="flex flex-col gap-[2px]">
-                <label for="title" class="text-[10px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-400">
-                    JUDUL / NAMA BERKAS ARSIP <span class="text-rose-500">*</span>
-                </label>
-                <input 
-                    type="text" 
-                    name="title" 
-                    id="title" 
-                    value="{{ old('title') }}" 
-                    required
-                    placeholder="Contoh: Laporan Keuangan & Faktur Pajak Q1 2026" 
-                    class="w-full px-[8px] h-[28px] bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-[3px] text-[11px] font-mono text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 transition"
-                >
-                @error('title') <span class="text-rose-500 text-[10px] block font-bold">{{ $message }}</span> @enderror
-            </div>
-
-            <!-- 4. Period Range GroupBox -->
-            <fieldset class="border border-slate-300 dark:border-slate-800 p-[8px] rounded-[3px] bg-slate-50 dark:bg-slate-900/60">
-                <legend class="px-[4px] text-[10px] font-bold uppercase text-amber-600 dark:text-amber-400">Periode Berkas Dokumen</legend>
-                
-                <div class="grid grid-cols-1 sm:grid-cols-4 gap-[8px]">
-                    <div class="flex flex-col gap-[2px]">
-                        <label for="period_start_date" class="text-[10px] font-bold text-slate-700 dark:text-slate-400">Tanggal Mulai <span class="text-rose-500">*</span></label>
-                        <input 
-                            type="date" 
-                            name="period_start_date" 
-                            id="period_start_date" 
-                            value="{{ old('period_start_date', date('Y-01-01')) }}" 
-                            required 
-                            class="w-full px-[6px] h-[28px] bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[3px] text-[11px] font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition"
-                        >
-                    </div>
-
-                    <div class="flex flex-col gap-[2px]">
-                        <label for="period_end_date" class="text-[10px] font-bold text-slate-700 dark:text-slate-400">Tanggal Selesai <span class="text-rose-500">*</span></label>
-                        <input 
-                            type="date" 
-                            name="period_end_date" 
-                            id="period_end_date" 
-                            value="{{ old('period_end_date', date('Y-03-31')) }}" 
-                            required 
-                            class="w-full px-[6px] h-[28px] bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[3px] text-[11px] font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition"
-                        >
-                    </div>
-
-                    <div class="flex flex-col gap-[2px]">
-                        <label for="period_text" class="text-[10px] font-bold text-slate-700 dark:text-slate-400">Label Periode</label>
-                        <input 
-                            type="text" 
-                            name="period_text" 
-                            id="period_text" 
-                            value="{{ old('period_text', 'Januari - Maret 2026') }}" 
-                            placeholder="Contoh: Q1 2026" 
-                            class="w-full px-[6px] h-[28px] bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[3px] text-[11px] font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition"
-                        >
-                    </div>
-
-                    <div class="flex flex-col gap-[2px]">
-                        <label for="period_yy_mm" class="text-[10px] font-bold text-slate-700 dark:text-slate-400">Format YY-MM</label>
-                        <input 
-                            type="text" 
-                            name="period_yy_mm" 
-                            id="period_yy_mm" 
-                            value="{{ old('period_yy_mm', date('y-m')) }}" 
-                            placeholder="26-03" 
-                            maxlength="7"
-                            class="w-full px-[6px] h-[28px] bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[3px] text-[11px] font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition font-bold"
-                        >
-                    </div>
-                </div>
-            </fieldset>
-
-            <!-- 5. Retention & Wadah Fisik -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-[8px]">
-                <div class="flex flex-col gap-[2px]">
-                    <label for="retention_years" class="text-[10px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-400">
-                        RETENSI SIMPAN (TAHUN) <span class="text-rose-500">*</span>
-                    </label>
-                    <select name="retention_years" id="retention_years" required class="w-full px-[8px] h-[28px] bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-[3px] text-[11px] font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition">
-                        <option value="1" {{ old('retention_years', 5) == 1 ? 'selected' : '' }}>1 Tahun</option>
-                        <option value="2" {{ old('retention_years', 5) == 2 ? 'selected' : '' }}>2 Tahun</option>
-                        <option value="3" {{ old('retention_years', 5) == 3 ? 'selected' : '' }}>3 Tahun</option>
-                        <option value="4" {{ old('retention_years', 5) == 4 ? 'selected' : '' }}>4 Tahun</option>
-                        <option value="5" {{ old('retention_years', 5) == 5 ? 'selected' : '' }}>5 Tahun (Maksimal Bawaan)</option>
+                    <select name="document_type" id="document_type" required class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition">
+                        <option value="FAKTUR_PAJAK" {{ old('document_type') == 'FAKTUR_PAJAK' ? 'selected' : '' }}>FAKTUR PAJAK & KEUANGAN</option>
+                        <option value="KONTRAK_KERJA" {{ old('document_type') == 'KONTRAK_KERJA' ? 'selected' : '' }}>KONTRAK KERJA / SDM</option>
+                        <option value="MOU_SPONSOR" {{ old('document_type') == 'MOU_SPONSOR' ? 'selected' : '' }}>MOU / KERJASAMA / SALES</option>
+                        <option value="SURAT_JALAN" {{ old('document_type') == 'SURAT_JALAN' ? 'selected' : '' }}>SURAT JALAN & LOGISTIK</option>
+                        <option value="PRODUKSI_QC" {{ old('document_type') == 'PRODUKSI_QC' ? 'selected' : '' }}>PRODUKSI & QUALITY CONTROL</option>
+                        <option value="MAINTENANCE" {{ old('document_type') == 'MAINTENANCE' ? 'selected' : '' }}>MAINTENANCE & FASILITAS</option>
+                        <option value="UMUM" {{ old('document_type') == 'UMUM' ? 'selected' : '' }}>UMUM / LAIN-LAIN</option>
                     </select>
                 </div>
 
-                <div class="flex flex-col gap-[2px]">
-                    <label for="physical_condition" class="text-[10px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-400">
+                <div class="md:col-span-2">
+                    <div class="flex items-center justify-between mb-1 font-mono">
+                        <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                            JUDUL UTAMA / LABEL KARDUS <span class="text-slate-400 font-normal">(Opsional - otomatis mengambil butir ke-1)</span>
+                        </label>
+                        <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
+                            <input type="checkbox" name="is_custom_doc_name" value="1" x-model="isCustomDocName" class="rounded border-slate-300 text-amber-500 focus:ring-amber-400 h-3.5 w-3.5">
+                            <span class="text-[11px] font-bold text-amber-600 dark:text-amber-400">Custom Nama Dokumen</span>
+                        </label>
+                    </div>
+
+                    <!-- Standard Document Name -->
+                    <div x-show="!isCustomDocName">
+                        <input 
+                            type="text" 
+                            name="title" 
+                            id="title" 
+                            x-model="title"
+                            placeholder="Contoh: Laporan Maintenance & Faktur Operasional" 
+                            class="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 transition"
+                        >
+                    </div>
+
+                    <!-- Custom Document Name -->
+                    <div x-show="isCustomDocName" x-cloak>
+                        <input 
+                            type="text" 
+                            name="custom_doc_name" 
+                            id="custom_doc_name" 
+                            x-model="customDocName"
+                            placeholder="Ketik judul khusus kardus jika diperlukan..." 
+                            class="w-full px-3 py-1.5 bg-amber-500/10 dark:bg-amber-950/30 border-2 border-amber-500 rounded text-xs font-mono font-bold text-amber-950 dark:text-amber-200 placeholder-amber-600/50 focus:outline-none focus:border-amber-600 transition"
+                        >
+                    </div>
+                </div>
+            </div>
+        </fieldset>
+
+        <!-- SECTION 3: TANGGAL PENYERAHAN & SPESIFIKASI WADAH -->
+        <fieldset class="border border-amber-500/40 p-3.5 rounded bg-amber-500/5 dark:bg-amber-950/20 shadow-sm space-y-3">
+            <legend class="px-2 font-mono text-[11px] font-bold text-amber-800 dark:text-amber-400 bg-amber-100 dark:bg-slate-800 border border-amber-400 dark:border-amber-700 rounded shadow-sm flex items-center gap-1.5">
+                <i data-lucide="calendar" class="w-3.5 h-3.5 text-amber-600"></i>
+                3. Tanggal Penyerahan & Wadah Fisik Box
+            </legend>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <!-- Tgl Penyerahan (Disatukan sebagai tanggal serah terima & periode pengajuan) -->
+                <div>
+                    <label for="tgl_penyerahan" class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        TGL. PENYERAHAN DOKUMEN <span class="text-rose-500">*</span>
+                    </label>
+                    <input 
+                        type="date" 
+                        name="tgl_penyerahan" 
+                        id="tgl_penyerahan" 
+                        x-model="tglPenyerahan"
+                        required 
+                        class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition"
+                    >
+                    <span class="text-[10px] text-slate-500 dark:text-slate-400 font-mono block mt-0.5">Tanggal serah terima fisik ke Gudang Arsip</span>
+                </div>
+
+                <!-- Kondisi Fisik -->
+                <div>
+                    <label for="physical_condition" class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
                         KONDISI / WADAH FISIK BERKAS <span class="text-rose-500">*</span>
                     </label>
                     <input 
                         type="text" 
                         name="physical_condition" 
                         id="physical_condition" 
-                        value="{{ old('physical_condition', 'Baik / Map Binder Hardcover') }}" 
+                        value="{{ old('physical_condition', 'Baik / Box Karton Standar TB 30g') }}" 
                         required 
-                        placeholder="Contoh: Baik / Box Karton Standard / Map Plastik" 
-                        class="w-full px-[8px] h-[28px] bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-[3px] text-[11px] font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition"
+                        class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition"
+                    >
+                    <span class="text-[10px] text-slate-500 dark:text-slate-400 font-mono block mt-0.5">Standar Box: TB 30g (Kapasitas 100 per Rak)</span>
+                </div>
+            </div>
+        </fieldset>
+
+        <!-- SECTION 4: DYNAMIC REPEATER GRID (1 BOX -> BANYAK DOKUMEN ARSIP) -->
+        <fieldset class="border border-emerald-500/40 p-3.5 rounded bg-emerald-500/5 dark:bg-emerald-950/20 shadow-sm space-y-3">
+            <legend class="px-2 font-mono text-[11px] font-bold text-emerald-800 dark:text-emerald-400 bg-emerald-100 dark:bg-slate-800 border border-emerald-400 dark:border-emerald-700 rounded shadow-sm flex items-center gap-1.5">
+                <i data-lucide="list-plus" class="w-3.5 h-3.5 text-emerald-600"></i>
+                4. Rincian Butir Dokumen / Berkas Arsip dalam Box (Label A5)
+            </legend>
+
+            <div class="flex items-center justify-between border-b border-emerald-500/20 pb-2 font-mono text-xs">
+                <span class="font-bold text-slate-700 dark:text-slate-300">
+                    Setiap kardus/box berisi banyak arsip. Tuliskan butir dokumen di bawah ini:
+                </span>
+                <button 
+                    @click="addItem()" 
+                    type="button" 
+                    class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded text-xs shadow transition flex items-center gap-1.5"
+                >
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                    <span>+ Tambah Baris Dokumen</span>
+                </button>
+            </div>
+
+            <!-- Repeater Table -->
+            <div class="border border-slate-300 dark:border-slate-700 rounded bg-white dark:bg-slate-950 overflow-hidden shadow-xs">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                        <tr class="bg-slate-100 dark:bg-slate-900 border-b border-slate-300 dark:border-slate-700 font-mono text-[11px] text-slate-700 dark:text-slate-300">
+                            <th class="py-2 px-2.5 w-10 text-center">NO</th>
+                            <th class="py-2 px-3">NAMA DOKUMEN / BERKAS ARSIP <span class="text-rose-500">*</span></th>
+                            <th class="py-2 px-2.5 w-44">PERIODE MULAI (BLN/THN) <span class="text-rose-500">*</span></th>
+                            <th class="py-2 px-2.5 w-44">PERIODE SELESAI (BLN/THN) <span class="text-rose-500">*</span></th>
+                            <th class="py-2 px-3 w-48">KETERANGAN (OPSIONAL)</th>
+                            <th class="py-2 px-2.5 w-12 text-center">AKSI</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                        <template x-for="(item, index) in items" :key="item.id">
+                            <tr class="hover:bg-emerald-500/5 transition">
+                                <td class="py-2 px-2.5 text-center font-mono font-bold text-slate-600 dark:text-slate-400" x-text="index + 1"></td>
+                                <td class="py-2 px-3">
+                                    <input 
+                                        type="text" 
+                                        :name="'items[' + index + '][document_name]'" 
+                                        x-model="item.document_name" 
+                                        required 
+                                        :placeholder="'Contoh: ' + (index === 0 ? 'maintenance kendaraan' : (index === 1 ? 'form verifikasi faktur' : 'perawatan ac'))"
+                                        class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500"
+                                    >
+                                </td>
+                                <td class="py-2 px-2.5">
+                                    <div class="relative flex items-center">
+                                        <input 
+                                            type="month" 
+                                            :name="'items[' + index + '][period_start]'" 
+                                            x-model="item.period_start" 
+                                            required 
+                                            class="w-full px-2 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-purple-700 dark:text-purple-300 focus:outline-none focus:border-emerald-500"
+                                            title="Pilih Bulan & Tahun Mulai"
+                                        >
+                                    </div>
+                                </td>
+                                <td class="py-2 px-2.5">
+                                    <div class="relative flex items-center">
+                                        <input 
+                                            type="month" 
+                                            :name="'items[' + index + '][period_end]'" 
+                                            x-model="item.period_end" 
+                                            required 
+                                            class="w-full px-2 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-purple-700 dark:text-purple-300 focus:outline-none focus:border-emerald-500"
+                                            title="Pilih Bulan & Tahun Selesai"
+                                        >
+                                    </div>
+                                </td>
+                                <td class="py-2 px-3">
+                                    <input 
+                                        type="text" 
+                                        :name="'items[' + index + '][notes]'" 
+                                        x-model="item.notes" 
+                                        placeholder="No. berkas fisik / catatan" 
+                                        class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-700 dark:text-slate-300 placeholder-slate-400 focus:outline-none focus:border-emerald-500"
+                                    >
+                                </td>
+                                <td class="py-2 px-2.5 text-center">
+                                    <button 
+                                        @click="removeItem(index)" 
+                                        type="button" 
+                                        class="p-1.5 text-rose-500 hover:bg-rose-500/20 rounded transition" 
+                                        title="Hapus baris dokumen ini"
+                                    >
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Quick Add Button bar -->
+            <div class="flex items-center justify-between font-mono text-[11px] text-slate-500 dark:text-slate-400 pt-1">
+                <span>Total Butir Terdaftar: <strong class="text-emerald-600 dark:text-emerald-400 font-bold" x-text="items.length"></strong> Dokumen</span>
+                <button 
+                    @click="addItem()" 
+                    type="button" 
+                    class="text-emerald-600 dark:text-emerald-400 hover:underline font-bold inline-flex items-center gap-1"
+                >
+                    <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+                    <span>+ Tambah Baris Dokumen Lainnya</span>
+                </button>
+            </div>
+        </fieldset>
+
+        <!-- SECTION 5: UPLOAD BERKAS DIGITAL & SCAN APPROVAL -->
+        <fieldset class="border border-slate-300 dark:border-slate-800 p-3.5 rounded bg-white dark:bg-slate-950 shadow-sm space-y-3">
+            <legend class="px-2 font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded shadow-sm flex items-center gap-1.5">
+                <i data-lucide="file-check" class="w-3.5 h-3.5 text-slate-500"></i>
+                5. Upload Berkas Digital & Scan Formulir
+            </legend>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 font-mono text-xs">
+                <div>
+                    <label for="scan_input_form" class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Scan Formulir Input</label>
+                    <input 
+                        type="file" 
+                        name="scan_input_form" 
+                        id="scan_input_form" 
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        class="w-full px-2 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-[11px] text-slate-700 dark:text-slate-300 file:mr-2 file:py-0.5 file:px-2 file:rounded file:border-0 file:text-[11px] file:font-bold file:bg-amber-500/20 file:text-amber-700 dark:file:text-amber-400"
+                    >
+                </div>
+
+                <div>
+                    <label for="scan_approval_input" class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Scan Bukti Approval Input</label>
+                    <input 
+                        type="file" 
+                        name="scan_approval_input" 
+                        id="scan_approval_input" 
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        class="w-full px-2 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-[11px] text-slate-700 dark:text-slate-300 file:mr-2 file:py-0.5 file:px-2 file:rounded file:border-0 file:text-[11px] file:font-bold file:bg-amber-500/20 file:text-amber-700 dark:file:text-amber-400"
+                    >
+                </div>
+
+                <div>
+                    <label for="file" class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Lampiran Digital Dokumen</label>
+                    <input 
+                        type="file" 
+                        name="file" 
+                        id="file" 
+                        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.zip"
+                        class="w-full px-2 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-[11px] text-slate-700 dark:text-slate-300 file:mr-2 file:py-0.5 file:px-2 file:rounded file:border-0 file:text-[11px] file:font-bold file:bg-slate-500/20 file:text-slate-700 dark:file:text-slate-400"
                     >
                 </div>
             </div>
+        </fieldset>
 
-            <!-- 6. Content Description -->
-            <div class="flex flex-col gap-[2px]">
-                <label for="content_description" class="text-[10px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-400">
-                    RINCIAN ISI BERKAS & METADATA <span class="text-rose-500">*</span>
-                </label>
-                <textarea 
-                    name="content_description" 
-                    id="content_description" 
-                    rows="3" 
-                    required 
-                    placeholder="Tuliskan daftar dokumen detail yang ada di dalam box arsip ini (misal: Bukti Kas Keluar No 001-150, Faktur Pajak PPN, dsb)..." 
-                    class="w-full p-[6px] bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-[3px] text-[11px] font-mono text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 transition"
-                >{{ old('content_description') }}</textarea>
-            </div>
-
-            <!-- 7. Attachment Scans Section -->
-            <fieldset class="border border-slate-300 dark:border-slate-800 p-[8px] rounded-[3px] bg-amber-500/5 dark:bg-amber-950/20">
-                <legend class="px-[4px] text-[10px] font-bold uppercase text-amber-700 dark:text-amber-400 flex items-center gap-[4px]">
-                    <i data-lucide="file-check" class="w-[12px] h-[12px]"></i>
-                    <span>Upload Berkas Digital & Scan Formulir</span>
-                </legend>
-
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-[8px]">
-                    <div class="flex flex-col gap-[2px]">
-                        <label for="scan_input_form" class="text-[10px] font-bold text-slate-700 dark:text-slate-400">Scan Formulir Input</label>
-                        <input 
-                            type="file" 
-                            name="scan_input_form" 
-                            id="scan_input_form" 
-                            accept=".pdf,.jpg,.jpeg,.png"
-                            class="w-full px-[6px] py-[3px] bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[3px] text-[10px] font-mono text-slate-700 dark:text-slate-300"
-                        >
-                    </div>
-
-                    <div class="flex flex-col gap-[2px]">
-                        <label for="scan_approval_input" class="text-[10px] font-bold text-slate-700 dark:text-slate-400">Scan Bukti Approval</label>
-                        <input 
-                            type="file" 
-                            name="scan_approval_input" 
-                            id="scan_approval_input" 
-                            accept=".pdf,.jpg,.jpeg,.png"
-                            class="w-full px-[6px] py-[3px] bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[3px] text-[10px] font-mono text-slate-700 dark:text-slate-300"
-                        >
-                    </div>
-
-                    <div class="flex flex-col gap-[2px]">
-                        <label for="file" class="text-[10px] font-bold text-slate-700 dark:text-slate-400">Lampiran Digital Lain</label>
-                        <input 
-                            type="file" 
-                            name="file" 
-                            id="file" 
-                            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.zip"
-                            class="w-full px-[6px] py-[3px] bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-[3px] text-[10px] font-mono text-slate-700 dark:text-slate-300"
-                        >
-                    </div>
-                </div>
-            </fieldset>
-
-            <!-- Form Actions -->
-            <div class="pt-[8px] border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-[6px]">
-                <a href="{{ route('archives.index') }}" class="px-[12px] h-[28px] bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-[3px] text-[11px] font-mono font-bold border border-slate-300 dark:border-slate-700 transition flex items-center">
-                    Batal
-                </a>
-                <button type="submit" class="px-[14px] h-[28px] bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-mono font-black text-[11px] rounded-[3px] border border-amber-600 shadow-2xs transition flex items-center gap-[4px]">
-                    <i data-lucide="send" class="w-[12px] h-[12px] text-slate-950"></i>
-                    <span>Submit Booking & Pengajuan Arsip</span>
-                </button>
-            </div>
-        </form>
-    </fieldset>
-
-    <!-- WINDOWS FORM DIALOG MODAL 1: ADD COMPANY ENTITY (PIC DEPT FULL CONTROL) -->
-    <div x-show="openAddCompanyModal" 
-         x-cloak 
-         x-data="{ 
-             posX: 0, posY: 0, isDragging: false, startX: 0, startY: 0, 
-             startDrag(e) { 
-                 if (e.target.closest('button') || e.target.closest('input') || e.target.closest('textarea')) return; 
-                 this.isDragging = true; 
-                 this.startX = e.clientX - this.posX; 
-                 this.startY = e.clientY - this.posY; 
-             }, 
-             onDrag(e) { 
-                 if (!this.isDragging) return; 
-                 this.posX = e.clientX - this.startX; 
-                 this.posY = e.clientY - this.startY; 
-             }, 
-             stopDrag() { this.isDragging = false; }, 
-             resetPos() { this.posX = 0; this.posY = 0; } 
-         }"
-         @mousemove.window="onDrag($event)" 
-         @mouseup.window="stopDrag()"
-         class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 font-mono">
-        <div :style="posX || posY ? 'transform: translate3d(' + posX + 'px, ' + posY + 'px, 0px);' : ''" 
-             class="delphi-window bg-slate-100 dark:bg-slate-900 border-2 border-slate-400 dark:border-slate-700 rounded-lg max-w-md w-full shadow-2xl overflow-hidden font-mono text-xs">
-            
-            <!-- Window Title Bar (Draggable) -->
-            <div @mousedown="startDrag($event)" 
-                 :class="isDragging ? 'cursor-grabbing select-none' : 'cursor-grab'"
-                 title="Klik & tahan untuk menggeser form (Drag to move)"
-                 class="bg-gradient-to-r from-slate-800 via-slate-700 to-amber-950 text-white px-3 py-1.5 flex items-center justify-between border-b border-slate-600 select-none">
-                <span class="flex items-center gap-1.5 font-bold pointer-events-none">
-                    <i data-lucide="building-2" class="w-3.5 h-3.5 text-amber-400"></i> frmCompanyAdd : Tambah Perusahaan Entitas Baru
-                </span>
-                <div class="flex items-center gap-1">
-                    <button x-show="posX !== 0 || posY !== 0" @click="resetPos()" type="button" class="px-1.5 py-0.5 bg-slate-700 hover:bg-amber-600 border border-slate-600 rounded text-amber-300 hover:text-white text-[10px] font-bold transition mr-1" title="Kembalikan Form ke Tengah">Center</button>
-                    <button @click="openAddCompanyModal = false; resetPos()" type="button" class="text-slate-400 hover:text-white">✕</button>
-                </div>
-            </div>
-
-            <form @submit.prevent="submitCompany()" class="p-4 space-y-3 font-sans text-xs">
-                <div x-show="companyError" class="p-2 rounded bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-300 text-[11px] font-mono font-bold" x-text="companyError"></div>
-
-                <fieldset class="border border-slate-300 dark:border-slate-700 p-3 rounded bg-white/80 dark:bg-slate-950/70 space-y-3">
-                    <legend class="px-2 font-mono text-xs font-bold text-amber-700 dark:text-amber-400 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded shadow-sm">Data Perusahaan Entitas</legend>
-
-                    <div>
-                        <label class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">NAMA PERUSAHAAN ENTITAS <span class="text-rose-500">*</span></label>
-                        <input type="text" x-model="newCompany.name" required placeholder="Contoh: PT Indraco Niaga Makmur" class="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-400 dark:border-slate-700 rounded font-bold text-slate-900 dark:text-white focus:outline-none focus:border-amber-500">
-                    </div>
-                    <div>
-                        <label class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">KODE SINGKATAN (OPSIONAL)</label>
-                        <input type="text" x-model="newCompany.code" maxlength="20" placeholder="INM" class="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-400 dark:border-slate-700 rounded font-mono uppercase font-bold text-amber-600 dark:text-amber-400 focus:outline-none focus:border-amber-500">
-                    </div>
-                    <div>
-                        <label class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">DESKRIPSI / KETERANGAN</label>
-                        <textarea x-model="newCompany.description" rows="2" placeholder="Keterangan unit usaha atau divisi bisnis..." class="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-400 dark:border-slate-700 rounded text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 font-medium"></textarea>
-                    </div>
-                </fieldset>
-
-                <div class="flex justify-end gap-2 pt-2 font-mono">
-                    <button type="button" @click="openAddCompanyModal = false; resetPos()" class="px-3 py-1.5 bg-slate-300 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded text-xs font-bold hover:bg-slate-400">Batal (Esc)</button>
-                    <button type="submit" :disabled="companySubmitting" class="px-4 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black rounded transition disabled:opacity-50 flex items-center gap-1 shadow-sm">
-                        <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin" x-show="companySubmitting"></i>
-                        <span x-text="companySubmitting ? 'Menyimpan...' : 'Simpan & Pilih (Enter)'"></span>
-                    </button>
-                </div>
-            </form>
+        <!-- FORM ACTION BAR -->
+        <div class="pt-2 flex items-center justify-end gap-2 font-mono">
+            <a href="{{ route('archives.index') }}" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded text-xs font-bold border border-slate-300 dark:border-slate-700 transition">
+                Batal
+            </a>
+            <button type="submit" class="px-5 py-2 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black text-xs rounded border border-amber-600 shadow-md transition flex items-center gap-1.5">
+                <i data-lucide="send" class="w-3.5 h-3.5 text-slate-950"></i>
+                <span>Simpan & Ajukan Box Arsip (TB 30g)</span>
+            </button>
         </div>
-    </div>
-
-    <!-- WINDOWS FORM DIALOG MODAL 2: ADD CUSTOM DOCUMENT TO CATALOG (PIC DEPT FULL CONTROL) -->
-    <div x-show="openAddDocModal" 
-         x-cloak 
-         x-data="{ 
-             posX: 0, posY: 0, isDragging: false, startX: 0, startY: 0, 
-             startDrag(e) { 
-                 if (e.target.closest('button') || e.target.closest('input') || e.target.closest('textarea')) return; 
-                 this.isDragging = true; 
-                 this.startX = e.clientX - this.posX; 
-                 this.startY = e.clientY - this.posY; 
-             }, 
-             onDrag(e) { 
-                 if (!this.isDragging) return; 
-                 this.posX = e.clientX - this.startX; 
-                 this.posY = e.clientY - this.startY; 
-             }, 
-             stopDrag() { this.isDragging = false; }, 
-             resetPos() { this.posX = 0; this.posY = 0; } 
-         }"
-         @mousemove.window="onDrag($event)" 
-         @mouseup.window="stopDrag()"
-         class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 font-mono">
-        <div :style="posX || posY ? 'transform: translate3d(' + posX + 'px, ' + posY + 'px, 0px);' : ''" 
-             class="delphi-window bg-slate-100 dark:bg-slate-900 border-2 border-slate-400 dark:border-slate-700 rounded-lg max-w-md w-full shadow-2xl overflow-hidden font-mono text-xs">
-            
-            <!-- Window Title Bar (Draggable) -->
-            <div @mousedown="startDrag($event)" 
-                 :class="isDragging ? 'cursor-grabbing select-none' : 'cursor-grab'"
-                 title="Klik & tahan untuk menggeser form (Drag to move)"
-                 class="bg-gradient-to-r from-slate-800 via-slate-700 to-indigo-950 text-white px-3 py-1.5 flex items-center justify-between border-b border-slate-600 select-none">
-                <span class="flex items-center gap-1.5 font-bold pointer-events-none">
-                    <i data-lucide="file-plus" class="w-3.5 h-3.5 text-amber-400"></i> frmDocumentCatalogAdd : Tambah Tipe Dokumen ke Katalog
-                </span>
-                <div class="flex items-center gap-1">
-                    <button x-show="posX !== 0 || posY !== 0" @click="resetPos()" type="button" class="px-1.5 py-0.5 bg-slate-700 hover:bg-amber-600 border border-slate-600 rounded text-amber-300 hover:text-white text-[10px] font-bold transition mr-1" title="Kembalikan Form ke Tengah">Center</button>
-                    <button @click="openAddDocModal = false; resetPos()" type="button" class="text-slate-400 hover:text-white">✕</button>
-                </div>
-            </div>
-
-            <form @submit.prevent="submitDocType()" class="p-4 space-y-3 font-sans text-xs">
-                <div x-show="docError" class="p-2 rounded bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-300 text-[11px] font-mono font-bold" x-text="docError"></div>
-
-                <fieldset class="border border-slate-300 dark:border-slate-700 p-3 rounded bg-white/80 dark:bg-slate-950/70 space-y-3">
-                    <legend class="px-2 font-mono text-xs font-bold text-amber-700 dark:text-amber-400 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded shadow-sm">Formulir Katalog Dokumen Baru</legend>
-
-                    <div>
-                        <label class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">KODE / SINGKATAN DOKUMEN <span class="text-rose-500">*</span></label>
-                        <input type="text" x-model="newDoc.code" required maxlength="50" placeholder="CTH: SERTIFIKAT, BILYET, ASURANSI" class="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-400 dark:border-slate-700 rounded font-mono uppercase font-bold text-amber-600 dark:text-amber-400 focus:outline-none focus:border-amber-500">
-                    </div>
-                    <div>
-                        <label class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">NAMA LENGKAP JENIS DOKUMEN <span class="text-rose-500">*</span></label>
-                        <input type="text" x-model="newDoc.name" required placeholder="Contoh: Sertifikat Legalitas / Hak Milik Tanah" class="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-400 dark:border-slate-700 rounded font-bold text-slate-900 dark:text-white focus:outline-none focus:border-amber-500">
-                    </div>
-                    <div>
-                        <label class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">DESKRIPSI / KETERANGAN RINGKAS</label>
-                        <input type="text" x-model="newDoc.description" placeholder="Contoh: Bukti Kepemilikan & Aset Perusahaan" class="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-400 dark:border-slate-700 rounded text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 font-medium">
-                    </div>
-                    <div>
-                        <label class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">LINGKUP PENGGUNAAN KATALOG</label>
-                        <div class="flex items-center gap-4 pt-1 font-mono text-xs">
-                            <label class="flex items-center gap-1.5 cursor-pointer">
-                                <input type="radio" x-model="newDoc.scope" value="global" class="text-amber-500 focus:ring-0">
-                                <span>Global (Semua Departemen)</span>
-                            </label>
-                            <label class="flex items-center gap-1.5 cursor-pointer">
-                                <input type="radio" x-model="newDoc.scope" value="dept" class="text-amber-500 focus:ring-0">
-                                <span>Khusus Departemen Ini</span>
-                            </label>
-                        </div>
-                    </div>
-                </fieldset>
-
-                <div class="flex justify-end gap-2 pt-2 font-mono">
-                    <button type="button" @click="openAddDocModal = false; resetPos()" class="px-3 py-1.5 bg-slate-300 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded text-xs font-bold hover:bg-slate-400">Batal (Esc)</button>
-                    <button type="submit" :disabled="docSubmitting" class="px-4 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black rounded transition disabled:opacity-50 flex items-center gap-1 shadow-sm">
-                        <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin" x-show="docSubmitting"></i>
-                        <span x-text="docSubmitting ? 'Menyimpan...' : 'Tambahkan & Ceklis (Enter)'"></span>
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
+    </form>
 </div>
 
+@push('scripts')
 <script>
-function archiveCreateForm() {
+function archiveCreateApp() {
     return {
-        // Companies
-        companyList: @json($companies),
-        selectedCompany: '{{ old('company_name', $companies->first()->name ?? 'PT Indraco Global') }}',
-        openAddCompanyModal: false,
-        newCompany: { name: '', code: '', description: '' },
-        companySubmitting: false,
-        companyError: '',
+        departments: @json($departments),
+        selectedDeptId: '{{ old('department_id', auth()->user()->isPicDept() ? auth()->user()->department_id : ($departments->first()->id ?? '')) }}',
+        selectedSubDeptId: '{{ old('sub_department_id', '') }}',
+        subDepartments: [],
+        isCustomDocName: {{ old('is_custom_doc_name') ? 'true' : 'false' }},
+        customDocName: @json(old('custom_doc_name', '')),
+        title: @json(old('title', '')),
+        tglPenyerahan: '{{ old('tgl_penyerahan', date('Y-m-d')) }}',
 
-        // Departments & Subdepartments
-        allDepts: @json($departments),
-        isPicDept: {{ auth()->user()->isPicDept() ? 'true' : 'false' }},
-        selectedDeptId: '{{ old('department_id', auth()->user()->isPicDept() ? auth()->user()->department_id : '') }}',
-        selectedSubDeptId: '{{ old('sub_department_id', auth()->user()->sub_department_id ?? '') }}',
+        // Dynamic items repeater (1 Box = Banyak Berkas Arsip)
+        items: [
+            { id: 1, document_name: 'maintenance kendaraan', period_start: '{{ date('Y-06') }}', period_end: '{{ date('Y-08') }}', notes: '' },
+            { id: 2, document_name: 'form verifikasi faktur', period_start: '{{ date('Y-07') }}', period_end: '{{ date('Y-07') }}', notes: '' },
+            { id: 3, document_name: 'perawatan ac januari', period_start: '{{ date('Y-01') }}', period_end: '{{ date('Y-12') }}', notes: '' }
+        ],
 
-        get subDeptList() {
-            if (!this.selectedDeptId) return [];
-            const dept = this.allDepts.find(d => d.id == this.selectedDeptId);
-            return dept && dept.sub_departments ? dept.sub_departments : [];
+        init() {
+            this.updateSubDepartments();
+            this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
         },
 
-        // Document Types & Catalog
-        docList: {!! json_encode($availableDocTypes->map(function($d) {
-            return [
-                'id' => $d->code,
-                'code' => $d->code,
-                'name' => $d->name,
-                'desc' => $d->description ?? $d->name,
-                'is_preset' => (bool)$d->is_preset,
-            ];
-        })->values()) !!},
-        selectedTypes: @json($oldDocTypes),
-        showCustom: {{ in_array('LAINNYA', $oldDocTypes) ? 'true' : 'false' }},
-        openAddDocModal: false,
-        newDoc: { code: '', name: '', description: '', scope: 'global' },
-        docSubmitting: false,
-        docError: '',
+        addItem() {
+            this.items.push({
+                id: Date.now() + Math.random(),
+                document_name: '',
+                period_start: '{{ date('Y-m') }}',
+                period_end: '{{ date('Y-m') }}',
+                notes: ''
+            });
+            this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+        },
 
-        toggle(type) {
-            if (this.selectedTypes.includes(type)) {
-                this.selectedTypes = this.selectedTypes.filter(t => t !== type);
+        removeItem(index) {
+            if (this.items.length > 1) {
+                this.items.splice(index, 1);
             } else {
-                this.selectedTypes.push(type);
+                alert('Minimal harus terdapat 1 butir berkas arsip dalam box.');
             }
-            this.checkCustom();
-        },
-        checkCustom() {
-            this.showCustom = this.selectedTypes.includes('LAINNYA');
-        },
-        selectAll() {
-            this.selectedTypes = this.docList.map(d => d.id);
-            this.checkCustom();
-        },
-        clearAll() {
-            this.selectedTypes = [];
-            this.checkCustom();
-        },
-        presetFinance() {
-            const targets = ['PR', 'PO', 'SURAT JALAN', 'FAKTUR', 'FAKTUR PAJAK'];
-            targets.forEach(t => {
-                if (!this.selectedTypes.includes(t)) this.selectedTypes.push(t);
-            });
-            this.checkCustom();
-        },
-        presetHRD() {
-            const targets = ['ABSENSI', 'UTILITY'];
-            targets.forEach(t => {
-                if (!this.selectedTypes.includes(t)) this.selectedTypes.push(t);
-            });
-            this.checkCustom();
         },
 
-        // Submit new Company via AJAX
-        submitCompany() {
-            if (!this.newCompany.name.trim()) {
-                this.companyError = 'Nama perusahaan wajib diisi.';
-                return;
+        updateSubDepartments() {
+            const dept = this.departments.find(d => d.id == this.selectedDeptId);
+            if (dept && dept.sub_departments) {
+                this.subDepartments = dept.sub_departments;
+            } else {
+                this.subDepartments = [];
             }
-            this.companySubmitting = true;
-            this.companyError = '';
-
-            fetch('{{ route('api.companies.store') }}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Accept': 'application/json',
-                },
-                body: JSON.stringify(this.newCompany)
-            })
-            .then(res => res.json())
-            .then(data => {
-                this.companySubmitting = false;
-                if (data.success) {
-                    this.companyList.push(data.company);
-                    this.selectedCompany = data.company.name;
-                    this.openAddCompanyModal = false;
-                    this.newCompany = { name: '', code: '', description: '' };
-                } else {
-                    this.companyError = data.message || 'Gagal menambahkan perusahaan.';
-                }
-            })
-            .catch(err => {
-                this.companySubmitting = false;
-                this.companyError = 'Terjadi kesalahan sistem.';
-            });
-        },
-
-        // Submit new Document Type via AJAX
-        submitDocType() {
-            if (!this.newDoc.code.trim() || !this.newDoc.name.trim()) {
-                this.docError = 'Kode dan nama dokumen wajib diisi.';
-                return;
-            }
-            this.docSubmitting = true;
-            this.docError = '';
-
-            const payload = {
-                code: this.newDoc.code,
-                name: this.newDoc.name,
-                description: this.newDoc.description,
-                scope_department: this.newDoc.scope,
-                department_id: (this.newDoc.scope === 'dept' && this.selectedDeptId) ? this.selectedDeptId : null
-            };
-
-            fetch('{{ route('api.document_types.store') }}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Accept': 'application/json',
-                },
-                body: JSON.stringify(payload)
-            })
-            .then(res => res.json())
-            .then(data => {
-                this.docSubmitting = false;
-                if (data.success) {
-                    const newType = data.document_type;
-                    this.docList.push(newType);
-                    if (!this.selectedTypes.includes(newType.id)) {
-                        this.selectedTypes.push(newType.id);
-                    }
-                    this.openAddDocModal = false;
-                    this.newDoc = { code: '', name: '', description: '', scope: 'global' };
-                    setTimeout(() => { if (window.lucide) lucide.createIcons(); }, 50);
-                } else {
-                    this.docError = data.message || 'Gagal menambahkan dokumen ke katalog.';
-                }
-            })
-            .catch(err => {
-                this.docSubmitting = false;
-                this.docError = 'Terjadi kesalahan sistem.';
-            });
         }
     };
 }
 </script>
+@endpush
 @endsection

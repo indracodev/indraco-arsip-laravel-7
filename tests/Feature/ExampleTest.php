@@ -14,8 +14,24 @@ class ExampleTest extends TestCase
      */
     public function testBasicTest()
     {
-        $response = $this->get('/');
+        $response = $this->get('/login');
 
         $response->assertStatus(200);
+    }
+
+    public function testSuperAdminLoginAndDashboardAccess()
+    {
+        $response = $this->post('/login', [
+            'email' => 'admin@indraco.com',
+            'password' => 'password',
+        ]);
+
+        $response->assertRedirect(route('dashboard'));
+
+        $dashboardResponse = $this->actingAs(\App\Models\User::where('email', 'admin@indraco.com')->first())
+            ->get(route('dashboard'));
+
+        $dashboardResponse->assertStatus(200);
+        $dashboardResponse->assertSee('Layout Gudang');
     }
 }
