@@ -52,6 +52,8 @@ class WarehouseController extends Controller
             ->map(function ($loc) {
                 return [
                     'id' => $loc->id,
+                    'warehouse_id' => $loc->warehouse_id,
+                    'room_sector' => $loc->room_sector,
                     'rack_code' => $loc->rack_code,
                     'shelf_code' => $loc->shelf_code ?? 'BARIS-01',
                     'full_location' => $loc->rack_code . ' (' . ($loc->room_sector ?? 'Umum') . ')',
@@ -246,6 +248,31 @@ class WarehouseController extends Controller
 
         return redirect()->route('master.warehouses')
             ->with('success', 'Lokasi penyimpanan rak/baris berhasil ditambahkan.');
+    }
+
+    public function updateLocation(Request $request, WarehouseLocation $location)
+    {
+        $validated = $request->validate([
+            'warehouse_id' => 'required|exists:warehouses,id',
+            'rack_code' => 'required|string|max:50',
+            'shelf_code' => 'required|string|max:50',
+            'box_capacity' => 'required|integer|min:1|max:5000',
+        ]);
+
+        $wh = Warehouse::find($validated['warehouse_id']);
+        $validated['room_sector'] = $wh ? $wh->code : ($location->room_sector ?? 'Umum');
+
+        $oldData = $location->only(['warehouse_id', 'rack_code', 'shelf_code', 'box_capacity', 'room_sector']);
+        $location->update($validated);
+
+        ActivityLogger::log('MASTER_RACK_UPDATE', "Memperbarui data rak penyimpanan {$location->rack_code}", 'warehouse', [
+            'id' => $location->id,
+            'old' => $oldData,
+            'new' => $validated,
+        ], $location->id);
+
+        return redirect()->route('master.warehouses')
+            ->with('success', "Data rak {$location->rack_code} berhasil diperbarui.");
     }
 
     public function destroyLocation(WarehouseLocation $location)

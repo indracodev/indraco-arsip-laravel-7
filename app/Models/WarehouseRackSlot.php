@@ -48,7 +48,7 @@ class WarehouseRackSlot extends Model
     public function getFullSlotNameAttribute(): string
     {
         $layerName = $this->layer === 'top' ? 'Atas' : 'Bawah';
-        return "Sap {$this->sap_level} - {$layerName} [Slot {$this->slot_number}]";
+        return "LVL {$this->sap_level} - {$layerName} [Slot {$this->slot_number}]";
     }
 
     public function getStatusBadgeAttribute(): string

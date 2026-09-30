@@ -434,7 +434,7 @@ class WarehouseLayoutController extends Controller
         $validated = $request->validate([
             'sap_level' => 'required|integer|min:1|max:10',
             'layer' => 'required|string|in:top,bottom',
-            'slot_number' => 'required|integer|min:1|max:20',
+            'slot_number' => 'required|integer|min:1|max:100',
             'slot_code' => 'nullable|string|max:50',
             'mode' => 'required|string|in:create_new,existing_archive',
             // fields for create_new
@@ -472,7 +472,8 @@ class WarehouseLayoutController extends Controller
         }
 
         // Get or Create Slot in DB
-        $slotCode = $validated['slot_code'] ?? ("SAP-{$validated['sap_level']}-" . ($validated['layer'] === 'top' ? 'T' : 'B') . str_pad($validated['slot_number'], 2, '0', STR_PAD_LEFT));
+        $rackId = $location->rack_identifier;
+        $slotCode = $validated['slot_code'] ?? "{$rackId}{$validated['slot_number']}";
 
         $slot = WarehouseRackSlot::firstOrCreate(
             [
@@ -618,7 +619,7 @@ class WarehouseLayoutController extends Controller
         $validated = $request->validate([
             'sap_level' => 'required|integer|min:1|max:10',
             'layer' => 'required|string|in:top,bottom',
-            'slot_number' => 'required|integer|min:1|max:20',
+            'slot_number' => 'required|integer|min:1|max:100',
         ]);
 
         $slot = WarehouseRackSlot::where('warehouse_location_id', $location->id)

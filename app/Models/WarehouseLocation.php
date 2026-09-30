@@ -75,8 +75,22 @@ class WarehouseLocation extends Model
         return $this->hasMany(WarehouseRackSlot::class, 'warehouse_location_id')->orderBy('sap_level', 'desc')->orderBy('layer', 'asc')->orderBy('slot_number', 'asc');
     }
 
+    public function getRackIdentifierAttribute(): string
+    {
+        // Extracts 'B' from 'RAK-R1-B', 'J' from 'RAK-R2-J', 'BI' from 'RAK-R7-BI', etc.
+        $clean = preg_replace('/^RAK-(?:R\d+-)?/i', '', $this->rack_code);
+        return $clean ?: $this->rack_code;
+    }
+
     /**
-     * Generate 100 standard slots for TB 30g box (5 sap x 20 box: 10 atas, 10 bawah)
+     * Generate 100 standard slots for TB 30g box (5 LVL x 20 box: 10 atas, 10 bawah)
+     * Penomoran sesuai standar urutan kardus denah (1 s/d 100):
+     * LVL 1: Bawah 1..10, Atas 11..20
+     * LVL 2: Bawah 21..30, Atas 31..40
+     * LVL 3: Bawah 41..50, Atas 51..60
+     * LVL 4: Bawah 61..70, Atas 71..80
+     * LVL 5: Bawah 81..90, Atas 91..100
+     * Contoh Kode Slot: Rak B box 11 => 'B11'
      */
     public function generateStandardSlots(): void
     {
@@ -91,32 +105,34 @@ class WarehouseLocation extends Model
 
         $slotsToInsert = [];
         $now = now();
+        $rackId = $this->rack_identifier;
 
-        // 5 Sap (Sap 5 di atas s/d Sap 1 di bawah)
+        // 5 LVL (LVL 1 di bawah s/d LVL 5 di atas)
         for ($sap = 1; $sap <= 5; $sap++) {
-            // Layer Top (10 slot)
+            // Layer Bottom (10 slot: LVL 1 = 1..10, LVL 2 = 21..30, LVL 3 = 41..50, LVL 4 = 61..70, LVL 5 = 81..90)
             for ($slot = 1; $slot <= 10; $slot++) {
-                $padSlot = str_pad($slot, 2, '0', STR_PAD_LEFT);
+                $boxNum = ($sap - 1) * 20 + $slot;
                 $slotsToInsert[] = [
                     'warehouse_location_id' => $this->id,
                     'sap_level' => $sap,
-                    'layer' => 'top',
-                    'slot_number' => $slot,
-                    'slot_code' => "SAP-{$sap}-T{$padSlot}",
+                    'layer' => 'bottom',
+                    'slot_number' => $boxNum,
+                    'slot_code' => "{$rackId}{$boxNum}",
                     'status' => 'empty',
                     'created_at' => $now,
                     'updated_at' => $now,
                 ];
             }
-            // Layer Bottom (10 slot)
+
+            // Layer Top (10 slot: LVL 1 = 11..20, LVL 2 = 31..40, LVL 3 = 51..60, LVL 4 = 71..80, LVL 5 = 91..100)
             for ($slot = 1; $slot <= 10; $slot++) {
-                $padSlot = str_pad($slot, 2, '0', STR_PAD_LEFT);
+                $boxNum = ($sap - 1) * 20 + 10 + $slot;
                 $slotsToInsert[] = [
                     'warehouse_location_id' => $this->id,
                     'sap_level' => $sap,
-                    'layer' => 'bottom',
-                    'slot_number' => $slot,
-                    'slot_code' => "SAP-{$sap}-B{$padSlot}",
+                    'layer' => 'top',
+                    'slot_number' => $boxNum,
+                    'slot_code' => "{$rackId}{$boxNum}",
                     'status' => 'empty',
                     'created_at' => $now,
                     'updated_at' => $now,

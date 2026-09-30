@@ -92,7 +92,7 @@ class DatabaseSeeder extends Seeder
 
         $locR1A = WarehouseLocation::where('rack_code', 'RAK-R1-A')->first();
         $locR1B = WarehouseLocation::where('rack_code', 'RAK-R1-B')->first();
-        $locR3A = WarehouseLocation::where('rack_code', 'RAK-R3-A')->first();
+        $locR3A = WarehouseLocation::where('rack_code', 'RAK-R3-AJ')->first();
 
         // 6. Seed Archives
         $arc1 = Archive::create([

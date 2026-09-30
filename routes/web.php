@@ -94,6 +94,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/warehouses/{warehouse}/toggle-active', 'WarehouseController@toggleWarehouseActive')->name('warehouses.toggle_active');
 
         Route::post('/warehouses/locations', 'WarehouseController@storeLocation')->name('warehouses.locations.store');
+        Route::put('/warehouses/locations/{location}', 'WarehouseController@updateLocation')->name('warehouses.locations.update');
         Route::delete('/warehouses/locations/{location}', 'WarehouseController@destroyLocation')->name('warehouses.locations.destroy');
 
         Route::get('/numbering', 'NumberingFormatController@index')->name('numbering')->middleware('role:admin');

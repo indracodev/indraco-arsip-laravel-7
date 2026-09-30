@@ -17,7 +17,125 @@
         </div>
 
         <!-- Canvas Toolbar -->
-        <div class="flex flex-wrap items-center gap-3">
+        <div class="flex flex-wrap items-center gap-3 flex-1 justify-end">
+            <!-- Search Input & Live Autocomplete Dropdown -->
+            <div class="relative w-full sm:w-72 lg:w-80" @click.away="searchDropdownOpen = false">
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                        <i data-lucide="search" class="w-4 h-4"></i>
+                    </div>
+                    <input 
+                        type="text" 
+                        x-model="searchQuery" 
+                        @input="handleSearchInput()" 
+                        @focus="if(searchQuery.trim().length > 0) searchDropdownOpen = true"
+                        @keydown.enter="selectFirstSearchResult()"
+                        @keydown.escape="searchDropdownOpen = false"
+                        placeholder="🔍 Cari Gudang, Rak, Box, atau No. Arsip..." 
+                        class="w-full pl-9 pr-8 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition shadow-xs"
+                    >
+                    <button 
+                        x-show="searchQuery" 
+                        @click="searchQuery = ''; searchDropdownOpen = false; clearBlink()" 
+                        type="button" 
+                        class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                    >
+                        <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+
+                <!-- Live Search Categorized Dropdown -->
+                <div 
+                    x-show="searchDropdownOpen && (searchResults.rooms.length > 0 || searchResults.racks.length > 0 || searchResults.boxes.length > 0)" 
+                    x-cloak 
+                    class="absolute left-0 right-0 top-full mt-1.5 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl overflow-hidden max-h-96 overflow-y-auto"
+                >
+                    <!-- Category: Gudang (Rooms) -->
+                    <template x-if="searchResults.rooms.length > 0">
+                        <div class="p-2 border-b border-slate-100 dark:border-slate-800">
+                            <div class="text-[10px] font-bold font-mono uppercase text-emerald-600 dark:text-emerald-400 px-2 py-1 flex items-center gap-1.5">
+                                <i data-lucide="square" class="w-3 h-3"></i> Gudang / Sektor (<span x-text="searchResults.rooms.length"></span>)
+                            </div>
+                            <template x-for="room in searchResults.rooms" :key="'room-' + room.id">
+                                <button 
+                                    @click="selectSearchResult('room', room)" 
+                                    type="button" 
+                                    class="w-full text-left px-2.5 py-1.5 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-xl transition flex items-center justify-between group cursor-pointer"
+                                >
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-2.5 h-2.5 rounded-sm bg-emerald-500"></span>
+                                        <span class="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-emerald-600 dark:group-hover:text-emerald-400" x-text="room.rack_code || room.room_sector"></span>
+                                    </div>
+                                    <span class="text-[10px] font-mono text-slate-400 group-hover:text-emerald-500">Layout Berkedip ➔</span>
+                                </button>
+                            </template>
+                        </div>
+                    </template>
+
+                    <!-- Category: Rak (Racks) -->
+                    <template x-if="searchResults.racks.length > 0">
+                        <div class="p-2 border-b border-slate-100 dark:border-slate-800">
+                            <div class="text-[10px] font-bold font-mono uppercase text-blue-600 dark:text-blue-400 px-2 py-1 flex items-center gap-1.5">
+                                <i data-lucide="rectangle-horizontal" class="w-3 h-3"></i> Rak Penyimpanan (<span x-text="searchResults.racks.length"></span>)
+                            </div>
+                            <template x-for="rack in searchResults.racks" :key="'rack-' + rack.id">
+                                <button 
+                                    @click="selectSearchResult('rack', rack)" 
+                                    type="button" 
+                                    class="w-full text-left px-2.5 py-1.5 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-xl transition flex items-center justify-between group cursor-pointer"
+                                >
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-2.5 h-2.5 rounded-sm" :style="{ backgroundColor: rack.custom_color || rack.status_color || '#3b82f6' }"></span>
+                                        <div>
+                                            <span class="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400" x-text="rack.rack_code"></span>
+                                            <span class="text-[10px] text-slate-400 font-mono ml-1" x-text="'(' + (rack.room_sector || 'Umum') + ' • ' + (rack.current_box_count || 0) + '/' + (rack.box_capacity || 100) + ')'"></span>
+                                        </div>
+                                    </div>
+                                    <span class="text-[10px] font-mono text-slate-400 group-hover:text-blue-500">Rak Berkedip ➔</span>
+                                </button>
+                            </template>
+                        </div>
+                    </template>
+
+                    <!-- Category: Box / Slot / Dokumen Arsip -->
+                    <template x-if="searchResults.boxes.length > 0">
+                        <div class="p-2">
+                            <div class="text-[10px] font-bold font-mono uppercase text-amber-600 dark:text-amber-400 px-2 py-1 flex items-center gap-1.5">
+                                <i data-lucide="package" class="w-3 h-3"></i> Box / Slot Arsip (<span x-text="searchResults.boxes.length"></span>)
+                            </div>
+                            <template x-for="box in searchResults.boxes" :key="'box-' + box.rack.id + '-' + box.slot_code">
+                                <button 
+                                    @click="selectSearchResult('box', box)" 
+                                    type="button" 
+                                    class="w-full text-left px-2.5 py-2 hover:bg-amber-50 dark:hover:bg-amber-950/40 rounded-xl transition flex items-center justify-between group border-b border-slate-50 dark:border-slate-800/40 last:border-0 cursor-pointer"
+                                >
+                                    <div class="flex items-start gap-2 min-w-0">
+                                        <span class="mt-0.5 w-2 h-2 rounded-full shrink-0" :class="box.archive ? 'bg-amber-500' : 'bg-emerald-500'"></span>
+                                        <div class="min-w-0">
+                                            <div class="flex items-center gap-1.5 flex-wrap">
+                                                <span class="text-xs font-mono font-black text-amber-700 dark:text-amber-400" x-text="box.slot_code"></span>
+                                                <span class="text-[10px] font-mono px-1.5 py-0.2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded" x-text="'Rak: ' + box.rack.rack_code"></span>
+                                                <span class="text-[10px] font-mono text-slate-400" x-text="'(LVL ' + box.sap_level + ')'"></span>
+                                            </div>
+                                            <template x-if="box.archive">
+                                                <div class="text-[11px] text-slate-600 dark:text-slate-300 truncate font-medium mt-0.5">
+                                                    <span class="font-bold text-slate-800 dark:text-white" x-text="box.archive.box_number ? '[' + box.archive.box_number + '] ' : ''"></span>
+                                                    <span x-text="box.archive.title"></span>
+                                                </div>
+                                            </template>
+                                            <template x-if="!box.archive">
+                                                <div class="text-[10px] text-emerald-600 dark:text-emerald-400 italic">Slot Kosong Siap Pakai</div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                    <span class="text-[10px] font-mono text-amber-600 dark:text-amber-400 shrink-0 font-bold ml-2">Buka Denah ➔</span>
+                                </button>
+                            </template>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
             <!-- Add Object Action Group -->
             <div class="flex items-center gap-2 bg-slate-100 dark:bg-slate-900 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800">
                 <button @click="openAddRoomModal()" type="button" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow transition flex items-center gap-1.5">
@@ -168,7 +286,7 @@
                 </button>
             </div>
 
-            <div class="relative max-w-full max-h-full overflow-auto p-2">
+            <div id="canvasScrollContainer" class="relative max-w-full max-h-full overflow-auto p-2">
                 <canvas 
                     id="warehouseCanvas" 
                     :width="canvasWidth" 
@@ -433,7 +551,7 @@
                                 <i data-lucide="layout-grid" class="w-4 h-4 text-amber-400 group-hover:scale-110 transition shrink-0"></i>
                                 <span class="truncate">Visualisasi 100 Slot Rak</span>
                             </div>
-                            <span class="text-[9px] px-1.5 py-0.5 bg-amber-500/20 text-amber-300 rounded font-mono font-black border border-amber-500/30 shrink-0">5 Sap</span>
+                            <span class="text-[9px] px-1.5 py-0.5 bg-amber-500/20 text-amber-300 rounded font-mono font-black border border-amber-500/30 shrink-0">5 LVL</span>
                         </button>
 
                         <div class="border-t border-slate-800/80 my-1"></div>
@@ -686,7 +804,7 @@
                                         <i data-lucide="layout-grid" class="w-4 h-4 text-indigo-400"></i>
                                         Visualisasi 100 Slot Box (TB 30g)
                                     </span>
-                                    <span class="px-2 py-0.5 bg-indigo-500/20 text-indigo-300 text-[10px] font-mono font-bold rounded-md">5 Sap × 20</span>
+                                    <span class="px-2 py-0.5 bg-indigo-500/20 text-indigo-300 text-[10px] font-mono font-bold rounded-md">5 LVL × 20</span>
                                 </div>
 
                                 <div class="grid grid-cols-3 gap-1.5 text-center text-[10px] font-bold">
@@ -710,7 +828,7 @@
                                     class="w-full py-2 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-extrabold text-xs rounded-xl shadow transition flex items-center justify-center gap-2 transform active:scale-95"
                                 >
                                     <i data-lucide="grid" class="w-3.5 h-3.5"></i>
-                                    <span>Buka Grid Rak 5 Sap (100 Box)</span>
+                                    <span>Buka Grid Rak 5 LVL (100 Box)</span>
                                 </button>
                             </div>
                         </div>
@@ -766,7 +884,7 @@
                     <div class="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
                         <template x-if="selectedLocation?.location_type !== 'room'">
                             <button @click="openRackGridModal(selectedLocation)" type="button" class="w-full py-2.5 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-extrabold text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-2">
-                                <i data-lucide="layout-grid" class="w-4 h-4"></i> Visualisasi 100 Slot Rak (5 Sap)
+                                <i data-lucide="layout-grid" class="w-4 h-4"></i> Visualisasi 100 Slot Rak (5 LVL)
                             </button>
                         </template>
 
@@ -1290,32 +1408,32 @@
         </div>
     </div>
 
-    <!-- Modal: 100-Box Rack Visualizer (5 Sap x 20 Box) - Desktop Delphi Edition -->
-    <div x-show="rackGridModalOpen" x-cloak class="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-hidden">
-        <div @click.away="rackGridModalOpen = false" class="bg-slate-900 border border-slate-700/90 rounded-xl max-w-6xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
-            <!-- Modal Header (Delphi Window Titlebar) -->
-            <div class="px-5 py-3.5 bg-slate-950 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
+    <!-- Modal: 100-Box Rack Visualizer (5 Sap x 20 Box) - Light Theme Edition -->
+    <div x-show="rackGridModalOpen" x-cloak class="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-hidden">
+        <div @click.away="rackGridModalOpen = false" class="bg-white border border-slate-300 text-slate-800 rounded-xl max-w-6xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+            <!-- Modal Header (Delphi Window Titlebar in Light Theme) -->
+            <div class="px-5 py-3.5 bg-slate-100 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 shrink-0">
                 <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-lg bg-indigo-600/30 border border-indigo-500/40 text-indigo-400 flex items-center justify-center shadow-sm">
+                    <div class="w-9 h-9 rounded-lg bg-indigo-100 border border-indigo-200 text-indigo-600 flex items-center justify-center shadow-xs">
                         <i data-lucide="layout-grid" class="w-5 h-5"></i>
                     </div>
                     <div>
                         <div class="flex items-center gap-2 flex-wrap">
-                            <h2 class="text-base font-bold text-white tracking-wide flex items-center gap-2 font-mono">
+                            <h2 class="text-base font-bold text-slate-900 tracking-wide flex items-center gap-2 font-mono">
                                 <span x-text="'Denah Rak: ' + (selectedRackForModal?.rack_code || 'RAK')"></span>
                             </h2>
-                            <span class="px-2 py-0.5 bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 font-mono text-[11px] font-semibold rounded">
+                            <span class="px-2 py-0.5 bg-indigo-100 border border-indigo-200 text-indigo-700 font-mono text-[11px] font-semibold rounded">
                                 100 Box (TB 30g)
                             </span>
                             <template x-if="selectedRackForModal?.is_fat_locked">
-                                <span class="px-2 py-0.5 bg-rose-500/20 border border-rose-500/40 text-rose-300 text-[10px] font-bold rounded flex items-center gap-1">
-                                    <i data-lucide="lock" class="w-3 h-3 text-rose-400"></i> RUANGAN KHUSUS FAT
+                                <span class="px-2 py-0.5 bg-rose-100 border border-rose-200 text-rose-700 text-[10px] font-bold rounded flex items-center gap-1">
+                                    <i data-lucide="lock" class="w-3 h-3 text-rose-500"></i> RUANGAN KHUSUS FAT
                                 </span>
                             </template>
                         </div>
-                        <p class="text-xs text-slate-400">
+                        <p class="text-xs text-slate-500">
                             <span x-text="'Sektor: ' + (selectedRackForModal?.room_sector || 'Umum')"></span>
-                            <span class="text-slate-600 mx-1.5">•</span>
+                            <span class="text-slate-300 mx-1.5">•</span>
                             <span x-text="'Alokasi Dept: ' + (selectedRackForModal?.assigned_department ? (selectedRackForModal?.assigned_department.code + ' - ' + selectedRackForModal?.assigned_department.name) : 'Umum (Bebas)')"></span>
                         </p>
                     </div>
@@ -1324,37 +1442,37 @@
                 <!-- Stats & Close Button -->
                 <div class="flex items-center gap-3">
                     <!-- Status Legends -->
-                    <div class="hidden sm:flex items-center gap-3 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-300">
+                    <div class="hidden sm:flex items-center gap-3 bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-700 shadow-xs">
                         <div class="flex items-center gap-1.5">
-                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
-                            <span class="text-[11px]">Kosong (<strong class="font-mono text-emerald-400" x-text="getRackSlotStats(selectedRackForModal).empty"></strong>)</span>
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                            <span class="text-[11px]">Kosong (<strong class="font-mono text-emerald-600" x-text="getRackSlotStats(selectedRackForModal).empty"></strong>)</span>
                         </div>
                         <div class="flex items-center gap-1.5">
-                            <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
-                            <span class="text-[11px]">Terisi (<strong class="font-mono text-amber-300" x-text="getRackSlotStats(selectedRackForModal).filled"></strong>)</span>
+                            <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                            <span class="text-[11px]">Terisi (<strong class="font-mono text-amber-600" x-text="getRackSlotStats(selectedRackForModal).filled"></strong>)</span>
                         </div>
                         <div class="flex items-center gap-1.5">
                             <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
-                            <span class="text-[11px]">Expired (<strong class="font-mono text-rose-300" x-text="getRackSlotStats(selectedRackForModal).expired"></strong>)</span>
+                            <span class="text-[11px]">Expired (<strong class="font-mono text-rose-600" x-text="getRackSlotStats(selectedRackForModal).expired"></strong>)</span>
                         </div>
                     </div>
 
                     <!-- Delphi Style Close Button -->
-                    <button @click="rackGridModalOpen = false" type="button" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-white bg-slate-800/80 hover:bg-rose-600/80 rounded-lg transition" title="Tutup Jendela (Esc)">
+                    <button @click="rackGridModalOpen = false" type="button" class="w-8 h-8 flex items-center justify-center text-slate-500 hover:text-white bg-slate-200 hover:bg-rose-600 rounded-lg transition cursor-pointer" title="Tutup Jendela (Esc)">
                         <i data-lucide="x" class="w-4 h-4"></i>
                     </button>
                 </div>
             </div>
 
-            <!-- Filter Toolbar (Delphi TToolBar) -->
-            <div class="px-5 py-2.5 bg-slate-950/60 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <!-- Filter Toolbar (Delphi TToolBar in Light Theme) -->
+            <div class="px-5 py-2.5 bg-slate-50/80 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs shrink-0">
                 <!-- Status Filter Segmented Buttons -->
-                <div class="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
+                <div class="flex items-center gap-1 bg-slate-200/80 p-1 rounded-lg border border-slate-300">
                     <button 
                         @click="slotFilterStatus = 'all'" 
                         type="button" 
-                        class="px-3 py-1.5 rounded font-semibold transition text-xs flex items-center gap-1.5" 
-                        :class="slotFilterStatus === 'all' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'"
+                        class="px-3 py-1.5 rounded font-semibold transition text-xs flex items-center gap-1.5 cursor-pointer" 
+                        :class="slotFilterStatus === 'all' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-300/60'"
                     >
                         <span>Semua Slot</span>
                         <span class="text-[10px] font-mono opacity-80">(100)</span>
@@ -1362,28 +1480,28 @@
                     <button 
                         @click="slotFilterStatus = 'empty'" 
                         type="button" 
-                        class="px-2.5 py-1.5 rounded font-semibold transition text-xs flex items-center gap-1.5" 
-                        :class="slotFilterStatus === 'empty' ? 'bg-emerald-600 text-white shadow-sm' : 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/30'"
+                        class="px-2.5 py-1.5 rounded font-semibold transition text-xs flex items-center gap-1.5 cursor-pointer" 
+                        :class="slotFilterStatus === 'empty' ? 'bg-emerald-600 text-white shadow-xs' : 'text-emerald-700 hover:bg-emerald-100/60'"
                     >
-                        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
                         <span>Kosong</span>
                         <span class="text-[10px] font-mono" x-text="'(' + getRackSlotStats(selectedRackForModal).empty + ')'"></span>
                     </button>
                     <button 
                         @click="slotFilterStatus = 'filled'" 
                         type="button" 
-                        class="px-2.5 py-1.5 rounded font-semibold transition text-xs flex items-center gap-1.5" 
-                        :class="slotFilterStatus === 'filled' ? 'bg-amber-600 text-white shadow-sm' : 'text-amber-400 hover:text-amber-300 hover:bg-amber-950/30'"
+                        class="px-2.5 py-1.5 rounded font-semibold transition text-xs flex items-center gap-1.5 cursor-pointer" 
+                        :class="slotFilterStatus === 'filled' ? 'bg-amber-600 text-white shadow-xs' : 'text-amber-700 hover:bg-amber-100/60'"
                     >
-                        <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                        <span class="w-2 h-2 rounded-full bg-amber-500"></span>
                         <span>Terisi</span>
                         <span class="text-[10px] font-mono" x-text="'(' + getRackSlotStats(selectedRackForModal).filled + ')'"></span>
                     </button>
                     <button 
                         @click="slotFilterStatus = 'expired'" 
                         type="button" 
-                        class="px-2.5 py-1.5 rounded font-semibold transition text-xs flex items-center gap-1.5" 
-                        :class="slotFilterStatus === 'expired' ? 'bg-rose-600 text-white shadow-sm' : 'text-rose-400 hover:text-rose-300 hover:bg-rose-950/30'"
+                        class="px-2.5 py-1.5 rounded font-semibold transition text-xs flex items-center gap-1.5 cursor-pointer" 
+                        :class="slotFilterStatus === 'expired' ? 'bg-rose-600 text-white shadow-xs' : 'text-rose-700 hover:bg-rose-100/60'"
                     >
                         <span class="w-2 h-2 rounded-full bg-rose-500"></span>
                         <span>Expired</span>
@@ -1398,7 +1516,7 @@
                         type="text" 
                         x-model="slotSearchQuery" 
                         placeholder="Cari No. Box / Judul / Periode / Slot..." 
-                        class="w-full pl-9 pr-3 py-1.5 bg-slate-950 border border-slate-700/80 rounded-lg text-xs text-white placeholder-slate-500 font-medium focus:outline-none focus:border-indigo-500 transition"
+                        class="w-full pl-9 pr-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 placeholder-slate-400 font-medium focus:outline-none focus:border-indigo-500 transition"
                     >
                 </div>
             </div>
@@ -1406,51 +1524,60 @@
             <!-- Modal Content Layout: 5 Saps Grid (Left) + Detail Inspector (Right) -->
             <div class="flex-1 flex flex-col lg:flex-row overflow-hidden min-h-0">
                 <!-- Left: 5 Saps Scrollable Area -->
-                <div class="flex-1 overflow-y-auto p-4 space-y-3.5 bg-slate-950/40">
+                <div class="flex-1 overflow-y-auto p-4 space-y-3.5 bg-slate-100/60">
                     <template x-for="sapNum in [5, 4, 3, 2, 1]" :key="sapNum">
-                        <div class="bg-slate-900 border border-slate-800 rounded-lg p-3.5 shadow-sm space-y-3 hover:border-slate-700 transition">
-                            <!-- Sap Shelf Level Header -->
-                            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                        <div class="bg-white border border-slate-200 rounded-xl p-3.5 shadow-xs space-y-3 hover:border-slate-300 transition">
+                            <!-- LVL Shelf Level Header -->
+                            <div class="flex items-center justify-between border-b border-slate-200 pb-2">
                                 <div class="flex items-center gap-2">
-                                    <div class="w-5 h-5 rounded bg-indigo-600/30 border border-indigo-500/40 text-indigo-400 flex items-center justify-center font-mono font-bold text-xs">
+                                    <div class="w-6 h-6 rounded-md bg-indigo-100 border border-indigo-200 text-indigo-700 flex items-center justify-center font-mono font-bold text-xs">
                                         <span x-text="sapNum"></span>
                                     </div>
-                                    <h3 class="text-xs font-bold text-slate-200 uppercase tracking-wide font-mono" x-text="'SAP ' + sapNum + (sapNum === 5 ? ' (TINGKAT 5 - PALING ATAS)' : (sapNum === 1 ? ' (TINGKAT 1 - PALING BAWAH)' : ' (TINGKAT ' + sapNum + ')'))"></h3>
+                                    <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wide font-mono" x-text="'LVL ' + sapNum + (sapNum === 5 ? ' (TINGKAT 5 - PALING ATAS)' : (sapNum === 1 ? ' (TINGKAT 1 - PALING BAWAH)' : ' (TINGKAT ' + sapNum + ')'))"></h3>
                                 </div>
-                                <span class="text-[11px] font-mono text-slate-400">20 Box (10 Atas + 10 Bawah)</span>
+                                <span class="text-[11px] font-mono text-slate-500 font-medium">20 Box (10 Atas + 10 Bawah)</span>
                             </div>
 
                             <!-- Row 1: Baris Atas (Layer Top - 10 Slots) -->
                             <div class="space-y-1.5">
-                                <div class="flex items-center justify-between text-[11px] font-semibold text-slate-400">
-                                    <span class="flex items-center gap-1 text-slate-300">
-                                        <i data-lucide="arrow-up" class="w-3 h-3 text-indigo-400"></i>
+                                <div class="flex items-center justify-between text-[11px] font-semibold text-slate-600">
+                                    <span class="flex items-center gap-1.5 text-slate-700">
+                                        <i data-lucide="arrow-up" class="w-3.5 h-3.5 text-indigo-600"></i>
                                         <span>Baris Atas (10 Box TB 30g)</span>
                                     </span>
-                                    <span class="text-[10px] text-slate-500 font-mono">T01 — T10</span>
+                                    <span class="text-[11px] text-slate-600 font-mono font-bold bg-slate-100 px-2 py-0.5 rounded border border-slate-200" x-text="((sapNum - 1) * 20 + 11) + ' — ' + ((sapNum - 1) * 20 + 20)"></span>
                                 </div>
                                 <div class="grid grid-cols-5 sm:grid-cols-10 gap-1.5">
                                     <template x-for="slot in getSapSlots(sapNum, 'top')" :key="slot.slot_code || slot.id">
                                         <div 
                                             @click="selectSlotForDetail(slot)"
-                                            class="p-1.5 rounded border transition cursor-pointer flex flex-col justify-between items-center text-center select-none min-h-[62px]"
+                                            class="p-1.5 rounded-lg border transition cursor-pointer flex flex-col justify-between items-center text-center select-none min-h-[62px] relative"
                                             :class="[
                                                 getSlotStyleClasses(slot),
-                                                selectedSlotDetail?.slot_code === slot.slot_code ? 'ring-2 ring-cyan-400 scale-[1.03] shadow-md !border-cyan-400 !bg-cyan-950/40' : '',
+                                                selectedSlotDetail?.slot_code === slot.slot_code ? 'ring-2 ring-indigo-500 scale-[1.03] shadow-md !border-indigo-500 !bg-indigo-50' : '',
+                                                (slotBlinkActive && highlightedSlotCode === slot.slot_code) ? '!ring-4 !ring-amber-500 !bg-amber-300 !text-slate-950 font-black scale-110 shadow-2xl z-30 animate-pulse border-amber-600 ring-offset-2' : '',
                                                 !isSlotMatchFilter(slot) ? 'opacity-20 grayscale' : 'opacity-100'
                                             ]"
-                                            :title="slot.archive ? (slot.slot_code + ': ' + (slot.archive.box_number || 'Box') + ' - ' + slot.archive.title) : (slot.slot_code + ': Slot Kosong')"
+                                            :title="slot.archive ? (slot.slot_code + ' [No. ' + (slot.box_number_display || slot.slot_number) + ']: ' + (slot.archive.box_number || 'Box') + ' - ' + slot.archive.title) : (slot.slot_code + ' [No. ' + (slot.box_number_display || slot.slot_number) + ']: Slot Kosong')"
                                         >
+                                            <!-- Blinking Ping Beacon when Box is searched -->
+                                            <template x-if="slotBlinkActive && highlightedSlotCode === slot.slot_code">
+                                                <span class="absolute -top-1.5 -right-1.5 flex h-4 w-4 z-40">
+                                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                                                    <span class="relative inline-flex rounded-full h-4 w-4 bg-amber-600 border border-white items-center justify-center text-[7px] font-black text-white">★</span>
+                                                </span>
+                                            </template>
+
                                             <div class="w-full flex items-center justify-between text-[9px] font-mono font-bold opacity-90 mb-0.5">
-                                                <span x-text="'T' + String(slot.slot_number).padStart(2, '0')"></span>
+                                                <span class="text-slate-700 font-bold" :class="(slotBlinkActive && highlightedSlotCode === slot.slot_code) ? '!text-slate-950 font-black text-[10px]' : ''" x-text="slot.box_number_display || slot.slot_number"></span>
                                                 <template x-if="slot.status === 'expired' || slot.archive?.is_expired">
                                                     <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
                                                 </template>
                                                 <template x-if="(slot.status === 'filled' || slot.archive) && !(slot.status === 'expired' || slot.archive?.is_expired)">
-                                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
                                                 </template>
                                                 <template x-if="!slot.archive && slot.status === 'empty'">
-                                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400/80"></span>
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                                                 </template>
                                             </div>
 
@@ -1458,12 +1585,12 @@
                                             <div class="w-full flex-1 flex flex-col items-center justify-center">
                                                 <template x-if="slot.archive">
                                                     <div class="space-y-0.5 w-full">
-                                                        <span class="font-mono font-bold text-[10px] leading-tight block truncate text-amber-300 max-w-[80px] mx-auto" x-text="slot.archive.box_number || 'TERISI'"></span>
-                                                        <span class="text-[8px] text-slate-400 font-mono block truncate max-w-[80px] mx-auto" x-text="slot.archive.periode_doc || slot.archive.department || ''"></span>
+                                                        <span class="font-mono font-bold text-[10px] leading-tight block truncate text-amber-700 max-w-[80px] mx-auto" :class="(slotBlinkActive && highlightedSlotCode === slot.slot_code) ? '!text-slate-950 font-black' : ''" x-text="slot.archive.box_number || 'TERISI'"></span>
+                                                        <span class="text-[8px] text-slate-500 font-mono block truncate max-w-[80px] mx-auto" x-text="slot.archive.periode_doc || slot.archive.department || ''"></span>
                                                     </div>
                                                 </template>
                                                 <template x-if="!slot.archive">
-                                                    <span class="text-[10px] font-semibold text-emerald-400 font-mono">Kosong</span>
+                                                    <span class="text-[10px] font-bold font-mono" :class="(slotBlinkActive && highlightedSlotCode === slot.slot_code) ? 'text-slate-950 font-black' : 'text-emerald-600'">Kosong</span>
                                                 </template>
                                             </div>
                                         </div>
@@ -1472,39 +1599,48 @@
                             </div>
 
                             <!-- Shelf Separator Beam -->
-                            <div class="border-t border-slate-800/80"></div>
+                            <div class="border-t border-slate-200"></div>
 
                             <!-- Row 2: Baris Bawah (Layer Bottom - 10 Slots) -->
                             <div class="space-y-1.5">
-                                <div class="flex items-center justify-between text-[11px] font-semibold text-slate-400">
-                                    <span class="flex items-center gap-1 text-slate-300">
-                                        <i data-lucide="arrow-down" class="w-3 h-3 text-blue-400"></i>
+                                <div class="flex items-center justify-between text-[11px] font-semibold text-slate-600">
+                                    <span class="flex items-center gap-1.5 text-slate-700">
+                                        <i data-lucide="arrow-down" class="w-3.5 h-3.5 text-blue-600"></i>
                                         <span>Baris Bawah (10 Box TB 30g)</span>
                                     </span>
-                                    <span class="text-[10px] text-slate-500 font-mono">B01 — B10</span>
+                                    <span class="text-[11px] text-slate-600 font-mono font-bold bg-slate-100 px-2 py-0.5 rounded border border-slate-200" x-text="((sapNum - 1) * 20 + 1) + ' — ' + ((sapNum - 1) * 20 + 10)"></span>
                                 </div>
                                 <div class="grid grid-cols-5 sm:grid-cols-10 gap-1.5">
                                     <template x-for="slot in getSapSlots(sapNum, 'bottom')" :key="slot.slot_code || slot.id">
                                         <div 
                                             @click="selectSlotForDetail(slot)"
-                                            class="p-1.5 rounded border transition cursor-pointer flex flex-col justify-between items-center text-center select-none min-h-[62px]"
+                                            class="p-1.5 rounded-lg border transition cursor-pointer flex flex-col justify-between items-center text-center select-none min-h-[62px] relative"
                                             :class="[
                                                 getSlotStyleClasses(slot),
-                                                selectedSlotDetail?.slot_code === slot.slot_code ? 'ring-2 ring-cyan-400 scale-[1.03] shadow-md !border-cyan-400 !bg-cyan-950/40' : '',
+                                                selectedSlotDetail?.slot_code === slot.slot_code ? 'ring-2 ring-indigo-500 scale-[1.03] shadow-md !border-indigo-500 !bg-indigo-50' : '',
+                                                (slotBlinkActive && highlightedSlotCode === slot.slot_code) ? '!ring-4 !ring-amber-500 !bg-amber-300 !text-slate-950 font-black scale-110 shadow-2xl z-30 animate-pulse border-amber-600 ring-offset-2' : '',
                                                 !isSlotMatchFilter(slot) ? 'opacity-20 grayscale' : 'opacity-100'
                                             ]"
-                                            :title="slot.archive ? (slot.slot_code + ': ' + (slot.archive.box_number || 'Box') + ' - ' + slot.archive.title) : (slot.slot_code + ': Slot Kosong')"
+                                            :title="slot.archive ? (slot.slot_code + ' [No. ' + (slot.box_number_display || slot.slot_number) + ']: ' + (slot.archive.box_number || 'Box') + ' - ' + slot.archive.title) : (slot.slot_code + ' [No. ' + (slot.box_number_display || slot.slot_number) + ']: Slot Kosong')"
                                         >
+                                            <!-- Blinking Ping Beacon when Box is searched -->
+                                            <template x-if="slotBlinkActive && highlightedSlotCode === slot.slot_code">
+                                                <span class="absolute -top-1.5 -right-1.5 flex h-4 w-4 z-40">
+                                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                                                    <span class="relative inline-flex rounded-full h-4 w-4 bg-amber-600 border border-white items-center justify-center text-[7px] font-black text-white">★</span>
+                                                </span>
+                                            </template>
+
                                             <div class="w-full flex items-center justify-between text-[9px] font-mono font-bold opacity-90 mb-0.5">
-                                                <span x-text="'B' + String(slot.slot_number).padStart(2, '0')"></span>
+                                                <span class="text-slate-700 font-bold" :class="(slotBlinkActive && highlightedSlotCode === slot.slot_code) ? '!text-slate-950 font-black text-[10px]' : ''" x-text="slot.box_number_display || slot.slot_number"></span>
                                                 <template x-if="slot.status === 'expired' || slot.archive?.is_expired">
                                                     <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
                                                 </template>
                                                 <template x-if="(slot.status === 'filled' || slot.archive) && !(slot.status === 'expired' || slot.archive?.is_expired)">
-                                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
                                                 </template>
                                                 <template x-if="!slot.archive && slot.status === 'empty'">
-                                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400/80"></span>
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                                                 </template>
                                             </div>
 
@@ -1512,12 +1648,12 @@
                                             <div class="w-full flex-1 flex flex-col items-center justify-center">
                                                 <template x-if="slot.archive">
                                                     <div class="space-y-0.5 w-full">
-                                                        <span class="font-mono font-bold text-[10px] leading-tight block truncate text-amber-300 max-w-[80px] mx-auto" x-text="slot.archive.box_number || 'TERISI'"></span>
-                                                        <span class="text-[8px] text-slate-400 font-mono block truncate max-w-[80px] mx-auto" x-text="slot.archive.periode_doc || slot.archive.department || ''"></span>
+                                                        <span class="font-mono font-bold text-[10px] leading-tight block truncate text-amber-700 max-w-[80px] mx-auto" :class="(slotBlinkActive && highlightedSlotCode === slot.slot_code) ? '!text-slate-950 font-black' : ''" x-text="slot.archive.box_number || 'TERISI'"></span>
+                                                        <span class="text-[8px] text-slate-500 font-mono block truncate max-w-[80px] mx-auto" x-text="slot.archive.periode_doc || slot.archive.department || ''"></span>
                                                     </div>
                                                 </template>
                                                 <template x-if="!slot.archive">
-                                                    <span class="text-[10px] font-semibold text-emerald-400 font-mono">Kosong</span>
+                                                    <span class="text-[10px] font-bold font-mono" :class="(slotBlinkActive && highlightedSlotCode === slot.slot_code) ? 'text-slate-950 font-black' : 'text-emerald-600'">Kosong</span>
                                                 </template>
                                             </div>
                                         </div>
@@ -1528,15 +1664,15 @@
                     </template>
                 </div>
 
-                <!-- Right: Slot Detail Inspector (Delphi Property Inspector / TValueListEditor) -->
-                <div class="w-full lg:w-96 bg-slate-950 border-t lg:border-t-0 lg:border-l border-slate-800 p-4 overflow-y-auto flex flex-col justify-between space-y-4 shadow-xl">
+                <!-- Right: Slot Detail Inspector (Delphi Property Inspector in Light Theme) -->
+                <div class="w-full lg:w-96 bg-white border-t lg:border-t-0 lg:border-l border-slate-200 p-4 overflow-y-auto flex flex-col justify-between space-y-4 shadow-xl">
                     <!-- If Slot NOT Selected -->
                     <div x-show="!selectedSlotDetail" class="py-12 text-center space-y-3 my-auto">
-                        <div class="w-12 h-12 rounded-lg bg-indigo-500/10 text-indigo-400 mx-auto flex items-center justify-center border border-indigo-500/20">
+                        <div class="w-12 h-12 rounded-lg bg-indigo-50 text-indigo-600 mx-auto flex items-center justify-center border border-indigo-200">
                             <i data-lucide="mouse-pointer-click" class="w-6 h-6"></i>
                         </div>
-                        <h4 class="text-xs font-bold text-slate-200 uppercase tracking-wider font-mono">Inspector Slot Rak</h4>
-                        <p class="text-xs text-slate-400 max-w-xs mx-auto leading-relaxed">
+                        <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider font-mono">Inspector Slot Rak</h4>
+                        <p class="text-xs text-slate-500 max-w-xs mx-auto leading-relaxed">
                             Klik salah satu dari 100 kotak slot kardus (TB 30g) pada denah di sebelah kiri untuk melihat rincian dokumen dan opsi cetak label.
                         </p>
                     </div>
@@ -1544,14 +1680,17 @@
                     <!-- If Slot IS Selected -->
                     <div x-show="selectedSlotDetail" class="space-y-3.5" x-cloak>
                         <!-- Inspector Header -->
-                        <div class="border-b border-slate-800 pb-3 flex items-start justify-between">
+                        <div class="border-b border-slate-200 pb-3 flex items-start justify-between">
                             <div>
-                                <span class="text-[10px] font-bold uppercase text-indigo-400 tracking-wider block font-mono" x-text="'Sap ' + (selectedSlotDetail?.sap_level || '') + ' • ' + (selectedSlotDetail?.layer_label || '')"></span>
-                                <h3 class="text-base font-bold text-white font-mono" x-text="selectedSlotDetail?.slot_code"></h3>
+                                <span class="text-[10px] font-bold uppercase text-indigo-600 tracking-wider block font-mono" x-text="'LVL ' + (selectedSlotDetail?.sap_level || '') + ' • ' + (selectedSlotDetail?.layer_label || '')"></span>
+                                <h3 class="text-base font-bold text-slate-900 font-mono flex items-center gap-2">
+                                    <span x-text="selectedSlotDetail?.slot_code"></span>
+                                    <span class="text-xs text-slate-500 font-sans font-medium" x-text="'(Box #' + (selectedSlotDetail?.box_number_display || selectedSlotDetail?.slot_number || '') + ')'"></span>
+                                </h3>
                             </div>
                             <span 
                                 class="px-2 py-0.5 text-[10px] font-bold uppercase rounded tracking-wider"
-                                :class="(selectedSlotDetail?.status === 'expired' || selectedSlotDetail?.archive?.is_expired) ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' : (selectedSlotDetail?.archive ? 'bg-amber-400/20 text-amber-300 border border-amber-400/40' : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40')"
+                                :class="(selectedSlotDetail?.status === 'expired' || selectedSlotDetail?.archive?.is_expired) ? 'bg-rose-100 text-rose-800 border border-rose-300' : (selectedSlotDetail?.archive ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-emerald-100 text-emerald-800 border border-emerald-300')"
                                 x-text="(selectedSlotDetail?.status === 'expired' || selectedSlotDetail?.archive?.is_expired) ? 'EXPIRED' : (selectedSlotDetail?.archive ? 'TERISI' : 'KOSONG')"
                             ></span>
                         </div>
@@ -1560,43 +1699,43 @@
                         <template x-if="selectedSlotDetail?.archive">
                             <div class="space-y-3 text-xs">
                                 <!-- Property Sheet Table -->
-                                <div class="bg-slate-900 border border-slate-800 rounded-lg divide-y divide-slate-800 overflow-hidden text-xs">
+                                <div class="bg-slate-50 border border-slate-200 rounded-lg divide-y divide-slate-200 overflow-hidden text-xs">
                                     <div class="p-2.5 flex items-center justify-between">
-                                        <span class="text-slate-400 text-[10px] font-mono uppercase font-bold">No. Box:</span>
-                                        <span class="font-mono text-xs font-bold text-amber-300" x-text="selectedSlotDetail.archive.box_number || '-'"></span>
+                                        <span class="text-slate-500 text-[10px] font-mono uppercase font-bold">No. Box:</span>
+                                        <span class="font-mono text-xs font-bold text-amber-700" x-text="selectedSlotDetail.archive.box_number || '-'"></span>
                                     </div>
                                     <div class="p-2.5 space-y-0.5">
-                                        <span class="text-slate-400 text-[10px] font-mono uppercase font-bold block">Judul Dokumen:</span>
-                                        <h4 class="font-medium text-white text-xs leading-snug" x-text="selectedSlotDetail.archive.title"></h4>
+                                        <span class="text-slate-500 text-[10px] font-mono uppercase font-bold block">Judul Dokumen:</span>
+                                        <h4 class="font-semibold text-slate-900 text-xs leading-snug" x-text="selectedSlotDetail.archive.title"></h4>
                                     </div>
                                     <div class="p-2.5 flex items-center justify-between">
-                                        <span class="text-slate-400 text-[10px] font-mono uppercase font-bold">Periode:</span>
-                                        <span class="font-mono text-xs text-slate-200" x-text="selectedSlotDetail.archive.periode_doc || '-'"></span>
+                                        <span class="text-slate-500 text-[10px] font-mono uppercase font-bold">Periode:</span>
+                                        <span class="font-mono text-xs text-slate-800" x-text="selectedSlotDetail.archive.periode_doc || '-'"></span>
                                     </div>
                                     <div class="p-2.5 flex items-center justify-between">
-                                        <span class="text-slate-400 text-[10px] font-mono uppercase font-bold">Departemen:</span>
-                                        <span class="text-xs text-slate-200 font-medium" x-text="selectedSlotDetail.archive.department_name ? (selectedSlotDetail.archive.department + ' - ' + selectedSlotDetail.archive.department_name) : (selectedSlotDetail.archive.department || '-')"></span>
+                                        <span class="text-slate-500 text-[10px] font-mono uppercase font-bold">Departemen:</span>
+                                        <span class="text-xs text-slate-800 font-medium" x-text="selectedSlotDetail.archive.department_name ? (selectedSlotDetail.archive.department + ' - ' + selectedSlotDetail.archive.department_name) : (selectedSlotDetail.archive.department || '-')"></span>
                                     </div>
                                     <template x-if="selectedSlotDetail.archive.sub_department || selectedSlotDetail.archive.sub_department_name">
                                         <div class="p-2.5 flex items-center justify-between">
-                                            <span class="text-slate-400 text-[10px] font-mono uppercase font-bold">Sub-Dept:</span>
-                                            <span class="text-xs text-indigo-300 font-medium" x-text="selectedSlotDetail.archive.sub_department_name ? (selectedSlotDetail.archive.sub_department + ' - ' + selectedSlotDetail.archive.sub_department_name) : selectedSlotDetail.archive.sub_department"></span>
+                                            <span class="text-slate-500 text-[10px] font-mono uppercase font-bold">Sub-Dept:</span>
+                                            <span class="text-xs text-indigo-700 font-medium" x-text="selectedSlotDetail.archive.sub_department_name ? (selectedSlotDetail.archive.sub_department + ' - ' + selectedSlotDetail.archive.sub_department_name) : selectedSlotDetail.archive.sub_department"></span>
                                         </div>
                                     </template>
                                     <div class="p-2.5 flex items-center justify-between">
-                                        <span class="text-slate-400 text-[10px] font-mono uppercase font-bold">Masa Simpan:</span>
-                                        <span class="font-mono text-xs" :class="(selectedSlotDetail.status === 'expired' || selectedSlotDetail.archive.is_expired) ? 'text-rose-400 font-bold' : 'text-slate-200'" x-text="selectedSlotDetail.archive.retention_expiry_date || '-'"></span>
+                                        <span class="text-slate-500 text-[10px] font-mono uppercase font-bold">Masa Simpan:</span>
+                                        <span class="font-mono text-xs font-semibold" :class="(selectedSlotDetail.status === 'expired' || selectedSlotDetail.archive.is_expired) ? 'text-rose-600 font-bold' : 'text-slate-800'" x-text="selectedSlotDetail.archive.retention_expiry_date || '-'"></span>
                                     </div>
                                 </div>
 
                                 <!-- Expired Warning Alert -->
                                 <template x-if="selectedSlotDetail.status === 'expired' || selectedSlotDetail.archive.is_expired">
-                                    <div class="p-2.5 bg-rose-500/10 border border-rose-500/30 rounded-lg space-y-1">
-                                        <div class="flex items-center gap-1.5 text-rose-400 font-bold text-xs">
-                                            <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-rose-400"></i>
+                                    <div class="p-2.5 bg-rose-50 border border-rose-200 rounded-lg space-y-1">
+                                        <div class="flex items-center gap-1.5 text-rose-700 font-bold text-xs">
+                                            <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-rose-600"></i>
                                             <span>Masa Simpan Kedaluwarsa</span>
                                         </div>
-                                        <p class="text-[11px] text-slate-300">
+                                        <p class="text-[11px] text-rose-800">
                                             Arsip pada box ini telah melewati masa retensi dan dapat diproses untuk pemusnahan dokumen.
                                         </p>
                                     </div>
@@ -1607,7 +1746,7 @@
                                     <a 
                                         :href="'/archives/' + selectedSlotDetail.archive.id" 
                                         target="_blank"
-                                        class="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-lg shadow-sm transition flex items-center justify-center gap-1.5"
+                                        class="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-lg shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
                                     >
                                         <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
                                         <span>Buka Detail Halaman Arsip</span>
@@ -1616,7 +1755,7 @@
                                     <a 
                                         :href="'/archives/print-labels?archive_id=' + selectedSlotDetail.archive.id" 
                                         target="_blank"
-                                        class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs rounded-lg transition flex items-center justify-center gap-1.5 border border-slate-700"
+                                        class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-lg transition flex items-center justify-center gap-1.5 border border-slate-300 cursor-pointer"
                                     >
                                         <i data-lucide="printer" class="w-3.5 h-3.5"></i>
                                         <span>Cetak Label Box Form A5 (TB 30g)</span>
@@ -1626,7 +1765,7 @@
                                         type="button" 
                                         @click="unassignCurrentSlot()"
                                         :disabled="slotAssignLoading"
-                                        class="w-full py-2 bg-rose-950/40 hover:bg-rose-900/50 text-rose-300 hover:text-rose-200 border border-rose-600/50 font-bold text-xs rounded-lg transition flex items-center justify-center gap-1.5"
+                                        class="w-full py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-800 border border-rose-300 font-bold text-xs rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer"
                                     >
                                         <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
                                         <span x-text="slotAssignLoading ? 'Memproses...' : 'Kosongkan / Lepas Box Dari Slot Ini'"></span>
@@ -1638,29 +1777,29 @@
                         <!-- If Empty Slot: Form Pengisian Dokumen / Alokasi Box -->
                         <template x-if="!selectedSlotDetail?.archive">
                             <div class="space-y-3 text-xs">
-                                <div class="p-2.5 bg-emerald-500/10 border border-emerald-500/30 rounded-lg flex items-center justify-between">
-                                    <div class="flex items-center gap-1.5 text-emerald-400 font-bold">
+                                <div class="p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center justify-between">
+                                    <div class="flex items-center gap-1.5 text-emerald-700 font-bold">
                                         <i data-lucide="inbox" class="w-4 h-4"></i>
                                         <span>Isi Dokumen ke Slot Ini</span>
                                     </div>
-                                    <span class="text-[10px] font-mono text-emerald-300 font-bold">Slot Kosong</span>
+                                    <span class="text-[10px] font-mono text-emerald-800 font-bold">Slot Kosong</span>
                                 </div>
 
                                 <!-- Segmented Mode Switch Tabs -->
-                                <div class="flex items-center gap-1 bg-slate-900 p-1 rounded-lg border border-slate-800">
+                                <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200">
                                     <button 
                                         type="button" 
                                         @click="slotAssignMode = 'create_new'"
-                                        class="flex-1 py-1.5 rounded font-semibold text-[11px] transition text-center"
-                                        :class="slotAssignMode === 'create_new' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'"
+                                        class="flex-1 py-1.5 rounded font-semibold text-[11px] transition text-center cursor-pointer"
+                                        :class="slotAssignMode === 'create_new' ? 'bg-white text-indigo-700 shadow-xs border border-slate-200' : 'text-slate-600 hover:text-slate-900'"
                                     >
                                         Input Dokumen Baru
                                     </button>
                                     <button 
                                         type="button" 
                                         @click="slotAssignMode = 'existing_archive'"
-                                        class="flex-1 py-1.5 rounded font-semibold text-[11px] transition text-center"
-                                        :class="slotAssignMode === 'existing_archive' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'"
+                                        class="flex-1 py-1.5 rounded font-semibold text-[11px] transition text-center cursor-pointer"
+                                        :class="slotAssignMode === 'existing_archive' ? 'bg-white text-indigo-700 shadow-xs border border-slate-200' : 'text-slate-600 hover:text-slate-900'"
                                     >
                                         Pilih Antrean Arsip
                                     </button>
@@ -1670,11 +1809,11 @@
                                 <div x-show="slotAssignMode === 'create_new'" class="space-y-2.5">
                                     <!-- Departemen Dropdown -->
                                     <div class="space-y-1">
-                                        <label class="text-[10px] font-mono font-bold uppercase text-slate-300 block">Departemen: <span class="text-rose-400">*</span></label>
+                                        <label class="text-[10px] font-mono font-bold uppercase text-slate-700 block">Departemen: <span class="text-rose-500">*</span></label>
                                         <select 
                                             x-model="slotAssignForm.department_id" 
                                             @change="onDepartmentChange()"
-                                            class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-500 font-medium"
+                                            class="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:border-indigo-500 font-medium"
                                         >
                                             <option value="">-- Pilih Departemen --</option>
                                             <template x-for="dept in departments" :key="dept.id">
@@ -1685,12 +1824,12 @@
 
                                     <!-- Sub Departemen Dropdown -->
                                     <div class="space-y-1">
-                                        <label class="text-[10px] font-mono font-bold uppercase text-slate-300 block">Sub-Departemen / Bagian: <span class="text-slate-500 font-normal font-sans">(Opsional)</span></label>
+                                        <label class="text-[10px] font-mono font-bold uppercase text-slate-700 block">Sub-Departemen / Bagian: <span class="text-slate-500 font-normal font-sans">(Opsional)</span></label>
                                         <select 
-                                            x-model="slotAssignForm.sub_department_id"
+                                            x-model="slotAssignForm.sub_department_id" 
                                             @change="onSubDepartmentChange()"
                                             :disabled="!slotAssignForm.department_id || getAvailableSubDepartments().length === 0"
-                                            class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-500 font-medium disabled:opacity-50"
+                                            class="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:border-indigo-500 font-medium disabled:opacity-50"
                                         >
                                             <option value="" x-text="getAvailableSubDepartments().length === 0 ? '-- Tidak Ada Sub-Dept --' : '-- Pilih Sub-Departemen (Opsional) --'"></option>
                                             <template x-for="sub in getAvailableSubDepartments()" :key="sub.id">
@@ -1701,33 +1840,33 @@
 
                                     <!-- Judul Dokumen -->
                                     <div class="space-y-1">
-                                        <label class="text-[10px] font-mono font-bold uppercase text-slate-300 block">Judul / Uraian Dokumen: <span class="text-rose-400">*</span></label>
+                                        <label class="text-[10px] font-mono font-bold uppercase text-slate-700 block">Judul / Uraian Dokumen: <span class="text-rose-500">*</span></label>
                                         <input 
                                             type="text" 
                                             x-model="slotAssignForm.title"
                                             placeholder="Contoh: Faktur Pajak Masukan & Keluaran"
-                                            class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-medium"
+                                            class="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 font-medium"
                                         >
                                     </div>
 
                                     <!-- Grid 2 Kolom: No. Box & Periode -->
                                     <div class="grid grid-cols-2 gap-2">
                                         <div class="space-y-1">
-                                            <label class="text-[10px] font-mono font-bold uppercase text-slate-300 block">No. Box Kardus:</label>
+                                            <label class="text-[10px] font-mono font-bold uppercase text-slate-700 block">No. Box Kardus:</label>
                                             <input 
                                                 type="text" 
                                                 x-model="slotAssignForm.box_number"
                                                 placeholder="Otomatis..."
-                                                class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-amber-300 placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono"
+                                                class="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-amber-700 placeholder-slate-400 focus:outline-none focus:border-indigo-500 font-mono font-bold"
                                             >
                                         </div>
                                         <div class="space-y-1">
-                                            <label class="text-[10px] font-mono font-bold uppercase text-slate-300 block">Periode (YYYY/MM):</label>
+                                            <label class="text-[10px] font-mono font-bold uppercase text-slate-700 block">Periode (YYYY/MM):</label>
                                             <input 
                                                 type="text" 
                                                 x-model="slotAssignForm.periode_doc"
                                                 placeholder="2024/01"
-                                                class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono"
+                                                class="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 font-mono"
                                             >
                                         </div>
                                     </div>
@@ -1735,10 +1874,10 @@
                                     <!-- Grid 2 Kolom: Tipe Dokumen & Masa Retensi -->
                                     <div class="grid grid-cols-2 gap-2">
                                         <div class="space-y-1">
-                                            <label class="text-[10px] font-mono font-bold uppercase text-slate-300 block">Tipe Dokumen:</label>
+                                            <label class="text-[10px] font-mono font-bold uppercase text-slate-700 block">Tipe Dokumen:</label>
                                             <select 
                                                 x-model="slotAssignForm.document_type"
-                                                class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-500 font-medium"
+                                                class="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:border-indigo-500 font-medium"
                                             >
                                                 <option value="UMUM">UMUM</option>
                                                 <option value="KEUANGAN">KEUANGAN</option>
@@ -1748,12 +1887,12 @@
                                             </select>
                                         </div>
                                         <div class="space-y-1">
-                                            <label class="text-[10px] font-mono font-bold uppercase text-slate-300 block">Masa Retensi (Thn):</label>
+                                            <label class="text-[10px] font-mono font-bold uppercase text-slate-700 block">Masa Retensi (Thn):</label>
                                             <input 
                                                 type="number" 
                                                 x-model="slotAssignForm.retention_years"
                                                 min="1" max="50"
-                                                class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-500 font-mono"
+                                                class="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:border-indigo-500 font-mono"
                                             >
                                         </div>
                                     </div>
@@ -1764,7 +1903,7 @@
                                             type="button" 
                                             @click="submitAssignSlot()"
                                             :disabled="slotAssignLoading"
-                                            class="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg shadow-sm transition flex items-center justify-center gap-1.5"
+                                            class="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
                                         >
                                             <i data-lucide="check" class="w-3.5 h-3.5"></i>
                                             <span x-text="slotAssignLoading ? 'Menyimpan Dokumen...' : 'Simpan & Tempatkan Kardus di Slot'"></span>
@@ -1775,10 +1914,10 @@
                                 <!-- Mode 2: Form Pilih Dari Antrean Arsip -->
                                 <div x-show="slotAssignMode === 'existing_archive'" class="space-y-2.5">
                                     <div class="space-y-1">
-                                        <label class="text-[10px] font-mono font-bold uppercase text-slate-300 block">Pilih Dokumen Arsip Terdaftar:</label>
+                                        <label class="text-[10px] font-mono font-bold uppercase text-slate-700 block">Pilih Dokumen Arsip Terdaftar:</label>
                                         <select 
                                             x-model="slotAssignForm.archive_id"
-                                            class="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-500 font-medium"
+                                            class="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:border-indigo-500 font-medium"
                                         >
                                             <option value="">-- Pilih Dari Antrean Arsip --</option>
                                             <template x-for="arc in unassignedArchivesList" :key="arc.id">
@@ -1786,7 +1925,7 @@
                                             </template>
                                         </select>
                                         <template x-if="unassignedArchivesList.length === 0">
-                                            <p class="text-[11px] text-slate-400 italic pt-1">
+                                            <p class="text-[11px] text-slate-500 italic pt-1">
                                                 Tidak ada antrean arsip yang belum memiliki rak. Gunakan tab 'Input Dokumen Baru' untuk membuat kardus baru.
                                             </p>
                                         </template>
@@ -1797,7 +1936,7 @@
                                             type="button" 
                                             @click="submitAssignSlot()"
                                             :disabled="slotAssignLoading || !slotAssignForm.archive_id"
-                                            class="w-full py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold text-xs rounded-lg shadow-sm transition flex items-center justify-center gap-1.5"
+                                            class="w-full py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold text-xs rounded-lg shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
                                         >
                                             <i data-lucide="folder-check" class="w-3.5 h-3.5"></i>
                                             <span x-text="slotAssignLoading ? 'Menempatkan...' : 'Alokasikan Arsip Terpilih ke Slot'"></span>
@@ -1809,11 +1948,11 @@
                     </div>
 
                     <!-- Footer Close Button -->
-                    <div class="pt-2 border-t border-slate-800">
+                    <div class="pt-2 border-t border-slate-200">
                         <button 
                             @click="rackGridModalOpen = false" 
                             type="button" 
-                            class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-semibold text-xs rounded-lg transition text-center"
+                            class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 font-semibold text-xs rounded-lg transition text-center border border-slate-300 cursor-pointer"
                         >
                             Tutup Modal Denah Rak
                         </button>
@@ -1837,7 +1976,6 @@
     >
         <i data-lucide="info" class="w-4 h-4 text-amber-400"></i>
         <span x-text="toastMessage"></span>
-    </div>
     </div>
 </div>
 
@@ -1872,6 +2010,20 @@ function warehouseCanvasApp() {
         toastTimer: null,
         scale: 1.0,
         isFullscreen: false,
+
+        // Live Search & Autocomplete State
+        searchQuery: '',
+        searchDropdownOpen: false,
+        searchResults: { rooms: [], racks: [], boxes: [] },
+
+        // Canvas & Modal Pulsing / Blinking States
+        blinkLocationId: null,
+        blinkStartTime: 0,
+        blinkAnimId: null,
+        highlightedSlotCode: null,
+        slotBlinkActive: false,
+        slotBlinkTimer: null,
+
         rackGridModalOpen: false,
         selectedRackForModal: null,
         selectedSlotDetail: null,
@@ -3629,6 +3781,7 @@ function warehouseCanvasApp() {
 
             const isSelected = this.selectedLocations.some(l => l.id === loc.id);
             const isHovered = (this.hoveredLocation && this.hoveredLocation.id === loc.id);
+            const isBlinking = (this.blinkLocationId === loc.id);
 
             ctx.save();
             // Background fill with custom color or slate
@@ -3637,14 +3790,29 @@ function warehouseCanvasApp() {
             ctx.globalAlpha = isFilteredOut ? 0.2 : 0.4;
             ctx.fillRect(x, y, w, h);
 
+            // Blinking / Pulsing animation if matched by Search
+            if (isBlinking) {
+                const pulse = (Math.sin(Date.now() / 140) + 1) / 2; // 0..1 oscillating
+                ctx.save();
+                ctx.shadowColor = '#06b6d4'; // Cyan neon glow
+                ctx.shadowBlur = 20 + (pulse * 25);
+                ctx.strokeStyle = '#22d3ee';
+                ctx.lineWidth = 4 + (pulse * 3);
+                ctx.strokeRect(x - 4, y - 4, w + 8, h + 8);
+
+                ctx.fillStyle = `rgba(6, 182, 212, ${0.15 + pulse * 0.35})`;
+                ctx.fillRect(x, y, w, h);
+                ctx.restore();
+            }
+
             // Wall Border
             ctx.globalAlpha = 1.0;
-            ctx.lineWidth = isSelected ? 4 : (isHovered ? 3 : 2);
-            ctx.strokeStyle = isSelected ? '#ffffff' : (isHovered ? '#fbbf24' : (loc.custom_color || '#64748b'));
+            ctx.lineWidth = isBlinking ? 4 : (isSelected ? 4 : (isHovered ? 3 : 2));
+            ctx.strokeStyle = isBlinking ? '#22d3ee' : (isSelected ? '#ffffff' : (isHovered ? '#fbbf24' : (loc.custom_color || '#64748b')));
             ctx.strokeRect(x, y, w, h);
 
             // Room Header Title
-            ctx.fillStyle = loc.custom_color || '#334155';
+            ctx.fillStyle = isBlinking ? '#0891b2' : (loc.custom_color || '#334155');
             ctx.fillRect(x, y, w, 24);
             ctx.strokeRect(x, y, w, 24);
 
@@ -3652,7 +3820,8 @@ function warehouseCanvasApp() {
             ctx.font = 'bold 11px Inter, sans-serif';
             ctx.textAlign = 'center';
             const lockPrefix = (loc.is_locked !== false) ? '🔒 ' : '🔓 ';
-            ctx.fillText(lockPrefix + (loc.rack_code || loc.room_sector), x + (w / 2), y + 16);
+            const blinkBadge = isBlinking ? '🔍 ' : '';
+            ctx.fillText(blinkBadge + lockPrefix + (loc.rack_code || loc.room_sector), x + (w / 2), y + 16);
 
             ctx.restore();
         },
@@ -3667,6 +3836,7 @@ function warehouseCanvasApp() {
 
             const isSelected = this.selectedLocations.some(l => l.id === loc.id);
             const isHovered = (this.hoveredLocation && this.hoveredLocation.id === loc.id);
+            const isBlinking = (this.blinkLocationId === loc.id);
 
             let fillColor = loc.custom_color || loc.status_color || '#10b981';
             if (isFilteredOut) {
@@ -3678,8 +3848,26 @@ function warehouseCanvasApp() {
             ctx.globalAlpha = isFilteredOut ? 0.3 : 0.85;
             ctx.fillRect(x, y, w, h);
 
+            // Blinking / Pulsing animation if matched by Search
+            if (isBlinking) {
+                const pulse = (Math.sin(Date.now() / 140) + 1) / 2; // 0..1 oscillating
+                ctx.save();
+                ctx.shadowColor = '#fbbf24'; // Amber gold neon glow
+                ctx.shadowBlur = 20 + (pulse * 25);
+                ctx.strokeStyle = '#f59e0b';
+                ctx.lineWidth = 4 + (pulse * 3);
+                ctx.strokeRect(x - 4, y - 4, w + 8, h + 8);
+
+                ctx.fillStyle = `rgba(251, 191, 36, ${0.2 + pulse * 0.4})`;
+                ctx.fillRect(x, y, w, h);
+                ctx.restore();
+            }
+
             ctx.globalAlpha = 1.0;
-            if (isSelected) {
+            if (isBlinking) {
+                ctx.strokeStyle = '#f59e0b';
+                ctx.lineWidth = 4;
+            } else if (isSelected) {
                 ctx.strokeStyle = '#ffffff';
                 ctx.lineWidth = 4;
             } else if (isHovered) {
@@ -4511,26 +4699,46 @@ function warehouseCanvasApp() {
             });
         },
 
+        getRackIdentifier(rack) {
+            if (!rack || !rack.rack_code) return 'RAK';
+            const code = rack.rack_code;
+            const clean = code.replace(/^RAK-(?:R\d+-)?/i, '');
+            return clean || code;
+        },
+
         getSapSlots(sapLevel, layer) {
             if (!this.selectedRackForModal) return [];
             const allSlots = this.selectedRackForModal.slots || [];
-            const matching = allSlots.filter(s => parseInt(s.sap_level) === parseInt(sapLevel) && s.layer === layer);
+            const sap = parseInt(sapLevel);
+            const matching = allSlots.filter(s => parseInt(s.sap_level) === sap && s.layer === layer);
+            const rackId = this.getRackIdentifier(this.selectedRackForModal);
 
             const result = [];
             for (let i = 1; i <= 10; i++) {
-                const found = matching.find(s => parseInt(s.slot_number) === i);
+                // Sesuai Denah Gambar 2:
+                // LVL 1: Bawah 1..10, Atas 11..20
+                // LVL 2: Bawah 21..30, Atas 31..40
+                // LVL 3: Bawah 41..50, Atas 51..60
+                // LVL 4: Bawah 61..70, Atas 71..80
+                // LVL 5: Bawah 81..90, Atas 91..100
+                const boxNum = layer === 'bottom' ? ((sap - 1) * 20 + i) : ((sap - 1) * 20 + 10 + i);
+                const expectedSlotCode = `${rackId}${boxNum}`;
+                const found = matching.find(s => parseInt(s.slot_number) === boxNum || parseInt(s.slot_number) === i);
                 if (found) {
-                    result.push(found);
+                    result.push({
+                        ...found,
+                        slot_code: expectedSlotCode,
+                        box_number_display: boxNum
+                    });
                 } else {
-                    const padNum = String(i).padStart(2, '0');
-                    const layerCode = layer === 'top' ? 'T' : 'B';
                     result.push({
                         id: `synth-${sapLevel}-${layer}-${i}`,
                         sap_level: sapLevel,
                         layer: layer,
                         layer_label: layer === 'top' ? 'Baris Atas' : 'Baris Bawah',
-                        slot_number: i,
-                        slot_code: `SAP-${sapLevel}-${layerCode}${padNum}`,
+                        slot_number: boxNum,
+                        box_number_display: boxNum,
+                        slot_code: expectedSlotCode,
                         status: 'empty',
                         archive: null
                     });
@@ -4569,17 +4777,20 @@ function warehouseCanvasApp() {
         },
 
         getSlotStyleClasses(slot) {
-            if (!slot) return 'bg-slate-950 text-slate-500 border-slate-800';
+            if (!slot) return 'bg-white text-slate-500 border-slate-200';
+            if (slot.is_active === false || slot.status === 'inactive') {
+                return 'bg-slate-100 text-slate-400 border-slate-200 shadow-xs';
+            }
             const isExpired = slot.status === 'expired' || slot.archive?.is_expired;
             const isFilled = (slot.status === 'filled' || slot.archive) && !isExpired;
 
             if (isExpired) {
-                return 'bg-rose-950/40 text-rose-200 border-rose-600/60 hover:bg-rose-900/50 hover:border-rose-400 shadow-sm';
+                return 'bg-rose-50 text-rose-800 border-rose-300 hover:bg-rose-100 hover:border-rose-400 shadow-xs';
             }
             if (isFilled) {
-                return 'bg-amber-950/35 text-amber-200 border-amber-600/50 hover:bg-amber-900/40 hover:border-amber-400 shadow-sm';
+                return 'bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100 hover:border-amber-400 shadow-xs';
             }
-            return 'bg-slate-950/80 text-emerald-400 border-slate-800 hover:border-emerald-500/60 hover:bg-emerald-950/25 shadow-sm';
+            return 'bg-white text-slate-700 border-slate-200 hover:border-emerald-400 hover:bg-emerald-50/70 shadow-xs';
         },
 
         isSlotMatchFilter(slot) {
@@ -4792,6 +5003,205 @@ function warehouseCanvasApp() {
             if (clicked && clicked.location_type !== 'room') {
                 this.openRackGridModal(clicked);
             }
+        },
+
+        // --- Live Search & Blinking Highlight Logic ---
+        handleSearchInput() {
+            const q = (this.searchQuery || '').trim().toLowerCase();
+            if (!q) {
+                this.searchResults = { rooms: [], racks: [], boxes: [] };
+                this.searchDropdownOpen = false;
+                return;
+            }
+
+            // 1. Search Gudang / Rooms
+            const rooms = this.locations.filter(l => l.location_type === 'room' && (
+                (l.rack_code && l.rack_code.toLowerCase().includes(q)) ||
+                (l.room_sector && l.room_sector.toLowerCase().includes(q))
+            )).slice(0, 6);
+
+            // 2. Search Racks
+            const racks = this.locations.filter(l => l.location_type !== 'room' && (
+                (l.rack_code && l.rack_code.toLowerCase().includes(q)) ||
+                (l.room_sector && l.room_sector.toLowerCase().includes(q)) ||
+                (l.shelf_code && l.shelf_code.toLowerCase().includes(q)) ||
+                (this.getRackIdentifier(l).toLowerCase() === q) ||
+                (this.getRackIdentifier(l).toLowerCase().includes(q))
+            )).slice(0, 10);
+
+            // 3. Search Boxes / Slots (both assigned archives & synthetic slots)
+            const matchedBoxes = [];
+            const allRacks = this.locations.filter(l => l.location_type !== 'room');
+
+            for (const rack of allRacks) {
+                if (matchedBoxes.length >= 15) break;
+                const slots = rack.slots || [];
+                for (const slot of slots) {
+                    if (matchedBoxes.length >= 15) break;
+                    const slotCode = (slot.slot_code || '').toLowerCase();
+                    const boxNum = (slot.archive?.box_number || '').toLowerCase();
+                    const title = (slot.archive?.title || '').toLowerCase();
+                    const dept = (slot.archive?.department || '').toLowerCase();
+                    const period = (slot.archive?.periode_doc || '').toLowerCase();
+
+                    if (slotCode.includes(q) || (boxNum && boxNum.includes(q)) || (title && title.includes(q)) || (dept && dept.includes(q)) || (period && period.includes(q))) {
+                        matchedBoxes.push({
+                            ...slot,
+                            rack: rack
+                        });
+                    }
+                }
+            }
+
+            // Also check for slot code pattern e.g. "B11", "AO1", "BI20"
+            if (matchedBoxes.length < 15) {
+                for (const rack of allRacks) {
+                    if (matchedBoxes.length >= 15) break;
+                    const rackId = this.getRackIdentifier(rack).toLowerCase();
+                    if (q.startsWith(rackId) || rack.rack_code.toLowerCase().includes(q)) {
+                        const numPart = q.replace(/^[a-z\-]+/i, '');
+                        if (numPart && !isNaN(parseInt(numPart))) {
+                            const boxNum = parseInt(numPart);
+                            if (boxNum >= 1 && boxNum <= 100) {
+                                const sapLevel = Math.ceil(boxNum / 20);
+                                const remainder = (boxNum - 1) % 20 + 1;
+                                const layer = remainder <= 10 ? 'bottom' : 'top';
+                                const code = `${this.getRackIdentifier(rack)}${boxNum}`;
+                                if (!matchedBoxes.some(b => b.rack.id === rack.id && b.slot_code.toLowerCase() === code.toLowerCase())) {
+                                    matchedBoxes.push({
+                                        slot_code: code,
+                                        slot_number: boxNum,
+                                        box_number_display: boxNum,
+                                        sap_level: sapLevel,
+                                        layer: layer,
+                                        layer_label: layer === 'top' ? 'Baris Atas' : 'Baris Bawah',
+                                        status: 'empty',
+                                        archive: null,
+                                        rack: rack
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            this.searchResults = {
+                rooms: rooms,
+                racks: racks,
+                boxes: matchedBoxes
+            };
+            this.searchDropdownOpen = (rooms.length > 0 || racks.length > 0 || matchedBoxes.length > 0);
+        },
+
+        selectFirstSearchResult() {
+            if (this.searchResults.boxes.length > 0) {
+                this.selectSearchResult('box', this.searchResults.boxes[0]);
+            } else if (this.searchResults.racks.length > 0) {
+                this.selectSearchResult('rack', this.searchResults.racks[0]);
+            } else if (this.searchResults.rooms.length > 0) {
+                this.selectSearchResult('room', this.searchResults.rooms[0]);
+            }
+        },
+
+        selectSearchResult(type, item) {
+            this.searchDropdownOpen = false;
+            if (type === 'room') {
+                const room = this.locations.find(l => l.id === item.id);
+                if (room) {
+                    this.selectedLocations = [room];
+                    this.panToLocation(room);
+                    this.triggerLocationBlink(room);
+                    this.showToast(`🏢 Menemukan Gudang '${room.rack_code || room.room_sector}' (Layout berkedip)`);
+                }
+            } else if (type === 'rack') {
+                const rack = this.locations.find(l => l.id === item.id);
+                if (rack) {
+                    this.selectedLocations = [rack];
+                    this.panToLocation(rack);
+                    this.triggerLocationBlink(rack);
+                    this.showToast(`🗄️ Menemukan Rak '${rack.rack_code}' (Rak berkedip pada canvas)`);
+                }
+            } else if (type === 'box') {
+                const rack = this.locations.find(l => l.id === item.rack.id);
+                if (rack) {
+                    this.selectedLocations = [rack];
+                    this.panToLocation(rack);
+                    this.triggerLocationBlink(rack);
+
+                    // Open 100-Box Denah Modal
+                    this.openRackGridModal(rack);
+
+                    // Find matching slot in modal
+                    const sapLevel = item.sap_level || Math.ceil((item.slot_number || 1) / 20);
+                    const layer = item.layer || (((item.slot_number - 1) % 20 + 1) <= 10 ? 'bottom' : 'top');
+                    const sapSlots = this.getSapSlots(sapLevel, layer);
+                    const targetSlot = sapSlots.find(s => s.slot_code === item.slot_code || s.slot_number == item.slot_number) || item;
+
+                    this.selectSlotForDetail(targetSlot);
+                    this.highlightedSlotCode = targetSlot.slot_code;
+                    this.slotBlinkActive = true;
+
+                    if (this.slotBlinkTimer) clearTimeout(this.slotBlinkTimer);
+                    this.slotBlinkTimer = setTimeout(() => {
+                        this.slotBlinkActive = false;
+                    }, 8000);
+
+                    const title = item.archive?.title ? ` - ${item.archive.title}` : '';
+                    this.showToast(`📦 Menemukan Box '${targetSlot.slot_code}'${title} di Rak '${rack.rack_code}' (Box berkedip)`);
+                }
+            }
+        },
+
+        triggerLocationBlink(loc) {
+            if (!loc) return;
+            this.blinkLocationId = loc.id;
+            this.blinkStartTime = Date.now();
+            this.startCanvasBlinkLoop();
+        },
+
+        clearBlink() {
+            this.blinkLocationId = null;
+            if (this.blinkAnimId) {
+                cancelAnimationFrame(this.blinkAnimId);
+                this.blinkAnimId = null;
+            }
+            this.slotBlinkActive = false;
+            this.highlightedSlotCode = null;
+            this.renderCanvas();
+        },
+
+        startCanvasBlinkLoop() {
+            if (this.blinkAnimId) cancelAnimationFrame(this.blinkAnimId);
+            const animate = () => {
+                if (!this.blinkLocationId) return;
+                const elapsed = Date.now() - this.blinkStartTime;
+                if (elapsed > 7000) { // Blink for 7 seconds
+                    this.blinkLocationId = null;
+                    this.renderCanvas();
+                    return;
+                }
+                this.renderCanvas();
+                this.blinkAnimId = requestAnimationFrame(animate);
+            };
+            this.blinkAnimId = requestAnimationFrame(animate);
+        },
+
+        panToLocation(loc) {
+            if (!loc) return;
+            const container = document.getElementById('canvasScrollContainer');
+            if (!container) return;
+            const targetCenterX = (loc.canvas_x + (loc.canvas_width / 2)) * this.scale;
+            const targetCenterY = (loc.canvas_y + (loc.canvas_height / 2)) * this.scale;
+
+            const scrollX = Math.max(0, targetCenterX - (container.clientWidth / 2));
+            const scrollY = Math.max(0, targetCenterY - (container.clientHeight / 2));
+
+            container.scrollTo({
+                left: scrollX,
+                top: scrollY,
+                behavior: 'smooth'
+            });
         }
     }
 }
