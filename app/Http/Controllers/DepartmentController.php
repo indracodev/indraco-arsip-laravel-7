@@ -12,7 +12,13 @@ class DepartmentController extends Controller
     {
         $departments = Department::with(['subDepartments' => function ($q) {
             $q->withCount('archives')->orderBy('code', 'asc');
-        }])->withCount(['archives', 'subDepartments'])->orderBy('code', 'asc')->get();
+        }])
+        ->withCount(['archives', 'subDepartments'])
+        ->withCount(['archives as unassigned_archives_count' => function ($q) {
+            $q->whereNull('sub_department_id');
+        }])
+        ->orderBy('code', 'asc')
+        ->get();
 
         return view('master.departments', compact('departments'));
     }
@@ -144,5 +150,107 @@ class DepartmentController extends Controller
 
         return redirect()->route('master.departments')
             ->with('success', "Sub-Departemen {$subDepartment->name} berhasil dihapus.");
+    }
+
+    public function apiGetDepartmentArchives(Request $request, Department $department)
+    {
+        $query = $department->archives()
+            ->with(['subDepartment', 'items', 'location.warehouse', 'rackSlot', 'creator']);
+
+        if ($request->get('filter') === 'unassigned') {
+            $query->whereNull('sub_department_id');
+        }
+
+        $archives = $query->latest()
+            ->get()
+            ->map(function ($archive) {
+                return [
+                    'id' => $archive->id,
+                    'box_number' => $archive->box_number ?? 'Penomoran Pending',
+                    'title' => $archive->effective_title,
+                    'sub_department' => $archive->subDepartment ? $archive->subDepartment->name : 'Induk / Umum',
+                    'sub_department_code' => $archive->subDepartment ? $archive->subDepartment->code : '-',
+                    'periode_doc' => $archive->periode_doc ?? $archive->period_text ?? '-',
+                    'tgl_penyerahan' => $archive->tgl_penyerahan ? $archive->tgl_penyerahan->format('d/m/Y') : '-',
+                    'physical_condition' => $archive->physical_condition ?? 'Baik',
+                    'location' => $archive->location ? $archive->location->full_location : 'Belum Dialokasikan',
+                    'rack_code' => $archive->location ? $archive->location->rack_code : '-',
+                    'slot_code' => $archive->rackSlot ? $archive->rackSlot->slot_code : '-',
+                    'status' => $archive->status,
+                    'status_label' => $archive->status_label,
+                    'status_badge' => $archive->status_badge,
+                    'items_count' => $archive->items->count(),
+                    'items' => $archive->items->map(function ($it) {
+                        return [
+                            'item_number' => $it->item_number,
+                            'document_name' => $it->document_name,
+                            'period_text' => $it->period_text ?? '-',
+                            'notes' => $it->notes ?? '',
+                        ];
+                    }),
+                    'url' => route('archives.show', $archive->id),
+                ];
+            });
+
+        return response()->json([
+            'department' => [
+                'id' => $department->id,
+                'code' => $department->code,
+                'name' => $department->name,
+                'total_box' => $archives->count(),
+                'total_items' => $archives->sum('items_count'),
+                'filter' => $request->get('filter'),
+            ],
+            'archives' => $archives,
+        ]);
+    }
+
+    public function apiGetSubDepartmentArchives(SubDepartment $subDepartment)
+    {
+        $archives = $subDepartment->archives()
+            ->with(['department', 'items', 'location.warehouse', 'rackSlot', 'creator'])
+            ->latest()
+            ->get()
+            ->map(function ($archive) use ($subDepartment) {
+                return [
+                    'id' => $archive->id,
+                    'box_number' => $archive->box_number ?? 'Penomoran Pending',
+                    'title' => $archive->effective_title,
+                    'sub_department' => $subDepartment->name,
+                    'sub_department_code' => $subDepartment->code,
+                    'periode_doc' => $archive->periode_doc ?? $archive->period_text ?? '-',
+                    'tgl_penyerahan' => $archive->tgl_penyerahan ? $archive->tgl_penyerahan->format('d/m/Y') : '-',
+                    'physical_condition' => $archive->physical_condition ?? 'Baik',
+                    'location' => $archive->location ? $archive->location->full_location : 'Belum Dialokasikan',
+                    'rack_code' => $archive->location ? $archive->location->rack_code : '-',
+                    'slot_code' => $archive->rackSlot ? $archive->rackSlot->slot_code : '-',
+                    'status' => $archive->status,
+                    'status_label' => $archive->status_label,
+                    'status_badge' => $archive->status_badge,
+                    'items_count' => $archive->items->count(),
+                    'items' => $archive->items->map(function ($it) {
+                        return [
+                            'item_number' => $it->item_number,
+                            'document_name' => $it->document_name,
+                            'period_text' => $it->period_text ?? '-',
+                            'notes' => $it->notes ?? '',
+                        ];
+                    }),
+                    'url' => route('archives.show', $archive->id),
+                ];
+            });
+
+        return response()->json([
+            'sub_department' => [
+                'id' => $subDepartment->id,
+                'code' => $subDepartment->code,
+                'name' => $subDepartment->name,
+                'department_code' => $subDepartment->department->code ?? '',
+                'department_name' => $subDepartment->department->name ?? '',
+                'total_box' => $archives->count(),
+                'total_items' => $archives->sum('items_count'),
+            ],
+            'archives' => $archives,
+        ]);
     }
 }

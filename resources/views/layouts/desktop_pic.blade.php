@@ -399,11 +399,13 @@
                 <span>Pinjam (F8)</span>
             </button>
 
+            @if(!auth()->user()->isPicDept())
             <!-- F9: Cetak Custom Label -->
             <a href="{{ route('archives.print_labels') }}" target="_blank" class="px-2.5 py-1 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded text-amber-700 dark:text-amber-300 font-bold text-xs transition flex items-center gap-1.5 shadow-2xs shrink-0">
                 <i data-lucide="printer" class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400"></i>
                 <span>Cetak Label (F9)</span>
             </a>
+            @endif
 
             <!-- F5: Refresh Active Form -->
             <button 

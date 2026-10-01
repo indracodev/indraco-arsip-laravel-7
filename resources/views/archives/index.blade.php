@@ -34,11 +34,13 @@
                 <span>Refresh (F5)</span>
             </button>
 
+            @if(!auth()->user()->isPicDept())
             <!-- Cetak Custom Label (F9) -->
             <a href="{{ route('archives.print_labels') }}" target="_blank" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 rounded text-xs font-mono font-bold transition flex items-center gap-1.5 shadow-sm shrink-0" title="Cetak Custom Label Box (F9)">
                 <i data-lucide="printer" class="w-3.5 h-3.5 text-amber-500"></i>
                 <span>Cetak Label (F9)</span>
             </a>
+            @endif
 
             <!-- Buat Draft Pengajuan Arsip (F2) -->
             <a href="{{ route('archives.create') }}" class="px-3 py-1 bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-mono font-black text-xs rounded border border-amber-600 shadow transition flex items-center gap-1.5 shrink-0" title="Buat Draft Pengajuan Arsip Baru (F2)">
@@ -149,6 +151,7 @@
         </form>
     </fieldset>
 
+    @if(!auth()->user()->isPicDept())
     <!-- BATCH ACTIONS RIBBON (When items checked) -->
     <div x-show="selected.length > 0" x-transition class="bg-amber-500/10 border border-amber-500/40 rounded p-2.5 flex flex-wrap items-center justify-between gap-2 font-mono text-xs shadow-sm">
         <div class="flex items-center gap-2">
@@ -168,6 +171,7 @@
             </button>
         </form>
     </div>
+    @endif
 
     <!-- DELPHI TDBGRID SPREADSHEET TABLE CONTAINER -->
     <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded shadow-sm relative overflow-hidden font-sans">
@@ -336,10 +340,12 @@
                                     </button>
                                 @endif
 
+                                @if(!auth()->user()->isPicDept())
                                 <a href="{{ route('archives.print_sticker', $archive) }}" target="_blank" title="Cetak Label Box Container" class="px-2 py-0.5 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40 text-[11px] font-bold transition inline-flex items-center gap-1 shadow-xs">
                                     <i data-lucide="printer" class="w-3 h-3 text-amber-500"></i>
                                     <span>Label</span>
                                 </a>
+                                @endif
                                 <a href="{{ route('archives.show', $archive) }}" class="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-amber-500 text-[11px] font-bold transition inline-flex items-center gap-1 shadow-xs">
                                     <span>Detail</span>
                                     <i data-lucide="chevron-right" class="w-3 h-3"></i>
@@ -367,7 +373,7 @@
             </div>
 
             <div>
-                {{ $archives->links() }}
+                {{ $archives->links('vendor.pagination.tailwind') }}
             </div>
         </div>
     </div>

@@ -105,7 +105,7 @@
                     </tbody>
                 </table>
             </div>
-            <div class="mt-4">{{ $entryLogs->links() }}</div>
+            <div class="mt-4">{{ $entryLogs->links('vendor.pagination.tailwind') }}</div>
 
         @elseif($tab === 'borrowing')
             <div class="overflow-x-auto">
@@ -152,7 +152,7 @@
                     </tbody>
                 </table>
             </div>
-            <div class="mt-4">{{ $borrowingLogs->links() }}</div>
+            <div class="mt-4">{{ $borrowingLogs->links('vendor.pagination.tailwind') }}</div>
 
         @elseif($tab === 'destruction')
             <div class="overflow-x-auto">
@@ -198,7 +198,7 @@
                     </tbody>
                 </table>
             </div>
-            <div class="mt-4">{{ $destructionLogs->links() }}</div>
+            <div class="mt-4">{{ $destructionLogs->links('vendor.pagination.tailwind') }}</div>
         @endif
     </div>
 </div>

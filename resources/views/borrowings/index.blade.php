@@ -225,7 +225,7 @@
         </div>
 
         <div class="mt-4">
-            {{ $borrowings->links() }}
+            {{ $borrowings->links('vendor.pagination.tailwind') }}
         </div>
     </div>
 </div>
