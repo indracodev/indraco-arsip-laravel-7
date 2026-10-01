@@ -83,12 +83,15 @@ class WarehouseLayoutController extends Controller
                 'booked_by_user' => $loc->bookedBy ? $loc->bookedBy->name : null,
                 'booking_notes' => $loc->booking_notes,
                 'slots' => $loc->slots->map(function ($slot) {
+                    $hasActiveArchive = $slot->archive && in_array($slot->archive->status, ['in_warehouse', 'approved_booked', 'pending_verification']);
                     $isExpired = false;
-                    if ($slot->archive) {
+                    if ($hasActiveArchive) {
                         $isExpired = (bool) $slot->archive->is_expired;
                     }
                     $status = $slot->status;
-                    if ($slot->archive && $isExpired) {
+                    if (!$hasActiveArchive) {
+                        $status = 'empty';
+                    } elseif ($isExpired) {
                         $status = 'expired';
                     }
 
@@ -100,8 +103,8 @@ class WarehouseLayoutController extends Controller
                         'slot_number' => (int) $slot->slot_number,
                         'slot_code' => $slot->slot_code,
                         'status' => $status,
-                        'status_badge' => $slot->status_badge,
-                        'archive' => $slot->archive ? [
+                        'status_badge' => $status === 'filled' ? 'bg-amber-400 text-slate-900' : ($status === 'expired' ? 'bg-red-500 text-white' : 'bg-emerald-500 text-white'),
+                        'archive' => $hasActiveArchive ? [
                             'id' => $slot->archive->id,
                             'box_number' => $slot->archive->box_number,
                             'title' => $slot->archive->title,

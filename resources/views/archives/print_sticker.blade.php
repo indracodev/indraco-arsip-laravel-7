@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cetak Label Box Form A5 (TB 30g) - DMS PT Indraco</title>
+    <title>Cetak Label Box 10 x 10 cm - DMS PT Indraco</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
@@ -20,9 +20,15 @@
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
             }
+            @page {
+                size: 100mm 100mm portrait;
+                margin: 0;
+            }
             .a5-label-container {
-                width: 210mm !important;
-                height: 148mm !important;
+                width: 100mm !important;
+                height: 100mm !important;
+                max-width: 100mm !important;
+                max-height: 100mm !important;
                 border: 2px solid #000 !important;
                 box-shadow: none !important;
                 page-break-inside: avoid !important;
@@ -49,12 +55,12 @@
                     </div>
                     <div>
                         <h1 class="text-base font-extrabold tracking-tight text-white flex items-center gap-2">
-                            Cetak Label Box Form A5 (Ukuran TB 30g)
+                            Cetak Label Box (10 × 10 cm)
                             <span class="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-500/20 text-amber-300 border border-amber-500/30">
                                 {{ count($archives) }} Dokumen Box
                             </span>
                         </h1>
-                        <p class="text-xs text-slate-400 font-medium">Format baku A5 Box TB 30g dengan kalkulasi auto font-scaling dinamis.</p>
+                        <p class="text-xs text-slate-400 font-medium">Ukuran kertas 10 × 10 cm - Menampilkan Logo Indraco, Nomor RAK, dan Nomor Box.</p>
                     </div>
                 </div>
 
@@ -87,7 +93,8 @@
                 <div class="space-y-1.5">
                     <label class="font-extrabold uppercase text-[10px] tracking-wider text-amber-400 block">1. Format Kertas & Ukuran Box</label>
                     <select x-model="presetSize" @change="applyPreset()" class="w-full bg-slate-950 border border-slate-700 text-white rounded-lg p-2 font-medium focus:border-amber-500 focus:outline-none">
-                        <option value="a5_landscape">⭐ Form A5 Landscape (210 × 148 mm - Standar TB 30g)</option>
+                        <option value="100x100">⭐ Stiker Box 10×10 cm (100 × 100 mm - Default)</option>
+                        <option value="a5_landscape">Form A5 Landscape (210 × 148 mm - Standar TB 30g)</option>
                         <option value="a5_portrait">Form A5 Portrait (148 × 210 mm)</option>
                         <option value="100x75">Stiker Box Standar (100 mm × 75 mm)</option>
                         <option value="150x100">Stiker Kontainer Besar (150 mm × 100 mm)</option>
@@ -95,18 +102,13 @@
                     </select>
                 </div>
 
-                <!-- 2. Auto Font Scaling & Size Mode -->
+                <!-- 2. Template Layout Selector -->
                 <div class="space-y-1.5">
-                    <label class="font-extrabold uppercase text-[10px] tracking-wider text-amber-400 block">2. Auto Font-Scaling Dinamis</label>
-                    <div class="space-y-1">
-                        <select x-model="fontScaleMode" @change="adjustAllFontScales()" class="w-full bg-slate-950 border border-slate-700 text-white rounded-lg p-2 font-medium">
-                            <option value="auto">✨ Auto-Fit Proporsional (Sesuai Panjang Isi)</option>
-                            <option value="sm">Kecil (Small - Muat Banyak Teks)</option>
-                            <option value="md">Sedang (Medium - Standar)</option>
-                            <option value="lg">Besar (Large - Teks Singkat)</option>
-                        </select>
-                        <span class="text-[10px] text-slate-400 block font-mono leading-tight">Mencegah teks terpotong pada batas form A5.</span>
-                    </div>
+                    <label class="font-extrabold uppercase text-[10px] tracking-wider text-amber-400 block">2. Mode Tampilan Template</label>
+                    <select x-model="labelTemplate" class="w-full bg-slate-950 border border-slate-700 text-white rounded-lg p-2 font-medium focus:border-amber-500 focus:outline-none">
+                        <option value="compact">⚡ Ringkas 10×10 cm (Logo + RAK + Nomor Box)</option>
+                        <option value="full">📋 Form Detail A5 (Metadata & Isi Dokumen)</option>
+                    </select>
                 </div>
 
                 <!-- 3. Dimensi Kertas Custom -->
@@ -161,16 +163,81 @@
                 $isAllocated = !empty($item->warehouse_location_id) || !empty($item->location_id);
                 $whName = $item->location && $item->location->warehouse ? ($item->location->warehouse->name ?: $item->location->warehouse->code) : ($item->location->room_sector ?? null);
                 $rackCode = $item->location ? $item->location->rack_code : null;
+                $shelfCode = $item->location ? $item->location->shelf_code : null;
+                $slotCode = $item->rackSlot ? $item->rackSlot->slot_code : null;
                 $slotLabel = $item->rackSlot ? ("Sap {$item->rackSlot->sap_level}, {$item->rackSlot->layer_label} Slot {$item->rackSlot->slot_number}") : null;
+
+                // Format lokasi secara lengkap (Contoh: GUDANG R1 - RAK-R1-A / SAP-1-B01)
+                $locationParts = array_filter([
+                    $whName,
+                    implode(' / ', array_filter([$rackCode, $slotCode ?: $shelfCode]))
+                ]);
+                $fullLocationString = implode(' - ', $locationParts);
+                if (empty($fullLocationString) && $isAllocated) {
+                    $fullLocationString = $whName ?: ($rackCode ?: 'LOKASI GUDANG');
+                }
 
                 $contentLines = array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', $item->content_description ?? '')));
                 if (empty($contentLines)) {
                     $contentLines = [$item->title];
                 }
+
+                // Dynamic font size calculation based on box_number string length
+                $boxCode = $item->box_number ?: 'A01';
+                $boxLen = strlen($boxCode);
+                if ($boxLen <= 4) {
+                    $boxFontSize = 'clamp(3.5rem, 16vw, 6.5rem)';
+                    $boxLineHeight = '0.9';
+                } elseif ($boxLen <= 8) {
+                    $boxFontSize = 'clamp(2.2rem, 10vw, 3.5rem)';
+                    $boxLineHeight = '1.0';
+                } elseif ($boxLen <= 14) {
+                    $boxFontSize = 'clamp(1.4rem, 6.5vw, 2.2rem)';
+                    $boxLineHeight = '1.1';
+                } else {
+                    $boxFontSize = 'clamp(0.95rem, 4.2vw, 1.45rem)';
+                    $boxLineHeight = '1.15';
+                }
             @endphp
 
-            <!-- Form A5 Label Box Container (TB 30g Standard Specification) -->
-            <div class="a5-label-container bg-white border-2 border-slate-900 rounded-none p-5 shadow-2xl relative overflow-hidden flex flex-col justify-between transition-all"
+            <!-- TEMPLATE 1: COMPACT LABEL STIKER 10x10 CM (Logo Indraco, Barcode Lokasi, Nomor Box) -->
+            <div x-show="labelTemplate === 'compact'"
+                 class="a5-label-container bg-white border-4 border-slate-900 rounded-none p-3.5 shadow-2xl relative overflow-hidden flex flex-col justify-between transition-all"
+                 :style="`width: ${widthMm}mm; height: ${heightMm}mm; max-width: ${widthMm}mm; max-height: ${heightMm}mm; box-sizing: border-box;`">
+
+                <!-- 1. Header: Logo Indraco (Kiri) & Barcode Lokasi QR Code (Kanan) -->
+                <div class="flex items-center justify-between border-b-2 border-slate-900 pb-2 mb-2 w-full">
+                    <div class="flex items-center" x-show="showLogo">
+                        <img src="{{ asset('images/logo-indraco.png') }}" alt="PT Indraco" class="h-6 sm:h-7 w-auto object-contain max-h-7">
+                    </div>
+
+                    <!-- Barcode Lokasi (QR Code Isian Lokasi Lengkap) -->
+                    <div x-show="showQr" class="shrink-0 flex items-center justify-center">
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={{ urlencode($fullLocationString . ($slotLabel ? ' ('.$slotLabel.')' : '')) }}" 
+                             alt="Barcode Lokasi" 
+                             class="h-11 w-11 sm:h-12 sm:w-12 object-contain border border-slate-900 rounded p-0.5 bg-white shadow-xs"
+                             title="Barcode Lokasi">
+                    </div>
+                </div>
+
+                <!-- 2. Body Grid: NOMOR BOX (Auto-Scaling Size) -->
+                <div class="flex-1 flex flex-col justify-between border-2 border-slate-900 rounded p-1.5 text-center bg-amber-50 border-amber-500 min-h-0 my-0.5 overflow-hidden">
+                    <span class="text-[10px] font-mono font-black uppercase tracking-widest text-amber-900 border-b border-amber-200 pb-0.5 mb-0.5 block w-full shrink-0">
+                        NOMOR BOX
+                    </span>
+                    <div class="flex-1 flex items-center justify-center w-full min-h-0 py-0 overflow-hidden px-1">
+                        <span class="font-mono font-black text-slate-950 uppercase tracking-tighter my-auto select-none break-all text-center" 
+                              style="font-size: {{ $boxFontSize }}; line-height: {{ $boxLineHeight }}; display: block; width: 100%;">
+                            {{ $boxCode }}
+                        </span>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- TEMPLATE 2: FULL DETAIL FORM A5 (TB 30g Standard Specification) -->
+            <div x-show="labelTemplate === 'full'"
+                 class="a5-label-container bg-white border-2 border-slate-900 rounded-none p-5 shadow-2xl relative overflow-hidden flex flex-col justify-between transition-all"
                  :style="`width: ${widthMm}mm; height: ${heightMm}mm; max-width: ${widthMm}mm; max-height: ${heightMm}mm; box-sizing: border-box;`">
 
                 <!-- 1. Header Box: Logo Indraco (Left) & Label Box TB 30g (Right) -->
@@ -322,9 +389,10 @@
         function labelPrinter() {
             return {
                 toggleSettings: false,
-                presetSize: 'a5_landscape',
-                widthMm: 210,
-                heightMm: 148,
+                presetSize: '100x100',
+                widthMm: 100,
+                heightMm: 100,
+                labelTemplate: 'compact', // 'compact' (Logo + RAK + No Box) or 'full' (Form A5 Detail)
                 fontScaleMode: 'auto',
                 showLogo: true,
                 showQr: true,
@@ -345,12 +413,18 @@
                 },
 
                 applyPreset() {
-                    if (this.presetSize === 'a5_landscape') {
+                    if (this.presetSize === '100x100') {
+                        this.widthMm = 100;
+                        this.heightMm = 100;
+                        this.labelTemplate = 'compact';
+                    } else if (this.presetSize === 'a5_landscape') {
                         this.widthMm = 210;
                         this.heightMm = 148;
+                        this.labelTemplate = 'full';
                     } else if (this.presetSize === 'a5_portrait') {
                         this.widthMm = 148;
                         this.heightMm = 210;
+                        this.labelTemplate = 'full';
                     } else if (this.presetSize === '100x75') {
                         this.widthMm = 100;
                         this.heightMm = 75;
@@ -414,7 +488,6 @@
                                 el.style.fontSize = '13.5px';
                                 el.style.lineHeight = '1.45';
                             } else {
-                                // Auto-Fit logic based on text length & available height
                                 const charCount = parseInt(el.getAttribute('data-char-count')) || el.innerText.length;
                                 const listItems = el.querySelectorAll('li').length;
 

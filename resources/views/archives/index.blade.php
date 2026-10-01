@@ -6,6 +6,7 @@
 <div class="space-y-3" x-data="{ 
     selected: [], 
     selectAll: false, 
+    dispatchModalLog: null,
     allIds: [{{ $archives->pluck('id')->join(',') }}],
     toggleAll() { 
         this.selected = this.selectAll ? [...this.allIds] : []; 
@@ -46,6 +47,23 @@
             </a>
         </div>
     </div>
+
+    <!-- PENDING BORROWING REQUESTS NOTIFICATION BANNER (For PIC Gudang & Admin) -->
+    @if(isset($pendingBorrowingRequestsCount) && $pendingBorrowingRequestsCount > 0 && (auth()->user()->isPicGudang() || auth()->user()->isSuperAdmin()))
+    <div class="p-3.5 rounded bg-purple-500/10 border border-purple-500/40 text-purple-900 dark:text-purple-200 text-xs font-mono flex items-center justify-between gap-3 shadow-sm">
+        <div class="flex items-center gap-2">
+            <i data-lucide="bell-ring" class="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0 animate-bounce"></i>
+            <div>
+                <strong class="font-extrabold text-purple-950 dark:text-purple-100 uppercase">Ajuan Peminjaman Berkas Membutuhkan Pengeluaran:</strong>
+                Terdapat <span class="font-black underline text-purple-700 dark:text-purple-300">{{ $pendingBorrowingRequestsCount }} ajuan peminjaman berkas</span> dari PIC Departemen yang menunggu pengeluaran fisik dokumen dari gudang.
+            </div>
+        </div>
+        <a href="{{ route('archives.index', ['status' => 'borrow_requested']) }}" class="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded font-bold text-xs shadow transition flex items-center gap-1 shrink-0">
+            <i data-lucide="arrow-right-circle" class="w-3.5 h-3.5"></i>
+            <span>Filter Ajuan Peminjaman</span>
+        </a>
+    </div>
+    @endif
 
     <!-- DELPHI GROUPBOX FILTER PANEL (TGroupBox Delphi Desktop Style) -->
     <fieldset class="border border-slate-300 dark:border-slate-800 p-3 rounded bg-white dark:bg-slate-950 font-mono text-xs shadow-sm" x-data="{ submitting: false }">
@@ -94,6 +112,7 @@
                 <label class="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 block">STATUS WORKFLOW</label>
                 <select name="status" class="w-full py-1 px-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition">
                     <option value="">-- Semua Status Workflow --</option>
+                    <option value="borrow_requested" {{ request('status') == 'borrow_requested' ? 'selected' : '' }}>📌 Ajuan Peminjaman (PIC Dept)</option>
                     <option value="draft" {{ request('status') == 'draft' ? 'selected' : '' }}>Draft (Revisi)</option>
                     <option value="pending_verification" {{ request('status') == 'pending_verification' ? 'selected' : '' }}>Antrean Verifikasi</option>
                     <option value="approved_booked" {{ request('status') == 'approved_booked' ? 'selected' : '' }}>Approved / Booked</option>
@@ -205,7 +224,10 @@
                 </thead>
                 <tbody class="divide-y divide-slate-200 dark:divide-slate-800/80 text-xs">
                     @forelse($archives as $archive)
-                    <tr class="hover:bg-amber-500/5 dark:hover:bg-amber-500/10 transition">
+                    @php
+                        $activeBorrowing = $archive->borrowingLogs ? $archive->borrowingLogs->whereIn('status', ['requested', 'dept_approved', 'approved'])->first() : null;
+                    @endphp
+                    <tr class="hover:bg-amber-500/5 dark:hover:bg-amber-500/10 transition {{ $activeBorrowing ? 'bg-purple-500/5 dark:bg-purple-500/10' : '' }}">
                         <td class="py-2.5 px-3 text-center border-r border-slate-200 dark:border-slate-800">
                             <input type="checkbox" :value="{{ $archive->id }}" x-model="selected" class="rounded border-slate-300 dark:border-slate-700 text-amber-500 focus:ring-0">
                         </td>
@@ -236,7 +258,7 @@
                         </td>
 
                         <td class="py-2.5 px-3 font-mono text-[11px] text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800 whitespace-nowrap">
-                            {{ $archive->period_text ?? $archive->period_start_date->format('M Y') }}
+                            {{ $archive->period_text ?? ($archive->period_start_date ? $archive->period_start_date->format('M Y') : '-') }}
                         </td>
 
                         <td class="py-2.5 px-3 font-mono text-[11px] text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800 whitespace-nowrap">
@@ -270,7 +292,12 @@
                         </td>
 
                         <td class="py-2.5 px-3 font-mono border-r border-slate-200 dark:border-slate-800 whitespace-nowrap">
-                            @if($archive->status === 'draft')
+                            @if($activeBorrowing)
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-900 dark:text-purple-200 border border-purple-500/40 inline-flex items-center gap-1 animate-pulse" title="Peminjam: {{ $activeBorrowing->borrower->name ?? 'User' }}">
+                                    <i data-lucide="file-symlink" class="w-3 h-3 text-purple-500"></i>
+                                    Ajuan Pinjam ({{ $activeBorrowing->borrower->department->code ?? 'DEPT' }})
+                                </span>
+                            @elseif($archive->status === 'draft')
                                 <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-300 border border-slate-300 dark:border-slate-700">Draft</span>
                             @elseif($archive->status === 'pending_verification')
                                 <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 border border-amber-500/40">Antrean Verifikasi</span>
@@ -280,6 +307,8 @@
                                 <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 border border-emerald-500/40">Di Gudang</span>
                             @elseif($archive->status === 'borrowed')
                                 <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/10 text-purple-800 dark:bg-purple-500/20 dark:text-purple-300 border border-purple-500/40">Dipinjam</span>
+                            @elseif($archive->status === 'taken')
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/10 text-indigo-800 dark:bg-indigo-500/20 dark:text-indigo-300 border border-indigo-500/40">Diambil (Permanen)</span>
                             @elseif($archive->status === 'destroyed')
                                 <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/10 text-rose-800 dark:bg-rose-500/20 dark:text-rose-300 border border-rose-500/40">Dimusnahkan</span>
                             @endif
@@ -287,6 +316,26 @@
 
                         <td class="py-2.5 px-3 text-right font-mono whitespace-nowrap">
                             <div class="inline-flex items-center justify-end gap-1.5">
+                                @if((auth()->user()->isPicGudang() || auth()->user()->isSuperAdmin()) && $activeBorrowing)
+                                    <button type="button" 
+                                            @click="dispatchModalLog = {
+                                                id: {{ $activeBorrowing->id }},
+                                                archive_title: {{ json_encode($archive->title) }},
+                                                box_number: {{ json_encode($archive->box_number ?: 'DRAFT-BOX') }},
+                                                location: {{ json_encode($archive->location ? $archive->location->full_location : 'Gudang') }},
+                                                borrower_name: {{ json_encode($activeBorrowing->borrower->name ?? 'User') }},
+                                                borrower_dept: {{ json_encode($activeBorrowing->borrower->department->name ?? 'Dept') }},
+                                                purpose: {{ json_encode($activeBorrowing->purpose) }},
+                                                expected_return_date: {{ json_encode($activeBorrowing->expected_return_date ? \Carbon\Carbon::parse($activeBorrowing->expected_return_date)->format('d/m/Y') : 'Hanya Diambil (Permanen)') }},
+                                                approval_url: {{ json_encode(($activeBorrowing->approval_file || $activeBorrowing->scan_approval_borrow) ? asset('storage/' . ($activeBorrowing->approval_file ?? $activeBorrowing->scan_approval_borrow)) : null) }}
+                                            }"
+                                            title="Keluarkan Berkas Fisik Berdasarkan Ajuan Peminjaman PIC Dept" 
+                                            class="px-2.5 py-1 rounded bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white border border-purple-400 text-[11px] font-bold transition inline-flex items-center gap-1 shadow-md">
+                                        <i data-lucide="log-out" class="w-3.5 h-3.5 text-white"></i>
+                                        <span>Keluarkan Arsip</span>
+                                    </button>
+                                @endif
+
                                 <a href="{{ route('archives.print_sticker', $archive) }}" target="_blank" title="Cetak Label Box Container" class="px-2 py-0.5 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40 text-[11px] font-bold transition inline-flex items-center gap-1 shadow-xs">
                                     <i data-lucide="printer" class="w-3 h-3 text-amber-500"></i>
                                     <span>Label</span>
@@ -322,6 +371,87 @@
             </div>
         </div>
     </div>
+
+    <!-- MODAL DISPATCH / KELUARKAN ARSIP UNTUK PIC GUDANG -->
+    <div x-show="dispatchModalLog" 
+         x-transition.opacity 
+         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm"
+         style="display: none;">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 font-mono text-xs"
+             @click.away="dispatchModalLog = null">
+            
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                <div class="flex items-center gap-2">
+                    <div class="p-2 bg-purple-500/20 text-purple-600 dark:text-purple-400 rounded-xl">
+                        <i data-lucide="log-out" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-extrabold text-slate-900 dark:text-white uppercase tracking-wider">Pengeluaran Berkas Fisik Arsip</h3>
+                        <p class="text-[11px] text-slate-500">Konfirmasi pengeluaran dokumen berdasarkan ajuan peminjaman PIC Dept.</p>
+                    </div>
+                </div>
+                <button type="button" @click="dispatchModalLog = null" class="text-slate-400 hover:text-slate-600 dark:hover:text-white">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Detail Peminjaman & Arsip -->
+            <template x-if="dispatchModalLog">
+                <div class="space-y-3">
+                    <div class="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl space-y-1.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase">NO. BOX / KODE:</span>
+                            <span class="font-black text-amber-600 dark:text-amber-400 text-sm" x-text="dispatchModalLog.box_number"></span>
+                        </div>
+                        <h4 class="font-bold text-slate-900 dark:text-white text-xs" x-text="dispatchModalLog.archive_title"></h4>
+                        <p class="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold" x-text="'📍 Lokasi Rak: ' + dispatchModalLog.location"></p>
+                    </div>
+
+                    <div class="p-3 bg-purple-500/10 border border-purple-500/30 rounded-xl space-y-1.5 text-purple-900 dark:text-purple-200">
+                        <div class="flex items-center justify-between text-[11px]">
+                            <span class="font-bold">Pemohon Peminjaman:</span>
+                            <span class="font-black" x-text="dispatchModalLog.borrower_name + ' (' + dispatchModalLog.borrower_dept + ')'"></span>
+                        </div>
+                        <div class="flex items-center justify-between text-[11px]">
+                            <span class="font-bold">Estimasi Pengembalian:</span>
+                            <span class="font-bold text-rose-600 dark:text-rose-400" x-text="dispatchModalLog.expected_return_date"></span>
+                        </div>
+                        <div class="pt-1 text-[11px] border-t border-purple-500/20">
+                            <span class="font-bold block">Keperluan / Alasan:</span>
+                            <p class="italic text-slate-700 dark:text-slate-300" x-text="dispatchModalLog.purpose"></p>
+                        </div>
+                    </div>
+
+                    <!-- Link Preview Approval File -->
+                    <template x-if="dispatchModalLog.approval_url">
+                        <div class="flex items-center justify-between p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-xl">
+                            <span class="font-bold text-[11px] text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
+                                <i data-lucide="file-check" class="w-4 h-4 text-amber-500"></i>
+                                Berkas Approval Terlampir
+                            </span>
+                            <a :href="dispatchModalLog.approval_url" target="_blank" class="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded text-[10px] transition inline-flex items-center gap-1">
+                                <span>Lihat Berkas</span>
+                                <i data-lucide="external-link" class="w-3 h-3"></i>
+                            </a>
+                        </div>
+                    </template>
+
+                    <!-- Form Action -->
+                    <form :action="'/borrowings/' + dispatchModalLog.id + '/dispatch'" method="POST" class="pt-2">
+                        @csrf
+                        <div class="flex items-center justify-end gap-2">
+                            <button type="button" @click="dispatchModalLog = null" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs transition">
+                                Batal
+                            </button>
+                            <button type="submit" class="px-5 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl font-black text-xs shadow-lg shadow-purple-500/20 transition flex items-center gap-1.5">
+                                <i data-lucide="log-out" class="w-4 h-4"></i>
+                                <span>Disahkan & Keluarkan Berkas</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </template>
+        </div>
+    </div>
 </div>
 @endsection
-

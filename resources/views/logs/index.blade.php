@@ -125,7 +125,7 @@
                         <tr class="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition">
                             <td class="py-3.5 px-4 space-y-0.5">
                                 <span class="text-purple-700 dark:text-purple-300 font-bold block">Req: {{ \Carbon\Carbon::parse($bLog->request_date)->format('d M Y') }}</span>
-                                <span class="text-slate-500 dark:text-slate-400 block">Est: {{ \Carbon\Carbon::parse($bLog->expected_return_date)->format('d M Y') }}</span>
+                                <span class="text-slate-500 dark:text-slate-400 block">Est: {{ $bLog->expected_return_date ? \Carbon\Carbon::parse($bLog->expected_return_date)->format('d M Y') : 'Hanya Diambil (Permanen)' }}</span>
                             </td>
                             <td class="py-3.5 px-4">
                                 <span class="font-mono font-extrabold text-amber-600 dark:text-amber-400 text-[11px] block">{{ $bLog->archive->box_number }}</span>

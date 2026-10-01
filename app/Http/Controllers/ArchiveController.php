@@ -17,7 +17,18 @@ class ArchiveController extends Controller
     {
         $user = auth()->user();
 
-        $query = Archive::with(['department', 'subDepartment', 'location.warehouse', 'creator']);
+        $query = Archive::with([
+            'department', 
+            'subDepartment', 
+            'location.warehouse', 
+            'creator',
+            'borrowingLogs' => function ($q) {
+                $q->whereIn('status', ['requested', 'dept_approved', 'approved', 'dispatched'])
+                  ->orderBy('created_at', 'desc');
+            },
+            'borrowingLogs.borrower',
+            'borrowingLogs.departmentApprovedBy'
+        ]);
 
         if ($user->isPicDept()) {
             $query->where('department_id', $user->department_id);
@@ -45,7 +56,13 @@ class ArchiveController extends Controller
         }
 
         if ($request->filled('status')) {
-            $query->where('status', $request->status);
+            if ($request->status === 'borrow_requested') {
+                $query->whereHas('borrowingLogs', function ($q) {
+                    $q->whereIn('status', ['requested', 'dept_approved', 'approved']);
+                });
+            } else {
+                $query->where('status', $request->status);
+            }
         }
 
         if ($request->filled('expiry_filter')) {
@@ -74,7 +91,13 @@ class ArchiveController extends Controller
         $archives = $query->paginate(10)->withQueryString();
         $departments = Department::with('subDepartments')->get();
 
-        return view('archives.index', compact('archives', 'departments'));
+        // Pending Borrowing Requests Count for PIC Gudang Alert Banner
+        $pendingBorrowingRequestsCount = 0;
+        if ($user->isPicGudang() || $user->isSuperAdmin()) {
+            $pendingBorrowingRequestsCount = \App\Models\BorrowingLog::whereIn('status', ['requested', 'dept_approved', 'approved'])->count();
+        }
+
+        return view('archives.index', compact('archives', 'departments', 'pendingBorrowingRequestsCount'));
     }
 
     public function create()

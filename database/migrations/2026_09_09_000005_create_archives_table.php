@@ -29,6 +29,7 @@ class CreateArchivesTable extends Migration
                 'approved_booked',
                 'in_warehouse',
                 'borrowed',
+                'taken',
                 'pending_destruction',
                 'destroyed'
             ])->default('draft');

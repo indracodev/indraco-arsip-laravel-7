@@ -53,6 +53,8 @@
                     <span class="inline-flex items-center whitespace-nowrap px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300 border border-emerald-500/30">Tersimpan di Gudang Arsip</span>
                 @elseif($archive->status === 'borrowed')
                     <span class="inline-flex items-center whitespace-nowrap px-3 py-1 rounded-full text-xs font-bold bg-purple-500/10 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300 border border-purple-500/30">Sedang Dipinjam</span>
+                @elseif($archive->status === 'taken')
+                    <span class="inline-flex items-center whitespace-nowrap px-3 py-1 rounded-full text-xs font-bold bg-indigo-500/10 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300 border border-indigo-500/30">Telah Diambil (Permanen)</span>
                 @elseif($archive->status === 'destroyed')
                     <span class="inline-flex items-center whitespace-nowrap px-3 py-1 rounded-full text-xs font-bold bg-rose-500/10 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300 border border-rose-500/30">Telah Dimusnahkan (BAP Recorded)</span>
                 @endif
@@ -293,7 +295,7 @@
                 <div class="space-y-2">
                     <div class="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl text-xs">
                         <span class="text-slate-500 dark:text-slate-400 block font-medium">Gudang & Slot:</span>
-                        <span class="font-extrabold text-emerald-700 dark:text-emerald-300 text-base block mt-0.5">{{ $archive->location->full_location }}</span>
+                        <span class="font-extrabold text-emerald-700 dark:text-emerald-300 text-sm sm:text-base block mt-0.5 leading-snug">{{ $archive->full_slot_location }}</span>
                     </div>
                     <p class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
                         {{ $archive->location->warehouse->name ?? '' }} ({{ $archive->location->warehouse->address ?? '' }})
@@ -362,7 +364,7 @@
                     <div>
                         <span class="font-bold text-slate-900 dark:text-white block">Log Peminjaman Dokumen (Status: {{ strtoupper($bLog->status) }})</span>
                         <p class="text-slate-700 dark:text-slate-300 mt-0.5 font-medium">Tujuan: {{ $bLog->purpose }}</p>
-                        <span class="text-[10px] text-slate-500 block mt-1">Peminjam: {{ $bLog->borrower->name ?? 'User' }} | Est. Kembali: {{ \Carbon\Carbon::parse($bLog->expected_return_date)->format('d M Y') }}</span>
+                        <span class="text-[10px] text-slate-500 block mt-1">Peminjam: {{ $bLog->borrower->name ?? 'User' }} | Est. Kembali: {{ $bLog->expected_return_date ? \Carbon\Carbon::parse($bLog->expected_return_date)->format('d M Y') : 'Hanya Diambil (Permanen)' }}</span>
                     </div>
                 </div>
                 @endforeach

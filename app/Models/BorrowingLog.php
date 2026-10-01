@@ -71,7 +71,7 @@ class BorrowingLog extends Model
             case 'approved':
                 return 'Disetujui Gudang';
             case 'dispatched':
-                return 'Pengeluaran Berkas';
+                return empty($this->expected_return_date) ? 'Diambil (Permanen)' : 'Sedang Dipinjam';
             case 'returned':
                 return 'Dikembalikan';
             case 'rejected':

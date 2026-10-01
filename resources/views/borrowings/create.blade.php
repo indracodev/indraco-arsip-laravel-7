@@ -19,6 +19,11 @@
         </p>
     </div>
 
+    <!-- Pass archives data safely via JavaScript to avoid HTML attribute quote escaping issues -->
+    <script>
+        window.borrowingArchives = @json($archives);
+    </script>
+
     <!-- Main Full-Width Form Card -->
     <div class="bg-white dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6"
          x-data="{
@@ -26,7 +31,8 @@
              selectedArchive: null,
              isOpen: false,
              hasApprovalFile: false,
-             archives: {!! json_encode($archives) !!},
+             isPermanent: false,
+             archives: window.borrowingArchives || [],
              init() {
                  const initialId = {{ $selectedArchiveId ?? 'null' }};
                  if (initialId) {
@@ -43,12 +49,12 @@
                      (a.box_number && a.box_number.toLowerCase().includes(q)) ||
                      (a.title && a.title.toLowerCase().includes(q)) ||
                      (a.period_text && a.period_text.toLowerCase().includes(q)) ||
-                     (a.department && a.department.code.toLowerCase().includes(q))
+                     (a.department && a.department.code && a.department.code.toLowerCase().includes(q))
                  );
              },
              selectArchive(arc) {
                  this.selectedArchive = arc;
-                 this.search = arc.box_number ? `[${arc.box_number}] ${arc.title}` : arc.title;
+                 this.search = arc.box_number ? '[' + arc.box_number + '] ' + arc.title : arc.title;
                  this.isOpen = false;
              },
              clearSelection() {
@@ -122,7 +128,7 @@
                                 <div class="text-right shrink-0">
                                     <span class="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                                         <i data-lucide="map-pin" class="w-3.5 h-3.5"></i>
-                                        <span x-text="arc.location ? arc.location.full_location : 'Gudang'"></span>
+                                        <span x-text="arc.short_location || arc.full_slot_location || (arc.location ? arc.location.full_location : 'Gudang')"></span>
                                     </span>
                                 </div>
                             </div>
@@ -169,7 +175,7 @@
 
                     <div class="p-3 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
                         <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 block uppercase">LOKASI RAK GUDANG</span>
-                        <span class="font-extrabold text-emerald-600 dark:text-emerald-400" x-text="selectedArchive?.location ? selectedArchive.location.full_location : 'Gudang'"></span>
+                        <span class="font-extrabold text-emerald-600 dark:text-emerald-400" x-text="selectedArchive?.short_location || selectedArchive?.full_slot_location || (selectedArchive?.location ? selectedArchive.location.full_location : 'Gudang')"></span>
                     </div>
 
                     <div class="p-3 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
@@ -187,19 +193,37 @@
             <!-- STEP 2 & 3: RETURN DATE & PURPOSE -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
                 <!-- Step 2: Expected Return Date (1 Column) -->
-                <div class="space-y-1.5 md:col-span-1">
-                    <label for="expected_return_date" class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                        2. Estimasi Pengembalian <span class="text-rose-500">*</span>
+                <div class="space-y-2 md:col-span-1">
+                    <div class="flex items-center justify-between">
+                        <label for="expected_return_date" class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                            2. Estimasi Pengembalian <span class="text-rose-500" x-show="!isPermanent">*</span>
+                        </label>
+                    </div>
+
+                    <!-- Checkbox Toggle for Permanent / No Return -->
+                    <label class="flex items-center gap-2 p-2 bg-amber-500/10 border border-amber-500/30 rounded-xl cursor-pointer text-xs font-bold text-amber-900 dark:text-amber-200 select-none">
+                        <input type="checkbox" name="is_permanent" value="1" x-model="isPermanent" class="rounded border-amber-400 text-amber-600 focus:ring-0">
+                        <span>Hanya Diambil (Tanpa Pengembalian / Permanen)</span>
                     </label>
-                    <input 
-                        type="date" 
-                        name="expected_return_date" 
-                        id="expected_return_date" 
-                        value="{{ old('expected_return_date', \Carbon\Carbon::now()->addDays(7)->format('Y-m-d')) }}" 
-                        min="{{ \Carbon\Carbon::tomorrow()->format('Y-m-d') }}"
-                        required
-                        class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-2xl text-sm text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 font-medium transition"
-                    >
+
+                    <div x-show="!isPermanent" x-transition>
+                        <input 
+                            type="date" 
+                            name="expected_return_date" 
+                            id="expected_return_date" 
+                            value="{{ old('expected_return_date', \Carbon\Carbon::now()->addDays(7)->format('Y-m-d')) }}" 
+                            min="{{ \Carbon\Carbon::tomorrow()->format('Y-m-d') }}"
+                            :required="!isPermanent"
+                            :disabled="isPermanent"
+                            class="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-2xl text-sm text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 font-medium transition"
+                        >
+                    </div>
+
+                    <div x-show="isPermanent" x-transition class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[11px] text-amber-600 dark:text-amber-400 font-bold flex items-center gap-1.5">
+                        <i data-lucide="info" class="w-4 h-4 shrink-0"></i>
+                        <span>Dokumen hanya diambil permanen (tanpa estimasi tanggal pengembalian).</span>
+                    </div>
+
                     @error('expected_return_date') <span class="text-rose-500 text-xs font-bold block mt-1">{{ $message }}</span> @enderror
                 </div>
 

@@ -42,6 +42,11 @@ class Archive extends Model
         'scan_extension_form',
     ];
 
+    protected $appends = [
+        'full_slot_location',
+        'short_location',
+    ];
+
     protected $casts = [
         'period_start_date' => 'date',
         'period_end_date' => 'date',
@@ -122,6 +127,66 @@ class Archive extends Model
         return 5;
     }
 
+    public function getFullSlotLocationAttribute(): string
+    {
+        if (!$this->location) {
+            return 'Belum Ada Lokasi';
+        }
+        $whName = $this->location->warehouse ? $this->location->warehouse->name : 'Gudang';
+        $sector = $this->location->room_sector ? "[{$this->location->room_sector}] " : '';
+        $rackCode = $this->location->rack_code;
+
+        if ($this->rackSlot) {
+            $slotCode = $this->rackSlot->slot_code;
+            $sapNum = $this->rackSlot->sap_level;
+            $layerLabel = $this->rackSlot->layer === 'top' ? 'Baris Atas' : 'Baris Bawah';
+            $slotNo = str_pad($this->rackSlot->slot_number, 2, '0', STR_PAD_LEFT);
+            $boxIdx = ($sapNum - 1) * 20 + ($this->rackSlot->layer === 'bottom' ? 0 : 10) + $this->rackSlot->slot_number;
+
+            return "{$whName} - {$sector}{$rackCode} / {$slotCode} (Sap {$sapNum}, {$layerLabel} - Slot {$slotNo} / Box #{$boxIdx})";
+        }
+
+        return "{$whName} - {$sector}{$rackCode} / {$this->location->shelf_code}";
+    }
+
+    public function getShortLocationAttribute(): string
+    {
+        if (!$this->location) {
+            return 'Belum Ada Lokasi';
+        }
+
+        $sector = $this->location->room_sector;
+        if (!$sector && $this->location->warehouse) {
+            if (preg_match('/GUDANG\s+([A-Z0-9]+)/i', $this->location->warehouse->name, $matches)) {
+                $sector = strtoupper($matches[1]);
+            } else {
+                $sector = $this->location->warehouse->code;
+            }
+        }
+        if (!$sector) {
+            $sector = 'R1';
+        }
+
+        $rackCode = $this->location->rack_code ?? '';
+        $rackLetter = '';
+        if (preg_match('/([A-Za-z])$/i', $rackCode, $matches)) {
+            $rackLetter = strtoupper($matches[1]);
+        } elseif (!empty($rackCode)) {
+            $rackLetter = strtoupper(substr($rackCode, 0, 1));
+        }
+
+        $slotNumStr = '';
+        if ($this->rackSlot) {
+            $slotNumStr = str_pad($this->rackSlot->slot_number, 2, '0', STR_PAD_LEFT);
+        } elseif (!empty($this->location->shelf_code) && preg_match('/(\d+)/', $this->location->shelf_code, $matches)) {
+            $slotNumStr = str_pad($matches[1], 2, '0', STR_PAD_LEFT);
+        } else {
+            $slotNumStr = '01';
+        }
+
+        return "{$sector} - {$rackLetter}{$slotNumStr}";
+    }
+
     public function getStatusLabelAttribute(): string
     {
         switch ($this->status) {
@@ -135,6 +200,8 @@ class Archive extends Model
                 return 'Tersimpan di Gudang';
             case 'borrowed':
                 return 'Sedang Dipinjam';
+            case 'taken':
+                return 'Telah Diambil (Permanen)';
             case 'pending_destruction':
                 return 'Antrean Pemusnahan';
             case 'destroyed':
@@ -157,6 +224,8 @@ class Archive extends Model
                 return 'bg-emerald-100 text-emerald-800 border-emerald-300';
             case 'borrowed':
                 return 'bg-indigo-100 text-indigo-800 border-indigo-200';
+            case 'taken':
+                return 'bg-purple-100 text-purple-800 border-purple-300';
             case 'pending_destruction':
                 return 'bg-orange-100 text-orange-800 border-orange-300';
             case 'destroyed':

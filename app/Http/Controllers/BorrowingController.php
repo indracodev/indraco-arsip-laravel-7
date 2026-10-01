@@ -60,7 +60,7 @@ class BorrowingController extends Controller
         $user = auth()->user();
 
         // Get archives available for borrowing (status in_warehouse)
-        $archivesQuery = Archive::with(['department', 'subDepartment', 'location.warehouse'])->where('status', 'in_warehouse');
+        $archivesQuery = Archive::with(['department', 'subDepartment', 'location.warehouse', 'rackSlot'])->where('status', 'in_warehouse');
 
         if ($user->isPicDept()) {
             $archivesQuery->where('department_id', $user->department_id);
@@ -79,7 +79,8 @@ class BorrowingController extends Controller
         $validated = $request->validate([
             'archive_id' => 'required|exists:archives,id',
             'purpose' => 'required|string|max:500',
-            'expected_return_date' => 'required|date|after:today',
+            'is_permanent' => 'nullable|boolean',
+            'expected_return_date' => 'nullable|required_unless:is_permanent,1,true|date|after_or_equal:today',
             'approval_file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240',
         ]);
 
@@ -91,11 +92,14 @@ class BorrowingController extends Controller
 
         $approvalPath = $request->file('approval_file')->store('borrowing_approvals', 'public');
 
+        $isPermanent = $request->boolean('is_permanent') || empty($request->expected_return_date);
+        $expectedReturnDate = $isPermanent ? null : ($validated['expected_return_date'] ?? null);
+
         BorrowingLog::create([
             'archive_id' => $archive->id,
             'borrower_user_id' => $user->id,
             'request_date' => now(),
-            'expected_return_date' => $validated['expected_return_date'],
+            'expected_return_date' => $expectedReturnDate,
             'purpose' => $validated['purpose'],
             'status' => 'requested',
             'approval_file' => $approvalPath,
@@ -184,12 +188,36 @@ class BorrowingController extends Controller
             'scan_approval_borrow' => $scanPath,
         ]);
 
-        $borrowing->archive->update([
-            'status' => 'borrowed',
+        $archive = $borrowing->archive;
+        $isPermanent = empty($borrowing->expected_return_date);
+        $archiveStatus = $isPermanent ? 'taken' : 'borrowed';
+
+        $archive->update([
+            'status' => $archiveStatus,
         ]);
 
-        return redirect()->route('borrowings.index')
-            ->with('success', 'Pengeluaran berkas disahkan! Status arsip diubah menjadi "Sedang Dipinjam".');
+        // Vacate rack slot when document is issued / dispatched
+        if ($archive->rackSlot) {
+            $archive->rackSlot->update([
+                'status' => 'empty',
+                'archive_id' => null,
+            ]);
+        }
+        \App\Models\WarehouseRackSlot::where('archive_id', $archive->id)->update([
+            'status' => 'empty',
+            'archive_id' => null,
+        ]);
+
+        if ($archive->location && $archive->location->current_box_count > 0) {
+            $archive->location->decrement('current_box_count');
+        }
+
+        $successMsg = $isPermanent 
+            ? 'Pengeluaran berkas disahkan! Status arsip diubah menjadi "Diambil (Permanen)" dan slot rak telah dikosongkan.'
+            : 'Pengeluaran berkas disahkan! Status arsip diubah menjadi "Sedang Dipinjam" dan slot rak telah dikosongkan.';
+
+        return redirect()->back()
+            ->with('success', $successMsg);
     }
 
     public function returnArchive(BorrowingLog $borrowing, Request $request)
@@ -204,9 +232,25 @@ class BorrowingController extends Controller
             'notes' => $request->notes ?? 'Berkas fisik dikembalikan dalam kondisi baik.',
         ]);
 
-        $borrowing->archive->update([
+        $archive = $borrowing->archive;
+        $archive->update([
             'status' => 'in_warehouse',
         ]);
+
+        // Re-occupy rack slot upon return if assigned slot exists
+        if ($archive->warehouse_rack_slot_id) {
+            $slot = \App\Models\WarehouseRackSlot::find($archive->warehouse_rack_slot_id);
+            if ($slot && $slot->status === 'empty') {
+                $slot->update([
+                    'status' => 'filled',
+                    'archive_id' => $archive->id,
+                ]);
+            }
+        }
+
+        if ($archive->location) {
+            $archive->location->increment('current_box_count');
+        }
 
         return redirect()->route('borrowings.index')
             ->with('success', 'Pengembalian berkas dikonfirmasi! Status arsip kembali "Tersimpan di Gudang".');

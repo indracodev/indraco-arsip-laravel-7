@@ -15,7 +15,7 @@ class CreateBorrowingLogsTable extends Migration
             $table->foreignId('pic_gudang_id')->nullable()->constrained('users')->nullOnDelete();
             $table->dateTime('request_date');
             $table->dateTime('borrow_date')->nullable();
-            $table->date('expected_return_date');
+            $table->date('expected_return_date')->nullable();
             $table->dateTime('actual_return_date')->nullable();
             $table->text('purpose');
             $table->string('status', 50)->default('requested');
