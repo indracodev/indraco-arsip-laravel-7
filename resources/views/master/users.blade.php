@@ -3,60 +3,7 @@
 @section('title', 'Kelola User & Hak Akses - DMS PT Indraco')
 
 @section('content')
-<div class="space-y-3" x-data="{ 
-    openAdd: false,
-    editUserItem: null,
-    searchQuery: '',
-    sortColumn: 'name',
-    sortDirection: 'asc',
-    submitting: false,
-    isLoading: false,
-    currentUserId: {{ auth()->id() }},
-    users: {{ json_encode($users) }},
-    departments: {{ json_encode($departments) }},
-
-    get filteredUsers() {
-        let res = [...this.users];
-        if (this.searchQuery.trim() !== '') {
-            const q = this.searchQuery.toLowerCase();
-            res = res.filter(u => {
-                const deptName = u.department ? u.department.name : '';
-                const deptCode = u.department ? u.department.code : '';
-                return (u.name && u.name.toLowerCase().includes(q)) ||
-                       (u.email && u.email.toLowerCase().includes(q)) ||
-                       (u.role && u.role.toLowerCase().includes(q)) ||
-                       (u.phone && u.phone.toLowerCase().includes(q)) ||
-                       (deptName && deptName.toLowerCase().includes(q)) ||
-                       (deptCode && deptCode.toLowerCase().includes(q));
-            });
-        }
-        res.sort((a, b) => {
-            let valA = a[this.sortColumn] ?? '';
-            let valB = b[this.sortColumn] ?? '';
-            if (this.sortColumn === 'department') {
-                valA = a.department ? a.department.name : 'Global';
-                valB = b.department ? b.department.name : 'Global';
-            }
-            if (typeof valA === 'string') valA = valA.toLowerCase();
-            if (typeof valB === 'string') valB = valB.toLowerCase();
-            if (valA < valB) return this.sortDirection === 'asc' ? -1 : 1;
-            if (valA > valB) return this.sortDirection === 'asc' ? 1 : -1;
-            return 0;
-        });
-        return res;
-    },
-
-    sortBy(col) {
-        this.isLoading = true;
-        if (this.sortColumn === col) {
-            this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
-        } else {
-            this.sortColumn = col;
-            this.sortDirection = 'asc';
-        }
-        setTimeout(() => { this.isLoading = false; lucide.createIcons(); }, 80);
-    }
-}">
+<div class="space-y-3" x-data="masterUsersManager()">
 
     <!-- DELPHI ACTION RIBBON TOOLBAR & HEADER -->
     <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-3 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3 font-mono">
@@ -338,4 +285,65 @@
     </template>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+function masterUsersManager() {
+    return {
+        openAdd: false,
+        editUserItem: null,
+        searchQuery: '',
+        sortColumn: 'name',
+        sortDirection: 'asc',
+        submitting: false,
+        isLoading: false,
+        currentUserId: {{ auth()->id() }},
+        users: @json($users),
+        departments: @json($departments),
+
+        get filteredUsers() {
+            let res = [...this.users];
+            if (this.searchQuery.trim() !== '') {
+                const q = this.searchQuery.toLowerCase();
+                res = res.filter(u => {
+                    const deptName = u.department ? u.department.name : '';
+                    const deptCode = u.department ? u.department.code : '';
+                    return (u.name && u.name.toLowerCase().includes(q)) ||
+                           (u.email && u.email.toLowerCase().includes(q)) ||
+                           (u.role && u.role.toLowerCase().includes(q)) ||
+                           (u.phone && u.phone.toLowerCase().includes(q)) ||
+                           (deptName && deptName.toLowerCase().includes(q)) ||
+                           (deptCode && deptCode.toLowerCase().includes(q));
+                });
+            }
+            res.sort((a, b) => {
+                let valA = a[this.sortColumn] ?? '';
+                let valB = b[this.sortColumn] ?? '';
+                if (this.sortColumn === 'department') {
+                    valA = a.department ? a.department.name : 'Global';
+                    valB = b.department ? b.department.name : 'Global';
+                }
+                if (typeof valA === 'string') valA = valA.toLowerCase();
+                if (typeof valB === 'string') valB = valB.toLowerCase();
+                if (valA < valB) return this.sortDirection === 'asc' ? -1 : 1;
+                if (valA > valB) return this.sortDirection === 'asc' ? 1 : -1;
+                return 0;
+            });
+            return res;
+        },
+
+        sortBy(col) {
+            this.isLoading = true;
+            if (this.sortColumn === col) {
+                this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                this.sortColumn = col;
+                this.sortDirection = 'asc';
+            }
+            setTimeout(() => { this.isLoading = false; if (window.lucide) lucide.createIcons(); }, 80);
+        }
+    };
+}
+</script>
+@endpush
 

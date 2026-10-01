@@ -3,7 +3,7 @@
 @section('title', 'Dashboard Overview - DMS PT Indraco')
 
 @section('content')
-<div class="space-y-3">
+<div class="space-y-3" x-data="dashboardOverviewApp()">
     <!-- DELPHI ACTION RIBBON TOOLBAR & WORKSTATION HEADER -->
     <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-3 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-3 font-mono">
         <div class="flex items-center gap-2">
@@ -278,7 +278,7 @@
                 <i data-lucide="archive" class="w-4 h-4 text-blue-500"></i>
             </div>
             <div class="mt-2 flex items-baseline gap-1">
-                <span class="text-2xl font-black text-slate-900 dark:text-white">{{ $totalArchives }}</span>
+                <span class="text-2xl font-black text-slate-900 dark:text-white" x-text="stats.total">{{ $totalArchives }}</span>
                 <span class="text-[10px] text-slate-500">Box</span>
             </div>
         </div>
@@ -290,7 +290,7 @@
                 <i data-lucide="warehouse" class="w-4 h-4 text-emerald-500"></i>
             </div>
             <div class="mt-2 flex items-baseline gap-1">
-                <span class="text-2xl font-black text-emerald-600 dark:text-emerald-400">{{ $inWarehouseCount }}</span>
+                <span class="text-2xl font-black text-emerald-600 dark:text-emerald-400" x-text="stats.inWarehouse">{{ $inWarehouseCount }}</span>
                 <span class="text-[10px] text-slate-500">Slot</span>
             </div>
         </div>
@@ -302,7 +302,7 @@
                 <i data-lucide="clock" class="w-4 h-4 text-amber-500"></i>
             </div>
             <div class="mt-2 flex items-baseline gap-1">
-                <span class="text-2xl font-black text-amber-600 dark:text-amber-400">{{ $pendingVerificationCount }}</span>
+                <span class="text-2xl font-black text-amber-600 dark:text-amber-400" x-text="stats.pendingVerification">{{ $pendingVerificationCount }}</span>
                 <span class="text-[10px] text-slate-500">Pengajuan</span>
             </div>
         </div>
@@ -314,7 +314,7 @@
                 <i data-lucide="file-symlink" class="w-4 h-4 text-purple-500"></i>
             </div>
             <div class="mt-2 flex items-baseline gap-1">
-                <span class="text-2xl font-black text-purple-600 dark:text-purple-400">{{ $borrowedCount }}</span>
+                <span class="text-2xl font-black text-purple-600 dark:text-purple-400" x-text="stats.borrowed">{{ $borrowedCount }}</span>
                 <span class="text-[10px] text-slate-500">Out</span>
             </div>
         </div>
@@ -326,92 +326,62 @@
                 <i data-lucide="alert-circle" class="w-4 h-4 text-rose-500"></i>
             </div>
             <div class="mt-2 flex items-baseline gap-1">
-                <span class="text-2xl font-black text-rose-600 dark:text-rose-400">{{ $expiringCount }}</span>
+                <span class="text-2xl font-black text-rose-600 dark:text-rose-400" x-text="stats.expiring">{{ $expiringCount }}</span>
                 <span class="text-[10px] text-slate-500">Berkas</span>
             </div>
         </div>
     </div>
 
-    <!-- MIDDLE GRID: WAREHOUSE METER & EXPIRY ALERTS -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 font-mono">
-        <!-- Warehouse Capacity Meter Box -->
-        <fieldset class="border border-slate-300 dark:border-slate-800 p-3 rounded bg-white dark:bg-slate-950 shadow-sm flex flex-col justify-between">
-            <legend class="px-2 font-mono text-xs font-bold text-amber-600 dark:text-amber-400 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded shadow-xs flex items-center gap-1.5">
-                <i data-lucide="boxes" class="w-3.5 h-3.5"></i>
-                KAPASITAS GUDANG ARSIP
-            </legend>
-
-            <div class="space-y-3">
-                <div class="flex items-end justify-between">
-                    <div>
-                        <span class="text-[11px] text-slate-500 font-bold block">Box Terisi / Kapasitas Total</span>
-                        <span class="text-xl font-extrabold text-slate-900 dark:text-white">{{ $usedCapacity }} / {{ $totalCapacity }}</span>
-                        <span class="text-xs text-slate-500"> Box</span>
+    <!-- COMPACT CAPACITY & RETENTION STATUS RIBBON -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 font-mono text-xs">
+        <!-- Compact Kapasitas Gudang Arsip -->
+        <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-2.5 shadow-xs flex items-center justify-between gap-3">
+            <div class="flex items-center gap-2.5 min-w-0">
+                <div class="p-1.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 shrink-0">
+                    <i data-lucide="boxes" class="w-4 h-4"></i>
+                </div>
+                <div class="min-w-0">
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] text-slate-500 font-bold uppercase">Kapasitas Rak Gudang:</span>
+                        <span class="font-bold text-slate-900 dark:text-white" x-text="`${stats.usedCapacity} / ${stats.totalCapacity} Box`">{{ $usedCapacity }} / {{ $totalCapacity }} Box</span>
+                        <span class="px-1.5 py-0.2 rounded bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-[10px] font-black" x-text="`${Math.min(100, Math.round((stats.usedCapacity / (stats.totalCapacity || 1)) * 100))}%`">{{ $capacityPercent }}%</span>
                     </div>
-                    <span class="text-lg font-black text-amber-600 dark:text-amber-400">{{ $capacityPercent }}%</span>
-                </div>
-
-                <!-- Progress Bar -->
-                <div class="w-full h-2.5 bg-slate-200 dark:bg-slate-900 rounded-full overflow-hidden border border-slate-300 dark:border-slate-700">
-                    <div class="h-full bg-gradient-to-r from-emerald-500 via-amber-400 to-rose-500 transition-all duration-300" style="width: {{ min($capacityPercent, 100) }}%"></div>
-                </div>
-
-                <!-- Available Locations Breakdown -->
-                <div class="space-y-1.5 pt-1">
-                    <span class="text-[10px] font-bold text-slate-500 uppercase block">Lokasi Rak Terisi:</span>
-                    @foreach($warehouseLocations->take(3) as $loc)
-                    <div class="flex items-center justify-between p-1.5 rounded bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[11px]">
-                        <span class="font-bold text-slate-800 dark:text-slate-200">{{ $loc->full_location }}</span>
-                        <span class="text-slate-500 font-bold">{{ $loc->current_box_count }}/{{ $loc->box_capacity }} Box</span>
+                    <div class="w-40 sm:w-56 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden mt-1 border border-slate-300/60 dark:border-slate-700">
+                        <div class="h-full bg-gradient-to-r from-emerald-500 to-amber-500 transition-all duration-300" :style="`width: ${Math.min(100, Math.round((stats.usedCapacity / (stats.totalCapacity || 1)) * 100))}%`" style="width: {{ min($capacityPercent, 100) }}%"></div>
                     </div>
-                    @endforeach
                 </div>
             </div>
+            <a href="{{ route('master.warehouses') }}" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-[11px] font-bold text-amber-600 dark:text-amber-400 transition inline-flex items-center gap-1 shrink-0 shadow-xs">
+                <span>Kelola Lokasi</span>
+                <i data-lucide="chevron-right" class="w-3 h-3"></i>
+            </a>
+        </div>
 
-            <div class="mt-3 pt-2 border-t border-slate-200 dark:border-slate-800 text-right">
-                <a href="{{ route('master.warehouses') }}" class="text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline inline-flex items-center gap-1">
-                    Kelola Lokasi Gudang <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
-                </a>
-            </div>
-        </fieldset>
-
-        <!-- Retention Expiry Alert Box -->
-        <fieldset class="lg:col-span-2 border border-slate-300 dark:border-slate-800 p-3 rounded bg-white dark:bg-slate-950 shadow-sm flex flex-col justify-between">
-            <legend class="px-2 font-mono text-xs font-bold text-rose-600 dark:text-rose-400 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded shadow-xs flex items-center gap-1.5">
-                <i data-lucide="hourglass" class="w-3.5 h-3.5"></i>
-                PEMBERITAHUAN RETENTION EXPIRY (MASA SIMPAN)
-            </legend>
-
-            @if($expiringArchives->isEmpty())
-            <div class="text-center py-6 text-slate-500 font-mono text-xs space-y-1">
-                <i data-lucide="shield-check" class="w-8 h-8 mx-auto text-emerald-500 mb-1"></i>
-                <p class="font-bold">Tidak ada berkas yang mendekati masa pemusnahan (90 Hari).</p>
-            </div>
-            @else
-            <div class="space-y-2">
-                @foreach($expiringArchives->take(3) as $exp)
-                <div class="p-2 rounded bg-rose-500/10 border border-rose-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs font-mono">
-                    <div>
-                        <div class="flex items-center gap-1.5">
-                            <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-300">{{ $exp->department->code ?? 'GEN' }}</span>
-                            <span class="font-bold text-slate-900 dark:text-white">{{ $exp->title }}</span>
-                        </div>
-                        <p class="text-[11px] text-slate-500">Box: <strong class="text-amber-600 dark:text-amber-400">{{ $exp->box_number ?? '-' }}</strong> | Expiry: <strong class="text-rose-600 dark:text-rose-400">{{ \Carbon\Carbon::parse($exp->retention_expiry_date)->format('d M Y') }}</strong></p>
-                    </div>
-
-                    <a href="{{ route('archives.show', $exp) }}" class="px-2.5 py-1 rounded bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-bold transition">
-                        Proses Pemusnahan
-                    </a>
+        <!-- Compact Pemberitahuan Retensi & Expiry -->
+        <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-2.5 shadow-xs flex items-center justify-between gap-3">
+            <div class="flex items-center gap-2.5 min-w-0">
+                <div class="p-1.5 rounded {{ $expiringArchives->isEmpty() ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400 animate-pulse' }} border shrink-0">
+                    <i data-lucide="{{ $expiringArchives->isEmpty() ? 'shield-check' : 'hourglass' }}" class="w-4 h-4"></i>
                 </div>
-                @endforeach
+                <div class="min-w-0">
+                    <span class="text-[10px] text-slate-500 font-bold uppercase block">Status Masa Retensi (90 Hari):</span>
+                    @if($expiringArchives->isEmpty())
+                        <span class="text-emerald-600 dark:text-emerald-400 font-bold text-[11px] flex items-center gap-1">
+                            <span>Semua berkas aman (Belum ada yang expired)</span>
+                        </span>
+                    @else
+                        <span class="text-rose-600 dark:text-rose-400 font-bold text-[11px] flex items-center gap-1">
+                            <span class="font-black">{{ $expiringArchives->count() }} berkas</span>
+                            <span>mendekati masa pemusnahan</span>
+                        </span>
+                    @endif
+                </div>
             </div>
-            @endif
-
-            <div class="mt-3 pt-2 border-t border-slate-200 dark:border-slate-800 text-[11px] text-slate-500 flex items-center justify-between">
-                <span>Pemusnahan berkas memerlukan Berita Acara Pemusnahan (BAP)</span>
-                <a href="{{ route('destructions.index') }}" class="font-bold text-rose-600 dark:text-rose-400 hover:underline">Lihat Semua Expiry &rarr;</a>
-            </div>
-        </fieldset>
+            <a href="{{ route('destructions.index') }}" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-[11px] font-bold {{ $expiringArchives->isEmpty() ? 'text-slate-600 dark:text-slate-400' : 'text-rose-600 dark:text-rose-400' }} transition inline-flex items-center gap-1 shrink-0 shadow-xs">
+                <span>Pemusnahan BAP</span>
+                <i data-lucide="chevron-right" class="w-3 h-3"></i>
+            </a>
+        </div>
     </div>
 
     <!-- BOTTOM DELPHI TDBGRID SPREADSHEET TABLE: RECENT ARCHIVES -->
@@ -425,6 +395,25 @@
                 Buka Katalog Utama
             </a>
         </div>
+
+@php
+    $formattedRecentArchives = $recentArchives->map(function ($arc) {
+        return [
+            'id' => $arc->id,
+            'box_number' => $arc->box_number ?? 'Penomoran Pending',
+            'title' => $arc->effective_title ?? $arc->title,
+            'dept_code' => $arc->department->code ?? 'GEN',
+            'dept_name' => $arc->department->name ?? 'Departemen',
+            'department_id' => $arc->department_id,
+            'period_text' => $arc->period_text ?? ($arc->period_start_date ? $arc->period_start_date->format('M Y') : '-'),
+            'location_full' => $arc->location ? $arc->location->full_location : null,
+            'slot_code' => $arc->rackSlot ? ($arc->rackSlot->slot_code ?? ('S' . $arc->rackSlot->slot_number)) : null,
+            'status' => $arc->status,
+            'status_label' => $arc->status_label,
+            'show_url' => route('archives.show', $arc),
+        ];
+    });
+@endphp
 
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-xs">
@@ -440,55 +429,392 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
-                    @forelse($recentArchives as $archive)
-                    <tr class="hover:bg-amber-500/10 dark:hover:bg-amber-500/20 transition">
-                        <td class="py-2 px-3 font-mono text-xs text-amber-600 dark:text-amber-400 font-bold whitespace-nowrap">
-                            {{ $archive->box_number ?? 'Penomoran Pending' }}
-                        </td>
-                        <td class="py-2 px-3 font-bold text-slate-900 dark:text-white">
-                            {{ Str::limit($archive->title, 40) }}
-                        </td>
-                        <td class="py-2 px-3 font-mono">
-                            <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-slate-700 dark:text-slate-300">
-                                {{ $archive->department->code ?? 'GEN' }}
-                            </span>
-                        </td>
-                        <td class="py-2 px-3 text-xs text-slate-600 dark:text-slate-400 font-mono">
-                            {{ $archive->period_text ?? $archive->period_start_date->format('M Y') }}
-                        </td>
-                        <td class="py-2 px-3 text-xs text-slate-700 dark:text-slate-300 font-mono">
-                            {{ $archive->location->full_location ?? 'Belum Ditentukan' }}
-                        </td>
-                        <td class="py-2 px-3 whitespace-nowrap font-mono">
-                            @if($archive->status === 'draft')
-                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-400 border border-slate-300 dark:border-slate-700">Draft</span>
-                            @elseif($archive->status === 'pending_verification')
-                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30">Antrean Verifikasi</span>
-                            @elseif($archive->status === 'approved_booked')
-                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-500/30">Approved / Booking</span>
-                            @elseif($archive->status === 'in_warehouse')
-                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">Di Gudang</span>
-                            @elseif($archive->status === 'borrowed')
-                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-500/30">Dipinjam</span>
-                            @elseif($archive->status === 'destroyed')
-                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/30">Dimusnahkan</span>
-                            @endif
-                        </td>
-                        <td class="py-2 px-3 text-right font-mono">
-                            <a href="{{ route('archives.show', $archive) }}" class="px-2 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-400 dark:border-slate-600 rounded text-[11px] font-bold transition inline-flex items-center gap-1">
-                                <i data-lucide="eye" class="w-3 h-3 text-blue-500"></i> Detail
-                            </a>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr>
+                    <template x-for="archive in archivesList" :key="archive.id">
+                        <tr class="hover:bg-amber-500/10 dark:hover:bg-amber-500/20 transition">
+                            <td class="py-2 px-3 font-mono text-xs text-amber-600 dark:text-amber-400 font-bold whitespace-nowrap" x-text="archive.box_number"></td>
+                            <td class="py-2 px-3 font-bold text-slate-900 dark:text-white" x-text="archive.title"></td>
+                            <td class="py-2 px-3 font-mono">
+                                <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-slate-700 dark:text-slate-300" x-text="archive.dept_code"></span>
+                            </td>
+                            <td class="py-2 px-3 text-xs text-slate-600 dark:text-slate-400 font-mono" x-text="archive.period_text"></td>
+                            <td class="py-2 px-3 text-xs font-mono">
+                                <!-- Lokasi Sudah Ditentukan -->
+                                <template x-if="archive.location_full">
+                                    <div class="flex items-center gap-1.5 font-bold text-slate-800 dark:text-slate-200">
+                                        <i data-lucide="map-pin" class="w-3.5 h-3.5 text-emerald-500 shrink-0"></i>
+                                        <span x-text="archive.location_full"></span>
+                                        <template x-if="archive.slot_code">
+                                            <span class="px-1.5 py-0.5 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 rounded text-[10px]" x-text="archive.slot_code"></span>
+                                        </template>
+                                    </div>
+                                </template>
+                                <!-- Lokasi Belum Ditentukan (Blinking Red Badge) -->
+                                <template x-if="!archive.location_full">
+                                    <button 
+                                        type="button" 
+                                        @click="openAssignModal(archive)"
+                                        class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold bg-rose-500/15 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-500/40 hover:bg-rose-500/25 transition shadow-xs animate-pulse cursor-pointer group select-none"
+                                        title="Lokasi belum ditentukan! Klik untuk menentukan Gudang, Rak, dan Box"
+                                    >
+                                        <span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span>
+                                        <span class="underline decoration-dotted underline-offset-2">Belum Ditentukan</span>
+                                        <i data-lucide="map-pin" class="w-3 h-3 text-rose-500 group-hover:scale-110 transition"></i>
+                                    </button>
+                                </template>
+                            </td>
+                            <td class="py-2 px-3 whitespace-nowrap font-mono">
+                                <span 
+                                    class="px-2 py-0.5 rounded text-[10px] font-bold border"
+                                    :class="{
+                                        'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-400 border-slate-300 dark:border-slate-700': archive.status === 'draft',
+                                        'bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/30': archive.status === 'pending_verification',
+                                        'bg-blue-500/20 text-blue-700 dark:text-blue-300 border-blue-500/30': archive.status === 'approved_booked',
+                                        'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30': archive.status === 'in_warehouse',
+                                        'bg-purple-500/20 text-purple-700 dark:text-purple-300 border-purple-500/30': archive.status === 'borrowed',
+                                        'bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/30': archive.status === 'destroyed'
+                                    }"
+                                    x-text="archive.status_label"
+                                ></span>
+                            </td>
+                            <td class="py-2 px-3 text-right font-mono">
+                                <a :href="archive.show_url" class="px-2 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-400 dark:border-slate-600 rounded text-[11px] font-bold transition inline-flex items-center gap-1">
+                                    <i data-lucide="eye" class="w-3 h-3 text-blue-500"></i> Detail
+                                </a>
+                            </td>
+                        </tr>
+                    </template>
+                    <tr x-show="archivesList.length === 0">
                         <td colspan="7" class="py-6 text-center text-slate-500 font-mono text-xs">Belum ada data arsip tercatat.</td>
                     </tr>
-                    @endforelse
                 </tbody>
             </table>
         </div>
     </div>
+
+    <!-- ========================================================================= -->
+    <!-- MODAL PENENTUAN LOKASI RAK & GUDANG ARSIP (frmAssignArchiveLocation)      -->
+    <!-- ========================================================================= -->
+    <div x-show="assignModalOpen" x-cloak 
+         class="fixed inset-0 z-[100] bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+         style="z-index: 100;">
+        <div @click.away="closeAssignModal()" 
+             class="delphi-window bg-white dark:bg-slate-950 border-2 border-amber-500/70 dark:border-amber-600 rounded-lg max-w-lg w-full shadow-2xl overflow-hidden font-mono flex flex-col my-auto">
+            
+            <!-- Title Bar -->
+            <div class="bg-gradient-to-r from-amber-950 via-slate-900 to-indigo-950 text-white px-3.5 py-2.5 flex items-center justify-between border-b border-amber-500/40 select-none shrink-0 font-bold text-xs">
+                <div class="flex items-center gap-2">
+                    <span class="p-1 bg-amber-500/20 text-amber-400 border border-amber-400/40 rounded">
+                        <i data-lucide="map-pin" class="w-4 h-4"></i>
+                    </span>
+                    <span>frmAssignArchiveLocation : Penentuan Lokasi Rak Gudang</span>
+                </div>
+                <button @click="closeAssignModal()" type="button" class="text-slate-400 hover:text-white text-xs font-bold px-2 py-1 rounded hover:bg-rose-600 transition" title="Tutup (Esc)">✕</button>
+            </div>
+
+            <!-- Body -->
+            <div class="p-4 space-y-3.5 font-sans text-xs">
+                <!-- Info Berkas Box -->
+                <div class="p-3 bg-amber-500/10 dark:bg-amber-950/30 border border-amber-500/40 rounded space-y-1 font-mono">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] text-slate-500 uppercase font-bold">Kardus / Box Arsip:</span>
+                        <span class="px-2 py-0.5 bg-amber-500 text-slate-950 rounded font-black text-[11px]" x-text="selectedArchive?.box_number || 'Penomoran Pending'"></span>
+                    </div>
+                    <div class="text-xs font-bold text-slate-900 dark:text-white truncate" x-text="selectedArchive?.title"></div>
+                    <div class="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-2 pt-0.5">
+                        <span>Dept: <strong class="text-slate-800 dark:text-slate-200" x-text="selectedArchive?.dept_code"></strong></span>
+                        <span>•</span>
+                        <span class="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[10px]" x-text="selectedArchive?.status_label || 'Antrean'"></span>
+                    </div>
+                </div>
+
+                <!-- Form Controls: Gudang & Rak -->
+                <div class="space-y-3 font-mono text-xs">
+                    <!-- 1. Pilih Gudang -->
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                            1. PILIH GUDANG ARSIP:
+                        </label>
+                        <select x-model="selectedWarehouseId" @change="updateLocations()" class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500">
+                            <template x-for="wh in warehouses" :key="wh.id">
+                                <option :value="wh.id" x-text="wh.name"></option>
+                            </template>
+                        </select>
+                    </div>
+
+                    <!-- 2. Pilih Rak Gudang -->
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                            2. PILIH RAK GUDANG & SEKTOR:
+                        </label>
+                        <select x-model="selectedLocationId" @change="onLocationChange()" class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500">
+                            <template x-for="loc in availableLocations" :key="loc.id">
+                                <option :value="loc.id" x-text="`${loc.rack_code} [${loc.room_sector}] - Kapasitas: ${loc.current_box_count}/${loc.box_capacity} Box`"></option>
+                            </template>
+                        </select>
+                    </div>
+
+                    <!-- 3. Pilih Tingkat Sap, Layer, & Slot Box -->
+                    <div class="grid grid-cols-3 gap-2 pt-1">
+                        <!-- Level Sap -->
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                                LEVEL SAP:
+                            </label>
+                            <select x-model="selectedSapLevel" @change="updateAvailableSlots()" class="w-full px-2 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white">
+                                <template x-for="lvl in maxSap" :key="lvl">
+                                    <option :value="lvl" x-text="`Level ${lvl}`"></option>
+                                </template>
+                            </select>
+                        </div>
+
+                        <!-- Layer (Baris Atas / Bawah) -->
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                                BARIS (LAYER):
+                            </label>
+                            <select x-model="selectedLayer" @change="updateAvailableSlots()" class="w-full px-2 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white">
+                                <option value="bottom">Baris Bawah</option>
+                                <option value="top">Baris Atas</option>
+                            </select>
+                        </div>
+
+                        <!-- Slot Box Number -->
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                                NO. SLOT BOX:
+                            </label>
+                            <select x-model="selectedSlotNumber" class="w-full px-2 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white">
+                                <template x-for="slot in availableSlots" :key="slot.number">
+                                    <option :value="slot.number" :disabled="slot.isFilled" x-text="`Slot ${slot.number} ${slot.isFilled ? '(Terisi)' : '(Kosong)'}`"></option>
+                                </template>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Alternative: Quick 2D Layout Open -->
+                <div class="pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                    <span class="text-[11px] text-slate-500 font-mono">Atau gunakan visual interaktif:</span>
+                    <button 
+                        type="button" 
+                        @click="openIn2DLayout()" 
+                        class="px-2.5 py-1 bg-teal-600 hover:bg-teal-500 text-white rounded text-xs font-mono font-bold transition flex items-center gap-1 shadow-xs"
+                    >
+                        <i data-lucide="map" class="w-3.5 h-3.5"></i>
+                        <span>Buka Layout Gudang 2D</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Footer Actions -->
+            <div class="p-3 bg-slate-100 dark:bg-slate-900 border-t border-slate-300 dark:border-slate-800 flex items-center justify-between font-mono text-xs shrink-0">
+                <button type="button" @click="closeAssignModal()" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded">
+                    Batal
+                </button>
+                <button 
+                    @click="submitLocationAssign()" 
+                    type="button" 
+                    :disabled="assignLoading || !selectedLocationId"
+                    class="px-4 py-1.5 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black text-xs rounded border border-amber-600 shadow-md transition flex items-center gap-1.5 disabled:opacity-50"
+                >
+                    <i data-lucide="check" class="w-3.5 h-3.5 text-slate-950" x-show="!assignLoading"></i>
+                    <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin text-slate-950" x-show="assignLoading" x-cloak></i>
+                    <span x-text="assignLoading ? 'Menyimpan...' : 'Simpan & Tempatkan Box'"></span>
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
+
+@push('scripts')
+<script>
+function dashboardOverviewApp() {
+    return {
+        warehouses: @json($warehouses),
+        warehouseLocations: @json($warehouseLocations),
+        archivesList: @json($formattedRecentArchives),
+        stats: {
+            total: {{ (int) $totalArchives }},
+            inWarehouse: {{ (int) $inWarehouseCount }},
+            pendingVerification: {{ (int) $pendingVerificationCount }},
+            borrowed: {{ (int) $borrowedCount }},
+            expiring: {{ (int) $expiringCount }},
+            usedCapacity: {{ (int) $usedCapacity }},
+            totalCapacity: {{ (int) $totalCapacity }},
+        },
+        assignModalOpen: false,
+        assignLoading: false,
+        selectedArchive: null,
+        selectedWarehouseId: '',
+        selectedLocationId: '',
+        selectedSapLevel: 1,
+        selectedLayer: 'bottom',
+        selectedSlotNumber: 1,
+        availableLocations: [],
+        availableSlots: [],
+        maxSap: 5,
+        maxSlotsPerSap: 20,
+
+        init() {
+            if (this.warehouses.length > 0) {
+                this.selectedWarehouseId = this.warehouses[0].id;
+                this.updateLocations();
+            }
+            this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+        },
+
+        openAssignModal(archive) {
+            this.selectedArchive = archive;
+            if (this.warehouses.length > 0 && !this.selectedWarehouseId) {
+                this.selectedWarehouseId = this.warehouses[0].id;
+            }
+            this.updateLocations();
+            this.assignModalOpen = true;
+            this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+        },
+
+        closeAssignModal() {
+            this.assignModalOpen = false;
+            this.selectedArchive = null;
+        },
+
+        updateLocations() {
+            const wh = this.warehouses.find(w => w.id == this.selectedWarehouseId);
+            if (wh && wh.locations && wh.locations.length > 0) {
+                this.availableLocations = wh.locations;
+            } else {
+                this.availableLocations = this.warehouseLocations.filter(l => l.warehouse_id == this.selectedWarehouseId);
+            }
+
+            if (this.availableLocations.length > 0) {
+                this.selectedLocationId = this.availableLocations[0].id;
+                this.onLocationChange();
+            } else {
+                this.selectedLocationId = '';
+                this.maxSap = 5;
+                this.maxSlotsPerSap = 20;
+                this.availableSlots = [];
+            }
+        },
+
+        onLocationChange() {
+            const loc = this.availableLocations.find(l => l.id == this.selectedLocationId);
+            if (loc) {
+                this.maxSap = loc.total_sap || 5;
+                this.maxSlotsPerSap = loc.boxes_per_sap || 20;
+                this.selectedSapLevel = 1;
+                this.selectedLayer = 'bottom';
+                this.selectedSlotNumber = 1;
+                this.updateAvailableSlots();
+            }
+        },
+
+        updateAvailableSlots() {
+            const loc = this.availableLocations.find(l => l.id == this.selectedLocationId);
+            if (loc && loc.slots) {
+                const filledSlots = loc.slots
+                    .filter(s => s.sap_level == this.selectedSapLevel && s.layer == this.selectedLayer && s.status !== 'empty' && s.archive_id)
+                    .map(s => s.slot_number);
+                
+                this.availableSlots = [];
+                for (let i = 1; i <= this.maxSlotsPerSap; i++) {
+                    this.availableSlots.push({
+                        number: i,
+                        isFilled: filledSlots.includes(i)
+                    });
+                }
+            } else {
+                this.availableSlots = [];
+                for (let i = 1; i <= this.maxSlotsPerSap; i++) {
+                    this.availableSlots.push({ number: i, isFilled: false });
+                }
+            }
+        },
+
+        openIn2DLayout() {
+            if (!this.selectedArchive) return;
+            const url = '{{ route("master.warehouses.layout") }}?embed=1&archive_id=' + this.selectedArchive.id;
+            if (window.parent && window.parent !== window) {
+                window.parent.dispatchEvent(new CustomEvent('open-form-window', {
+                    detail: {
+                        id: 'warehouse_layout',
+                        title: 'Layout Gudang 2D',
+                        icon: 'map',
+                        url: url
+                    }
+                }));
+            } else {
+                window.location.href = url;
+            }
+            this.closeAssignModal();
+        },
+
+        async submitLocationAssign() {
+            if (!this.selectedLocationId) {
+                alert('Silakan pilih Rak Gudang terlebih dahulu.');
+                return;
+            }
+            if (!this.selectedArchive) return;
+
+            this.assignLoading = true;
+            try {
+                const res = await fetch(`{{ url('/api/warehouse/locations') }}/${this.selectedLocationId}/slots/assign`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        mode: 'existing_archive',
+                        archive_id: this.selectedArchive.id,
+                        sap_level: parseInt(this.selectedSapLevel),
+                        layer: this.selectedLayer,
+                        slot_number: parseInt(this.selectedSlotNumber)
+                    })
+                });
+
+                const data = await res.json();
+                this.assignLoading = false;
+
+                if (res.ok && data.success) {
+                    // Instantly update reactive archive item in the table!
+                    const target = this.archivesList.find(a => a.id === this.selectedArchive.id);
+                    if (target) {
+                        const wasPending = target.status === 'pending_verification' || !target.location_full;
+                        target.location_full = data.location_full;
+                        target.slot_code = data.slot ? data.slot.slot_code : `S${this.selectedSlotNumber}`;
+                        target.status = 'in_warehouse';
+                        target.status_label = 'Tersimpan di Gudang';
+
+                        // Live update stat counts!
+                        if (wasPending && this.stats.pendingVerification > 0) {
+                            this.stats.pendingVerification--;
+                        }
+                        this.stats.inWarehouse++;
+                        this.stats.usedCapacity++;
+                    }
+
+                    this.closeAssignModal();
+                    this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+
+                    if (window.parent && typeof window.parent.playChime === 'function') {
+                        window.parent.playChime();
+                    }
+
+                    alert(data.message || 'Lokasi rak arsip berhasil ditentukan!');
+                } else {
+                    alert(data.message || 'Gagal menentukan lokasi rak arsip.');
+                }
+            } catch (err) {
+                console.error(err);
+                this.assignLoading = false;
+                alert('Terjadi kesalahan saat menyimpan lokasi rak.');
+            }
+        }
+    }
+}
+</script>
+@endpush
 @endsection
 

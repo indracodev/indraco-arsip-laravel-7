@@ -83,6 +83,8 @@ class ArchiveController extends Controller
         $user = auth()->user();
         $departments = Department::with(['subDepartments' => function ($q) {
             $q->where('is_active', true);
+        }, 'masterArchives' => function ($q) {
+            $q->where('is_active', true)->with('subDepartment')->orderBy('name', 'asc');
         }])->where('is_active', true)->get();
 
         return view('archives.create', compact('user', 'departments'));

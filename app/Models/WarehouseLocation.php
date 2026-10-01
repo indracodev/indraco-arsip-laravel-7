@@ -145,9 +145,13 @@ class WarehouseLocation extends Model
 
     public function getFullLocationAttribute(): string
     {
-        $whName = $this->warehouse ? $this->warehouse->name : 'Gudang';
+        $whRaw = $this->warehouse ? trim($this->warehouse->name) : 'Gudang';
+        $cleanWh = preg_replace('/^(Gudang\s+)+/i', '', $whRaw);
+        $whName = 'Gudang ' . trim($cleanWh);
+
         $sector = $this->room_sector ? "[{$this->room_sector}] " : '';
-        return "{$whName} - {$sector}{$this->rack_code} / {$this->shelf_code}";
+        $shelf = $this->shelf_code ? " / {$this->shelf_code}" : '';
+        return "{$whName} - {$sector}{$this->rack_code}{$shelf}";
     }
 
     /**

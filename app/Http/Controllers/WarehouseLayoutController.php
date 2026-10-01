@@ -590,6 +590,7 @@ class WarehouseLayoutController extends Controller
         return response()->json([
             'success' => true,
             'message' => "Kardus arsip '{$archive->box_number}' berhasil ditempatkan di slot {$slot->slot_code}.",
+            'location_full' => $location->full_location,
             'slot' => [
                 'id' => $slot->id,
                 'slot_code' => $slot->slot_code,

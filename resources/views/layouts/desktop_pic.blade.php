@@ -1,6 +1,21 @@
+@php
+    $configuredFontSize = $globalAppFontSize ?? config('app.font_size', env('APP_FONT_SIZE', '19px'));
+    $lowerFontSize = strtolower($configuredFontSize);
+    if (in_array($lowerFontSize, ['small', 'sm'])) {
+        $fontSizeScale = '16px';
+    } elseif (in_array($lowerFontSize, ['large', 'lg'])) {
+        $fontSizeScale = '21px';
+    } elseif (in_array($lowerFontSize, ['xlarge', 'xl'])) {
+        $fontSizeScale = '23px';
+    } elseif (\Illuminate\Support\Str::contains($configuredFontSize, 'px') || \Illuminate\Support\Str::contains($configuredFontSize, '%') || \Illuminate\Support\Str::contains($configuredFontSize, 'rem')) {
+        $fontSizeScale = $configuredFontSize;
+    } else {
+        $fontSizeScale = '19px';
+    }
+@endphp
 @if(request()->has('embed') || request()->header('X-MDI-Embed') || request()->header('Sec-Fetch-Dest') === 'iframe' || \Illuminate\Support\Str::contains(request()->header('referer', ''), 'embed=1'))
 <!DOCTYPE html>
-<html lang="id" class="h-full select-none">
+<html lang="id" class="h-full select-none" style="font-size: {{ $fontSizeScale }};">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -27,8 +42,52 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
+    <script>
+        (function() {
+            var stored = localStorage.getItem('app_font_size');
+            if (stored) {
+                document.documentElement.style.fontSize = stored;
+            }
+            window.addEventListener('storage', function(e) {
+                if (e.key === 'app_font_size' && e.newValue) {
+                    document.documentElement.style.fontSize = e.newValue;
+                }
+            });
+            window.addEventListener('message', function(e) {
+                if (e.data && e.data.type === 'SET_FONT_SIZE' && e.data.fontSize) {
+                    document.documentElement.style.fontSize = e.data.fontSize;
+                }
+            });
+        })();
+    </script>
+
     <style>
         [x-cloak] { display: none !important; }
+
+        /* Proportional rem scaling for Tailwind utility and arbitrary classes according to root font-size */
+        html {
+            font-size: {{ $fontSizeScale }};
+        }
+        body {
+            font-size: 0.85rem;
+        }
+        .text-\[8px\] { font-size: 0.55rem !important; }
+        .text-\[9px\] { font-size: 0.65rem !important; }
+        .text-\[10px\] { font-size: 0.72rem !important; }
+        .text-\[11px\] { font-size: 0.80rem !important; }
+        .text-\[12px\] { font-size: 0.88rem !important; }
+        .text-\[13px\] { font-size: 0.95rem !important; }
+        .text-\[14px\] { font-size: 1.00rem !important; }
+        .text-\[15px\] { font-size: 1.08rem !important; }
+        .text-\[16px\] { font-size: 1.15rem !important; }
+        .text-xs { font-size: 0.85rem !important; }
+        .text-sm { font-size: 0.95rem !important; }
+        .text-base { font-size: 1.05rem !important; }
+        .text-lg { font-size: 1.20rem !important; }
+        .text-xl { font-size: 1.35rem !important; }
+        .text-2xl { font-size: 1.65rem !important; }
+        .text-3xl { font-size: 2.00rem !important; }
+
         main table { border-collapse: separate; border-spacing: 0; font-size: 0.85rem; }
         main table th { background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%); border-right: 1px solid #cbd5e1; border-bottom: 2px solid #94a3b8; color: #1e293b; padding-top: 7px; padding-bottom: 7px; }
         .dark main table th { background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); border-right: 1px solid #334155; border-bottom: 2px solid #475569; color: #f8fafc; }
@@ -92,6 +151,7 @@
       @mousemove.window="onDrag($event)"
       @mouseup.window="stopDrag()"
       :class="theme === 'dark' ? 'dark' : ''"
+      :style="'font-size: ' + currentFontSize + ';'"
       style="font-size: {{ $fontSizeScale }};"
       class="h-full select-none">
 <head>
@@ -149,6 +209,27 @@
             -ms-overflow-style: none !important;
             scrollbar-width: none !important;
         }
+
+        /* Proportional rem scaling for Tailwind utility and arbitrary classes according to root font-size */
+        body {
+            font-size: 0.85rem;
+        }
+        .text-\[8px\] { font-size: 0.55rem !important; }
+        .text-\[9px\] { font-size: 0.65rem !important; }
+        .text-\[10px\] { font-size: 0.72rem !important; }
+        .text-\[11px\] { font-size: 0.80rem !important; }
+        .text-\[12px\] { font-size: 0.88rem !important; }
+        .text-\[13px\] { font-size: 0.95rem !important; }
+        .text-\[14px\] { font-size: 1.00rem !important; }
+        .text-\[15px\] { font-size: 1.08rem !important; }
+        .text-\[16px\] { font-size: 1.15rem !important; }
+        .text-xs { font-size: 0.85rem !important; }
+        .text-sm { font-size: 0.95rem !important; }
+        .text-base { font-size: 1.05rem !important; }
+        .text-lg { font-size: 1.20rem !important; }
+        .text-xl { font-size: 1.35rem !important; }
+        .text-2xl { font-size: 1.65rem !important; }
+        .text-3xl { font-size: 2.00rem !important; }
         
         /* Enterprise Desktop Custom Component Styles (Delphi/VB DBGrid & TForm Style) */
         main table {
@@ -228,11 +309,11 @@
         <div class="flex items-center gap-4">
             <!-- Brand & Desktop Logo -->
             <a href="{{ route('archives.index') }}" class="flex items-center gap-2 font-black tracking-tight text-white group">
-                <div class="p-1 bg-amber-500 text-slate-950 rounded font-extrabold text-xs shadow">
-                    <i data-lucide="monitor" class="w-4 h-4"></i>
+                <div class="h-6 flex items-center justify-center">
+                    <img :src="appLogoUrl" alt="Logo" class="h-5 max-w-[120px] object-contain" onerror="this.onerror=null; this.src='{{ asset('images/logo-indraco.png') }}'">
                 </div>
                 <span class="text-xs sm:text-sm font-extrabold">
-                    INDRACO DMS <span class="text-amber-400 text-xs font-mono font-bold">[Desktop Workstation]</span>
+                    {{ $globalAppName ?? 'INDRACO DMS' }} <span class="text-amber-400 text-xs font-mono font-bold">[Desktop Workstation]</span>
                 </span>
             </a>
 
@@ -700,6 +781,7 @@
                         :id="'iframe-' + win.id"
                         :src="win.url" 
                         :class="activeDragWin ? 'pointer-events-none' : ''"
+                        @load="applyFontSizeToIframe($event.target)"
                         class="w-full h-full border-0 block"
                     ></iframe>
                 </div>
@@ -831,6 +913,17 @@
                 <span class="px-2 py-0.5 bg-slate-800 text-amber-300 rounded border border-slate-700 text-[10px] font-bold">
                     <span x-text="openWindows.length"></span> Form Terbuka
                 </span>
+
+                <!-- Setting Button (F9) -->
+                <button 
+                    @click="openSettings()" 
+                    type="button" 
+                    class="px-2.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-amber-300 hover:text-white text-[10px] font-bold rounded border border-slate-700 flex items-center gap-1.5 transition shadow active:scale-95 cursor-pointer ml-1"
+                    title="Pengaturan Tampilan Sistem (Ganti Logo & Ukuran Font) - Shortcut F9"
+                >
+                    <i data-lucide="settings" class="w-3.5 h-3.5 text-amber-400"></i>
+                    <span>Setting (F9)</span>
+                </button>
             </div>
 
             <div class="hidden sm:flex items-center gap-3 text-slate-400 border-l border-slate-800 pl-3">
@@ -840,6 +933,269 @@
             </div>
         </div>
     </footer>
+
+    <!-- ========================================================================= -->
+    <!-- MODAL PENGATURAN SISTEM & TAMPILAN (GANTI LOGO & UKURAN FONT GLOBAL)      -->
+    <!-- ========================================================================= -->
+    <div x-show="openSettingsModal" x-cloak 
+         class="fixed inset-0 z-[100] bg-slate-950/85 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+         style="z-index: 100;">
+        <div @click.away="closeSettings()" 
+             class="delphi-window bg-white dark:bg-slate-950 border-2 border-amber-500/70 dark:border-amber-600 rounded-lg max-w-xl w-full shadow-2xl overflow-hidden font-mono flex flex-col my-auto">
+            
+            <!-- Modal Title Bar -->
+            <div class="bg-gradient-to-r from-amber-950 via-slate-900 to-indigo-950 text-white px-3.5 py-2.5 flex items-center justify-between border-b border-amber-500/40 select-none shrink-0 font-bold text-xs">
+                <div class="flex items-center gap-2">
+                    <span class="p-1 bg-amber-500/20 text-amber-400 border border-amber-400/40 rounded">
+                        <i data-lucide="sliders" class="w-4 h-4"></i>
+                    </span>
+                    <span>frmSystemSettings : Pengaturan Sistem & Tampilan</span>
+                </div>
+                <button @click="closeSettings()" type="button" class="text-slate-400 hover:text-white text-xs font-bold px-2 py-1 rounded hover:bg-rose-600 transition" title="Tutup (Esc)">✕</button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-4 space-y-4 font-sans text-xs overflow-y-auto max-h-[80vh]">
+                
+                @if(auth()->check() && auth()->user()->isSuperAdmin())
+                <!-- SECTION 1: GANTI LOGO SISTEM (SuperAdmin Only) -->
+                <fieldset class="border border-slate-300 dark:border-slate-800 p-3.5 rounded bg-slate-50 dark:bg-slate-900/50 space-y-3 shadow-xs">
+                    <legend class="px-2 font-mono text-[11px] font-bold text-amber-800 dark:text-amber-400 bg-amber-100 dark:bg-slate-800 border border-amber-400 dark:border-amber-700 rounded shadow-sm flex items-center gap-1.5">
+                        <i data-lucide="image" class="w-3.5 h-3.5 text-amber-600"></i>
+                        1. Kustomisasi Logo Aplikasi (Header & Laporan)
+                    </legend>
+
+                    <div class="flex flex-col sm:flex-row items-center gap-4">
+                        <!-- Current / Preview Logo Box -->
+                        <div class="w-36 h-20 p-2 bg-white dark:bg-slate-950 border-2 border-dashed border-amber-500/50 rounded flex flex-col items-center justify-center text-center shadow-xs shrink-0">
+                            <img :src="newLogoPreview || appLogoUrl" alt="Logo Preview" class="max-h-12 max-w-full object-contain">
+                            <span class="text-[9px] font-mono text-slate-400 mt-1" x-text="newLogoPreview ? 'Preview Baru' : 'Logo Aktif'"></span>
+                        </div>
+
+                        <!-- Upload Controls -->
+                        <div class="flex-1 space-y-2 font-mono text-xs w-full">
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                                    Pilih File Gambar Logo Baru:
+                                </label>
+                                <input 
+                                    type="file" 
+                                    @change="onLogoSelected($event)" 
+                                    accept=".png,.jpg,.jpeg,.svg,.webp"
+                                    class="w-full px-2 py-1 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-xs file:mr-2 file:py-0.5 file:px-2 file:rounded file:border-0 file:text-[11px] file:font-bold file:bg-amber-500/20 file:text-amber-700 dark:file:text-amber-400"
+                                >
+                                <span class="text-[10px] text-slate-500 block mt-0.5">Format: PNG, JPG, SVG, WebP (Max. 2MB). Rekomendasi background transparan.</span>
+                            </div>
+
+                            <div class="flex items-center gap-2 pt-1">
+                                <button 
+                                    @click="resetLogo()" 
+                                    type="button" 
+                                    class="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded text-[11px] font-bold border border-slate-300 dark:border-slate-700 transition flex items-center gap-1"
+                                >
+                                    <i data-lucide="rotate-ccw" class="w-3 h-3"></i>
+                                    <span>Reset Logo Default</span>
+                                </button>
+                                <span x-show="newLogoFile" class="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1" x-cloak>
+                                    <i data-lucide="check" class="w-3.5 h-3.5"></i> Siap Diupload
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </fieldset>
+                @else
+                <div class="p-2.5 bg-amber-500/10 border border-amber-500/30 rounded text-amber-800 dark:text-amber-300 flex items-center gap-2 text-xs font-mono">
+                    <i data-lucide="info" class="w-4 h-4 text-amber-500 shrink-0"></i>
+                    <span>Kustomisasi logo aplikasi dikelola oleh Administrator Sistem. Anda dapat menyesuaikan ukuran font tampilan di bawah ini.</span>
+                </div>
+                @endif
+
+                <!-- SECTION 2: GANTI UKURAN FONT GLOBAL -->
+                <fieldset class="border border-indigo-500/40 p-3.5 rounded bg-indigo-50/40 dark:bg-indigo-950/20 space-y-3 shadow-xs font-mono">
+                    <legend class="px-2 font-mono text-[11px] font-bold text-indigo-800 dark:text-indigo-400 bg-indigo-100 dark:bg-slate-800 border border-indigo-400 dark:border-indigo-700 rounded shadow-sm flex items-center gap-1.5">
+                        <i data-lucide="type" class="w-3.5 h-3.5 text-indigo-600"></i>
+                        Ukuran Font Tampilan Antarmuka (Font Scaling)
+                    </legend>
+
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="text-slate-700 dark:text-slate-300 font-bold">Ukuran Font Saat Ini:</span>
+                            <span class="px-2.5 py-0.5 bg-indigo-600 text-white rounded font-bold text-xs" x-text="tempFontSize"></span>
+                        </div>
+
+                        <!-- Presets Buttons -->
+                        <div>
+                            <span class="block text-[10px] text-slate-500 font-bold uppercase mb-1.5">Pilihan Skala Cepat (Preset):</span>
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                                <button 
+                                    @click="applyFontSizeLive('16px')" 
+                                    type="button" 
+                                    class="px-2 py-1.5 rounded border text-xs font-bold transition flex flex-col items-center justify-center text-center"
+                                    :class="tempFontSize === '16px' ? 'bg-indigo-600 text-white border-indigo-700 shadow-sm' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-indigo-50'"
+                                >
+                                    <span>Kecil (16px)</span>
+                                    <span class="text-[9px] opacity-75">Compact / 85%</span>
+                                </button>
+                                <button 
+                                    @click="applyFontSizeLive('19px')" 
+                                    type="button" 
+                                    class="px-2 py-1.5 rounded border text-xs font-bold transition flex flex-col items-center justify-center text-center"
+                                    :class="tempFontSize === '19px' ? 'bg-indigo-600 text-white border-indigo-700 shadow-sm' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-indigo-50'"
+                                >
+                                    <span>Standar (19px)</span>
+                                    <span class="text-[9px] opacity-75">Default / 100%</span>
+                                </button>
+                                <button 
+                                    @click="applyFontSizeLive('21px')" 
+                                    type="button" 
+                                    class="px-2 py-1.5 rounded border text-xs font-bold transition flex flex-col items-center justify-center text-center"
+                                    :class="tempFontSize === '21px' ? 'bg-indigo-600 text-white border-indigo-700 shadow-sm' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-indigo-50'"
+                                >
+                                    <span>Besar (21px)</span>
+                                    <span class="text-[9px] opacity-75">Large / 110%</span>
+                                </button>
+                                <button 
+                                    @click="applyFontSizeLive('23px')" 
+                                    type="button" 
+                                    class="px-2 py-1.5 rounded border text-xs font-bold transition flex flex-col items-center justify-center text-center"
+                                    :class="tempFontSize === '23px' ? 'bg-indigo-600 text-white border-indigo-700 shadow-sm' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-indigo-50'"
+                                >
+                                    <span>X-Large (23px)</span>
+                                    <span class="text-[9px] opacity-75">Ekstra / 120%</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Live Slider -->
+                        <div class="space-y-1 pt-1">
+                            <div class="flex justify-between text-[10px] text-slate-500 font-bold">
+                                <span>14px (Sangat Kecil)</span>
+                                <span>Slider Presisi (14px - 26px)</span>
+                                <span>26px (Ekstra Besar)</span>
+                            </div>
+                            <input 
+                                type="range" 
+                                min="14" 
+                                max="26" 
+                                step="1" 
+                                :value="parseInt(tempFontSize) || 19" 
+                                @input="applyFontSizeLive($event.target.value + 'px')"
+                                class="w-full accent-indigo-600 cursor-pointer h-2 bg-slate-300 dark:bg-slate-700 rounded-lg appearance-none"
+                            >
+                        </div>
+
+                        <!-- Live Preview Sample Box -->
+                        <div class="p-2.5 bg-white dark:bg-slate-950 rounded border border-slate-300 dark:border-slate-700 space-y-1.5 shadow-inner">
+                            <div class="text-[10px] text-slate-500 font-bold uppercase">Live Preview Teks & Komponen Antarmuka:</div>
+                            <div class="flex items-center gap-2">
+                                <span class="font-bold text-slate-900 dark:text-white">DMS PT INDRACO Desktop Edition</span>
+                                <span class="px-2 py-0.5 bg-amber-500/20 text-amber-700 dark:text-amber-300 rounded font-bold text-xs border border-amber-500/30">TB 30g</span>
+                                <button type="button" class="px-2 py-0.5 bg-indigo-600 text-white rounded font-bold text-xs">Tombol Uji</button>
+                            </div>
+                            <p class="text-slate-600 dark:text-slate-400 font-sans leading-relaxed">
+                                Skala ukuran font ini secara realtime mempengaruhi seluruh tabel data DBGrid, popup form, dialog, label box, dan tata letak jendela.
+                            </p>
+                        </div>
+                    </div>
+                </fieldset>
+
+                <!-- SECTION 3: PEMELIHARAAN & RESET DATA (MAINTENANCE) -->
+                @if(auth()->check() && (auth()->user()->isSuperAdmin() || auth()->user()->isPicGudang()))
+                <fieldset class="border border-rose-500/40 p-3.5 rounded bg-rose-50/30 dark:bg-rose-950/20 space-y-3 shadow-xs font-mono">
+                    <legend class="px-2 font-mono text-[11px] font-bold text-rose-800 dark:text-rose-400 bg-rose-100 dark:bg-slate-800 border border-rose-400 dark:border-rose-700 rounded shadow-sm flex items-center gap-1.5">
+                        <i data-lucide="shield-alert" class="w-3.5 h-3.5 text-rose-600"></i>
+                        3. Pemeliharaan & Reset Database (Super Admin & PIC Gudang)
+                    </legend>
+
+                    <div class="space-y-2.5 text-xs">
+                        <!-- Action 1: Clear Log History -->
+                        <div class="p-2.5 bg-white dark:bg-slate-950 rounded border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs">
+                            <div class="space-y-0.5">
+                                <div class="flex items-center gap-1.5 font-bold text-slate-800 dark:text-slate-200">
+                                    <i data-lucide="history" class="w-3.5 h-3.5 text-rose-500"></i>
+                                    <span>Kosongkan Log History</span>
+                                </div>
+                                <p class="text-[11px] text-slate-500 dark:text-slate-400 font-sans">
+                                    Menghapus seluruh rekaman audit trail, riwayat aktivitas pengguna, dan log histori gudang.
+                                </p>
+                            </div>
+                            <button 
+                                @click="clearLogsAction()" 
+                                type="button" 
+                                :disabled="maintenanceLoading"
+                                class="shrink-0 px-3 py-1.5 bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white font-bold text-xs rounded border border-rose-700 shadow-xs transition flex items-center justify-center gap-1 disabled:opacity-50"
+                            >
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                <span>Kosongkan Log</span>
+                            </button>
+                        </div>
+
+                        <!-- Action 2: Clear Box Allocations -->
+                        <div class="p-2.5 bg-white dark:bg-slate-950 rounded border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs">
+                            <div class="space-y-0.5">
+                                <div class="flex items-center gap-1.5 font-bold text-slate-800 dark:text-slate-200">
+                                    <i data-lucide="package-x" class="w-3.5 h-3.5 text-amber-500"></i>
+                                    <span>Kosongkan Box di Rak Gudang</span>
+                                </div>
+                                <p class="text-[11px] text-slate-500 dark:text-slate-400 font-sans">
+                                    Mereset semua penempatan box di slot rak gudang menjadi kosong (data berkas arsip tetap aman tersimpan).
+                                </p>
+                            </div>
+                            <button 
+                                @click="clearBoxAllocationsAction()" 
+                                type="button" 
+                                :disabled="maintenanceLoading"
+                                class="shrink-0 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white font-bold text-xs rounded border border-amber-700 shadow-xs transition flex items-center justify-center gap-1 disabled:opacity-50"
+                            >
+                                <i data-lucide="archive-restore" class="w-3.5 h-3.5"></i>
+                                <span>Kosongkan Box Rak</span>
+                            </button>
+                        </div>
+
+                        <!-- Action 3: Clear All Archive Submissions -->
+                        <div class="p-2.5 bg-white dark:bg-slate-950 rounded border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs">
+                            <div class="space-y-0.5">
+                                <div class="flex items-center gap-1.5 font-bold text-slate-800 dark:text-slate-200">
+                                    <i data-lucide="folder-x" class="w-3.5 h-3.5 text-red-600"></i>
+                                    <span>Kosongkan Data Pengajuan Box Arsip</span>
+                                </div>
+                                <p class="text-[11px] text-slate-500 dark:text-slate-400 font-sans">
+                                    Menghapus seluruh pengajuan box berkas arsip, butir item, histori peminjaman & pemusnahan secara permanen.
+                                </p>
+                            </div>
+                            <button 
+                                @click="clearArchivesAction()" 
+                                type="button" 
+                                :disabled="maintenanceLoading"
+                                class="shrink-0 px-3 py-1.5 bg-red-700 hover:bg-red-800 active:bg-red-900 text-white font-bold text-xs rounded border border-red-800 shadow-xs transition flex items-center justify-center gap-1 disabled:opacity-50"
+                            >
+                                <i data-lucide="trash" class="w-3.5 h-3.5"></i>
+                                <span>Kosongkan Semua Arsip</span>
+                            </button>
+                        </div>
+                    </div>
+                </fieldset>
+                @endif
+            </div>
+
+            <!-- Modal Footer Actions -->
+            <div class="p-3 bg-slate-100 dark:bg-slate-900 border-t border-slate-300 dark:border-slate-800 flex items-center justify-between font-mono text-xs shrink-0">
+                <button type="button" @click="closeSettings()" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded">
+                    Batal
+                </button>
+                <button 
+                    @click="saveSettings()" 
+                    type="button" 
+                    :disabled="settingsSaving"
+                    class="px-5 py-2 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black text-xs rounded border border-amber-600 shadow-md transition flex items-center gap-1.5"
+                >
+                    <i data-lucide="save" class="w-3.5 h-3.5 text-slate-950" x-show="!settingsSaving"></i>
+                    <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin" x-show="settingsSaving" x-cloak></i>
+                    <span x-text="settingsSaving ? 'Menyimpan...' : 'Simpan Pengaturan Permanen'"></span>
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- Lucide Icons & Desktop PIC Hotkeys / Window Management Engine Script -->
     <script>
@@ -853,6 +1209,16 @@
                 isFullscreen: false,
                 cpuUsage: 12,
                 memUsage: 38,
+
+                // Settings & Appearance State
+                openSettingsModal: false,
+                appLogoUrl: @json($globalAppLogo ?? asset('images/logo-indraco.png')),
+                currentFontSize: localStorage.getItem('app_font_size') || '{{ $globalAppFontSize ?? "19px" }}',
+                tempFontSize: localStorage.getItem('app_font_size') || '{{ $globalAppFontSize ?? "19px" }}',
+                newLogoFile: null,
+                newLogoPreview: null,
+                settingsSaving: false,
+                maintenanceLoading: false,
 
                 // Real-time Notification & Audio State
                 soundEnabled: localStorage.getItem('sound_enabled') !== 'false',
@@ -907,9 +1273,28 @@
                     @elseif(request()->routeIs('archives.*')) initialId = 'archives';
                     @endif
 
+                    // Apply stored font size on startup
+                    if (this.currentFontSize) {
+                        this.applyFontSizeLive(this.currentFontSize);
+                    }
+
                     this.openFormWindow(initialId);
                     this.startSystemMonitor();
                     this.initRealtimePoller();
+
+                    window.addEventListener('open-form-window', (e) => {
+                        if (e.detail) {
+                            this.openFormWindowWithCustom(e.detail.id, e.detail.title, e.detail.icon, e.detail.url);
+                        }
+                    });
+
+                    // F9 Shortcut to open Settings
+                    window.addEventListener('keydown', (e) => {
+                        if (e.key === 'F9') {
+                            e.preventDefault();
+                            this.openSettings();
+                        }
+                    });
 
                     document.addEventListener('fullscreenchange', () => {
                         this.isFullscreen = !!document.fullscreenElement;
@@ -1308,6 +1693,200 @@
                         style += ` transform: translate3d(${win.posX}px, ${win.posY}px, 0px);`;
                     }
                     return style;
+                },
+
+                openSettings() {
+                    this.tempFontSize = this.currentFontSize;
+                    this.newLogoFile = null;
+                    this.newLogoPreview = null;
+                    this.openSettingsModal = true;
+                    this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+                },
+
+                closeSettings() {
+                    this.applyFontSizeLive(this.currentFontSize);
+                    this.openSettingsModal = false;
+                },
+
+                onLogoSelected(event) {
+                    const file = event.target.files[0];
+                    if (file) {
+                        this.newLogoFile = file;
+                        this.newLogoPreview = URL.createObjectURL(file);
+                    }
+                },
+
+                applyFontSizeLive(size) {
+                    this.tempFontSize = size;
+                    document.documentElement.style.fontSize = size;
+                    document.querySelectorAll('iframe').forEach(ifr => {
+                        try {
+                            if (ifr.contentDocument && ifr.contentDocument.documentElement) {
+                                ifr.contentDocument.documentElement.style.fontSize = size;
+                            }
+                            if (ifr.contentWindow) {
+                                ifr.contentWindow.postMessage({ type: 'SET_FONT_SIZE', fontSize: size }, '*');
+                            }
+                        } catch(e) {}
+                    });
+                },
+
+                applyFontSizeToIframe(ifr) {
+                    try {
+                        const size = this.tempFontSize || this.currentFontSize || '19px';
+                        if (ifr && ifr.contentDocument && ifr.contentDocument.documentElement) {
+                            ifr.contentDocument.documentElement.style.fontSize = size;
+                        }
+                        if (ifr && ifr.contentWindow) {
+                            ifr.contentWindow.postMessage({ type: 'SET_FONT_SIZE', fontSize: size }, '*');
+                        }
+                    } catch(e) {}
+                },
+
+                saveSettings() {
+                    this.settingsSaving = true;
+                    const formData = new FormData();
+                    if (this.newLogoFile) {
+                        formData.append('logo', this.newLogoFile);
+                    }
+                    formData.append('font_size', this.tempFontSize);
+
+                    fetch('{{ route("master.settings.update") }}', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json'
+                        },
+                        body: formData
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        this.settingsSaving = false;
+                        if (data.settings && data.settings.app_logo) {
+                            this.appLogoUrl = data.settings.app_logo;
+                        }
+                        this.currentFontSize = this.tempFontSize;
+                        localStorage.setItem('app_font_size', this.currentFontSize);
+                        this.applyFontSizeLive(this.currentFontSize);
+                        this.openSettingsModal = false;
+                        alert(data.message || 'Pengaturan tampilan berhasil disimpan.');
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        this.settingsSaving = false;
+                        alert('Gagal menyimpan pengaturan.');
+                    });
+                },
+
+                resetLogo() {
+                    if (!confirm('Kembalikan logo sistem ke default PT Indraco?')) return;
+                    this.settingsSaving = true;
+                    fetch('{{ route("master.settings.reset_logo") }}', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json'
+                        }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        this.settingsSaving = false;
+                        this.appLogoUrl = data.app_logo || '{{ asset("images/logo-indraco.png") }}';
+                        this.newLogoFile = null;
+                        this.newLogoPreview = null;
+                        alert(data.message || 'Logo berhasil dikembalikan ke default.');
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        this.settingsSaving = false;
+                        alert('Gagal mereset logo.');
+                    });
+                },
+
+                clearLogsAction() {
+                    if (!confirm('PERINGATAN: Apakah Anda yakin ingin MENGOSONGKAN SELURUH LOG HISTORY (aktivitas sistem dan riwayat gudang)? Tindakan ini tidak dapat dibatalkan.')) return;
+                    this.maintenanceLoading = true;
+                    fetch('{{ route("master.settings.clear_logs") }}', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json'
+                        }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        this.maintenanceLoading = false;
+                        alert(data.message || 'Log history berhasil dikosongkan.');
+                        this.refreshActiveIframe();
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        this.maintenanceLoading = false;
+                        alert('Gagal mengosongkan log history.');
+                    });
+                },
+
+                clearBoxAllocationsAction() {
+                    if (!confirm('PERINGATAN: Apakah Anda yakin ingin MENGOSONGKAN SEMUA PENEMPATAN BOX DI RAK GUDANG? Seluruh slot rak gudang akan direset menjadi kosong.')) return;
+                    this.maintenanceLoading = true;
+                    fetch('{{ route("master.settings.clear_box_allocations") }}', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json'
+                        }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        this.maintenanceLoading = false;
+                        alert(data.message || 'Semua box di rak gudang berhasil dikosongkan.');
+                        this.refreshActiveIframe();
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        this.maintenanceLoading = false;
+                        alert('Gagal mengosongkan penempatan box.');
+                    });
+                },
+
+                clearArchivesAction() {
+                    if (!confirm('PERINGATAN KRUSIAL: Apakah Anda yakin ingin MENGOSONGKAN SELURUH DATA PENGAJUAN BOX ARSIP? Seluruh arsip, butir dokumen, dan riwayat transaksi peminjaman/pemusnahan akan DIHAPUS PERMANEN!')) return;
+                    const confirmText = prompt('Ketik "RESET" dengan huruf besar untuk mengonfirmasi penghapusan seluruh data pengajuan arsip:');
+                    if (confirmText !== 'RESET') {
+                        alert('Penghapusan dibatalkan karena konfirmasi teks tidak sesuai.');
+                        return;
+                    }
+                    this.maintenanceLoading = true;
+                    fetch('{{ route("master.settings.clear_archives") }}', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json'
+                        }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        this.maintenanceLoading = false;
+                        alert(data.message || 'Seluruh data pengajuan box arsip berhasil dikosongkan.');
+                        this.refreshActiveIframe();
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        this.maintenanceLoading = false;
+                        alert('Gagal mengosongkan data pengajuan arsip.');
+                    });
+                },
+
+                refreshActiveIframe() {
+                    try {
+                        const activeWin = this.openWindows.find(w => w.id === this.activeWinId);
+                        if (activeWin) {
+                            const ifr = document.getElementById('iframe-' + activeWin.id);
+                            if (ifr && ifr.contentWindow) {
+                                ifr.contentWindow.location.reload();
+                            }
+                        }
+                    } catch(e) {}
                 }
             }
         }

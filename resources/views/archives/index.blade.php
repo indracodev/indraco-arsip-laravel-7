@@ -245,12 +245,21 @@
 
                         <td class="py-2.5 px-3 font-mono text-[11px] border-r border-slate-200 dark:border-slate-800 whitespace-nowrap">
                             @if($archive->location)
-                                <div class="flex items-center gap-1 text-emerald-700 dark:text-emerald-400 font-bold">
+                                <div class="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 font-bold">
                                     <i data-lucide="map-pin" class="w-3.5 h-3.5 text-emerald-500"></i>
                                     <span>{{ $archive->location->full_location }}</span>
+                                    @if($archive->rackSlot)
+                                        <span class="px-1.5 py-0.2 bg-emerald-500/15 border border-emerald-500/30 rounded text-[10px]">
+                                            {{ $archive->rackSlot->slot_code ?? ('S' . $archive->rackSlot->slot_number) }}
+                                        </span>
+                                    @endif
                                 </div>
                             @else
-                                <span class="text-slate-400 dark:text-slate-500 italic font-normal">Belum Check-in</span>
+                                <a href="{{ route('master.warehouses.layout', ['archive_id' => $archive->id, 'embed' => 1]) }}" class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/40 animate-pulse hover:bg-rose-500/25 transition shadow-xs" title="Lokasi belum ditentukan! Klik untuk buka Layout Gudang 2D">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span>
+                                    <span class="underline decoration-dotted underline-offset-2">Belum Ditentukan</span>
+                                    <i data-lucide="map-pin" class="w-3 h-3 text-rose-500"></i>
+                                </a>
                             @endif
                         </td>
 

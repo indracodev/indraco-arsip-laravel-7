@@ -82,7 +82,7 @@
                     <label for="sub_department_id" class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
                         SUB-DEPARTEMEN <span class="text-slate-400 font-normal">(Opsional)</span>
                     </label>
-                    <select name="sub_department_id" id="sub_department_id" x-model="selectedSubDeptId" class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition">
+                    <select name="sub_department_id" id="sub_department_id" x-model="selectedSubDeptId" @change="onSubDeptChange()" class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition">
                         <option value="">-- Pilih Sub-Departemen (Induk) --</option>
                         <template x-for="sub in subDepartments" :key="sub.id">
                             <option :value="sub.id" x-text="`${sub.code} - ${sub.name}`" :selected="sub.id == selectedSubDeptId"></option>
@@ -99,30 +99,31 @@
                 2. Kategori & Identitas Utama Kardus
             </legend>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 items-start">
+                <!-- Kategori Dokumen (Input Text Opsional) -->
                 <div>
-                    <label for="document_type" class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                        KATEGORI DOKUMEN <span class="text-rose-500">*</span>
+                    <label for="document_type" class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1 leading-normal">
+                        KATEGORI DOKUMEN <span class="text-slate-400 font-normal">(Opsional)</span>
                     </label>
-                    <select name="document_type" id="document_type" required class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition">
-                        <option value="FAKTUR_PAJAK" {{ old('document_type') == 'FAKTUR_PAJAK' ? 'selected' : '' }}>FAKTUR PAJAK & KEUANGAN</option>
-                        <option value="KONTRAK_KERJA" {{ old('document_type') == 'KONTRAK_KERJA' ? 'selected' : '' }}>KONTRAK KERJA / SDM</option>
-                        <option value="MOU_SPONSOR" {{ old('document_type') == 'MOU_SPONSOR' ? 'selected' : '' }}>MOU / KERJASAMA / SALES</option>
-                        <option value="SURAT_JALAN" {{ old('document_type') == 'SURAT_JALAN' ? 'selected' : '' }}>SURAT JALAN & LOGISTIK</option>
-                        <option value="PRODUKSI_QC" {{ old('document_type') == 'PRODUKSI_QC' ? 'selected' : '' }}>PRODUKSI & QUALITY CONTROL</option>
-                        <option value="MAINTENANCE" {{ old('document_type') == 'MAINTENANCE' ? 'selected' : '' }}>MAINTENANCE & FASILITAS</option>
-                        <option value="UMUM" {{ old('document_type') == 'UMUM' ? 'selected' : '' }}>UMUM / LAIN-LAIN</option>
-                    </select>
+                    <input 
+                        type="text" 
+                        name="document_type" 
+                        id="document_type" 
+                        value="{{ old('document_type') }}" 
+                        placeholder="Contoh: Pajak, Keuangan, SDM, Logistik..." 
+                        class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 transition"
+                    >
                 </div>
 
+                <!-- Judul Utama / Label Kardus (Aligned with Kategori Dokumen) -->
                 <div class="md:col-span-2">
-                    <div class="flex items-center justify-between mb-1 font-mono">
-                        <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300">
-                            JUDUL UTAMA / LABEL KARDUS <span class="text-slate-400 font-normal">(Opsional - otomatis mengambil butir ke-1)</span>
+                    <div class="flex items-center justify-between mb-1 font-mono leading-normal">
+                        <label for="title" class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 truncate">
+                            JUDUL UTAMA / LABEL KARDUS <span class="text-slate-400 font-normal">(Opsional)</span>
                         </label>
-                        <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
+                        <label class="inline-flex items-center gap-1.5 cursor-pointer select-none shrink-0 ml-2">
                             <input type="checkbox" name="is_custom_doc_name" value="1" x-model="isCustomDocName" class="rounded border-slate-300 text-amber-500 focus:ring-amber-400 h-3.5 w-3.5">
-                            <span class="text-[11px] font-bold text-amber-600 dark:text-amber-400">Custom Nama Dokumen</span>
+                            <span class="text-[11px] font-bold text-amber-600 dark:text-amber-400 whitespace-nowrap">Custom Nama Dokumen</span>
                         </label>
                     </div>
 
@@ -134,7 +135,7 @@
                             id="title" 
                             x-model="title"
                             placeholder="Contoh: Laporan Maintenance & Faktur Operasional" 
-                            class="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 transition"
+                            class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 transition"
                         >
                     </div>
 
@@ -146,7 +147,7 @@
                             id="custom_doc_name" 
                             x-model="customDocName"
                             placeholder="Ketik judul khusus kardus jika diperlukan..." 
-                            class="w-full px-3 py-1.5 bg-amber-500/10 dark:bg-amber-950/30 border-2 border-amber-500 rounded text-xs font-mono font-bold text-amber-950 dark:text-amber-200 placeholder-amber-600/50 focus:outline-none focus:border-amber-600 transition"
+                            class="w-full px-2.5 py-1.5 bg-amber-500/10 dark:bg-amber-950/30 border border-amber-500 rounded text-xs font-mono font-bold text-amber-950 dark:text-amber-200 placeholder-amber-600/50 focus:outline-none focus:border-amber-600 transition"
                         >
                     </div>
                 </div>
@@ -234,14 +235,52 @@
                             <tr class="hover:bg-emerald-500/5 transition">
                                 <td class="py-2 px-2.5 text-center font-mono font-bold text-slate-600 dark:text-slate-400" x-text="index + 1"></td>
                                 <td class="py-2 px-3">
-                                    <input 
-                                        type="text" 
-                                        :name="'items[' + index + '][document_name]'" 
-                                        x-model="item.document_name" 
-                                        required 
-                                        :placeholder="'Contoh: ' + (index === 0 ? 'maintenance kendaraan' : (index === 1 ? 'form verifikasi faktur' : 'perawatan ac'))"
-                                        class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500"
-                                    >
+                                    <!-- Dropdown from Master Archives or Custom Input -->
+                                    <div class="space-y-1">
+                                        <template x-if="!item.is_custom && masterArchives.length > 0">
+                                            <div class="flex items-center gap-1">
+                                                <select 
+                                                    x-model="item.document_name" 
+                                                    @change="if (item.document_name === '__CUSTOM__') { item.is_custom = true; item.document_name = ''; }"
+                                                    class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
+                                                >
+                                                    <option value="">-- Pilih dari Master Berkas Arsip --</option>
+                                                    <template x-for="m in masterArchives" :key="m.id">
+                                                        <option 
+                                                            :value="m.name" 
+                                                            x-text="m.name + (m.code ? ' [' + m.code + ']' : '') + (!selectedSubDeptId && m.sub_department ? ' (' + (m.sub_department.code || m.sub_department.name) + ')' : '')" 
+                                                            :selected="item.document_name === m.name"
+                                                        ></option>
+                                                    </template>
+                                                    <option value="__CUSTOM__">✍️ + Tulis Nama Dokumen Kustom / Lainnya</option>
+                                                </select>
+                                                <input type="hidden" :name="'items[' + index + '][document_name]'" :value="item.document_name">
+                                            </div>
+                                        </template>
+
+                                        <!-- Custom Text Input -->
+                                        <template x-if="item.is_custom || masterArchives.length === 0">
+                                            <div class="flex items-center gap-1">
+                                                <input 
+                                                    type="text" 
+                                                    :name="'items[' + index + '][document_name]'" 
+                                                    x-model="item.document_name" 
+                                                    required 
+                                                    placeholder="Ketik nama dokumen / berkas..."
+                                                    class="w-full px-2.5 py-1.5 bg-amber-500/10 dark:bg-amber-950/20 border-2 border-amber-500/60 rounded text-xs font-mono font-bold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500"
+                                                >
+                                                <button 
+                                                    x-show="masterArchives.length > 0" 
+                                                    @click="item.is_custom = false; item.document_name = (masterArchives[0] ? masterArchives[0].name : '')" 
+                                                    type="button" 
+                                                    class="px-2 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded text-[10px] font-mono font-bold shrink-0" 
+                                                    title="Kembali ke pilihan Master Berkas"
+                                                >
+                                                    ↺ Master
+                                                </button>
+                                            </div>
+                                        </template>
+                                    </div>
                                 </td>
                                 <td class="py-2 px-2.5">
                                     <div class="relative flex items-center">
@@ -370,6 +409,7 @@ function archiveCreateApp() {
         selectedDeptId: '{{ old('department_id', auth()->user()->isPicDept() ? auth()->user()->department_id : ($departments->first()->id ?? '')) }}',
         selectedSubDeptId: '{{ old('sub_department_id', '') }}',
         subDepartments: [],
+        masterArchives: [],
         isCustomDocName: {{ old('is_custom_doc_name') ? 'true' : 'false' }},
         customDocName: @json(old('custom_doc_name', '')),
         title: @json(old('title', '')),
@@ -377,20 +417,23 @@ function archiveCreateApp() {
 
         // Dynamic items repeater (1 Box = Banyak Berkas Arsip)
         items: [
-            { id: 1, document_name: 'maintenance kendaraan', period_start: '{{ date('Y-06') }}', period_end: '{{ date('Y-08') }}', notes: '' },
-            { id: 2, document_name: 'form verifikasi faktur', period_start: '{{ date('Y-07') }}', period_end: '{{ date('Y-07') }}', notes: '' },
-            { id: 3, document_name: 'perawatan ac januari', period_start: '{{ date('Y-01') }}', period_end: '{{ date('Y-12') }}', notes: '' }
+            { id: 1, document_name: '', is_custom: false, period_start: '{{ date('Y-06') }}', period_end: '{{ date('Y-08') }}', notes: '' },
+            { id: 2, document_name: '', is_custom: false, period_start: '{{ date('Y-07') }}', period_end: '{{ date('Y-07') }}', notes: '' },
+            { id: 3, document_name: '', is_custom: false, period_start: '{{ date('Y-01') }}', period_end: '{{ date('Y-12') }}', notes: '' }
         ],
 
         init() {
             this.updateSubDepartments();
+            this.updateMasterArchives();
             this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
         },
 
         addItem() {
+            const defaultName = this.masterArchives.length > 0 ? this.masterArchives[0].name : '';
             this.items.push({
                 id: Date.now() + Math.random(),
-                document_name: '',
+                document_name: defaultName,
+                is_custom: false,
                 period_start: '{{ date('Y-m') }}',
                 period_end: '{{ date('Y-m') }}',
                 notes: ''
@@ -412,6 +455,58 @@ function archiveCreateApp() {
                 this.subDepartments = dept.sub_departments;
             } else {
                 this.subDepartments = [];
+            }
+            this.selectedSubDeptId = '';
+            this.updateMasterArchives();
+        },
+
+        onSubDeptChange() {
+            this.updateMasterArchives();
+        },
+
+        updateMasterArchives() {
+            const dept = this.departments.find(d => d.id == this.selectedDeptId);
+            let allArchives = [];
+            if (dept && dept.master_archives && dept.master_archives.length > 0) {
+                allArchives = dept.master_archives;
+                this.filterAndSetArchives(allArchives);
+            } else if (this.selectedDeptId) {
+                // Fallback fetch if not present in initial JSON
+                fetch('{{ url('/api/departments') }}/' + this.selectedDeptId + '/master-archives')
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.master_archives) {
+                            if (dept) dept.master_archives = data.master_archives;
+                            this.filterAndSetArchives(data.master_archives);
+                        } else {
+                            this.masterArchives = [];
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Error fetching master archives:', err);
+                        this.masterArchives = [];
+                    });
+            } else {
+                this.masterArchives = [];
+            }
+        },
+
+        filterAndSetArchives(allArchives) {
+            if (this.selectedSubDeptId) {
+                this.masterArchives = allArchives.filter(m => {
+                    return m.sub_department_id == this.selectedSubDeptId || !m.sub_department_id;
+                });
+            } else {
+                this.masterArchives = allArchives;
+            }
+
+            // Set default document_name for items if empty or no longer in filtered list
+            if (this.masterArchives.length > 0) {
+                this.items.forEach((it, idx) => {
+                    if (!it.document_name || !this.masterArchives.some(m => m.name === it.document_name)) {
+                        it.document_name = this.masterArchives[idx % this.masterArchives.length].name;
+                    }
+                });
             }
         }
     };

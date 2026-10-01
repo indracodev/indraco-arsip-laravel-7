@@ -3,26 +3,33 @@
 @section('title', 'Interactive Layout Gudang 2D - DMS PT Indraco')
 
 @section('content')
-<div class="space-y-6" x-data="warehouseCanvasApp()">
+<div class="space-y-3" x-data="warehouseCanvasApp()">
     <!-- Header Controls -->
-    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
-            <h1 class="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-                <i data-lucide="map" class="w-7 h-7 text-emerald-600 dark:text-emerald-400"></i>
-                Interactive Layout Gudang (2D Canvas)
-            </h1>
-            <p class="text-slate-600 dark:text-slate-400 text-xs sm:text-sm font-medium">
-                Peta visual denah gudang fisik PT Indraco. Anda dapat menambah object Gudang/Sektor (Square) & Rak (Rectangle), mengubah ukuran (Resize), menggeser posisi (Drag), serta mengatur warna dan nama.
-            </p>
+    <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-3 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-2 font-mono">
+        <div class="flex items-center gap-2">
+            <span class="p-1 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 rounded">
+                <i data-lucide="map" class="w-4 h-4"></i>
+            </span>
+            <div>
+                <h1 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                    Interactive Layout Gudang (2D Canvas)
+                </h1>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400">
+                    Peta visual denah gudang fisik PT Indraco. Tambah Gudang/Sektor (Square) & Rak (Rectangle), resize, drag, warna & nama.
+                </p>
+            </div>
         </div>
+    </div>
 
-        <!-- Canvas Toolbar -->
-        <div class="flex flex-wrap items-center gap-3 flex-1 justify-end">
+    <!-- Canvas Unified Toolbar (Square Desktop Style) -->
+    <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-2.5 shadow-xs space-y-2 font-mono">
+        <!-- Row 1: Search Bar + Department Filter + Fullscreen Toggle -->
+        <div class="flex flex-wrap items-center justify-between gap-2">
             <!-- Search Input & Live Autocomplete Dropdown -->
-            <div class="relative w-full sm:w-72 lg:w-80" @click.away="searchDropdownOpen = false">
-                <div class="relative">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                        <i data-lucide="search" class="w-4 h-4"></i>
+            <div class="relative flex-1 min-w-[200px]" @click.away="searchDropdownOpen = false">
+                <div class="relative flex items-center">
+                    <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
+                        <i data-lucide="search" class="w-3.5 h-3.5"></i>
                     </div>
                     <input 
                         type="text" 
@@ -31,14 +38,14 @@
                         @focus="if(searchQuery.trim().length > 0) searchDropdownOpen = true"
                         @keydown.enter="selectFirstSearchResult()"
                         @keydown.escape="searchDropdownOpen = false"
-                        placeholder="🔍 Cari Gudang, Rak, Box, atau No. Arsip..." 
-                        class="w-full pl-9 pr-8 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition shadow-xs"
+                        placeholder="Cari Gudang, Rak, Box, atau No. Arsip... (Ctrl+F)" 
+                        class="w-full pl-8 pr-7 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 transition"
                     >
                     <button 
                         x-show="searchQuery" 
                         @click="searchQuery = ''; searchDropdownOpen = false; clearBlink()" 
                         type="button" 
-                        class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                        class="absolute inset-y-0 right-0 pr-2 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
                     >
                         <i data-lucide="x" class="w-3.5 h-3.5"></i>
                     </button>
@@ -48,22 +55,22 @@
                 <div 
                     x-show="searchDropdownOpen && (searchResults.rooms.length > 0 || searchResults.racks.length > 0 || searchResults.boxes.length > 0)" 
                     x-cloak 
-                    class="absolute left-0 right-0 top-full mt-1.5 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl overflow-hidden max-h-96 overflow-y-auto"
+                    class="absolute left-0 right-0 top-full mt-1 z-50 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded shadow-xl overflow-hidden max-h-96 overflow-y-auto"
                 >
                     <!-- Category: Gudang (Rooms) -->
                     <template x-if="searchResults.rooms.length > 0">
-                        <div class="p-2 border-b border-slate-100 dark:border-slate-800">
-                            <div class="text-[10px] font-bold font-mono uppercase text-emerald-600 dark:text-emerald-400 px-2 py-1 flex items-center gap-1.5">
+                        <div class="p-1.5 border-b border-slate-200 dark:border-slate-800">
+                            <div class="text-[10px] font-bold font-mono uppercase text-emerald-600 dark:text-emerald-400 px-2 py-0.5 flex items-center gap-1.5">
                                 <i data-lucide="square" class="w-3 h-3"></i> Gudang / Sektor (<span x-text="searchResults.rooms.length"></span>)
                             </div>
                             <template x-for="room in searchResults.rooms" :key="'room-' + room.id">
                                 <button 
                                     @click="selectSearchResult('room', room)" 
                                     type="button" 
-                                    class="w-full text-left px-2.5 py-1.5 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-xl transition flex items-center justify-between group cursor-pointer"
+                                    class="w-full text-left px-2 py-1 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded transition flex items-center justify-between group cursor-pointer text-xs"
                                 >
                                     <div class="flex items-center gap-2">
-                                        <span class="w-2.5 h-2.5 rounded-sm bg-emerald-500"></span>
+                                        <span class="w-2.5 h-2.5 rounded-none bg-emerald-500"></span>
                                         <span class="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-emerald-600 dark:group-hover:text-emerald-400" x-text="room.rack_code || room.room_sector"></span>
                                     </div>
                                     <span class="text-[10px] font-mono text-slate-400 group-hover:text-emerald-500">Layout Berkedip ➔</span>
@@ -74,18 +81,18 @@
 
                     <!-- Category: Rak (Racks) -->
                     <template x-if="searchResults.racks.length > 0">
-                        <div class="p-2 border-b border-slate-100 dark:border-slate-800">
-                            <div class="text-[10px] font-bold font-mono uppercase text-blue-600 dark:text-blue-400 px-2 py-1 flex items-center gap-1.5">
+                        <div class="p-1.5 border-b border-slate-200 dark:border-slate-800">
+                            <div class="text-[10px] font-bold font-mono uppercase text-blue-600 dark:text-blue-400 px-2 py-0.5 flex items-center gap-1.5">
                                 <i data-lucide="rectangle-horizontal" class="w-3 h-3"></i> Rak Penyimpanan (<span x-text="searchResults.racks.length"></span>)
                             </div>
                             <template x-for="rack in searchResults.racks" :key="'rack-' + rack.id">
                                 <button 
                                     @click="selectSearchResult('rack', rack)" 
                                     type="button" 
-                                    class="w-full text-left px-2.5 py-1.5 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-xl transition flex items-center justify-between group cursor-pointer"
+                                    class="w-full text-left px-2 py-1 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded transition flex items-center justify-between group cursor-pointer text-xs"
                                 >
                                     <div class="flex items-center gap-2">
-                                        <span class="w-2.5 h-2.5 rounded-sm" :style="{ backgroundColor: rack.custom_color || rack.status_color || '#3b82f6' }"></span>
+                                        <span class="w-2.5 h-2.5 rounded-none" :style="{ backgroundColor: rack.custom_color || rack.status_color || '#3b82f6' }"></span>
                                         <div>
                                             <span class="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400" x-text="rack.rack_code"></span>
                                             <span class="text-[10px] text-slate-400 font-mono ml-1" x-text="'(' + (rack.room_sector || 'Umum') + ' • ' + (rack.current_box_count || 0) + '/' + (rack.box_capacity || 100) + ')'"></span>
@@ -99,22 +106,22 @@
 
                     <!-- Category: Box / Slot / Dokumen Arsip -->
                     <template x-if="searchResults.boxes.length > 0">
-                        <div class="p-2">
-                            <div class="text-[10px] font-bold font-mono uppercase text-amber-600 dark:text-amber-400 px-2 py-1 flex items-center gap-1.5">
+                        <div class="p-1.5">
+                            <div class="text-[10px] font-bold font-mono uppercase text-amber-600 dark:text-amber-400 px-2 py-0.5 flex items-center gap-1.5">
                                 <i data-lucide="package" class="w-3 h-3"></i> Box / Slot Arsip (<span x-text="searchResults.boxes.length"></span>)
                             </div>
                             <template x-for="box in searchResults.boxes" :key="'box-' + box.rack.id + '-' + box.slot_code">
                                 <button 
                                     @click="selectSearchResult('box', box)" 
                                     type="button" 
-                                    class="w-full text-left px-2.5 py-2 hover:bg-amber-50 dark:hover:bg-amber-950/40 rounded-xl transition flex items-center justify-between group border-b border-slate-50 dark:border-slate-800/40 last:border-0 cursor-pointer"
+                                    class="w-full text-left px-2 py-1.5 hover:bg-amber-50 dark:hover:bg-amber-950/40 rounded transition flex items-center justify-between group border-b border-slate-100 dark:border-slate-800/40 last:border-0 cursor-pointer text-xs"
                                 >
                                     <div class="flex items-start gap-2 min-w-0">
-                                        <span class="mt-0.5 w-2 h-2 rounded-full shrink-0" :class="box.archive ? 'bg-amber-500' : 'bg-emerald-500'"></span>
+                                        <span class="mt-0.5 w-2 h-2 rounded-none shrink-0" :class="box.archive ? 'bg-amber-500' : 'bg-emerald-500'"></span>
                                         <div class="min-w-0">
                                             <div class="flex items-center gap-1.5 flex-wrap">
                                                 <span class="text-xs font-mono font-black text-amber-700 dark:text-amber-400" x-text="box.slot_code"></span>
-                                                <span class="text-[10px] font-mono px-1.5 py-0.2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded" x-text="'Rak: ' + box.rack.rack_code"></span>
+                                                <span class="text-[10px] font-mono px-1.5 py-0.2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded" x-text="'Rak: ' + box.rack.rack_code"></span>
                                                 <span class="text-[10px] font-mono text-slate-400" x-text="'(LVL ' + box.sap_level + ')'"></span>
                                             </div>
                                             <template x-if="box.archive">
@@ -136,19 +143,9 @@
                 </div>
             </div>
 
-            <!-- Add Object Action Group -->
-            <div class="flex items-center gap-2 bg-slate-100 dark:bg-slate-900 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800">
-                <button @click="openAddRoomModal()" type="button" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow transition flex items-center gap-1.5">
-                    <i data-lucide="square" class="w-4 h-4"></i> + Tambah Gudang (Square)
-                </button>
-                <button @click="openAddRackModal()" type="button" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow transition flex items-center gap-1.5">
-                    <i data-lucide="rectangle-horizontal" class="w-4 h-4"></i> + Tambah Rak (Rectangle)
-                </button>
-            </div>
-
             <!-- Filter Department -->
-            <div class="flex items-center gap-2">
-                <select x-model="filterDepartment" @change="renderCanvas()" class="px-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:border-amber-500">
+            <div class="shrink-0">
+                <select x-model="filterDepartment" @change="renderCanvas()" class="px-2.5 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:border-amber-500 shadow-xs">
                     <option value="">-- Semua Departemen --</option>
                     <template x-for="dept in departments" :key="dept.id">
                         <option :value="dept.id" x-text="dept.code + ' - ' + dept.name"></option>
@@ -156,73 +153,91 @@
                 </select>
             </div>
 
-            <!-- Zoom Controls -->
-            <div class="flex items-center bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-1 shadow-sm">
-                <button @click="zoomOut()" type="button" class="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-700 dark:text-slate-300 transition" title="Zoom Out">
-                    <i data-lucide="zoom-out" class="w-4 h-4"></i>
-                </button>
-                <span class="px-2 text-xs font-mono font-bold text-amber-600 dark:text-amber-400" x-text="Math.round(scale * 100) + '%'"></span>
-                <button @click="zoomIn()" type="button" class="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-700 dark:text-slate-300 transition" title="Zoom In">
-                    <i data-lucide="zoom-in" class="w-4 h-4"></i>
-                </button>
-                <button @click="resetZoom()" type="button" class="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-700 dark:text-slate-300 transition ml-1" title="Reset Scale">
-                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
-                </button>
-            </div>
-
-            <!-- Canvas Dimension / Resizer Button -->
-            <button 
-                @click="openCanvasResizeModal()" 
-                type="button" 
-                class="px-3.5 py-2 bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold text-xs rounded-xl border border-slate-300 dark:border-slate-800 shadow-sm transition flex items-center gap-1.5"
-                title="Ubah Dimensi (Lebar & Tinggi) Canvas Workspace Layout"
-            >
-                <i data-lucide="scaling" class="w-4 h-4 text-cyan-500"></i>
-                <span>📐 Canvas: <strong class="text-cyan-600 dark:text-cyan-400 font-mono" x-text="canvasWidth + 'x' + canvasHeight + 'px'"></strong></span>
-            </button>
-
             <!-- Fullscreen Mode Toggle Button -->
             <button 
                 @click="toggleFullscreen()" 
                 type="button" 
-                class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs rounded-xl shadow transition flex items-center gap-2 border border-indigo-500/30"
+                class="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white font-mono font-bold text-xs rounded border border-indigo-700 shadow-xs transition flex items-center gap-1.5 active:scale-95 whitespace-nowrap cursor-pointer shrink-0"
                 :title="isFullscreen ? 'Keluar Mode Fullscreen (Esc)' : 'Tampilkan Canvas 1 Layar Penuh (Fullscreen)'"
             >
-                <i data-lucide="maximize-2" x-show="!isFullscreen" class="w-4 h-4"></i>
-                <i data-lucide="minimize-2" x-show="isFullscreen" class="w-4 h-4"></i>
+                <i data-lucide="maximize-2" x-show="!isFullscreen" class="w-3.5 h-3.5"></i>
+                <i data-lucide="minimize-2" x-show="isFullscreen" class="w-3.5 h-3.5" x-cloak></i>
                 <span x-text="isFullscreen ? 'Keluar Fullscreen (Esc)' : '1 Layar Penuh (Fullscreen)'"></span>
             </button>
         </div>
+
+        <!-- Row 2: Add Object Actions + Canvas Dimension + Zoom Controls -->
+        <div class="flex flex-wrap items-center justify-between gap-2 pt-1.5 border-t border-slate-200 dark:border-slate-800">
+            <!-- Add Object Action Group -->
+            <div class="flex items-center gap-1.5 flex-wrap">
+                <button @click="openAddRoomModal()" type="button" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-mono font-bold text-xs rounded border border-emerald-700 shadow-xs transition flex items-center gap-1.5 active:scale-95 whitespace-nowrap cursor-pointer">
+                    <i data-lucide="square" class="w-3.5 h-3.5"></i>
+                    <span>+ Tambah Gudang (Square)</span>
+                </button>
+                <button @click="openAddRackModal()" type="button" class="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white font-mono font-bold text-xs rounded border border-blue-700 shadow-xs transition flex items-center gap-1.5 active:scale-95 whitespace-nowrap cursor-pointer">
+                    <i data-lucide="rectangle-horizontal" class="w-3.5 h-3.5"></i>
+                    <span>+ Tambah Rak (Rectangle)</span>
+                </button>
+            </div>
+
+            <!-- Canvas Dimension & Zoom Controls (Right) -->
+            <div class="flex items-center gap-2 flex-wrap">
+                <!-- Canvas Dimension / Resizer Button -->
+                <button 
+                    @click="openCanvasResizeModal()" 
+                    type="button" 
+                    class="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-mono font-bold text-xs rounded border border-slate-400 dark:border-slate-600 shadow-xs transition flex items-center gap-1.5 active:scale-95 whitespace-nowrap cursor-pointer"
+                    title="Ubah Dimensi (Lebar & Tinggi) Canvas Workspace Layout"
+                >
+                    <i data-lucide="scaling" class="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400"></i>
+                    <span>Canvas: <strong class="text-cyan-700 dark:text-cyan-300 font-mono" x-text="canvasWidth + 'x' + canvasHeight + 'px'"></strong></span>
+                </button>
+
+                <!-- Zoom Controls -->
+                <div class="flex items-center bg-slate-200 dark:bg-slate-800 border border-slate-400 dark:border-slate-600 rounded p-0.5 shadow-xs">
+                    <button @click="zoomOut()" type="button" class="p-1 hover:bg-white dark:hover:bg-slate-700 rounded text-slate-700 dark:text-slate-300 transition cursor-pointer" title="Zoom Out">
+                        <i data-lucide="zoom-out" class="w-3.5 h-3.5"></i>
+                    </button>
+                    <span class="px-2 text-xs font-mono font-bold text-amber-600 dark:text-amber-400 select-none" x-text="Math.round(scale * 100) + '%'"></span>
+                    <button @click="zoomIn()" type="button" class="p-1 hover:bg-white dark:hover:bg-slate-700 rounded text-slate-700 dark:text-slate-300 transition cursor-pointer" title="Zoom In">
+                        <i data-lucide="zoom-in" class="w-3.5 h-3.5"></i>
+                    </button>
+                    <button @click="resetZoom()" type="button" class="p-1 hover:bg-white dark:hover:bg-slate-700 rounded text-slate-700 dark:text-slate-300 transition cursor-pointer" title="Reset Scale">
+                        <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- Legend & Mode Bar -->
-    <div class="bg-white dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex flex-wrap items-center justify-between gap-4 text-xs">
-        <div class="flex flex-wrap items-center gap-4">
+    <!-- Legend & Mode Bar (Square Desktop Style) -->
+    <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-2.5 shadow-xs flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
+        <div class="flex flex-wrap items-center gap-3">
             <span class="font-bold text-slate-500 uppercase tracking-wider text-[11px]">Indikator Warna Rak (Default Kapasitas):</span>
             <div class="flex items-center gap-1.5">
-                <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+                <span class="w-3 h-3 rounded-none bg-emerald-500 border border-emerald-600"></span>
                 <span class="font-semibold text-slate-700 dark:text-slate-300">Hijau (0% - 50%)</span>
             </div>
             <div class="flex items-center gap-1.5">
-                <span class="w-3 h-3 rounded-full bg-yellow-500"></span>
+                <span class="w-3 h-3 rounded-none bg-yellow-500 border border-yellow-600"></span>
                 <span class="font-semibold text-slate-700 dark:text-slate-300">Kuning (51% - 80%)</span>
             </div>
             <div class="flex items-center gap-1.5">
-                <span class="w-3 h-3 rounded-full bg-orange-500"></span>
+                <span class="w-3 h-3 rounded-none bg-orange-500 border border-orange-600"></span>
                 <span class="font-semibold text-slate-700 dark:text-slate-300">Orange (81% - 90%)</span>
             </div>
             <div class="flex items-center gap-1.5">
-                <span class="w-3 h-3 rounded-full bg-rose-500"></span>
+                <span class="w-3 h-3 rounded-none bg-rose-500 border border-rose-600"></span>
                 <span class="font-semibold text-slate-700 dark:text-slate-300">Merah (91% - 100%)</span>
             </div>
-            <div class="flex items-center gap-1.5 border-l border-slate-300 dark:border-slate-800 pl-4">
-                <span class="w-3 h-3 rounded bg-purple-500"></span>
+            <div class="flex items-center gap-1.5 border-l border-slate-300 dark:border-slate-800 pl-3">
+                <span class="w-3 h-3 rounded-none bg-purple-500 border border-purple-600"></span>
                 <span class="font-semibold text-slate-700 dark:text-slate-300">Custom Color</span>
             </div>
         </div>
         <div class="flex items-center gap-2">
             <span class="text-slate-500 font-medium">Petunjuk:</span>
-            <span class="px-2.5 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-lg font-bold">
+            <span class="px-2 py-0.5 bg-amber-500/15 text-amber-700 dark:text-amber-300 rounded border border-amber-500/30 font-bold font-mono text-[11px]">
                 Mouse Drag / Panah (&uarr; &darr; &larr; &rarr;) | Shift + Klik: Multi-Select | Rotate (Key: R) | Hapus (Key: Delete) | Copy & Paste (Ctrl+C / Ctrl+V)
             </span>
         </div>
@@ -235,22 +250,22 @@
     >
         <!-- Canvas Visualizer Container (2 Cols in normal, Flex-1 in Fullscreen) -->
         <div 
-            :class="isFullscreen ? 'flex-1 bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-2xl relative overflow-auto flex flex-col items-center justify-center h-full min-h-0' : 'lg:col-span-2 bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl relative overflow-hidden flex flex-col items-center justify-center min-h-[600px]'"
+            :class="isFullscreen ? 'flex-1 bg-slate-900 border border-slate-800 rounded p-4 shadow-2xl relative overflow-auto flex flex-col items-center justify-center h-full min-h-0' : 'lg:col-span-2 bg-slate-900 border border-slate-800 rounded p-4 shadow-xl relative overflow-hidden flex flex-col items-center justify-center min-h-[600px]'"
         >
             <!-- Processing Indicator -->
-            <div x-show="loading" class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-30 flex items-center justify-center gap-3 text-white">
-                <i data-lucide="loader-2" class="w-6 h-6 animate-spin text-amber-400"></i>
-                <span class="text-xs font-bold">Memuat Layout Canvas Gudang...</span>
+            <div x-show="loading" class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-30 flex items-center justify-center gap-3 text-white font-mono">
+                <i data-lucide="loader-2" class="w-5 h-5 animate-spin text-amber-400"></i>
+                <span class="text-xs font-bold uppercase tracking-wider">Memuat Layout Canvas Gudang...</span>
             </div>
 
             <!-- Floating Action Buttons inside Canvas Container -->
-            <div class="absolute top-4 right-4 z-20 flex items-center gap-2">
+            <div class="absolute top-3 right-3 z-20 flex items-center gap-2">
                 <template x-if="isFullscreen">
-                    <div class="flex items-center gap-2 bg-slate-900/90 p-1 rounded-xl border border-slate-700/80 backdrop-blur-md shadow-xl">
+                    <div class="flex items-center gap-1.5 bg-slate-900/95 p-1 rounded border border-slate-700 shadow-xl font-mono">
                         <button 
                             @click="openAddRoomModal()" 
                             type="button" 
-                            class="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg transition flex items-center gap-1.5 shadow"
+                            class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded border border-emerald-700 transition flex items-center gap-1.5 shadow-xs cursor-pointer"
                             title="Tambah Object Gudang Baru (Square)"
                         >
                             <i data-lucide="square" class="w-3.5 h-3.5"></i> + Gudang
@@ -258,7 +273,7 @@
                         <button 
                             @click="openAddRackModal()" 
                             type="button" 
-                            class="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-lg transition flex items-center gap-1.5 shadow"
+                            class="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded border border-blue-700 transition flex items-center gap-1.5 shadow-xs cursor-pointer"
                             title="Tambah Object Rak Baru (Rectangle)"
                         >
                             <i data-lucide="rectangle-horizontal" class="w-3.5 h-3.5"></i> + Rak
@@ -266,7 +281,7 @@
                         <button 
                             @click="openCanvasResizeModal()" 
                             type="button" 
-                            class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-400 font-bold text-xs rounded-lg transition flex items-center gap-1.5 border border-slate-700/80"
+                            class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-400 font-bold text-xs rounded border border-slate-700 transition flex items-center gap-1.5 cursor-pointer"
                             title="Ubah Dimensi Ukuran Canvas"
                         >
                             <i data-lucide="scaling" class="w-3.5 h-3.5"></i>
@@ -278,10 +293,10 @@
                 <button 
                     @click="toggleFullscreen()" 
                     type="button" 
-                    class="px-3.5 py-2 bg-slate-900/90 hover:bg-indigo-600 text-white border border-slate-700/80 rounded-xl shadow-xl transition flex items-center gap-2 text-xs font-extrabold backdrop-blur-md group"
+                    class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-700 rounded shadow-md transition flex items-center gap-2 text-xs font-bold font-mono group cursor-pointer"
                 >
-                    <i data-lucide="maximize-2" x-show="!isFullscreen" class="w-4 h-4 text-indigo-400 group-hover:text-white transition"></i>
-                    <i data-lucide="minimize-2" x-show="isFullscreen" class="w-4 h-4 text-amber-400 group-hover:text-white transition"></i>
+                    <i data-lucide="maximize-2" x-show="!isFullscreen" class="w-3.5 h-3.5"></i>
+                    <i data-lucide="minimize-2" x-show="isFullscreen" class="w-3.5 h-3.5 text-amber-300"></i>
                     <span x-text="isFullscreen ? 'Keluar Fullscreen (Esc)' : '1 Layar Penuh ⛶'"></span>
                 </button>
             </div>
@@ -296,17 +311,17 @@
                     @mouseup="handleCanvasMouseUp($event)"
                     @dblclick="handleCanvasDoubleClick($event)"
                     @contextmenu.prevent="handleCanvasContextMenu($event)"
-                    class="cursor-crosshair border border-slate-800/80 rounded-2xl shadow-inner bg-[#0b1120] transition-transform duration-75 block"
+                    class="cursor-crosshair border border-slate-800 rounded shadow-inner bg-[#0b1120] transition-transform duration-75 block"
                 ></canvas>
 
                 <!-- Bottom-Right Interactive Canvas Drag Resizer Handle -->
                 <div 
                     @mousedown.stop.prevent="startCanvasResize($event)"
                     @dblclick="openCanvasResizeModal()"
-                    class="absolute bottom-4 right-4 z-20 bg-slate-900/90 hover:bg-cyan-600 text-slate-300 hover:text-white border border-slate-700 hover:border-cyan-400 rounded-xl px-2.5 py-1 text-[10px] font-mono font-bold shadow-xl cursor-se-resize select-none backdrop-blur-md transition flex items-center gap-1.5 group"
+                    class="absolute bottom-3 right-3 z-20 bg-slate-900/95 hover:bg-cyan-700 text-slate-300 hover:text-white border border-slate-700 hover:border-cyan-500 rounded px-2 py-1 text-[10px] font-mono font-bold shadow-md cursor-se-resize select-none transition flex items-center gap-1.5 group"
                     title="Tarik / Drag sudut ini untuk me-resize ukuran canvas, atau Klik 2x untuk buka modal setup ukuran."
                 >
-                    <i data-lucide="scaling" class="w-3.5 h-3.5 text-cyan-400 group-hover:text-white"></i>
+                    <i data-lucide="scaling" class="w-3 h-3 text-cyan-400 group-hover:text-white"></i>
                     <span x-text="canvasWidth + ' × ' + canvasHeight + ' px'"></span>
                     <span class="text-[9px] opacity-75">⇲</span>
                 </div>
@@ -318,12 +333,12 @@
                 x-cloak 
                 @click.away="contextMenuOpen = false"
                 :style="{ top: contextMenuY + 'px', left: contextMenuX + 'px' }"
-                class="fixed z-50 bg-slate-900/98 dark:bg-slate-950/98 border border-slate-700/90 shadow-[0_15px_40px_-5px_rgba(0,0,0,0.8)] rounded-lg p-1.5 w-72 text-xs font-mono text-slate-200 select-none backdrop-blur-md space-y-0.5"
+                class="fixed z-50 bg-slate-900/98 dark:bg-slate-950/98 border border-slate-700 shadow-2xl rounded p-1.5 w-72 text-xs font-mono text-slate-200 select-none space-y-0.5"
             >
                 <!-- Context Menu Title Header -->
-                <div class="px-2.5 py-1.5 mb-1 bg-slate-800/90 dark:bg-slate-900 border-b border-slate-700/60 rounded flex items-center justify-between gap-2 select-none">
+                <div class="px-2.5 py-1 mb-1 bg-slate-800 dark:bg-slate-900 border-b border-slate-700 rounded flex items-center justify-between gap-2 select-none">
                     <div class="flex items-center gap-1.5 min-w-0">
-                        <span class="w-2 h-2 rounded-full shrink-0" 
+                        <span class="w-2 h-2 rounded-none shrink-0" 
                               :class="contextMenuTarget?.is_locked ? 'bg-amber-400 animate-pulse' : (contextMenuTarget?.is_fat_locked ? 'bg-purple-400' : 'bg-emerald-400')"></span>
                         <span class="font-mono font-bold text-xs text-amber-400 truncate uppercase" 
                               x-text="selectedLocations.length > 1 
@@ -333,7 +348,7 @@
                                       : 'CANVAS MENU')">
                         </span>
                     </div>
-                    <span class="font-mono text-[10px] text-slate-400 shrink-0 bg-slate-950/70 px-1.5 py-0.5 rounded border border-slate-800" 
+                    <span class="font-mono text-[10px] text-slate-400 shrink-0 bg-slate-950 px-1 py-0.2 rounded border border-slate-800" 
                           x-text="'X:' + clickedCanvasX + ' Y:' + clickedCanvasY">
                     </span>
                 </div>
@@ -349,10 +364,10 @@
                         <button 
                             @click="bulkToggleLockLocations(false); contextMenuOpen = false;" 
                             type="button" 
-                            class="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 text-slate-200 hover:text-emerald-300 rounded transition flex items-center justify-between"
+                            class="w-full text-left px-2 py-1 hover:bg-slate-800 text-slate-200 hover:text-emerald-300 rounded transition flex items-center justify-between cursor-pointer"
                         >
                             <div class="flex items-center gap-2 min-w-0">
-                                <i data-lucide="unlock" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+                                <i data-lucide="unlock" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i>
                                 <span class="truncate">Buka Kunci (Unlock) Kelompok</span>
                             </div>
                         </button>
@@ -360,23 +375,23 @@
                         <button 
                             @click="bulkToggleLockLocations(true); contextMenuOpen = false;" 
                             type="button" 
-                            class="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 text-slate-200 hover:text-amber-300 rounded transition flex items-center justify-between"
+                            class="w-full text-left px-2 py-1 hover:bg-slate-800 text-slate-200 hover:text-amber-300 rounded transition flex items-center justify-between cursor-pointer"
                         >
                             <div class="flex items-center gap-2 min-w-0">
-                                <i data-lucide="lock" class="w-4 h-4 text-amber-400 shrink-0"></i>
+                                <i data-lucide="lock" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i>
                                 <span class="truncate">Kunci (Lock) Kelompok</span>
                             </div>
                         </button>
 
-                        <div class="border-t border-slate-800/80 my-1"></div>
+                        <div class="border-t border-slate-800 my-1"></div>
 
                         <button 
                             @click="openBatchResizeModal(); contextMenuOpen = false;" 
                             type="button" 
-                            class="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 text-slate-200 hover:text-blue-300 rounded transition flex items-center justify-between"
+                            class="w-full text-left px-2 py-1 hover:bg-slate-800 text-slate-200 hover:text-blue-300 rounded transition flex items-center justify-between cursor-pointer"
                         >
                             <div class="flex items-center gap-2 min-w-0">
-                                <i data-lucide="scaling" class="w-4 h-4 text-blue-400 shrink-0"></i>
+                                <i data-lucide="scaling" class="w-3.5 h-3.5 text-blue-400 shrink-0"></i>
                                 <span class="truncate">Ubah Ukuran Massal (W & H)...</span>
                             </div>
                         </button>
@@ -384,10 +399,10 @@
                         <button 
                             @click="openBatchDeptModal(); contextMenuOpen = false;" 
                             type="button" 
-                            class="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 text-slate-200 hover:text-purple-300 rounded transition flex items-center justify-between"
+                            class="w-full text-left px-2 py-1 hover:bg-slate-800 text-slate-200 hover:text-purple-300 rounded transition flex items-center justify-between cursor-pointer"
                         >
                             <div class="flex items-center gap-2 min-w-0">
-                                <i data-lucide="building-2" class="w-4 h-4 text-purple-400 shrink-0"></i>
+                                <i data-lucide="building-2" class="w-3.5 h-3.5 text-purple-400 shrink-0"></i>
                                 <span class="truncate">Set Alokasi Departemen...</span>
                             </div>
                         </button>
@@ -395,10 +410,10 @@
                         <button 
                             @click="openBatchColorModal(); contextMenuOpen = false;" 
                             type="button" 
-                            class="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 text-slate-200 hover:text-pink-300 rounded transition flex items-center justify-between"
+                            class="w-full text-left px-2 py-1 hover:bg-slate-800 text-slate-200 hover:text-pink-300 rounded transition flex items-center justify-between cursor-pointer"
                         >
                             <div class="flex items-center gap-2 min-w-0">
-                                <i data-lucide="palette" class="w-4 h-4 text-pink-400 shrink-0"></i>
+                                <i data-lucide="palette" class="w-3.5 h-3.5 text-pink-400 shrink-0"></i>
                                 <span class="truncate">Set Warna Custom Massal...</span>
                             </div>
                         </button>
@@ -406,24 +421,24 @@
                         <button 
                             @click="rotateLocation(null, 90); contextMenuOpen = false;" 
                             type="button" 
-                            class="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 text-slate-200 hover:text-cyan-300 rounded transition flex items-center justify-between"
+                            class="w-full text-left px-2 py-1 hover:bg-slate-800 text-slate-200 hover:text-cyan-300 rounded transition flex items-center justify-between cursor-pointer"
                         >
                             <div class="flex items-center gap-2 min-w-0">
-                                <i data-lucide="rotate-cw" class="w-4 h-4 text-cyan-400 shrink-0"></i>
+                                <i data-lucide="rotate-cw" class="w-3.5 h-3.5 text-cyan-400 shrink-0"></i>
                                 <span class="truncate">Putar Kelompok 90°</span>
                             </div>
                             <kbd class="text-[10px] text-slate-500 font-mono shrink-0">R</kbd>
                         </button>
 
-                        <div class="border-t border-slate-800/80 my-1"></div>
+                        <div class="border-t border-slate-800 my-1"></div>
 
                         <button 
                             @click="alignGroupHorizontally(); contextMenuOpen = false;" 
                             type="button" 
-                            class="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 text-slate-200 hover:text-teal-300 rounded transition flex items-center justify-between"
+                            class="w-full text-left px-2 py-1 hover:bg-slate-800 text-slate-200 hover:text-teal-300 rounded transition flex items-center justify-between cursor-pointer"
                         >
                             <div class="flex items-center gap-2 min-w-0">
-                                <i data-lucide="align-horizontal-space-around" class="w-4 h-4 text-teal-400 shrink-0"></i>
+                                <i data-lucide="align-horizontal-space-around" class="w-3.5 h-3.5 text-teal-400 shrink-0"></i>
                                 <span class="truncate">Rapatkan Horizontal (Baris)</span>
                             </div>
                         </button>
@@ -431,23 +446,23 @@
                         <button 
                             @click="alignGroupVertically(); contextMenuOpen = false;" 
                             type="button" 
-                            class="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 text-slate-200 hover:text-teal-300 rounded transition flex items-center justify-between"
+                            class="w-full text-left px-2 py-1 hover:bg-slate-800 text-slate-200 hover:text-teal-300 rounded transition flex items-center justify-between cursor-pointer"
                         >
                             <div class="flex items-center gap-2 min-w-0">
-                                <i data-lucide="align-vertical-space-around" class="w-4 h-4 text-teal-400 shrink-0"></i>
+                                <i data-lucide="align-vertical-space-around" class="w-3.5 h-3.5 text-teal-400 shrink-0"></i>
                                 <span class="truncate">Rapatkan Vertikal (Kolom)</span>
                             </div>
                         </button>
 
-                        <div class="border-t border-slate-800/80 my-1"></div>
+                        <div class="border-t border-slate-800 my-1"></div>
 
                         <button 
                             @click="deleteSelectedLocation(); contextMenuOpen = false;" 
                             type="button" 
-                            class="w-full text-left px-2.5 py-1.5 hover:bg-rose-900/30 text-rose-400 hover:text-rose-300 rounded transition flex items-center justify-between"
+                            class="w-full text-left px-2 py-1 hover:bg-rose-900/40 text-rose-400 hover:text-rose-300 rounded transition flex items-center justify-between cursor-pointer"
                         >
                             <div class="flex items-center gap-2 min-w-0">
-                                <i data-lucide="trash-2" class="w-4 h-4 text-rose-500 shrink-0"></i>
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5 text-rose-500 shrink-0"></i>
                                 <span class="truncate">Hapus Kelompok Objek</span>
                             </div>
                             <kbd class="text-[10px] text-rose-500/70 font-mono shrink-0">Del</kbd>
@@ -461,25 +476,25 @@
                         <button 
                             @click="addRackInsideRoom(contextMenuTarget, clickedCanvasX, clickedCanvasY, 1)" 
                             type="button" 
-                            class="w-full text-left px-2.5 py-1.5 bg-gradient-to-r from-emerald-500/20 to-teal-500/10 hover:from-emerald-500/30 hover:to-teal-500/20 text-emerald-300 rounded border border-emerald-500/40 transition flex items-center justify-between font-bold shadow-xs group mb-1"
+                            class="w-full text-left px-2 py-1 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 rounded border border-emerald-500/40 transition flex items-center justify-between font-bold shadow-xs cursor-pointer mb-1"
                         >
                             <div class="flex items-center gap-2 min-w-0">
-                                <i data-lucide="plus-square" class="w-4 h-4 text-emerald-400 group-hover:scale-110 transition shrink-0"></i>
+                                <i data-lucide="plus-square" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i>
                                 <span class="truncate">Tambah Rak ke Gudang...</span>
                             </div>
-                            <span class="text-[9px] px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300 rounded font-mono font-black border border-emerald-500/30 shrink-0">1 - 50 Rak</span>
+                            <span class="text-[9px] px-1 py-0.2 bg-emerald-500/20 text-emerald-300 rounded font-mono font-bold border border-emerald-500/30 shrink-0">1 - 50 Rak</span>
                         </button>
 
-                        <div class="border-t border-slate-800/80 my-1"></div>
+                        <div class="border-t border-slate-800 my-1"></div>
 
                         <button 
                             @click="toggleLockLocation(contextMenuTarget); contextMenuOpen = false;" 
                             type="button" 
-                            class="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 text-slate-200 hover:text-amber-300 rounded transition flex items-center justify-between"
+                            class="w-full text-left px-2 py-1 hover:bg-slate-800 text-slate-200 hover:text-amber-300 rounded transition flex items-center justify-between cursor-pointer"
                         >
                             <div class="flex items-center gap-2 min-w-0">
                                 <i :data-lucide="contextMenuTarget?.is_locked !== false ? 'unlock' : 'lock'" 
-                                   class="w-4 h-4" 
+                                   class="w-3.5 h-3.5" 
                                    :class="contextMenuTarget?.is_locked !== false ? 'text-amber-400' : 'text-slate-400'"></i>
                                 <span class="truncate" x-text="contextMenuTarget?.is_locked !== false ? 'Buka Kunci (Unlock) Gudang' : 'Kunci (Lock) Posisi Gudang'"></span>
                             </div>
@@ -489,10 +504,10 @@
                         <button 
                             @click="rotateLocation(contextMenuTarget, 90); contextMenuOpen = false;" 
                             type="button" 
-                            class="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 text-slate-200 hover:text-cyan-300 rounded transition flex items-center justify-between"
+                            class="w-full text-left px-2 py-1 hover:bg-slate-800 text-slate-200 hover:text-cyan-300 rounded transition flex items-center justify-between cursor-pointer"
                         >
                             <div class="flex items-center gap-2 min-w-0">
-                                <i data-lucide="rotate-cw" class="w-4 h-4 text-cyan-400 shrink-0"></i>
+                                <i data-lucide="rotate-cw" class="w-3.5 h-3.5 text-cyan-400 shrink-0"></i>
                                 <span class="truncate">Putar Gudang 90°</span>
                             </div>
                             <kbd class="text-[10px] text-slate-500 font-mono shrink-0">R</kbd>
@@ -501,24 +516,24 @@
                         <button 
                             @click="duplicateRack(contextMenuTarget); contextMenuOpen = false;" 
                             type="button" 
-                            class="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 text-slate-200 hover:text-purple-300 rounded transition flex items-center justify-between"
+                            class="w-full text-left px-2 py-1 hover:bg-slate-800 text-slate-200 hover:text-purple-300 rounded transition flex items-center justify-between cursor-pointer"
                         >
                             <div class="flex items-center gap-2 min-w-0">
-                                <i data-lucide="copy" class="w-4 h-4 text-purple-400 shrink-0"></i>
+                                <i data-lucide="copy" class="w-3.5 h-3.5 text-purple-400 shrink-0"></i>
                                 <span class="truncate">Duplikat Gudang (Copy)</span>
                             </div>
                             <kbd class="text-[10px] text-slate-500 font-mono shrink-0">Ctrl+D</kbd>
                         </button>
 
-                        <div class="border-t border-slate-800/80 my-1"></div>
+                        <div class="border-t border-slate-800 my-1"></div>
 
                         <button 
                             @click="openEditModal(); contextMenuOpen = false;" 
                             type="button" 
-                            class="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 text-slate-200 hover:text-sky-300 rounded transition flex items-center justify-between"
+                            class="w-full text-left px-2 py-1 hover:bg-slate-800 text-slate-200 hover:text-sky-300 rounded transition flex items-center justify-between cursor-pointer"
                         >
                             <div class="flex items-center gap-2 min-w-0">
-                                <i data-lucide="sliders" class="w-4 h-4 text-sky-400 shrink-0"></i>
+                                <i data-lucide="sliders" class="w-3.5 h-3.5 text-sky-400 shrink-0"></i>
                                 <span class="truncate">Properti & Detail Gudang...</span>
                             </div>
                             <kbd class="text-[10px] text-slate-500 font-mono shrink-0">F2</kbd>
@@ -527,10 +542,10 @@
                         <button 
                             @click="deleteSelectedLocation(); contextMenuOpen = false;" 
                             type="button" 
-                            class="w-full text-left px-2.5 py-1.5 hover:bg-rose-900/30 text-rose-400 hover:text-rose-300 rounded transition flex items-center justify-between"
+                            class="w-full text-left px-2 py-1 hover:bg-rose-900/40 text-rose-400 hover:text-rose-300 rounded transition flex items-center justify-between cursor-pointer"
                         >
                             <div class="flex items-center gap-2 min-w-0">
-                                <i data-lucide="trash-2" class="w-4 h-4 text-rose-500 shrink-0"></i>
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5 text-rose-500 shrink-0"></i>
                                 <span class="truncate">Hapus Gudang dari Canvas</span>
                             </div>
                             <kbd class="text-[10px] text-rose-500/70 font-mono shrink-0">Del</kbd>
@@ -545,26 +560,26 @@
                         <button 
                             @click="openRackGridModal(contextMenuTarget); contextMenuOpen = false;" 
                             type="button" 
-                            class="w-full text-left px-2.5 py-1.5 bg-gradient-to-r from-amber-500/20 to-orange-500/10 hover:from-amber-500/30 hover:to-orange-500/20 text-amber-300 rounded border border-amber-500/40 transition flex items-center justify-between font-bold shadow-xs group mb-1"
+                            class="w-full text-left px-2 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded border border-amber-500/40 transition flex items-center justify-between font-bold shadow-xs cursor-pointer mb-1"
                         >
                             <div class="flex items-center gap-2 min-w-0">
-                                <i data-lucide="layout-grid" class="w-4 h-4 text-amber-400 group-hover:scale-110 transition shrink-0"></i>
+                                <i data-lucide="layout-grid" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i>
                                 <span class="truncate">Visualisasi 100 Slot Rak</span>
                             </div>
-                            <span class="text-[9px] px-1.5 py-0.5 bg-amber-500/20 text-amber-300 rounded font-mono font-black border border-amber-500/30 shrink-0">5 LVL</span>
+                            <span class="text-[9px] px-1 py-0.2 bg-amber-500/20 text-amber-300 rounded font-mono font-bold border border-amber-500/30 shrink-0">5 LVL</span>
                         </button>
 
-                        <div class="border-t border-slate-800/80 my-1"></div>
+                        <div class="border-t border-slate-800 my-1"></div>
 
                         <!-- Kunci / Buka Kunci Posisi -->
                         <button 
                             @click="toggleLockLocation(contextMenuTarget); contextMenuOpen = false;" 
                             type="button" 
-                            class="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 text-slate-200 hover:text-amber-300 rounded transition flex items-center justify-between"
+                            class="w-full text-left px-2 py-1 hover:bg-slate-800 text-slate-200 hover:text-amber-300 rounded transition flex items-center justify-between cursor-pointer"
                         >
                             <div class="flex items-center gap-2 min-w-0">
                                 <i :data-lucide="contextMenuTarget?.is_locked !== false ? 'unlock' : 'lock'" 
-                                   class="w-4 h-4" 
+                                   class="w-3.5 h-3.5" 
                                    :class="contextMenuTarget?.is_locked !== false ? 'text-amber-400' : 'text-slate-400'"></i>
                                 <span class="truncate" x-text="contextMenuTarget?.is_locked !== false ? 'Buka Kunci (Unlock) Rak' : 'Kunci (Lock) Posisi Rak'"></span>
                             </div>
@@ -575,10 +590,10 @@
                         <button 
                             @click="rotateLocation(contextMenuTarget, 90); contextMenuOpen = false;" 
                             type="button" 
-                            class="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 text-slate-200 hover:text-cyan-300 rounded transition flex items-center justify-between"
+                            class="w-full text-left px-2 py-1 hover:bg-slate-800 text-slate-200 hover:text-cyan-300 rounded transition flex items-center justify-between cursor-pointer"
                         >
                             <div class="flex items-center gap-2 min-w-0">
-                                <i data-lucide="rotate-cw" class="w-4 h-4 text-cyan-400 shrink-0"></i>
+                                <i data-lucide="rotate-cw" class="w-3.5 h-3.5 text-cyan-400 shrink-0"></i>
                                 <span class="truncate">Putar Posisi Rak 90°</span>
                             </div>
                             <kbd class="text-[10px] text-slate-500 font-mono shrink-0">R</kbd>
@@ -588,10 +603,10 @@
                         <button 
                             @click="duplicateRack(contextMenuTarget); contextMenuOpen = false;" 
                             type="button" 
-                            class="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 text-slate-200 hover:text-purple-300 rounded transition flex items-center justify-between"
+                            class="w-full text-left px-2 py-1 hover:bg-slate-800 text-slate-200 hover:text-purple-300 rounded transition flex items-center justify-between cursor-pointer"
                         >
                             <div class="flex items-center gap-2 min-w-0">
-                                <i data-lucide="copy" class="w-4 h-4 text-purple-400 shrink-0"></i>
+                                <i data-lucide="copy" class="w-3.5 h-3.5 text-purple-400 shrink-0"></i>
                                 <span class="truncate">Duplikat Rak (Copy)</span>
                             </div>
                             <kbd class="text-[10px] text-slate-500 font-mono shrink-0">Ctrl+D</kbd>
@@ -601,25 +616,25 @@
                         <button 
                             @click="openMoveModal(contextMenuTarget); contextMenuOpen = false;" 
                             type="button" 
-                            class="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 text-slate-200 hover:text-amber-300 rounded transition flex items-center justify-between"
+                            class="w-full text-left px-2 py-1 hover:bg-slate-800 text-slate-200 hover:text-amber-300 rounded transition flex items-center justify-between cursor-pointer"
                         >
                             <div class="flex items-center gap-2 min-w-0">
-                                <i data-lucide="truck" class="w-4 h-4 text-amber-400 shrink-0"></i>
+                                <i data-lucide="truck" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i>
                                 <span class="truncate">Pindahkan ke Gudang...</span>
                             </div>
                             <kbd class="text-[10px] text-slate-500 font-mono shrink-0">M</kbd>
                         </button>
 
-                        <div class="border-t border-slate-800/80 my-1"></div>
+                        <div class="border-t border-slate-800 my-1"></div>
 
                         <!-- Properti & Edit Details -->
                         <button 
                             @click="openEditModal(); contextMenuOpen = false;" 
                             type="button" 
-                            class="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 text-slate-200 hover:text-sky-300 rounded transition flex items-center justify-between"
+                            class="w-full text-left px-2 py-1 hover:bg-slate-800 text-slate-200 hover:text-sky-300 rounded transition flex items-center justify-between cursor-pointer"
                         >
                             <div class="flex items-center gap-2 min-w-0">
-                                <i data-lucide="sliders" class="w-4 h-4 text-sky-400 shrink-0"></i>
+                                <i data-lucide="sliders" class="w-3.5 h-3.5 text-sky-400 shrink-0"></i>
                                 <span class="truncate">Properti, Nama & Warna...</span>
                             </div>
                             <kbd class="text-[10px] text-slate-500 font-mono shrink-0">F2</kbd>
@@ -629,10 +644,10 @@
                         <button 
                             @click="deleteSelectedLocation(); contextMenuOpen = false;" 
                             type="button" 
-                            class="w-full text-left px-2.5 py-1.5 hover:bg-rose-900/30 text-rose-400 hover:text-rose-300 rounded transition flex items-center justify-between"
+                            class="w-full text-left px-2 py-1 hover:bg-rose-900/40 text-rose-400 hover:text-rose-300 rounded transition flex items-center justify-between cursor-pointer"
                         >
                             <div class="flex items-center gap-2 min-w-0">
-                                <i data-lucide="trash-2" class="w-4 h-4 text-rose-500 shrink-0"></i>
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5 text-rose-500 shrink-0"></i>
                                 <span class="truncate">Hapus Rak dari Canvas</span>
                             </div>
                             <kbd class="text-[10px] text-rose-500/70 font-mono shrink-0">Del</kbd>
@@ -646,10 +661,10 @@
                         <button 
                             @click="openAddRoomModal(clickedCanvasX, clickedCanvasY); contextMenuOpen = false;" 
                             type="button" 
-                            class="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 text-slate-200 hover:text-emerald-300 rounded transition flex items-center justify-between"
+                            class="w-full text-left px-2 py-1 hover:bg-slate-800 text-slate-200 hover:text-emerald-300 rounded transition flex items-center justify-between cursor-pointer"
                         >
                             <div class="flex items-center gap-2 min-w-0">
-                                <i data-lucide="square" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+                                <i data-lucide="square" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i>
                                 <span class="truncate">Tambah Gudang (Square)</span>
                             </div>
                             <kbd class="text-[10px] text-slate-500 font-mono shrink-0">G</kbd>
@@ -658,10 +673,10 @@
                         <button 
                             @click="openAddRackModal(clickedCanvasX, clickedCanvasY); contextMenuOpen = false;" 
                             type="button" 
-                            class="w-full text-left px-2.5 py-1.5 hover:bg-slate-800 text-slate-200 hover:text-blue-300 rounded transition flex items-center justify-between"
+                            class="w-full text-left px-2 py-1 hover:bg-slate-800 text-slate-200 hover:text-blue-300 rounded transition flex items-center justify-between cursor-pointer"
                         >
                             <div class="flex items-center gap-2 min-w-0">
-                                <i data-lucide="rectangle-horizontal" class="w-4 h-4 text-blue-400 shrink-0"></i>
+                                <i data-lucide="rectangle-horizontal" class="w-3.5 h-3.5 text-blue-400 shrink-0"></i>
                                 <span class="truncate">Tambah Rak (Rectangle)</span>
                             </div>
                             <kbd class="text-[10px] text-slate-500 font-mono shrink-0">R</kbd>
@@ -672,160 +687,161 @@
         </div>
 
         <!-- Drawer Inspector Side Panel (1 Col) -->
-        <div :class="isFullscreen ? 'space-y-6 w-full lg:w-96 flex-shrink-0 max-h-full overflow-y-auto pr-1' : 'space-y-6'">
+        <div :class="isFullscreen ? 'space-y-3 w-full lg:w-96 flex-shrink-0 max-h-full overflow-y-auto pr-1' : 'space-y-3'">
             <!-- Selected Object Inspector Card -->
-            <div class="bg-white dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-6">
+            <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-4 shadow-xs space-y-4 font-mono">
                 <!-- If No Location Selected -->
-                <div x-show="!selectedLocation" class="py-12 text-center space-y-3">
-                    <div class="p-3 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-2xl w-12 h-12 mx-auto flex items-center justify-center">
-                        <i data-lucide="mouse-pointer-click" class="w-6 h-6"></i>
+                <div x-show="!selectedLocation" class="py-8 text-center space-y-2">
+                    <div class="p-2.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded border border-amber-500/20 w-10 h-10 mx-auto flex items-center justify-center">
+                        <i data-lucide="mouse-pointer-click" class="w-5 h-5"></i>
                     </div>
-                    <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Pilih Object Gudang / Rak Pada Canvas</h3>
-                    <p class="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto">
-                        Klik pada object Gudang atau Rak untuk melihat detail, menggeser posisi, mengubah ukuran (resize), mengganti nama & warna, atau menghapus object.
+                    <h3 class="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">Pilih Object Gudang / Rak</h3>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 max-w-xs mx-auto leading-relaxed font-sans">
+                        Klik pada object Gudang atau Rak di canvas untuk melihat rincian, menggeser posisi, mengubah ukuran, warna, atau aksi lainnya.
                     </p>
                 </div>
 
                 <!-- If Location Selected -->
-                <div x-show="selectedLocation" class="space-y-6" x-cloak>
+                <div x-show="selectedLocation" class="space-y-4" x-cloak>
                     <!-- If MULTIPLE Locations Selected (Multi-Selection Batch Actions Card) -->
                     <template x-if="selectedLocations.length > 1">
-                        <div class="p-4 bg-indigo-500/10 border border-indigo-500/30 rounded-2xl space-y-3 mb-4">
+                        <div class="p-3 bg-indigo-500/10 border border-indigo-500/30 rounded space-y-2.5 mb-3">
                             <div class="flex items-center justify-between">
-                                <span class="text-xs font-extrabold text-indigo-400 flex items-center gap-1.5">
-                                    <i data-lucide="layers" class="w-4 h-4 text-indigo-400"></i>
-                                    ✨ Batch Setup (Multi-Select)
+                                <span class="text-xs font-bold text-indigo-400 flex items-center gap-1.5 uppercase">
+                                    <i data-lucide="layers" class="w-3.5 h-3.5 text-indigo-400"></i>
+                                    Batch Setup (Multi-Select)
                                 </span>
-                                <span class="px-2 py-0.5 bg-indigo-500/20 text-indigo-300 text-[10px] font-mono font-bold rounded-lg" x-text="selectedLocations.length + ' Objek'"></span>
+                                <span class="px-1.5 py-0.5 bg-indigo-500/20 text-indigo-300 text-[10px] font-mono font-bold rounded border border-indigo-500/30" x-text="selectedLocations.length + ' Objek'"></span>
                             </div>
-                            <p class="text-[11px] text-slate-400 font-medium">
-                                Ubah properti seluruh objek yang terpilih secara bersamaan:
+                            <p class="text-[11px] text-slate-400 font-medium font-sans">
+                                Ubah properti seluruh objek terpilih serentak:
                             </p>
-                            <div class="grid grid-cols-2 gap-2">
-                                <button @click="bulkToggleLockLocations(false)" type="button" class="px-3 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 text-xs font-bold rounded-xl border border-emerald-500/30 transition flex items-center justify-center gap-1.5">
-                                    <i data-lucide="unlock" class="w-3.5 h-3.5"></i> 🔓 Buka Kunci
+                            <div class="grid grid-cols-2 gap-1.5">
+                                <button @click="bulkToggleLockLocations(false)" type="button" class="px-2 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 text-xs font-bold rounded border border-emerald-500/30 transition flex items-center justify-center gap-1 cursor-pointer">
+                                    <i data-lucide="unlock" class="w-3.5 h-3.5"></i> Buka Kunci
                                 </button>
-                                <button @click="bulkToggleLockLocations(true)" type="button" class="px-3 py-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 text-xs font-bold rounded-xl border border-amber-500/30 transition flex items-center justify-center gap-1.5">
-                                    <i data-lucide="lock" class="w-3.5 h-3.5"></i> 🔒 Kunci Semua
+                                <button @click="bulkToggleLockLocations(true)" type="button" class="px-2 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 text-xs font-bold rounded border border-amber-500/30 transition flex items-center justify-center gap-1 cursor-pointer">
+                                    <i data-lucide="lock" class="w-3.5 h-3.5"></i> Kunci Semua
                                 </button>
-                                <button @click="openBatchResizeModal()" type="button" class="px-3 py-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 text-xs font-bold rounded-xl border border-blue-500/30 transition flex items-center justify-center gap-1.5">
-                                    <i data-lucide="scaling" class="w-3.5 h-3.5"></i> 📐 Ubah Ukuran
+                                <button @click="openBatchResizeModal()" type="button" class="px-2 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 text-xs font-bold rounded border border-blue-500/30 transition flex items-center justify-center gap-1 cursor-pointer">
+                                    <i data-lucide="scaling" class="w-3.5 h-3.5"></i> Ubah Ukuran
                                 </button>
-                                <button @click="openBatchDeptModal()" type="button" class="px-3 py-2 bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 text-xs font-bold rounded-xl border border-purple-500/30 transition flex items-center justify-center gap-1.5">
-                                    <i data-lucide="building-2" class="w-3.5 h-3.5"></i> 🏢 Set Dept
+                                <button @click="openBatchDeptModal()" type="button" class="px-2 py-1.5 bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 text-xs font-bold rounded border border-purple-500/30 transition flex items-center justify-center gap-1 cursor-pointer">
+                                    <i data-lucide="building-2" class="w-3.5 h-3.5"></i> Set Dept
                                 </button>
-                                <button @click="openBatchColorModal()" type="button" class="px-3 py-2 bg-pink-600/20 hover:bg-pink-600/30 text-pink-400 text-xs font-bold rounded-xl border border-pink-500/30 transition flex items-center justify-center gap-1.5 col-span-2">
-                                    <i data-lucide="palette" class="w-3.5 h-3.5"></i> 🎨 Set Warna Massal
+                                <button @click="openBatchColorModal()" type="button" class="px-2 py-1.5 bg-pink-600/20 hover:bg-pink-600/30 text-pink-400 text-xs font-bold rounded border border-pink-500/30 transition flex items-center justify-center gap-1 col-span-2 cursor-pointer">
+                                    <i data-lucide="palette" class="w-3.5 h-3.5"></i> Set Warna Massal
                                 </button>
-                                <button @click="alignGroupHorizontally()" type="button" class="px-3 py-2 bg-teal-600/20 hover:bg-teal-600/30 text-teal-400 text-xs font-bold rounded-xl border border-teal-500/30 transition flex items-center justify-center gap-1.5">
-                                    <i data-lucide="align-horizontal-space-around" class="w-3.5 h-3.5"></i> ↔️ Rapatkan Sisi Lebar
+                                <button @click="alignGroupHorizontally()" type="button" class="px-2 py-1.5 bg-teal-600/20 hover:bg-teal-600/30 text-teal-400 text-xs font-bold rounded border border-teal-500/30 transition flex items-center justify-center gap-1 cursor-pointer">
+                                    <i data-lucide="align-horizontal-space-around" class="w-3.5 h-3.5"></i> Rapatkan Baris
                                 </button>
-                                <button @click="alignGroupVertically()" type="button" class="px-3 py-2 bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400 text-xs font-bold rounded-xl border border-cyan-500/30 transition flex items-center justify-center gap-1.5">
-                                    <i data-lucide="align-vertical-space-around" class="w-3.5 h-3.5"></i> ↕️ Rapatkan Sisi Panjang
+                                <button @click="alignGroupVertically()" type="button" class="px-2 py-1.5 bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400 text-xs font-bold rounded border border-cyan-500/30 transition flex items-center justify-center gap-1 cursor-pointer">
+                                    <i data-lucide="align-vertical-space-around" class="w-3.5 h-3.5"></i> Rapatkan Kolom
                                 </button>
                             </div>
                         </div>
                     </template>
+
                     <!-- Header & Type Badge -->
-                    <div class="flex items-start justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+                    <div class="flex items-start justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
                         <div>
                             <div class="flex items-center gap-2 mb-1">
-                                <span class="px-2 py-0.5 text-[10px] font-black uppercase rounded-md tracking-wider text-white" :class="selectedLocation?.location_type === 'room' ? 'bg-emerald-600' : 'bg-blue-600'" x-text="selectedLocation?.location_type === 'room' ? 'OBJECT GUDANG / SEKTOR' : 'OBJECT RAK'"></span>
+                                <span class="px-1.5 py-0.5 text-[10px] font-bold uppercase rounded tracking-wider text-white" :class="selectedLocation?.location_type === 'room' ? 'bg-emerald-600' : 'bg-blue-600'" x-text="selectedLocation?.location_type === 'room' ? 'OBJECT GUDANG / SEKTOR' : 'OBJECT RAK'"></span>
                                 <template x-if="selectedLocation?.custom_color">
-                                    <span class="w-3 h-3 rounded-full border border-white/50" :style="{ backgroundColor: selectedLocation?.custom_color }"></span>
+                                    <span class="w-3 h-3 rounded-none border border-slate-400" :style="{ backgroundColor: selectedLocation?.custom_color }"></span>
                                 </template>
                             </div>
                             <div class="flex items-center gap-2">
-                                <h2 class="text-xl font-extrabold text-slate-900 dark:text-white" x-text="selectedLocation?.rack_code"></h2>
+                                <h2 class="text-base font-bold text-slate-900 dark:text-white uppercase" x-text="selectedLocation?.rack_code"></h2>
                                 <!-- Edit Pencil Icon Button next to title -->
-                                <button @click="openEditModal()" type="button" title="Edit Detail Object (Nama, Sektor, Warna, Kapasitas, Geometri)" class="px-2 py-1 bg-blue-600/10 hover:bg-blue-600/20 text-blue-600 dark:text-blue-400 rounded-lg transition flex items-center gap-1 text-xs font-bold border border-blue-500/20 group">
-                                    <i data-lucide="pencil" class="w-3.5 h-3.5 text-blue-500 group-hover:scale-110 transition"></i>
+                                <button @click="openEditModal()" type="button" title="Edit Detail Object (Nama, Sektor, Warna, Kapasitas, Geometri)" class="px-1.5 py-0.5 bg-blue-600/10 hover:bg-blue-600/20 text-blue-600 dark:text-blue-400 rounded transition flex items-center gap-1 text-[11px] font-bold border border-blue-500/20 cursor-pointer">
+                                    <i data-lucide="pencil" class="w-3 h-3 text-blue-500"></i>
                                     <span>Edit</span>
                                 </button>
                             </div>
                             <div class="flex items-center gap-1.5 mt-0.5">
-                                <span class="text-xs text-slate-500 dark:text-slate-400 font-medium" x-text="'Sektor: ' + (selectedLocation?.room_sector || 'Umum')"></span>
+                                <span class="text-xs text-slate-500 dark:text-slate-400 font-medium font-sans" x-text="'Sektor: ' + (selectedLocation?.room_sector || 'Umum')"></span>
                             </div>
                         </div>
-                        <button @click="selectedLocation = null; renderCanvas()" type="button" class="text-slate-400 hover:text-slate-600">
-                            <i data-lucide="x" class="w-5 h-5"></i>
+                        <button @click="selectedLocation = null; renderCanvas()" type="button" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer">
+                            <i data-lucide="x" class="w-4 h-4"></i>
                         </button>
                     </div>
 
                     <!-- Lock Status Card (For Gudang Room & Rak) -->
                     <template x-if="selectedLocation">
-                        <div class="p-3 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                        <div class="p-2.5 bg-slate-50 dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-800 flex items-center justify-between">
                             <div>
-                                <span class="text-slate-500 text-[11px] font-medium block" x-text="selectedLocation?.location_type === 'room' ? 'Status Gembok Gudang:' : 'Status Gembok Rak:'"></span>
-                                <span class="font-extrabold text-xs flex items-center gap-1 mt-0.5" :class="selectedLocation?.is_locked !== false ? 'text-rose-500' : 'text-emerald-500'">
+                                <span class="text-slate-500 text-[10px] uppercase font-bold block" x-text="selectedLocation?.location_type === 'room' ? 'Status Gudang:' : 'Status Rak:'"></span>
+                                <span class="font-bold text-xs flex items-center gap-1 mt-0.5" :class="selectedLocation?.is_locked !== false ? 'text-rose-500' : 'text-emerald-500'">
                                     <i data-lucide="lock" class="w-3.5 h-3.5"></i>
                                     <span x-text="selectedLocation?.is_locked !== false ? 'Terkunci (Locked 🔒)' : 'Terbuka (Unlocked 🔓)'"></span>
                                 </span>
                             </div>
-                            <button @click="toggleLockLocation(selectedLocation)" type="button" class="px-3 py-1.5 rounded-xl font-bold text-xs shadow transition text-white" :class="selectedLocation?.is_locked !== false ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-rose-600 hover:bg-rose-500'">
+                            <button @click="toggleLockLocation(selectedLocation)" type="button" class="px-2.5 py-1 rounded font-bold text-xs shadow-xs transition text-white cursor-pointer border" :class="selectedLocation?.is_locked !== false ? 'bg-emerald-600 hover:bg-emerald-500 border-emerald-700' : 'bg-rose-600 hover:bg-rose-500 border-rose-700'">
                                 <span x-text="selectedLocation?.is_locked !== false ? '🔓 Buka Kunci' : '🔒 Kunci Object'"></span>
                             </button>
                         </div>
                     </template>
 
                     <!-- Geometri Canvas Info -->
-                    <div class="relative grid grid-cols-2 gap-2 text-xs p-3 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-800 font-mono group">
-                        <div><span class="text-slate-400">Posisi X,Y:</span> <span class="font-bold text-slate-900 dark:text-white" x-text="selectedLocation?.canvas_x + ', ' + selectedLocation?.canvas_y"></span></div>
+                    <div class="relative grid grid-cols-2 gap-2 text-xs p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded font-mono">
+                        <div><span class="text-slate-400">Posisi:</span> <span class="font-bold text-slate-900 dark:text-white" x-text="'X:' + selectedLocation?.canvas_x + ', Y:' + selectedLocation?.canvas_y"></span></div>
                         <div class="flex items-center justify-between">
-                            <div><span class="text-slate-400">Ukuran WxH:</span> <span class="font-bold text-amber-600 dark:text-amber-400" x-text="selectedLocation?.canvas_width + ' x ' + selectedLocation?.canvas_height + ' px'"></span></div>
-                            <button @click="openEditModal()" type="button" title="Edit Dimensi & Posisi Geometri" class="p-1 text-slate-400 hover:text-blue-500 transition">
-                                <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                            <div><span class="text-slate-400">Ukuran:</span> <span class="font-bold text-amber-600 dark:text-amber-400" x-text="selectedLocation?.canvas_width + 'x' + selectedLocation?.canvas_height + 'px'"></span></div>
+                            <button @click="openEditModal()" type="button" title="Edit Dimensi & Posisi Geometri" class="p-0.5 text-slate-400 hover:text-blue-500 transition cursor-pointer">
+                                <i data-lucide="pencil" class="w-3 h-3"></i>
                             </button>
                         </div>
                     </div>
 
                     <!-- Capacity Progress Bar (If Rack) -->
                     <template x-if="selectedLocation?.location_type !== 'room'">
-                        <div class="space-y-3">
-                            <div class="space-y-1.5">
+                        <div class="space-y-2">
+                            <div class="space-y-1">
                                 <div class="flex justify-between items-center text-xs font-bold">
                                     <div class="flex items-center gap-1.5">
                                         <span class="text-slate-600 dark:text-slate-400">Kapasitas Terisi:</span>
-                                        <button @click="openEditModal()" type="button" title="Edit Kapasitas Box" class="p-0.5 text-slate-400 hover:text-blue-500 transition">
+                                        <button @click="openEditModal()" type="button" title="Edit Kapasitas Box" class="p-0.5 text-slate-400 hover:text-blue-500 transition cursor-pointer">
                                             <i data-lucide="pencil" class="w-3 h-3"></i>
                                         </button>
                                     </div>
                                     <span :style="{ color: selectedLocation?.status_color }" x-text="(selectedLocation?.current_box_count || 0) + ' / ' + (selectedLocation?.box_capacity || 0) + ' Box (' + (selectedLocation?.capacity_percentage || 0) + '%)'"></span>
                                 </div>
-                                <div class="w-full bg-slate-100 dark:bg-slate-900 rounded-full h-3 overflow-hidden border border-slate-200 dark:border-slate-800">
-                                    <div class="h-full transition-all duration-300 rounded-full" :style="{ width: (selectedLocation?.capacity_percentage || 0) + '%', backgroundColor: selectedLocation?.status_color }"></div>
+                                <div class="w-full bg-slate-200 dark:bg-slate-900 rounded-none h-2.5 overflow-hidden border border-slate-300 dark:border-slate-800">
+                                    <div class="h-full transition-all duration-300" :style="{ width: (selectedLocation?.capacity_percentage || 0) + '%', backgroundColor: selectedLocation?.status_color }"></div>
                                 </div>
                             </div>
 
                             <!-- 100-Box Grid Highlight CTA Card -->
-                            <div class="p-3.5 bg-gradient-to-br from-indigo-950/60 via-slate-900 to-slate-900 border border-indigo-500/30 rounded-2xl space-y-3 shadow-md">
+                            <div class="p-3 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded space-y-2 shadow-xs font-mono">
                                 <div class="flex items-center justify-between">
-                                    <span class="text-[11px] font-black text-indigo-300 uppercase tracking-wide flex items-center gap-1.5">
-                                        <i data-lucide="layout-grid" class="w-4 h-4 text-indigo-400"></i>
+                                    <span class="text-[11px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide flex items-center gap-1.5">
+                                        <i data-lucide="layout-grid" class="w-3.5 h-3.5 text-indigo-500"></i>
                                         Visualisasi 100 Slot Box (TB 30g)
                                     </span>
-                                    <span class="px-2 py-0.5 bg-indigo-500/20 text-indigo-300 text-[10px] font-mono font-bold rounded-md">5 LVL × 20</span>
+                                    <span class="px-1.5 py-0.2 bg-indigo-500/20 text-indigo-400 text-[10px] font-bold rounded border border-indigo-500/30">5 LVL × 20</span>
                                 </div>
 
                                 <div class="grid grid-cols-3 gap-1.5 text-center text-[10px] font-bold">
-                                    <div class="p-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400">
-                                        <span class="block text-[8px] uppercase tracking-wider text-emerald-500">Kosong</span>
-                                        <span class="text-xs font-mono font-black" x-text="getRackSlotStats(selectedLocation).empty"></span>
+                                    <div class="p-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded text-emerald-500">
+                                        <span class="block text-[8px] uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Kosong</span>
+                                        <span class="text-xs font-mono font-bold" x-text="getRackSlotStats(selectedLocation).empty"></span>
                                     </div>
-                                    <div class="p-1.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-400">
-                                        <span class="block text-[8px] uppercase tracking-wider text-amber-500">Terisi</span>
-                                        <span class="text-xs font-mono font-black" x-text="getRackSlotStats(selectedLocation).filled"></span>
+                                    <div class="p-1.5 bg-amber-500/10 border border-amber-500/20 rounded text-amber-500">
+                                        <span class="block text-[8px] uppercase tracking-wider text-amber-600 dark:text-amber-400">Terisi</span>
+                                        <span class="text-xs font-mono font-bold" x-text="getRackSlotStats(selectedLocation).filled"></span>
                                     </div>
-                                    <div class="p-1.5 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-400">
-                                        <span class="block text-[8px] uppercase tracking-wider text-rose-500">Expired</span>
-                                        <span class="text-xs font-mono font-black" x-text="getRackSlotStats(selectedLocation).expired"></span>
+                                    <div class="p-1.5 bg-rose-500/10 border border-rose-500/20 rounded text-rose-500">
+                                        <span class="block text-[8px] uppercase tracking-wider text-rose-600 dark:text-rose-400">Expired</span>
+                                        <span class="text-xs font-mono font-bold" x-text="getRackSlotStats(selectedLocation).expired"></span>
                                     </div>
                                 </div>
 
                                 <button 
                                     @click="openRackGridModal(selectedLocation)" 
                                     type="button" 
-                                    class="w-full py-2 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-extrabold text-xs rounded-xl shadow transition flex items-center justify-center gap-2 transform active:scale-95"
+                                    class="w-full py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded border border-indigo-700 shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
                                 >
                                     <i data-lucide="grid" class="w-3.5 h-3.5"></i>
                                     <span>Buka Grid Rak 5 LVL (100 Box)</span>
@@ -835,21 +851,21 @@
                     </template>
 
                     <!-- Department Allocation & Booking Info -->
-                    <div class="space-y-3 text-xs">
-                        <div class="p-3 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-800">
+                    <div class="space-y-2 text-xs">
+                        <div class="p-2.5 bg-slate-50 dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-800">
                             <div class="flex items-center justify-between mb-0.5">
-                                <span class="text-slate-500 dark:text-slate-400 font-medium">Alokasi Departemen:</span>
-                                <button @click="openEditModal()" type="button" title="Edit Alokasi Departemen" class="p-1 text-slate-400 hover:text-blue-500 transition">
-                                    <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                                <span class="text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px]">Alokasi Departemen:</span>
+                                <button @click="openEditModal()" type="button" title="Edit Alokasi Departemen" class="p-0.5 text-slate-400 hover:text-blue-500 transition cursor-pointer">
+                                    <i data-lucide="pencil" class="w-3 h-3"></i>
                                 </button>
                             </div>
-                            <span class="font-extrabold text-slate-900 dark:text-white text-sm" x-text="selectedLocation?.assigned_department ? (selectedLocation?.assigned_department.code + ' - ' + selectedLocation?.assigned_department.name) : 'Umum (Bebas)'"></span>
+                            <span class="font-bold text-slate-900 dark:text-white text-xs" x-text="selectedLocation?.assigned_department ? (selectedLocation?.assigned_department.code + ' - ' + selectedLocation?.assigned_department.name) : 'Umum (Bebas)'"></span>
                         </div>
 
                         <template x-if="selectedLocation?.is_booked">
-                            <div class="p-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl space-y-1">
-                                <span class="text-amber-700 dark:text-amber-400 font-extrabold block">Status: Reserved Booking</span>
-                                <p class="text-slate-700 dark:text-slate-300 font-medium" x-text="selectedLocation?.booking_notes || 'Alokasi booking berkas'"></p>
+                            <div class="p-2.5 bg-amber-500/10 border border-amber-500/30 rounded space-y-1">
+                                <span class="text-amber-700 dark:text-amber-400 font-bold uppercase text-[10px] block">Status: Reserved Booking</span>
+                                <p class="text-slate-700 dark:text-slate-300 font-medium font-sans text-[11px]" x-text="selectedLocation?.booking_notes || 'Alokasi booking berkas'"></p>
                                 <span class="text-[10px] text-slate-500 block" x-text="'Oleh: ' + (selectedLocation?.booked_by_user || 'User')"></span>
                             </div>
                         </template>
@@ -857,14 +873,14 @@
 
                     <!-- Archives List inside Selected Location -->
                     <template x-if="selectedLocation?.location_type !== 'room'">
-                        <div class="space-y-3 pt-2">
-                            <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block" x-text="'Daftar Box Arsip Tersimpan (' + (selectedLocation?.archives?.length || 0) + '):'"></span>
+                        <div class="space-y-2 pt-1">
+                            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block" x-text="'Daftar Box Arsip Tersimpan (' + (selectedLocation?.archives?.length || 0) + '):'"></span>
                             
-                            <div class="space-y-2 max-h-52 overflow-y-auto pr-1">
+                            <div class="space-y-1.5 max-h-52 overflow-y-auto pr-1">
                                 <template x-for="arc in selectedLocation?.archives || []" :key="arc.id">
-                                    <div @click="openDocDetail(arc)" class="p-3 bg-slate-50 dark:bg-slate-900/80 hover:bg-amber-500/10 dark:hover:bg-amber-500/20 border border-slate-200 dark:border-slate-800 rounded-xl cursor-pointer transition space-y-1">
-                                        <span class="font-mono text-xs text-amber-600 dark:text-amber-400 font-extrabold block" x-text="arc.box_number || 'DRAFT'"></span>
-                                        <h4 class="font-bold text-slate-900 dark:text-white text-xs line-clamp-1" x-text="arc.title"></h4>
+                                    <div @click="openDocDetail(arc)" class="p-2 bg-slate-50 dark:bg-slate-900 hover:bg-amber-500/10 dark:hover:bg-amber-500/20 border border-slate-200 dark:border-slate-800 rounded cursor-pointer transition space-y-0.5">
+                                        <span class="font-mono text-xs text-amber-600 dark:text-amber-400 font-bold block" x-text="arc.box_number || 'DRAFT'"></span>
+                                        <h4 class="font-bold text-slate-900 dark:text-white text-xs line-clamp-1 font-sans" x-text="arc.title"></h4>
                                         <div class="flex justify-between text-[10px] text-slate-500 font-medium">
                                             <span x-text="'Dept: ' + arc.department"></span>
                                             <span x-text="'Exp: ' + arc.retention_expiry_date"></span>
@@ -872,8 +888,8 @@
                                     </div>
                                 </template>
                                 <template x-if="!selectedLocation?.archives || selectedLocation?.archives.length === 0">
-                                    <div class="p-4 text-center text-xs text-slate-400 font-medium bg-slate-50 dark:bg-slate-900/50 rounded-xl">
-                                        Belum ada box arsip yang dimasukkan ke rak ini.
+                                    <div class="p-3 text-center text-xs text-slate-400 font-medium bg-slate-50 dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-800">
+                                        Belum ada box arsip di dalam rak ini.
                                     </div>
                                 </template>
                             </div>
@@ -881,136 +897,143 @@
                     </template>
 
                     <!-- Action Buttons -->
-                    <div class="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
+                    <div class="pt-3 border-t border-slate-200 dark:border-slate-800 space-y-1.5 font-mono">
                         <template x-if="selectedLocation?.location_type !== 'room'">
-                            <button @click="openRackGridModal(selectedLocation)" type="button" class="w-full py-2.5 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-extrabold text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-2">
-                                <i data-lucide="layout-grid" class="w-4 h-4"></i> Visualisasi 100 Slot Rak (5 LVL)
+                            <button @click="openRackGridModal(selectedLocation)" type="button" class="w-full py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded border border-indigo-700 shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer">
+                                <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i> Visualisasi 100 Slot Rak (5 LVL)
                             </button>
                         </template>
 
                         <template x-if="selectedLocation?.location_type === 'room'">
-                            <button @click="addRackInsideRoom(selectedLocation, selectedLocation.canvas_x + 20, selectedLocation.canvas_y + 40)" type="button" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow transition flex items-center justify-center gap-2">
-                                <i data-lucide="plus-square" class="w-4 h-4"></i> + Tambah Rak di Dalam Sektor Ini
+                            <button @click="addRackInsideRoom(selectedLocation, selectedLocation.canvas_x + 20, selectedLocation.canvas_y + 40)" type="button" class="w-full py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded border border-emerald-700 shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer">
+                                <i data-lucide="plus-square" class="w-3.5 h-3.5"></i> + Tambah Rak di Sektor Ini
                             </button>
                         </template>
 
                         <template x-if="selectedLocation?.location_type === 'room'">
-                            <button @click="duplicateRack(selectedLocation)" type="button" class="w-full py-2.5 bg-purple-600/20 hover:bg-purple-600/30 text-purple-700 dark:text-purple-300 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 border border-purple-500/30">
-                                <i data-lucide="copy" class="w-4 h-4 text-purple-500"></i> 📋 Duplikat (Copy) Gudang Ini
+                            <button @click="duplicateRack(selectedLocation)" type="button" class="w-full py-1.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs rounded border border-slate-300 dark:border-slate-700 transition flex items-center justify-center gap-1.5 cursor-pointer">
+                                <i data-lucide="copy" class="w-3.5 h-3.5 text-purple-500"></i> Duplikat (Copy) Gudang Ini
                             </button>
                         </template>
 
                         <template x-if="selectedLocation?.location_type !== 'room'">
-                            <button @click="duplicateRack(selectedLocation)" type="button" class="w-full py-2.5 bg-purple-600/20 hover:bg-purple-600/30 text-purple-700 dark:text-purple-300 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 border border-purple-500/30">
-                                <i data-lucide="copy" class="w-4 h-4 text-purple-500"></i> 📋 Duplikat (Copy) Rak Ini
+                            <button @click="duplicateRack(selectedLocation)" type="button" class="w-full py-1.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs rounded border border-slate-300 dark:border-slate-700 transition flex items-center justify-center gap-1.5 cursor-pointer">
+                                <i data-lucide="copy" class="w-3.5 h-3.5 text-purple-500"></i> Duplikat (Copy) Rak Ini
                             </button>
                         </template>
 
                         <template x-if="selectedLocation?.location_type !== 'room'">
-                            <button @click="openMoveModal(selectedLocation)" type="button" class="w-full py-2.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-700 dark:text-amber-400 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 border border-amber-500/30">
-                                <i data-lucide="truck" class="w-4 h-4 text-amber-500"></i> 🚚 Pindahkan (Move) Rak Ke Gudang...
+                            <button @click="openMoveModal(selectedLocation)" type="button" class="w-full py-1.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-800 dark:text-amber-300 font-bold text-xs rounded border border-amber-500/30 transition flex items-center justify-center gap-1.5 cursor-pointer">
+                                <i data-lucide="truck" class="w-3.5 h-3.5 text-amber-500"></i> Pindahkan Rak Ke Gudang...
                             </button>
                         </template>
 
                         <template x-if="selectedLocation?.location_type !== 'room' && !selectedLocation?.is_booked">
-                            <button @click="openBookingModal()" type="button" class="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl shadow transition flex items-center justify-center gap-2">
-                                <i data-lucide="bookmark-plus" class="w-4 h-4"></i> Booking Slot Tempat Arsip
+                            <button @click="openBookingModal()" type="button" class="w-full py-1.5 bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs rounded border border-amber-700 shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer">
+                                <i data-lucide="bookmark-plus" class="w-3.5 h-3.5"></i> Booking Slot Tempat Arsip
                             </button>
                         </template>
 
                         <template x-if="selectedLocation?.is_booked">
-                            <button @click="unbookLocation()" type="button" class="w-full py-2.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-700 dark:text-rose-300 border border-rose-500/30 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2">
-                                <i data-lucide="bookmark-x" class="w-4 h-4"></i> Lepas Status Booking
+                            <button @click="unbookLocation()" type="button" class="w-full py-1.5 bg-rose-500/15 hover:bg-rose-500/25 text-rose-700 dark:text-rose-300 border border-rose-500/30 font-bold text-xs rounded transition flex items-center justify-center gap-1.5 cursor-pointer">
+                                <i data-lucide="bookmark-x" class="w-3.5 h-3.5"></i> Lepas Status Booking
                             </button>
                         </template>
 
-                        <button @click="rotateLocation(selectedLocation, 90)" type="button" class="w-full py-2.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-700 dark:text-indigo-300 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 border border-indigo-500/30">
-                            <i data-lucide="rotate-cw" class="w-4 h-4 text-indigo-500"></i> 🔄 Putar (Rotate) Object 90° <span class="text-[10px] opacity-75 font-mono">(Key: R)</span>
+                        <button @click="rotateLocation(selectedLocation, 90)" type="button" class="w-full py-1.5 bg-cyan-600/15 hover:bg-cyan-600/25 text-cyan-800 dark:text-cyan-300 font-bold text-xs rounded border border-cyan-500/30 transition flex items-center justify-center gap-1.5 cursor-pointer">
+                            <i data-lucide="rotate-cw" class="w-3.5 h-3.5 text-cyan-500"></i> Putar Object 90° <span class="text-[10px] opacity-75">(Key: R)</span>
                         </button>
 
-                        <button @click="openEditModal()" type="button" class="w-full py-2.5 bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2">
-                            <i data-lucide="edit-3" class="w-4 h-4"></i> Edit Nama, Warna & Geometri Object
+                        <button @click="openEditModal()" type="button" class="w-full py-1.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs rounded border border-slate-300 dark:border-slate-700 transition flex items-center justify-center gap-1.5 cursor-pointer">
+                            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i> Edit Nama, Warna & Geometri
                         </button>
 
-                        <button @click="deleteSelectedLocation()" type="button" class="w-full py-2 bg-rose-600/10 hover:bg-rose-600/20 text-rose-600 dark:text-rose-400 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2">
-                            <i data-lucide="trash-2" class="w-4 h-4"></i> Hapus Object Dari Canvas <span class="text-[10px] opacity-75 font-mono">(Key: Delete)</span>
+                        <button @click="deleteSelectedLocation()" type="button" class="w-full py-1.5 bg-rose-600/15 hover:bg-rose-600/25 text-rose-600 dark:text-rose-400 font-bold text-xs rounded border border-rose-500/30 transition flex items-center justify-center gap-1.5 cursor-pointer">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Hapus Object Dari Canvas <span class="text-[10px] opacity-75">(Key: Del)</span>
                         </button>
                     </div>
                 </div>
             </div>
 
     <!-- Modal 1: Document Detail Inspector -->
-    <div x-show="docModalOpen" x-cloak class="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 max-w-lg w-full space-y-4 shadow-2xl">
-            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
-                <span class="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">Detail Berkas Dokumen</span>
-                <button @click="docModalOpen = false" type="button" class="text-slate-400 hover:text-slate-600">
-                    <i data-lucide="x" class="w-5 h-5"></i>
+    <div x-show="docModalOpen" x-cloak class="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 font-mono">
+        <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-5 max-w-lg w-full space-y-3 shadow-2xl">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2.5">
+                <span class="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                    <i data-lucide="file-text" class="w-4 h-4"></i> Detail Berkas Dokumen
+                </span>
+                <button @click="docModalOpen = false" type="button" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer">
+                    <i data-lucide="x" class="w-4 h-4"></i>
                 </button>
             </div>
 
-            <div class="space-y-3 text-xs">
+            <div class="space-y-2.5 text-xs">
                 <div>
-                    <span class="text-slate-500 block mb-0.5">Judul Dokumen:</span>
-                    <h3 class="text-base font-extrabold text-slate-900 dark:text-white" x-text="selectedDoc?.title"></h3>
+                    <span class="text-slate-500 text-[10px] uppercase font-bold block mb-0.5">Judul Dokumen:</span>
+                    <h3 class="text-sm font-bold text-slate-900 dark:text-white font-sans" x-text="selectedDoc?.title"></h3>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="p-2.5 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
-                        <span class="text-slate-500 block">Kode Box:</span>
-                        <span class="font-mono font-bold text-amber-600 dark:text-amber-400 text-sm" x-text="selectedDoc?.box_number || 'DRAFT'"></span>
+                <div class="grid grid-cols-2 gap-2">
+                    <div class="p-2 bg-slate-50 dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-800">
+                        <span class="text-slate-500 text-[10px] uppercase font-bold block">Kode Box:</span>
+                        <span class="font-mono font-bold text-amber-600 dark:text-amber-400 text-xs" x-text="selectedDoc?.box_number || 'DRAFT'"></span>
                     </div>
 
-                    <div class="p-2.5 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
-                        <span class="text-slate-500 block">Perusahaan:</span>
-                        <span class="font-bold text-slate-900 dark:text-white" x-text="selectedDoc?.company_name"></span>
+                    <div class="p-2 bg-slate-50 dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-800">
+                        <span class="text-slate-500 text-[10px] uppercase font-bold block">Perusahaan:</span>
+                        <span class="font-bold text-slate-900 dark:text-white text-xs" x-text="selectedDoc?.company_name"></span>
                     </div>
 
-                    <div class="p-2.5 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
-                        <span class="text-slate-500 block">Jenis Dokumen:</span>
-                        <span class="font-bold text-slate-900 dark:text-white" x-text="selectedDoc?.document_type"></span>
+                    <div class="p-2 bg-slate-50 dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-800">
+                        <span class="text-slate-500 text-[10px] uppercase font-bold block">Jenis Dokumen:</span>
+                        <span class="font-bold text-slate-900 dark:text-white text-xs" x-text="selectedDoc?.document_type"></span>
                     </div>
 
-                    <div class="p-2.5 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
-                        <span class="text-slate-500 block">Periode (YY-MM):</span>
-                        <span class="font-bold text-amber-600 dark:text-amber-400" x-text="selectedDoc?.period_yy_mm"></span>
+                    <div class="p-2 bg-slate-50 dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-800">
+                        <span class="text-slate-500 text-[10px] uppercase font-bold block">Periode (YY-MM):</span>
+                        <span class="font-bold text-amber-600 dark:text-amber-400 text-xs" x-text="selectedDoc?.period_yy_mm"></span>
                     </div>
                 </div>
 
-                <div class="p-2.5 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
-                    <span class="text-slate-500 block">Masa Simpan Expiry:</span>
-                    <span class="font-extrabold text-rose-600 dark:text-rose-400" x-text="selectedDoc?.retention_expiry_date + ' (' + selectedDoc?.retention_years + ' Tahun Retention)'"></span>
+                <div class="p-2 bg-slate-50 dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-800">
+                    <span class="text-slate-500 text-[10px] uppercase font-bold block">Masa Simpan Expiry:</span>
+                    <span class="font-bold text-rose-600 dark:text-rose-400 text-xs" x-text="selectedDoc?.retention_expiry_date + ' (' + selectedDoc?.retention_years + ' Tahun Retention)'"></span>
                 </div>
 
                 <!-- Scan Buttons -->
-                <div class="flex items-center gap-2 pt-2">
+                <div class="flex items-center gap-2 pt-1">
                     <template x-if="selectedDoc?.scan_input_form">
-                        <a :href="selectedDoc.scan_input_form" target="_blank" class="px-3 py-1.5 bg-amber-500 text-slate-950 font-bold rounded-lg text-xs">Scan Form Input</a>
+                        <a :href="selectedDoc.scan_input_form" target="_blank" class="px-3 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded border border-amber-600 text-xs shadow-xs">Scan Form Input</a>
                     </template>
                     <template x-if="selectedDoc?.scan_approval_input">
-                        <a :href="selectedDoc.scan_approval_input" target="_blank" class="px-3 py-1.5 bg-blue-600 text-white font-bold rounded-lg text-xs">Scan Approval</a>
+                        <a :href="selectedDoc.scan_approval_input" target="_blank" class="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded border border-blue-700 text-xs shadow-xs">Scan Approval</a>
                     </template>
                 </div>
             </div>
 
-            <div class="flex justify-end pt-2">
-                <button @click="docModalOpen = false" type="button" class="px-4 py-2 bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl">Tutup</button>
+            <div class="flex justify-end pt-2 border-t border-slate-200 dark:border-slate-800">
+                <button @click="docModalOpen = false" type="button" class="px-4 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs rounded border border-slate-300 dark:border-slate-700 cursor-pointer">Tutup</button>
             </div>
         </div>
     </div>
 
     <!-- Modal 2: Booking Slot Rak -->
-    <div x-show="bookingModalOpen" x-cloak class="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl">
-            <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <i data-lucide="bookmark-plus" class="w-5 h-5 text-amber-500"></i>
-                Form Booking Tempat Arsip
-            </h3>
+    <div x-show="bookingModalOpen" x-cloak class="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 font-mono">
+        <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-5 max-w-md w-full space-y-3 shadow-2xl">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2.5">
+                <h3 class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2 uppercase tracking-wider">
+                    <i data-lucide="bookmark-plus" class="w-4 h-4 text-amber-500"></i>
+                    Form Booking Tempat Arsip
+                </h3>
+                <button @click="bookingModalOpen = false" type="button" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
 
-            <form @submit.prevent="submitBooking()" class="space-y-4">
+            <form @submit.prevent="submitBooking()" class="space-y-3">
                 <div>
-                    <label class="block text-xs font-bold uppercase text-slate-700 dark:text-slate-400 mb-1">Pilih Departemen Pemohon <span class="text-rose-500">*</span></label>
-                    <select x-model="bookingForm.department_id" required class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white font-medium">
+                    <label class="block text-[10px] font-bold uppercase text-slate-700 dark:text-slate-400 mb-1">Pilih Departemen Pemohon <span class="text-rose-500">*</span></label>
+                    <select x-model="bookingForm.department_id" required class="w-full px-2.5 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-900 dark:text-white font-medium">
                         <option value="">-- Pilih Departemen --</option>
                         <template x-for="dept in departments" :key="dept.id">
                             <option :value="dept.id" x-text="dept.code + ' - ' + dept.name"></option>
@@ -1019,157 +1042,167 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold uppercase text-slate-700 dark:text-slate-400 mb-1">Catatan & Rencana Pengiriman Box <span class="text-rose-500">*</span></label>
-                    <textarea x-model="bookingForm.booking_notes" rows="3" required placeholder="Contoh: Booking slot untuk pengiriman 15 Box Faktur Pajak Q1 2026 Dept Keuangan..." class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 font-medium"></textarea>
+                    <label class="block text-[10px] font-bold uppercase text-slate-700 dark:text-slate-400 mb-1">Catatan & Rencana Pengiriman Box <span class="text-rose-500">*</span></label>
+                    <textarea x-model="bookingForm.booking_notes" rows="3" required placeholder="Contoh: Booking slot untuk pengiriman 15 Box Faktur Pajak Q1 2026 Dept Keuangan..." class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-900 dark:text-white placeholder-slate-400 font-sans"></textarea>
                 </div>
 
-                <div class="flex justify-end gap-2 pt-2">
-                    <button type="button" @click="bookingModalOpen = false" class="px-4 py-2 bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-400 text-xs rounded-xl font-bold">Batal</button>
-                    <button type="submit" class="px-5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black rounded-xl shadow-lg">Submit Booking</button>
+                <div class="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+                    <button type="button" @click="bookingModalOpen = false" class="px-3.5 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-300 text-xs rounded font-bold border border-slate-300 dark:border-slate-700 cursor-pointer">Batal</button>
+                    <button type="submit" class="px-4 py-1 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded border border-amber-700 shadow-xs cursor-pointer">Submit Booking</button>
                 </div>
             </form>
         </div>
     </div>
 
     <!-- Modal 3: Insert New Object (Gudang Square / Rak Rectangle) -->
-    <div x-show="objectModalOpen" x-cloak class="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl">
-            <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <i data-lucide="plus-circle" class="w-5 h-5 text-emerald-500"></i>
-                <span x-text="objectForm.location_type === 'room' ? 'Tambah Object Gudang Baru (Square)' : 'Tambah Object Rak Baru (Rectangle)'"></span>
-            </h3>
+    <div x-show="objectModalOpen" x-cloak class="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 font-mono">
+        <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-5 max-w-md w-full space-y-3 shadow-2xl">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2.5">
+                <h3 class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2 uppercase tracking-wider">
+                    <i data-lucide="plus-circle" class="w-4 h-4 text-emerald-500"></i>
+                    <span x-text="objectForm.location_type === 'room' ? 'Tambah Object Gudang (Square)' : 'Tambah Object Rak (Rectangle)'"></span>
+                </h3>
+                <button @click="objectModalOpen = false" type="button" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
 
-            <form @submit.prevent="submitCreateObject()" class="space-y-4">
+            <form @submit.prevent="submitCreateObject()" class="space-y-3">
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 dark:text-slate-400 mb-1">
+                    <label class="block text-[10px] font-bold uppercase text-slate-700 dark:text-slate-400 mb-1">
                         <span x-text="objectForm.location_type === 'room' ? 'Nama Gudang / Sektor' : 'Nomor / Awalan Kode Rak'"></span> <span class="text-rose-500">*</span>
                     </label>
-                    <input type="text" x-model="objectForm.rack_code" required placeholder="e.g. GUDANG PRODUKSI atau RAK-R7" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white font-bold">
+                    <input type="text" x-model="objectForm.rack_code" required placeholder="e.g. GUDANG PRODUKSI atau RAK-R7" class="w-full px-2.5 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-900 dark:text-white font-bold">
                 </div>
 
                 <template x-if="objectForm.location_type === 'rack'">
-                    <div class="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl space-y-1">
-                        <label class="block text-xs font-bold uppercase text-emerald-700 dark:text-emerald-400 mb-1 flex items-center justify-between">
+                    <div class="p-2.5 bg-emerald-500/10 border border-emerald-500/30 rounded space-y-1">
+                        <label class="block text-[10px] font-bold uppercase text-emerald-700 dark:text-emerald-400 mb-1 flex items-center justify-between">
                             <span>Jumlah Rak Yang Dibuat (Batch Multi-Add)</span>
                             <span class="text-rose-500">*</span>
                         </label>
-                        <div class="flex items-center gap-3">
-                            <input type="number" x-model="objectForm.quantity" min="1" max="50" required class="w-24 px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white font-mono font-bold">
-                            <span class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Buat 1 s/d 50 rak sekaligus secara otomatis tersusun rapi.</span>
+                        <div class="flex items-center gap-2">
+                            <input type="number" x-model="objectForm.quantity" min="1" max="50" required class="w-20 px-2 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-900 dark:text-white font-mono font-bold">
+                            <span class="text-[11px] text-slate-500 dark:text-slate-400 font-medium font-sans">Buat 1 s/d 50 rak sekaligus berurutan rapi.</span>
                         </div>
                     </div>
                 </template>
 
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-2 gap-2">
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 dark:text-slate-400 mb-1">Kode Sektor Ruangan</label>
-                        <input type="text" x-model="objectForm.room_sector" placeholder="e.g. R7, GA, IT" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white font-bold">
+                        <label class="block text-[10px] font-bold uppercase text-slate-700 dark:text-slate-400 mb-1">Kode Sektor Ruangan</label>
+                        <input type="text" x-model="objectForm.room_sector" placeholder="e.g. R7, GA, IT" class="w-full px-2.5 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-900 dark:text-white font-bold">
                     </div>
 
                     <template x-if="objectForm.location_type === 'rack'">
                         <div>
-                            <label class="block text-xs font-bold text-slate-700 dark:text-slate-400 mb-1">Kapasitas Box / Rak</label>
-                            <input type="number" x-model="objectForm.box_capacity" min="1" max="5000" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white font-bold">
+                            <label class="block text-[10px] font-bold uppercase text-slate-700 dark:text-slate-400 mb-1">Kapasitas Box</label>
+                            <input type="number" x-model="objectForm.box_capacity" min="1" max="5000" class="w-full px-2.5 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-900 dark:text-white font-bold">
                         </div>
                     </template>
                 </div>
 
                 <!-- Geometri Dimensions -->
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-2 gap-2">
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 dark:text-slate-400 mb-1">Lebar (Width px)</label>
-                        <input type="number" x-model="objectForm.canvas_width" required min="20" max="800" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white font-mono font-bold">
+                        <label class="block text-[10px] font-bold uppercase text-slate-700 dark:text-slate-400 mb-1">Lebar (Width px)</label>
+                        <input type="number" x-model="objectForm.canvas_width" required min="20" max="800" class="w-full px-2.5 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-900 dark:text-white font-mono font-bold">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 dark:text-slate-400 mb-1">Tinggi (Height px)</label>
-                        <input type="number" x-model="objectForm.canvas_height" required min="20" max="800" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white font-mono font-bold">
+                        <label class="block text-[10px] font-bold uppercase text-slate-700 dark:text-slate-400 mb-1">Tinggi (Height px)</label>
+                        <input type="number" x-model="objectForm.canvas_height" required min="20" max="800" class="w-full px-2.5 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-900 dark:text-white font-mono font-bold">
                     </div>
                 </div>
 
-                <!-- Color Preset Picker -->
+                <!-- Color Preset Picker (Square Swatches) -->
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 dark:text-slate-400 mb-1">Pilih Warna Object</label>
-                    <div class="flex flex-wrap items-center gap-2">
+                    <label class="block text-[10px] font-bold uppercase text-slate-700 dark:text-slate-400 mb-1.5">Pilih Warna Object</label>
+                    <div class="flex flex-wrap items-center gap-1.5">
                         <template x-for="c in colorPresets" :key="c">
-                            <button @click="objectForm.custom_color = c" type="button" class="w-7 h-7 rounded-xl border-2 transition" :class="objectForm.custom_color === c ? 'border-white scale-110 shadow-lg' : 'border-transparent opacity-80 hover:opacity-100'" :style="{ backgroundColor: c }"></button>
+                            <button @click="objectForm.custom_color = c" type="button" class="w-6 h-6 rounded-none border-2 transition cursor-pointer" :class="objectForm.custom_color === c ? 'border-white scale-110 shadow-xs ring-1 ring-amber-400' : 'border-slate-500 opacity-80 hover:opacity-100'" :style="{ backgroundColor: c }"></button>
                         </template>
                     </div>
                 </div>
 
-                <div class="flex justify-end gap-2 pt-2">
-                    <button type="button" @click="objectModalOpen = false" class="px-4 py-2 bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-400 text-xs rounded-xl font-bold">Batal</button>
-                    <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black rounded-xl shadow-lg">Tambah Object Ke Canvas</button>
+                <div class="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+                    <button type="button" @click="objectModalOpen = false" class="px-3.5 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-300 text-xs rounded font-bold border border-slate-300 dark:border-slate-700 cursor-pointer">Batal</button>
+                    <button type="submit" class="px-4 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded border border-emerald-700 shadow-xs cursor-pointer">Tambah Object</button>
                 </div>
             </form>
         </div>
     </div>
 
     <!-- Modal 4: Edit Object (Gudang / Rak) -->
-    <div x-show="editModalOpen" x-cloak class="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl">
-            <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <i data-lucide="edit-3" class="w-5 h-5 text-blue-500"></i>
-                Edit Details, Nama & Warna Object
-            </h3>
+    <div x-show="editModalOpen" x-cloak class="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 font-mono">
+        <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-5 max-w-md w-full space-y-3 shadow-2xl">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2.5">
+                <h3 class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2 uppercase tracking-wider">
+                    <i data-lucide="edit-3" class="w-4 h-4 text-blue-500"></i>
+                    Edit Details, Nama & Warna Object
+                </h3>
+                <button @click="editModalOpen = false" type="button" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
 
-            <form @submit.prevent="submitEdit()" class="space-y-4">
-                <div class="grid grid-cols-2 gap-3">
+            <form @submit.prevent="submitEdit()" class="space-y-3">
+                <div class="grid grid-cols-2 gap-2">
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 dark:text-slate-400 mb-1">Nama / Kode Object</label>
-                        <input type="text" x-model="editForm.rack_code" required class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white font-bold">
+                        <label class="block text-[10px] font-bold uppercase text-slate-700 dark:text-slate-400 mb-1">Nama / Kode Object</label>
+                        <input type="text" x-model="editForm.rack_code" required class="w-full px-2.5 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-900 dark:text-white font-bold">
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 dark:text-slate-400 mb-1">Kode Sektor Ruangan</label>
-                        <input type="text" x-model="editForm.room_sector" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white font-bold">
+                        <label class="block text-[10px] font-bold uppercase text-slate-700 dark:text-slate-400 mb-1">Kode Sektor Ruangan</label>
+                        <input type="text" x-model="editForm.room_sector" class="w-full px-2.5 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-900 dark:text-white font-bold">
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-2 gap-2">
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 dark:text-slate-400 mb-1">Kode Baris / Shelf</label>
-                        <input type="text" x-model="editForm.shelf_code" placeholder="e.g. BARIS-01" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white font-medium">
+                        <label class="block text-[10px] font-bold uppercase text-slate-700 dark:text-slate-400 mb-1">Kode Baris / Shelf</label>
+                        <input type="text" x-model="editForm.shelf_code" placeholder="e.g. BARIS-01" class="w-full px-2.5 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-900 dark:text-white font-medium">
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 dark:text-slate-400 mb-1">Kapasitas Maksimal Box</label>
-                        <input type="number" x-model="editForm.box_capacity" min="1" max="5000" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white font-bold">
+                        <label class="block text-[10px] font-bold uppercase text-slate-700 dark:text-slate-400 mb-1">Kapasitas Box</label>
+                        <input type="number" x-model="editForm.box_capacity" min="1" max="5000" class="w-full px-2.5 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-900 dark:text-white font-bold">
                     </div>
                 </div>
 
                 <!-- Dimensions & Orientation -->
-                <div class="grid grid-cols-3 gap-3">
+                <div class="grid grid-cols-3 gap-2">
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 dark:text-slate-400 mb-1">Lebar (W px)</label>
-                        <input type="number" x-model="editForm.canvas_width" required min="20" max="800" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl text-xs font-mono font-bold">
+                        <label class="block text-[10px] font-bold uppercase text-slate-700 dark:text-slate-400 mb-1">Lebar (W)</label>
+                        <input type="number" x-model="editForm.canvas_width" required min="20" max="800" class="w-full px-2.5 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-900 dark:text-white">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 dark:text-slate-400 mb-1">Tinggi (H px)</label>
-                        <input type="number" x-model="editForm.canvas_height" required min="20" max="800" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl text-xs font-mono font-bold">
+                        <label class="block text-[10px] font-bold uppercase text-slate-700 dark:text-slate-400 mb-1">Tinggi (H)</label>
+                        <input type="number" x-model="editForm.canvas_height" required min="20" max="800" class="w-full px-2.5 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-900 dark:text-white">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 dark:text-slate-400 mb-1">Orientasi</label>
-                        <select x-model="editForm.orientation" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl text-xs font-medium">
+                        <label class="block text-[10px] font-bold uppercase text-slate-700 dark:text-slate-400 mb-1">Orientasi</label>
+                        <select x-model="editForm.orientation" class="w-full px-2.5 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-900 dark:text-white font-medium">
                             <option value="horizontal">Horizontal</option>
                             <option value="vertical">Vertical</option>
                         </select>
                     </div>
                 </div>
 
-                <!-- Custom Color Picker -->
+                <!-- Custom Color Picker (Square Swatches) -->
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 dark:text-slate-400 mb-1">Warna Custom Object (Klik untuk pilih)</label>
-                    <div class="flex flex-wrap items-center gap-2">
-                        <button @click="editForm.custom_color = ''" type="button" class="px-2.5 py-1 text-[11px] rounded-lg font-bold border" :class="!editForm.custom_color ? 'bg-slate-800 text-white border-amber-400' : 'bg-slate-100 dark:bg-slate-900 text-slate-500 border-slate-300'">Auto (Status)</button>
+                    <label class="block text-[10px] font-bold uppercase text-slate-700 dark:text-slate-400 mb-1.5">Warna Custom Object</label>
+                    <div class="flex flex-wrap items-center gap-1.5">
+                        <button @click="editForm.custom_color = ''" type="button" class="px-2 py-0.5 text-[10px] rounded font-bold border cursor-pointer" :class="!editForm.custom_color ? 'bg-slate-800 text-white border-amber-400' : 'bg-slate-100 dark:bg-slate-900 text-slate-500 border-slate-300 dark:border-slate-700'">Auto (Status)</button>
                         <template x-for="c in colorPresets" :key="c">
-                            <button @click="editForm.custom_color = c" type="button" class="w-7 h-7 rounded-xl border-2 transition" :class="editForm.custom_color === c ? 'border-white scale-110 shadow-lg' : 'border-transparent opacity-80 hover:opacity-100'" :style="{ backgroundColor: c }"></button>
+                            <button @click="editForm.custom_color = c" type="button" class="w-6 h-6 rounded-none border-2 transition cursor-pointer" :class="editForm.custom_color === c ? 'border-white scale-110 shadow-xs ring-1 ring-amber-400' : 'border-slate-500 opacity-80 hover:opacity-100'" :style="{ backgroundColor: c }"></button>
                         </template>
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 dark:text-slate-400 mb-1">Alokasi Khusus Departemen (Opsional)</label>
-                    <select x-model="editForm.assigned_department_id" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white font-medium">
+                    <label class="block text-[10px] font-bold uppercase text-slate-700 dark:text-slate-400 mb-1">Alokasi Departemen</label>
+                    <select x-model="editForm.assigned_department_id" class="w-full px-2.5 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-900 dark:text-white font-medium">
                         <option value="">-- Umum (Bebas) --</option>
                         <template x-for="dept in departments" :key="dept.id">
                             <option :value="dept.id" x-text="dept.code + ' - ' + dept.name"></option>
@@ -1177,100 +1210,105 @@
                     </select>
                 </div>
 
-                <div class="flex justify-end gap-2 pt-2">
-                    <button type="button" @click="editModalOpen = false" class="px-4 py-2 bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-400 text-xs rounded-xl font-bold">Batal</button>
-                    <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-black rounded-xl shadow-lg">Simpan Perubahan</button>
+                <div class="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+                    <button type="button" @click="editModalOpen = false" class="px-3.5 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-300 text-xs rounded font-bold border border-slate-300 dark:border-slate-700 cursor-pointer">Batal</button>
+                    <button type="submit" class="px-4 py-1 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded border border-blue-700 shadow-xs cursor-pointer">Simpan Perubahan</button>
                 </div>
             </form>
         </div>
     </div>
 
     <!-- Modal 5: Move Rak Ke Gudang / Sektor -->
-    <div x-show="moveModalOpen" x-cloak class="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl">
-            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
-                <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <i data-lucide="truck" class="w-5 h-5 text-amber-500"></i>
-                    Pindahkan Rak Ke Gudang / Sektor
+    <div x-show="moveModalOpen" x-cloak class="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 font-mono">
+        <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-5 max-w-md w-full space-y-3 shadow-2xl">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2.5">
+                <h3 class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2 uppercase tracking-wider">
+                    <i data-lucide="truck" class="w-4 h-4 text-amber-500"></i>
+                    Pindahkan Rak Ke Gudang
                 </h3>
-                <button @click="moveModalOpen = false" type="button" class="text-slate-400 hover:text-slate-600">
-                    <i data-lucide="x" class="w-5 h-5"></i>
+                <button @click="moveModalOpen = false" type="button" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer">
+                    <i data-lucide="x" class="w-4 h-4"></i>
                 </button>
             </div>
 
-            <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                Pilih Gudang / Sektor tujuan untuk memindahkan posisi rak <span class="font-bold text-slate-900 dark:text-white font-mono" x-text="selectedLocation?.rack_code"></span>:
+            <p class="text-xs text-slate-500 dark:text-slate-400 font-medium font-sans">
+                Pilih Gudang / Sektor tujuan untuk rak <span class="font-bold text-slate-900 dark:text-white font-mono" x-text="selectedLocation?.rack_code"></span>:
             </p>
 
-            <div class="space-y-2 max-h-64 overflow-y-auto pr-1">
+            <div class="space-y-1.5 max-h-64 overflow-y-auto pr-1">
                 <template x-for="room in roomObjects" :key="room.id">
                     <div 
                         @click="moveRackToRoom(selectedLocation, room)" 
-                        class="p-3 bg-slate-50 dark:bg-slate-900/80 hover:bg-amber-500/10 dark:hover:bg-amber-500/20 border border-slate-200 dark:border-slate-800 rounded-xl cursor-pointer transition flex items-center justify-between group"
+                        class="p-2.5 bg-slate-50 dark:bg-slate-900 hover:bg-amber-500/10 dark:hover:bg-amber-500/20 border border-slate-200 dark:border-slate-800 rounded cursor-pointer transition flex items-center justify-between group"
                     >
-                        <div class="flex items-center gap-2.5">
-                            <span class="w-4 h-4 rounded-lg flex-shrink-0" :style="{ backgroundColor: room.custom_color || '#3b82f6' }"></span>
+                        <div class="flex items-center gap-2">
+                            <span class="w-3.5 h-3.5 rounded-none flex-shrink-0 border border-slate-400" :style="{ backgroundColor: room.custom_color || '#3b82f6' }"></span>
                             <div>
                                 <h4 class="font-bold text-slate-900 dark:text-white text-xs group-hover:text-amber-500 transition" x-text="room.rack_code"></h4>
                                 <span class="text-[10px] text-slate-500 block" x-text="'Sektor: ' + (room.room_sector || room.rack_code) + ' (' + room.canvas_width + 'x' + room.canvas_height + ' px)'"></span>
                             </div>
                         </div>
-                        <span class="px-2.5 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-extrabold text-[11px] rounded-lg border border-amber-500/20 group-hover:bg-amber-500 group-hover:text-slate-950 transition">
+                        <span class="px-2 py-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-[11px] rounded border border-amber-500/20 group-hover:bg-amber-500 group-hover:text-slate-950 transition">
                             Pindahkan &rarr;
                         </span>
                     </div>
                 </template>
                 <template x-if="roomObjects.length === 0">
-                    <div class="p-4 text-center text-xs text-slate-400 font-medium bg-slate-50 dark:bg-slate-900/50 rounded-xl">
+                    <div class="p-3 text-center text-xs text-slate-400 font-medium bg-slate-50 dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-800">
                         Belum ada objek Gudang/Sektor (Square). Silakan tambah Gudang terlebih dahulu.
                     </div>
                 </template>
             </div>
 
-            <div class="flex justify-end pt-2">
-                <button @click="moveModalOpen = false" type="button" class="px-4 py-2 bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-400 text-xs rounded-xl font-bold">Batal</button>
+            <div class="flex justify-end pt-2 border-t border-slate-200 dark:border-slate-800">
+                <button @click="moveModalOpen = false" type="button" class="px-3.5 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-300 text-xs rounded font-bold border border-slate-300 dark:border-slate-700 cursor-pointer">Batal</button>
             </div>
         </div>
     </div>
 
     <!-- Modal 5: Batch Resize Object (Width & Height Massal) -->
-    <div x-show="batchResizeModalOpen" x-cloak class="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl">
-            <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <i data-lucide="scaling" class="w-5 h-5 text-blue-500"></i>
-                <span>Ubah Ukuran Massal (Width & Height)</span>
-            </h3>
-            <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                Mengubah ukuran lebar dan tinggi secara serentak untuk <span class="font-bold text-indigo-400 font-mono" x-text="selectedLocations.length + ' object terseleksi'"></span>:
+    <div x-show="batchResizeModalOpen" x-cloak class="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 font-mono">
+        <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-5 max-w-md w-full space-y-3 shadow-2xl">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2.5">
+                <h3 class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2 uppercase tracking-wider">
+                    <i data-lucide="scaling" class="w-4 h-4 text-blue-500"></i>
+                    <span>Ubah Ukuran Massal (W & H)</span>
+                </h3>
+                <button @click="batchResizeModalOpen = false" type="button" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            <p class="text-xs text-slate-500 dark:text-slate-400 font-medium font-sans">
+                Ubah ukuran serentak untuk <span class="font-bold text-indigo-400 font-mono" x-text="selectedLocations.length + ' objek terpilih'"></span>:
             </p>
 
-            <form @submit.prevent="submitBatchResize()" class="space-y-4">
-                <div class="grid grid-cols-2 gap-3">
+            <form @submit.prevent="submitBatchResize()" class="space-y-3">
+                <div class="grid grid-cols-2 gap-2">
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 dark:text-slate-400 mb-1">Lebar Baru (Width px) <span class="text-rose-500">*</span></label>
-                        <input type="number" x-model="batchResizeForm.canvas_width" required min="20" max="800" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl text-xs font-mono font-bold text-slate-900 dark:text-white">
+                        <label class="block text-[10px] font-bold uppercase text-slate-700 dark:text-slate-400 mb-1">Lebar Baru (W px) <span class="text-rose-500">*</span></label>
+                        <input type="number" x-model="batchResizeForm.canvas_width" required min="20" max="800" class="w-full px-2.5 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-900 dark:text-white">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 dark:text-slate-400 mb-1">Tinggi Baru (Height px) <span class="text-rose-500">*</span></label>
-                        <input type="number" x-model="batchResizeForm.canvas_height" required min="20" max="800" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl text-xs font-mono font-bold text-slate-900 dark:text-white">
+                        <label class="block text-[10px] font-bold uppercase text-slate-700 dark:text-slate-400 mb-1">Tinggi Baru (H px) <span class="text-rose-500">*</span></label>
+                        <input type="number" x-model="batchResizeForm.canvas_height" required min="20" max="800" class="w-full px-2.5 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-900 dark:text-white">
                     </div>
                 </div>
 
-                <!-- Quick Preset Sizes -->
+                <!-- Quick Preset Sizes (Square Desktop Buttons) -->
                 <div>
-                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Preset Ukuran Standar:</label>
-                    <div class="flex flex-wrap gap-1.5">
-                        <button type="button" @click="batchResizeForm.canvas_width = 25; batchResizeForm.canvas_height = 140" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-900 hover:bg-blue-600 hover:text-white rounded-lg text-[11px] font-mono font-bold transition">25 x 140 (Vertikal Std)</button>
-                        <button type="button" @click="batchResizeForm.canvas_width = 140; batchResizeForm.canvas_height = 25" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-900 hover:bg-blue-600 hover:text-white rounded-lg text-[11px] font-mono font-bold transition">140 x 25 (Horizontal Std)</button>
-                        <button type="button" @click="batchResizeForm.canvas_width = 25; batchResizeForm.canvas_height = 180" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-900 hover:bg-blue-600 hover:text-white rounded-lg text-[11px] font-mono font-bold transition">25 x 180 (Vertikal Pjg)</button>
-                        <button type="button" @click="batchResizeForm.canvas_width = 180; batchResizeForm.canvas_height = 25" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-900 hover:bg-blue-600 hover:text-white rounded-lg text-[11px] font-mono font-bold transition">180 x 25 (Horizontal Pjg)</button>
+                    <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Preset Ukuran:</label>
+                    <div class="flex flex-wrap gap-1">
+                        <button type="button" @click="batchResizeForm.canvas_width = 25; batchResizeForm.canvas_height = 140" class="px-2 py-0.5 bg-slate-100 dark:bg-slate-900 hover:bg-blue-600 hover:text-white rounded text-[10px] font-mono font-bold border border-slate-300 dark:border-slate-700 transition cursor-pointer">25x140 (V-Std)</button>
+                        <button type="button" @click="batchResizeForm.canvas_width = 140; batchResizeForm.canvas_height = 25" class="px-2 py-0.5 bg-slate-100 dark:bg-slate-900 hover:bg-blue-600 hover:text-white rounded text-[10px] font-mono font-bold border border-slate-300 dark:border-slate-700 transition cursor-pointer">140x25 (H-Std)</button>
+                        <button type="button" @click="batchResizeForm.canvas_width = 25; batchResizeForm.canvas_height = 180" class="px-2 py-0.5 bg-slate-100 dark:bg-slate-900 hover:bg-blue-600 hover:text-white rounded text-[10px] font-mono font-bold border border-slate-300 dark:border-slate-700 transition cursor-pointer">25x180 (V-Pjg)</button>
+                        <button type="button" @click="batchResizeForm.canvas_width = 180; batchResizeForm.canvas_height = 25" class="px-2 py-0.5 bg-slate-100 dark:bg-slate-900 hover:bg-blue-600 hover:text-white rounded text-[10px] font-mono font-bold border border-slate-300 dark:border-slate-700 transition cursor-pointer">180x25 (H-Pjg)</button>
                     </div>
                 </div>
 
-                <div class="flex justify-end gap-2 pt-2">
-                    <button type="button" @click="batchResizeModalOpen = false" class="px-4 py-2 bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-400 text-xs rounded-xl font-bold">Batal</button>
-                    <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-extrabold rounded-xl shadow-lg flex items-center gap-1.5">
-                        <i data-lucide="check" class="w-4 h-4"></i> Terapkan Ke Semua Object
+                <div class="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+                    <button type="button" @click="batchResizeModalOpen = false" class="px-3.5 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-300 text-xs rounded font-bold border border-slate-300 dark:border-slate-700 cursor-pointer">Batal</button>
+                    <button type="submit" class="px-4 py-1 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded border border-blue-700 shadow-xs flex items-center gap-1 cursor-pointer">
+                        <i data-lucide="check" class="w-3.5 h-3.5"></i> Terapkan Ukuran
                     </button>
                 </div>
             </form>
@@ -1278,31 +1316,36 @@
     </div>
 
     <!-- Modal 6: Batch Department Assignment (Alokasi Departemen Massal) -->
-    <div x-show="batchDeptModalOpen" x-cloak class="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl">
-            <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <i data-lucide="building-2" class="w-5 h-5 text-purple-500"></i>
-                <span>Set Alokasi Departemen Massal</span>
-            </h3>
-            <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                Mengubah alokasi departemen secara serentak untuk <span class="font-bold text-indigo-400 font-mono" x-text="selectedLocations.length + ' object terseleksi'"></span>:
+    <div x-show="batchDeptModalOpen" x-cloak class="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 font-mono">
+        <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-5 max-w-md w-full space-y-3 shadow-2xl">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2.5">
+                <h3 class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2 uppercase tracking-wider">
+                    <i data-lucide="building-2" class="w-4 h-4 text-purple-500"></i>
+                    <span>Set Alokasi Departemen Massal</span>
+                </h3>
+                <button @click="batchDeptModalOpen = false" type="button" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            <p class="text-xs text-slate-500 dark:text-slate-400 font-medium font-sans">
+                Ubah alokasi departemen secara serentak untuk <span class="font-bold text-indigo-400 font-mono" x-text="selectedLocations.length + ' objek terpilih'"></span>:
             </p>
 
-            <form @submit.prevent="submitBatchDepartment()" class="space-y-4">
+            <form @submit.prevent="submitBatchDepartment()" class="space-y-3">
                 <div>
-                    <label class="block text-xs font-bold uppercase text-slate-700 dark:text-slate-400 mb-1">Pilih Departemen <span class="text-rose-500">*</span></label>
-                    <select x-model="batchDeptForm.assigned_department_id" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white font-medium">
-                        <option value="">-- Umum / Bebas (Tidak ada alokasi khusus) --</option>
+                    <label class="block text-[10px] font-bold uppercase text-slate-700 dark:text-slate-400 mb-1">Pilih Departemen <span class="text-rose-500">*</span></label>
+                    <select x-model="batchDeptForm.assigned_department_id" class="w-full px-2.5 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-900 dark:text-white font-medium">
+                        <option value="">-- Umum / Bebas (Tanpa alokasi) --</option>
                         <template x-for="dept in departments" :key="dept.id">
                             <option :value="dept.id" x-text="dept.code + ' - ' + dept.name"></option>
                         </template>
                     </select>
                 </div>
 
-                <div class="flex justify-end gap-2 pt-2">
-                    <button type="button" @click="batchDeptModalOpen = false" class="px-4 py-2 bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-400 text-xs rounded-xl font-bold">Batal</button>
-                    <button type="submit" class="px-5 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-extrabold rounded-xl shadow-lg flex items-center gap-1.5">
-                        <i data-lucide="check" class="w-4 h-4"></i> Terapkan Alokasi Dept
+                <div class="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+                    <button type="button" @click="batchDeptModalOpen = false" class="px-3.5 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-300 text-xs rounded font-bold border border-slate-300 dark:border-slate-700 cursor-pointer">Batal</button>
+                    <button type="submit" class="px-4 py-1 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded border border-purple-700 shadow-xs flex items-center gap-1 cursor-pointer">
+                        <i data-lucide="check" class="w-3.5 h-3.5"></i> Terapkan Alokasi
                     </button>
                 </div>
             </form>
@@ -1310,26 +1353,31 @@
     </div>
 
     <!-- Modal 7: Batch Custom Color (Warna Massal) -->
-    <div x-show="batchColorModalOpen" x-cloak class="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl">
-            <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <i data-lucide="palette" class="w-5 h-5 text-pink-500"></i>
-                <span>Set Warna Custom Massal</span>
-            </h3>
-            <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                Pilih warna custom secara serentak untuk <span class="font-bold text-indigo-400 font-mono" x-text="selectedLocations.length + ' object terseleksi'"></span>:
+    <div x-show="batchColorModalOpen" x-cloak class="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 font-mono">
+        <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-5 max-w-md w-full space-y-3 shadow-2xl">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2.5">
+                <h3 class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2 uppercase tracking-wider">
+                    <i data-lucide="palette" class="w-4 h-4 text-pink-500"></i>
+                    <span>Set Warna Custom Massal</span>
+                </h3>
+                <button @click="batchColorModalOpen = false" type="button" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            <p class="text-xs text-slate-500 dark:text-slate-400 font-medium font-sans">
+                Pilih warna custom secara serentak untuk <span class="font-bold text-indigo-400 font-mono" x-text="selectedLocations.length + ' objek terpilih'"></span>:
             </p>
 
-            <form @submit.prevent="submitBatchColor()" class="space-y-4">
+            <form @submit.prevent="submitBatchColor()" class="space-y-3">
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 dark:text-slate-400 mb-2">Pilih Preset Warna:</label>
-                    <div class="flex flex-wrap gap-2">
+                    <label class="block text-[10px] font-bold uppercase text-slate-700 dark:text-slate-400 mb-1.5">Pilih Preset Warna:</label>
+                    <div class="flex flex-wrap gap-1.5">
                         <template x-for="color in colorPresets" :key="color">
                             <button 
                                 type="button" 
                                 @click="batchColorForm.custom_color = color" 
-                                class="w-8 h-8 rounded-xl border-2 transition transform hover:scale-110" 
-                                :class="batchColorForm.custom_color === color ? 'border-white ring-2 ring-indigo-500 scale-110' : 'border-transparent'" 
+                                class="w-7 h-7 rounded-none border-2 transition cursor-pointer" 
+                                :class="batchColorForm.custom_color === color ? 'border-white scale-110 shadow-xs ring-1 ring-amber-400' : 'border-slate-500 opacity-80 hover:opacity-100'" 
                                 :style="{ backgroundColor: color }"
                             ></button>
                         </template>
@@ -1337,14 +1385,14 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 dark:text-slate-400 mb-1">Atau Kode Hex Warna Custom:</label>
-                    <input type="text" x-model="batchColorForm.custom_color" placeholder="#3b82f6" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl text-xs font-mono font-bold text-slate-900 dark:text-white">
+                    <label class="block text-[10px] font-bold uppercase text-slate-700 dark:text-slate-400 mb-1">Kode Hex Warna:</label>
+                    <input type="text" x-model="batchColorForm.custom_color" placeholder="#3b82f6" class="w-full px-2.5 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-900 dark:text-white">
                 </div>
 
-                <div class="flex justify-end gap-2 pt-2">
-                    <button type="button" @click="batchColorModalOpen = false" class="px-4 py-2 bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-400 text-xs rounded-xl font-bold">Batal</button>
-                    <button type="submit" class="px-5 py-2 bg-pink-600 hover:bg-pink-500 text-white text-xs font-extrabold rounded-xl shadow-lg flex items-center gap-1.5">
-                        <i data-lucide="check" class="w-4 h-4"></i> Terapkan Warna
+                <div class="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+                    <button type="button" @click="batchColorModalOpen = false" class="px-3.5 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-300 text-xs rounded font-bold border border-slate-300 dark:border-slate-700 cursor-pointer">Batal</button>
+                    <button type="submit" class="px-4 py-1 bg-pink-600 hover:bg-pink-500 text-white text-xs font-bold rounded border border-pink-700 shadow-xs flex items-center gap-1 cursor-pointer">
+                        <i data-lucide="check" class="w-3.5 h-3.5"></i> Terapkan Warna
                     </button>
                 </div>
             </form>
@@ -1352,171 +1400,171 @@
     </div>
 
     <!-- Modal Setup Dimensi Canvas Workspace -->
-    <div x-show="canvasResizeModalOpen" x-cloak class="fixed inset-0 z-[99999] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-        <div @click.away="canvasResizeModalOpen = false" class="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
-            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-                <h3 class="text-base font-extrabold text-white flex items-center gap-2">
-                    <i data-lucide="scaling" class="w-5 h-5 text-cyan-400"></i>
-                    📐 Ubah Dimensi Canvas Workspace
+    <div x-show="canvasResizeModalOpen" x-cloak class="fixed inset-0 z-[99999] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 font-mono">
+        <div @click.away="canvasResizeModalOpen = false" class="bg-slate-900 border border-slate-800 rounded p-5 max-w-md w-full shadow-2xl space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                <h3 class="text-xs font-bold text-white flex items-center gap-2 uppercase tracking-wider">
+                    <i data-lucide="scaling" class="w-4 h-4 text-cyan-400"></i>
+                    Ubah Dimensi Canvas Workspace
                 </h3>
-                <button @click="canvasResizeModalOpen = false" type="button" class="text-slate-400 hover:text-white">
-                    <i data-lucide="x" class="w-5 h-5"></i>
+                <button @click="canvasResizeModalOpen = false" type="button" class="text-slate-400 hover:text-white cursor-pointer">
+                    <i data-lucide="x" class="w-4 h-4"></i>
                 </button>
             </div>
 
-            <form @submit.prevent="submitCanvasResize()" class="space-y-4 text-xs font-semibold text-slate-300">
-                <p class="text-slate-400 text-xs font-medium">
-                    Atur ukuran area lembar kerja (Workspace Canvas 2D) sesuai luas denah fisik gudang Anda:
+            <form @submit.prevent="submitCanvasResize()" class="space-y-3 text-xs font-semibold text-slate-300">
+                <p class="text-slate-400 text-xs font-medium font-sans">
+                    Atur ukuran area lembar kerja (Workspace Canvas 2D) sesuai luas denah fisik gudang:
                 </p>
 
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-2 gap-2">
                     <div>
-                        <label class="block text-slate-300 font-bold mb-1">Lebar Canvas (Width px):</label>
-                        <input type="number" min="600" max="4000" step="50" x-model.number="canvasResizeForm.width" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl font-mono text-white text-xs font-bold focus:border-cyan-500 focus:outline-none">
+                        <label class="block text-slate-300 text-[10px] font-bold uppercase mb-1">Lebar Canvas (W px):</label>
+                        <input type="number" min="600" max="4000" step="50" x-model.number="canvasResizeForm.width" class="w-full px-2.5 py-1 bg-slate-950 border border-slate-800 rounded font-mono text-white text-xs font-bold focus:border-cyan-500 focus:outline-none">
                     </div>
                     <div>
-                        <label class="block text-slate-300 font-bold mb-1">Tinggi Canvas (Height px):</label>
-                        <input type="number" min="500" max="3000" step="50" x-model.number="canvasResizeForm.height" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl font-mono text-white text-xs font-bold focus:border-cyan-500 focus:outline-none">
+                        <label class="block text-slate-300 text-[10px] font-bold uppercase mb-1">Tinggi Canvas (H px):</label>
+                        <input type="number" min="500" max="3000" step="50" x-model.number="canvasResizeForm.height" class="w-full px-2.5 py-1 bg-slate-950 border border-slate-800 rounded font-mono text-white text-xs font-bold focus:border-cyan-500 focus:outline-none">
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-slate-400 font-bold mb-1.5">Preset Ukuran Standar:</label>
-                    <div class="grid grid-cols-2 gap-2">
-                        <button type="button" @click="setPresetCanvasSize(950, 750)" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-mono font-bold transition text-center border border-slate-700/60">
-                            950 × 750 px (Standar)
+                    <label class="block text-slate-400 text-[10px] font-bold uppercase mb-1">Preset Ukuran Standar:</label>
+                    <div class="grid grid-cols-2 gap-1.5">
+                        <button type="button" @click="setPresetCanvasSize(950, 750)" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded font-mono font-bold transition text-center border border-slate-700 cursor-pointer">
+                            950 × 750 px (Std)
                         </button>
-                        <button type="button" @click="setPresetCanvasSize(1200, 900)" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-mono font-bold transition text-center border border-slate-700/60">
-                            1200 × 900 px (Sedang)
+                        <button type="button" @click="setPresetCanvasSize(1200, 900)" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded font-mono font-bold transition text-center border border-slate-700 cursor-pointer">
+                            1200 × 900 px (Med)
                         </button>
-                        <button type="button" @click="setPresetCanvasSize(1600, 1000)" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-mono font-bold transition text-center border border-slate-700/60">
+                        <button type="button" @click="setPresetCanvasSize(1600, 1000)" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded font-mono font-bold transition text-center border border-slate-700 cursor-pointer">
                             1600 × 1000 px (Luas)
                         </button>
-                        <button type="button" @click="setPresetCanvasSize(2000, 1400)" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-mono font-bold transition text-center border border-slate-700/60">
-                            2000 × 1400 px (XL Extra)
+                        <button type="button" @click="setPresetCanvasSize(2000, 1400)" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded font-mono font-bold transition text-center border border-slate-700 cursor-pointer">
+                            2000 × 1400 px (XL)
                         </button>
                     </div>
                 </div>
 
                 <div class="flex justify-end gap-2 pt-2 border-t border-slate-800">
-                    <button type="button" @click="canvasResizeModalOpen = false" class="px-4 py-2 bg-slate-800 text-slate-400 hover:text-white rounded-xl font-bold">Batal</button>
-                    <button type="submit" class="px-5 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-extrabold rounded-xl shadow-lg flex items-center gap-1.5">
-                        <i data-lucide="check" class="w-4 h-4"></i> Terapkan Dimensi Canvas
+                    <button type="button" @click="canvasResizeModalOpen = false" class="px-3.5 py-1 bg-slate-800 text-slate-400 hover:text-white rounded font-bold border border-slate-700 cursor-pointer">Batal</button>
+                    <button type="submit" class="px-4 py-1 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded border border-cyan-700 shadow-xs flex items-center gap-1 cursor-pointer">
+                        <i data-lucide="check" class="w-3.5 h-3.5"></i> Terapkan Dimensi
                     </button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Modal: 100-Box Rack Visualizer (5 Sap x 20 Box) - Light Theme Edition -->
-    <div x-show="rackGridModalOpen" x-cloak class="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-hidden">
-        <div @click.away="rackGridModalOpen = false" class="bg-white border border-slate-300 text-slate-800 rounded-xl max-w-6xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
-            <!-- Modal Header (Delphi Window Titlebar in Light Theme) -->
-            <div class="px-5 py-3.5 bg-slate-100 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 shrink-0">
-                <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-lg bg-indigo-100 border border-indigo-200 text-indigo-600 flex items-center justify-center shadow-xs">
-                        <i data-lucide="layout-grid" class="w-5 h-5"></i>
+    <!-- Modal: 100-Box Rack Visualizer (5 Sap x 20 Box) - Desktop Square Edition -->
+    <div x-show="rackGridModalOpen" x-cloak class="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-hidden font-mono">
+        <div @click.away="rackGridModalOpen = false" class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-slate-800 dark:text-slate-200 rounded max-w-6xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+            <!-- Modal Header (Delphi Window Titlebar) -->
+            <div class="px-4 py-2.5 bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2 shrink-0">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-7 h-7 rounded bg-indigo-100 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shadow-xs">
+                        <i data-lucide="layout-grid" class="w-4 h-4"></i>
                     </div>
                     <div>
                         <div class="flex items-center gap-2 flex-wrap">
-                            <h2 class="text-base font-bold text-slate-900 tracking-wide flex items-center gap-2 font-mono">
+                            <h2 class="text-xs font-bold text-slate-900 dark:text-white tracking-wide flex items-center gap-1.5 uppercase">
                                 <span x-text="'Denah Rak: ' + (selectedRackForModal?.rack_code || 'RAK')"></span>
                             </h2>
-                            <span class="px-2 py-0.5 bg-indigo-100 border border-indigo-200 text-indigo-700 font-mono text-[11px] font-semibold rounded">
+                            <span class="px-1.5 py-0.2 bg-indigo-100 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold rounded">
                                 100 Box (TB 30g)
                             </span>
                             <template x-if="selectedRackForModal?.is_fat_locked">
-                                <span class="px-2 py-0.5 bg-rose-100 border border-rose-200 text-rose-700 text-[10px] font-bold rounded flex items-center gap-1">
-                                    <i data-lucide="lock" class="w-3 h-3 text-rose-500"></i> RUANGAN KHUSUS FAT
+                                <span class="px-1.5 py-0.2 bg-rose-100 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-[10px] font-bold rounded flex items-center gap-1">
+                                    <i data-lucide="lock" class="w-3 h-3 text-rose-500"></i> FAT
                                 </span>
                             </template>
                         </div>
-                        <p class="text-xs text-slate-500">
+                        <p class="text-[11px] text-slate-500 font-sans">
                             <span x-text="'Sektor: ' + (selectedRackForModal?.room_sector || 'Umum')"></span>
-                            <span class="text-slate-300 mx-1.5">•</span>
-                            <span x-text="'Alokasi Dept: ' + (selectedRackForModal?.assigned_department ? (selectedRackForModal?.assigned_department.code + ' - ' + selectedRackForModal?.assigned_department.name) : 'Umum (Bebas)')"></span>
+                            <span class="text-slate-300 mx-1">•</span>
+                            <span x-text="'Alokasi: ' + (selectedRackForModal?.assigned_department ? (selectedRackForModal?.assigned_department.code + ' - ' + selectedRackForModal?.assigned_department.name) : 'Umum (Bebas)')"></span>
                         </p>
                     </div>
                 </div>
 
                 <!-- Stats & Close Button -->
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2">
                     <!-- Status Legends -->
-                    <div class="hidden sm:flex items-center gap-3 bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-700 shadow-xs">
-                        <div class="flex items-center gap-1.5">
-                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-                            <span class="text-[11px]">Kosong (<strong class="font-mono text-emerald-600" x-text="getRackSlotStats(selectedRackForModal).empty"></strong>)</span>
+                    <div class="hidden sm:flex items-center gap-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-2.5 py-1 rounded text-xs font-medium text-slate-700 dark:text-slate-300 shadow-xs">
+                        <div class="flex items-center gap-1">
+                            <span class="w-2.5 h-2.5 rounded-none bg-emerald-500 border border-emerald-600"></span>
+                            <span class="text-[10px]">Kosong (<strong class="font-mono text-emerald-600 dark:text-emerald-400" x-text="getRackSlotStats(selectedRackForModal).empty"></strong>)</span>
                         </div>
-                        <div class="flex items-center gap-1.5">
-                            <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-                            <span class="text-[11px]">Terisi (<strong class="font-mono text-amber-600" x-text="getRackSlotStats(selectedRackForModal).filled"></strong>)</span>
+                        <div class="flex items-center gap-1">
+                            <span class="w-2.5 h-2.5 rounded-none bg-yellow-500 border border-yellow-600"></span>
+                            <span class="text-[10px]">Terisi (<strong class="font-mono text-yellow-600 dark:text-yellow-400" x-text="getRackSlotStats(selectedRackForModal).filled"></strong>)</span>
                         </div>
-                        <div class="flex items-center gap-1.5">
-                            <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
-                            <span class="text-[11px]">Expired (<strong class="font-mono text-rose-600" x-text="getRackSlotStats(selectedRackForModal).expired"></strong>)</span>
+                        <div class="flex items-center gap-1">
+                            <span class="w-2.5 h-2.5 rounded-none bg-rose-500 border border-rose-600"></span>
+                            <span class="text-[10px]">Expired (<strong class="font-mono text-rose-600 dark:text-rose-400" x-text="getRackSlotStats(selectedRackForModal).expired"></strong>)</span>
                         </div>
                     </div>
 
                     <!-- Delphi Style Close Button -->
-                    <button @click="rackGridModalOpen = false" type="button" class="w-8 h-8 flex items-center justify-center text-slate-500 hover:text-white bg-slate-200 hover:bg-rose-600 rounded-lg transition cursor-pointer" title="Tutup Jendela (Esc)">
-                        <i data-lucide="x" class="w-4 h-4"></i>
+                    <button @click="rackGridModalOpen = false" type="button" class="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-white bg-slate-200 dark:bg-slate-800 hover:bg-rose-600 dark:hover:bg-rose-600 rounded border border-slate-300 dark:border-slate-700 transition cursor-pointer" title="Tutup Jendela (Esc)">
+                        <i data-lucide="x" class="w-3.5 h-3.5"></i>
                     </button>
                 </div>
             </div>
 
-            <!-- Filter Toolbar (Delphi TToolBar in Light Theme) -->
-            <div class="px-5 py-2.5 bg-slate-50/80 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs shrink-0">
-                <!-- Status Filter Segmented Buttons -->
-                <div class="flex items-center gap-1 bg-slate-200/80 p-1 rounded-lg border border-slate-300">
+            <!-- Filter Toolbar (Delphi TToolBar in Square Style) -->
+            <div class="px-4 py-2 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs shrink-0">
+                <!-- Status Filter Segmented Buttons (Square Desktop Style) -->
+                <div class="flex items-center gap-0.5 bg-slate-200 dark:bg-slate-800 p-0.5 rounded border border-slate-300 dark:border-slate-700">
                     <button 
                         @click="slotFilterStatus = 'all'" 
                         type="button" 
-                        class="px-3 py-1.5 rounded font-semibold transition text-xs flex items-center gap-1.5 cursor-pointer" 
-                        :class="slotFilterStatus === 'all' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-300/60'"
+                        class="px-2.5 py-1 rounded font-bold transition text-xs flex items-center gap-1 cursor-pointer" 
+                        :class="slotFilterStatus === 'all' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-700 dark:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-700'"
                     >
-                        <span>Semua Slot</span>
+                        <span>Semua</span>
                         <span class="text-[10px] font-mono opacity-80">(100)</span>
                     </button>
                     <button 
                         @click="slotFilterStatus = 'empty'" 
                         type="button" 
-                        class="px-2.5 py-1.5 rounded font-semibold transition text-xs flex items-center gap-1.5 cursor-pointer" 
-                        :class="slotFilterStatus === 'empty' ? 'bg-emerald-600 text-white shadow-xs' : 'text-emerald-700 hover:bg-emerald-100/60'"
+                        class="px-2 py-1 rounded font-bold transition text-xs flex items-center gap-1 cursor-pointer" 
+                        :class="slotFilterStatus === 'empty' ? 'bg-emerald-600 text-white shadow-xs' : 'text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-950/50'"
                     >
-                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        <span class="w-2 h-2 rounded-none bg-emerald-500"></span>
                         <span>Kosong</span>
                         <span class="text-[10px] font-mono" x-text="'(' + getRackSlotStats(selectedRackForModal).empty + ')'"></span>
                     </button>
                     <button 
                         @click="slotFilterStatus = 'filled'" 
                         type="button" 
-                        class="px-2.5 py-1.5 rounded font-semibold transition text-xs flex items-center gap-1.5 cursor-pointer" 
-                        :class="slotFilterStatus === 'filled' ? 'bg-amber-600 text-white shadow-xs' : 'text-amber-700 hover:bg-amber-100/60'"
+                        class="px-2 py-1 rounded font-bold transition text-xs flex items-center gap-1 cursor-pointer" 
+                        :class="slotFilterStatus === 'filled' ? 'bg-amber-600 text-white shadow-xs' : 'text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-950/50'"
                     >
-                        <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                        <span class="w-2 h-2 rounded-none bg-amber-500"></span>
                         <span>Terisi</span>
                         <span class="text-[10px] font-mono" x-text="'(' + getRackSlotStats(selectedRackForModal).filled + ')'"></span>
                     </button>
                     <button 
                         @click="slotFilterStatus = 'expired'" 
                         type="button" 
-                        class="px-2.5 py-1.5 rounded font-semibold transition text-xs flex items-center gap-1.5 cursor-pointer" 
-                        :class="slotFilterStatus === 'expired' ? 'bg-rose-600 text-white shadow-xs' : 'text-rose-700 hover:bg-rose-100/60'"
+                        class="px-2 py-1 rounded font-bold transition text-xs flex items-center gap-1 cursor-pointer" 
+                        :class="slotFilterStatus === 'expired' ? 'bg-rose-600 text-white shadow-xs' : 'text-rose-700 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-950/50'"
                     >
-                        <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+                        <span class="w-2 h-2 rounded-none bg-rose-500"></span>
                         <span>Expired</span>
                         <span class="text-[10px] font-mono" x-text="'(' + getRackSlotStats(selectedRackForModal).expired + ')'"></span>
                     </button>
                 </div>
 
                 <!-- Search Input Box -->
-                <div class="relative w-full sm:w-80">
-                    <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
+                <div class="relative w-full sm:w-72">
+                    <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2"></i>
                     <input 
                         type="text" 
                         x-model="slotSearchQuery" 
-                        placeholder="Cari No. Box / Judul / Periode / Slot..." 
-                        class="w-full pl-9 pr-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 placeholder-slate-400 font-medium focus:outline-none focus:border-indigo-500 transition"
+                        placeholder="Cari No. Box / Judul / Slot..." 
+                        class="w-full pl-8 pr-2.5 py-1 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-900 dark:text-white placeholder-slate-400 font-medium focus:outline-none focus:border-indigo-500 transition"
                     >
                 </div>
             </div>
@@ -1524,37 +1572,37 @@
             <!-- Modal Content Layout: 5 Saps Grid (Left) + Detail Inspector (Right) -->
             <div class="flex-1 flex flex-col lg:flex-row overflow-hidden min-h-0">
                 <!-- Left: 5 Saps Scrollable Area -->
-                <div class="flex-1 overflow-y-auto p-4 space-y-3.5 bg-slate-100/60">
+                <div class="flex-1 overflow-y-auto p-3 space-y-2.5 bg-slate-100/60 dark:bg-slate-900/60">
                     <template x-for="sapNum in [5, 4, 3, 2, 1]" :key="sapNum">
-                        <div class="bg-white border border-slate-200 rounded-xl p-3.5 shadow-xs space-y-3 hover:border-slate-300 transition">
+                        <div class="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded p-3 shadow-xs space-y-2 hover:border-slate-300 transition">
                             <!-- LVL Shelf Level Header -->
-                            <div class="flex items-center justify-between border-b border-slate-200 pb-2">
-                                <div class="flex items-center gap-2">
-                                    <div class="w-6 h-6 rounded-md bg-indigo-100 border border-indigo-200 text-indigo-700 flex items-center justify-center font-mono font-bold text-xs">
+                            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-1.5">
+                                <div class="flex items-center gap-1.5">
+                                    <div class="w-5 h-5 rounded bg-indigo-100 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-400 flex items-center justify-center font-mono font-bold text-xs">
                                         <span x-text="sapNum"></span>
                                     </div>
-                                    <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wide font-mono" x-text="'LVL ' + sapNum + (sapNum === 5 ? ' (TINGKAT 5 - PALING ATAS)' : (sapNum === 1 ? ' (TINGKAT 1 - PALING BAWAH)' : ' (TINGKAT ' + sapNum + ')'))"></h3>
+                                    <h3 class="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide font-mono" x-text="'LVL ' + sapNum + (sapNum === 5 ? ' (TINGKAT 5 - PALING ATAS)' : (sapNum === 1 ? ' (TINGKAT 1 - PALING BAWAH)' : ' (TINGKAT ' + sapNum + ')'))"></h3>
                                 </div>
-                                <span class="text-[11px] font-mono text-slate-500 font-medium">20 Box (10 Atas + 10 Bawah)</span>
+                                <span class="text-[10px] font-mono text-slate-500 font-medium">20 Box (10 Atas + 10 Bawah)</span>
                             </div>
 
                             <!-- Row 1: Baris Atas (Layer Top - 10 Slots) -->
-                            <div class="space-y-1.5">
-                                <div class="flex items-center justify-between text-[11px] font-semibold text-slate-600">
-                                    <span class="flex items-center gap-1.5 text-slate-700">
-                                        <i data-lucide="arrow-up" class="w-3.5 h-3.5 text-indigo-600"></i>
+                            <div class="space-y-1">
+                                <div class="flex items-center justify-between text-[10px] font-semibold text-slate-600 dark:text-slate-400">
+                                    <span class="flex items-center gap-1 text-slate-700 dark:text-slate-300">
+                                        <i data-lucide="arrow-up" class="w-3 h-3 text-indigo-600"></i>
                                         <span>Baris Atas (10 Box TB 30g)</span>
                                     </span>
-                                    <span class="text-[11px] text-slate-600 font-mono font-bold bg-slate-100 px-2 py-0.5 rounded border border-slate-200" x-text="((sapNum - 1) * 20 + 11) + ' — ' + ((sapNum - 1) * 20 + 20)"></span>
+                                    <span class="text-[10px] text-slate-600 dark:text-slate-400 font-mono font-bold bg-slate-100 dark:bg-slate-900 px-1.5 py-0.2 rounded border border-slate-200 dark:border-slate-800" x-text="((sapNum - 1) * 20 + 11) + ' — ' + ((sapNum - 1) * 20 + 20)"></span>
                                 </div>
-                                <div class="grid grid-cols-5 sm:grid-cols-10 gap-1.5">
+                                <div class="grid grid-cols-5 sm:grid-cols-10 gap-1">
                                     <template x-for="slot in getSapSlots(sapNum, 'top')" :key="slot.slot_code || slot.id">
                                         <div 
                                             @click="selectSlotForDetail(slot)"
-                                            class="p-1.5 rounded-lg border transition cursor-pointer flex flex-col justify-between items-center text-center select-none min-h-[62px] relative"
+                                            class="p-1 rounded border transition cursor-pointer flex flex-col justify-between items-center text-center select-none min-h-[58px] relative"
                                             :class="[
                                                 getSlotStyleClasses(slot),
-                                                selectedSlotDetail?.slot_code === slot.slot_code ? 'ring-2 ring-indigo-500 scale-[1.03] shadow-md !border-indigo-500 !bg-indigo-50' : '',
+                                                selectedSlotDetail?.slot_code === slot.slot_code ? 'ring-2 ring-indigo-500 scale-[1.03] shadow-md !border-indigo-500 !bg-indigo-50 dark:!bg-indigo-950/60' : '',
                                                 (slotBlinkActive && highlightedSlotCode === slot.slot_code) ? '!ring-4 !ring-amber-500 !bg-amber-300 !text-slate-950 font-black scale-110 shadow-2xl z-30 animate-pulse border-amber-600 ring-offset-2' : '',
                                                 !isSlotMatchFilter(slot) ? 'opacity-20 grayscale' : 'opacity-100'
                                             ]"
@@ -1562,22 +1610,22 @@
                                         >
                                             <!-- Blinking Ping Beacon when Box is searched -->
                                             <template x-if="slotBlinkActive && highlightedSlotCode === slot.slot_code">
-                                                <span class="absolute -top-1.5 -right-1.5 flex h-4 w-4 z-40">
+                                                <span class="absolute -top-1 -right-1 flex h-3.5 w-3.5 z-40">
                                                     <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                                                    <span class="relative inline-flex rounded-full h-4 w-4 bg-amber-600 border border-white items-center justify-center text-[7px] font-black text-white">★</span>
+                                                    <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-amber-600 border border-white items-center justify-center text-[7px] font-black text-white">★</span>
                                                 </span>
                                             </template>
 
-                                            <div class="w-full flex items-center justify-between text-[9px] font-mono font-bold opacity-90 mb-0.5">
-                                                <span class="text-slate-700 font-bold" :class="(slotBlinkActive && highlightedSlotCode === slot.slot_code) ? '!text-slate-950 font-black text-[10px]' : ''" x-text="slot.box_number_display || slot.slot_number"></span>
+                                            <div class="w-full flex items-center justify-between text-[8px] font-mono font-bold opacity-90 mb-0.5">
+                                                <span class="text-slate-700 dark:text-slate-300 font-bold" :class="(slotBlinkActive && highlightedSlotCode === slot.slot_code) ? '!text-slate-950 font-black' : ''" x-text="slot.box_number_display || slot.slot_number"></span>
                                                 <template x-if="slot.status === 'expired' || slot.archive?.is_expired">
-                                                    <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+                                                    <span class="w-1.5 h-1.5 rounded-none bg-rose-500 animate-pulse"></span>
                                                 </template>
                                                 <template x-if="(slot.status === 'filled' || slot.archive) && !(slot.status === 'expired' || slot.archive?.is_expired)">
-                                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                                    <span class="w-1.5 h-1.5 rounded-none bg-amber-500"></span>
                                                 </template>
                                                 <template x-if="!slot.archive && slot.status === 'empty'">
-                                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                    <span class="w-1.5 h-1.5 rounded-none bg-emerald-500"></span>
                                                 </template>
                                             </div>
 
@@ -1585,12 +1633,12 @@
                                             <div class="w-full flex-1 flex flex-col items-center justify-center">
                                                 <template x-if="slot.archive">
                                                     <div class="space-y-0.5 w-full">
-                                                        <span class="font-mono font-bold text-[10px] leading-tight block truncate text-amber-700 max-w-[80px] mx-auto" :class="(slotBlinkActive && highlightedSlotCode === slot.slot_code) ? '!text-slate-950 font-black' : ''" x-text="slot.archive.box_number || 'TERISI'"></span>
-                                                        <span class="text-[8px] text-slate-500 font-mono block truncate max-w-[80px] mx-auto" x-text="slot.archive.periode_doc || slot.archive.department || ''"></span>
+                                                        <span class="font-mono font-bold text-[9px] leading-tight block truncate text-amber-700 dark:text-amber-400 max-w-[75px] mx-auto" :class="(slotBlinkActive && highlightedSlotCode === slot.slot_code) ? '!text-slate-950 font-black' : ''" x-text="slot.archive.box_number || 'TERISI'"></span>
+                                                        <span class="text-[7px] text-slate-500 font-mono block truncate max-w-[75px] mx-auto" x-text="slot.archive.periode_doc || slot.archive.department || ''"></span>
                                                     </div>
                                                 </template>
                                                 <template x-if="!slot.archive">
-                                                    <span class="text-[10px] font-bold font-mono" :class="(slotBlinkActive && highlightedSlotCode === slot.slot_code) ? 'text-slate-950 font-black' : 'text-emerald-600'">Kosong</span>
+                                                    <span class="text-[9px] font-bold font-mono" :class="(slotBlinkActive && highlightedSlotCode === slot.slot_code) ? 'text-slate-950 font-black' : 'text-emerald-600 dark:text-emerald-400'">Kosong</span>
                                                 </template>
                                             </div>
                                         </div>
@@ -1599,25 +1647,25 @@
                             </div>
 
                             <!-- Shelf Separator Beam -->
-                            <div class="border-t border-slate-200"></div>
+                            <div class="border-t border-slate-200 dark:border-slate-800"></div>
 
                             <!-- Row 2: Baris Bawah (Layer Bottom - 10 Slots) -->
-                            <div class="space-y-1.5">
-                                <div class="flex items-center justify-between text-[11px] font-semibold text-slate-600">
-                                    <span class="flex items-center gap-1.5 text-slate-700">
-                                        <i data-lucide="arrow-down" class="w-3.5 h-3.5 text-blue-600"></i>
+                            <div class="space-y-1">
+                                <div class="flex items-center justify-between text-[10px] font-semibold text-slate-600 dark:text-slate-400">
+                                    <span class="flex items-center gap-1 text-slate-700 dark:text-slate-300">
+                                        <i data-lucide="arrow-down" class="w-3 h-3 text-blue-600"></i>
                                         <span>Baris Bawah (10 Box TB 30g)</span>
                                     </span>
-                                    <span class="text-[11px] text-slate-600 font-mono font-bold bg-slate-100 px-2 py-0.5 rounded border border-slate-200" x-text="((sapNum - 1) * 20 + 1) + ' — ' + ((sapNum - 1) * 20 + 10)"></span>
+                                    <span class="text-[10px] text-slate-600 dark:text-slate-400 font-mono font-bold bg-slate-100 dark:bg-slate-900 px-1.5 py-0.2 rounded border border-slate-200 dark:border-slate-800" x-text="((sapNum - 1) * 20 + 1) + ' — ' + ((sapNum - 1) * 20 + 10)"></span>
                                 </div>
-                                <div class="grid grid-cols-5 sm:grid-cols-10 gap-1.5">
+                                <div class="grid grid-cols-5 sm:grid-cols-10 gap-1">
                                     <template x-for="slot in getSapSlots(sapNum, 'bottom')" :key="slot.slot_code || slot.id">
                                         <div 
                                             @click="selectSlotForDetail(slot)"
-                                            class="p-1.5 rounded-lg border transition cursor-pointer flex flex-col justify-between items-center text-center select-none min-h-[62px] relative"
+                                            class="p-1 rounded border transition cursor-pointer flex flex-col justify-between items-center text-center select-none min-h-[58px] relative"
                                             :class="[
                                                 getSlotStyleClasses(slot),
-                                                selectedSlotDetail?.slot_code === slot.slot_code ? 'ring-2 ring-indigo-500 scale-[1.03] shadow-md !border-indigo-500 !bg-indigo-50' : '',
+                                                selectedSlotDetail?.slot_code === slot.slot_code ? 'ring-2 ring-indigo-500 scale-[1.03] shadow-md !border-indigo-500 !bg-indigo-50 dark:!bg-indigo-950/60' : '',
                                                 (slotBlinkActive && highlightedSlotCode === slot.slot_code) ? '!ring-4 !ring-amber-500 !bg-amber-300 !text-slate-950 font-black scale-110 shadow-2xl z-30 animate-pulse border-amber-600 ring-offset-2' : '',
                                                 !isSlotMatchFilter(slot) ? 'opacity-20 grayscale' : 'opacity-100'
                                             ]"
@@ -1625,22 +1673,22 @@
                                         >
                                             <!-- Blinking Ping Beacon when Box is searched -->
                                             <template x-if="slotBlinkActive && highlightedSlotCode === slot.slot_code">
-                                                <span class="absolute -top-1.5 -right-1.5 flex h-4 w-4 z-40">
+                                                <span class="absolute -top-1 -right-1 flex h-3.5 w-3.5 z-40">
                                                     <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                                                    <span class="relative inline-flex rounded-full h-4 w-4 bg-amber-600 border border-white items-center justify-center text-[7px] font-black text-white">★</span>
+                                                    <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-amber-600 border border-white items-center justify-center text-[7px] font-black text-white">★</span>
                                                 </span>
                                             </template>
 
-                                            <div class="w-full flex items-center justify-between text-[9px] font-mono font-bold opacity-90 mb-0.5">
-                                                <span class="text-slate-700 font-bold" :class="(slotBlinkActive && highlightedSlotCode === slot.slot_code) ? '!text-slate-950 font-black text-[10px]' : ''" x-text="slot.box_number_display || slot.slot_number"></span>
+                                            <div class="w-full flex items-center justify-between text-[8px] font-mono font-bold opacity-90 mb-0.5">
+                                                <span class="text-slate-700 dark:text-slate-300 font-bold" :class="(slotBlinkActive && highlightedSlotCode === slot.slot_code) ? '!text-slate-950 font-black' : ''" x-text="slot.box_number_display || slot.slot_number"></span>
                                                 <template x-if="slot.status === 'expired' || slot.archive?.is_expired">
-                                                    <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+                                                    <span class="w-1.5 h-1.5 rounded-none bg-rose-500 animate-pulse"></span>
                                                 </template>
                                                 <template x-if="(slot.status === 'filled' || slot.archive) && !(slot.status === 'expired' || slot.archive?.is_expired)">
-                                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                                    <span class="w-1.5 h-1.5 rounded-none bg-amber-500"></span>
                                                 </template>
                                                 <template x-if="!slot.archive && slot.status === 'empty'">
-                                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                    <span class="w-1.5 h-1.5 rounded-none bg-emerald-500"></span>
                                                 </template>
                                             </div>
 
@@ -1648,12 +1696,12 @@
                                             <div class="w-full flex-1 flex flex-col items-center justify-center">
                                                 <template x-if="slot.archive">
                                                     <div class="space-y-0.5 w-full">
-                                                        <span class="font-mono font-bold text-[10px] leading-tight block truncate text-amber-700 max-w-[80px] mx-auto" :class="(slotBlinkActive && highlightedSlotCode === slot.slot_code) ? '!text-slate-950 font-black' : ''" x-text="slot.archive.box_number || 'TERISI'"></span>
-                                                        <span class="text-[8px] text-slate-500 font-mono block truncate max-w-[80px] mx-auto" x-text="slot.archive.periode_doc || slot.archive.department || ''"></span>
+                                                        <span class="font-mono font-bold text-[9px] leading-tight block truncate text-amber-700 dark:text-amber-400 max-w-[75px] mx-auto" :class="(slotBlinkActive && highlightedSlotCode === slot.slot_code) ? '!text-slate-950 font-black' : ''" x-text="slot.archive.box_number || 'TERISI'"></span>
+                                                        <span class="text-[7px] text-slate-500 font-mono block truncate max-w-[75px] mx-auto" x-text="slot.archive.periode_doc || slot.archive.department || ''"></span>
                                                     </div>
                                                 </template>
                                                 <template x-if="!slot.archive">
-                                                    <span class="text-[10px] font-bold font-mono" :class="(slotBlinkActive && highlightedSlotCode === slot.slot_code) ? 'text-slate-950 font-black' : 'text-emerald-600'">Kosong</span>
+                                                    <span class="text-[9px] font-bold font-mono" :class="(slotBlinkActive && highlightedSlotCode === slot.slot_code) ? 'text-slate-950 font-black' : 'text-emerald-600 dark:text-emerald-400'">Kosong</span>
                                                 </template>
                                             </div>
                                         </div>
@@ -1664,32 +1712,32 @@
                     </template>
                 </div>
 
-                <!-- Right: Slot Detail Inspector (Delphi Property Inspector in Light Theme) -->
-                <div class="w-full lg:w-96 bg-white border-t lg:border-t-0 lg:border-l border-slate-200 p-4 overflow-y-auto flex flex-col justify-between space-y-4 shadow-xl">
+                <!-- Right: Slot Detail Inspector (Delphi Property Inspector in Desktop Square Theme) -->
+                <div class="w-full lg:w-96 bg-white dark:bg-slate-950 border-t lg:border-t-0 lg:border-l border-slate-200 dark:border-slate-800 p-3.5 overflow-y-auto flex flex-col justify-between space-y-3 shadow-xl">
                     <!-- If Slot NOT Selected -->
-                    <div x-show="!selectedSlotDetail" class="py-12 text-center space-y-3 my-auto">
-                        <div class="w-12 h-12 rounded-lg bg-indigo-50 text-indigo-600 mx-auto flex items-center justify-center border border-indigo-200">
-                            <i data-lucide="mouse-pointer-click" class="w-6 h-6"></i>
+                    <div x-show="!selectedSlotDetail" class="py-8 text-center space-y-2 my-auto">
+                        <div class="w-10 h-10 rounded bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 mx-auto flex items-center justify-center border border-indigo-200 dark:border-indigo-800">
+                            <i data-lucide="mouse-pointer-click" class="w-5 h-5"></i>
                         </div>
-                        <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider font-mono">Inspector Slot Rak</h4>
-                        <p class="text-xs text-slate-500 max-w-xs mx-auto leading-relaxed">
-                            Klik salah satu dari 100 kotak slot kardus (TB 30g) pada denah di sebelah kiri untuk melihat rincian dokumen dan opsi cetak label.
+                        <h4 class="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider font-mono">Inspector Slot Rak</h4>
+                        <p class="text-[11px] text-slate-500 dark:text-slate-400 max-w-xs mx-auto leading-relaxed font-sans">
+                            Klik salah satu dari 100 slot kardus (TB 30g) pada denah di sebelah kiri untuk melihat rincian dokumen dan opsi cetak label.
                         </p>
                     </div>
 
                     <!-- If Slot IS Selected -->
-                    <div x-show="selectedSlotDetail" class="space-y-3.5" x-cloak>
+                    <div x-show="selectedSlotDetail" class="space-y-3" x-cloak>
                         <!-- Inspector Header -->
-                        <div class="border-b border-slate-200 pb-3 flex items-start justify-between">
+                        <div class="border-b border-slate-200 dark:border-slate-800 pb-2.5 flex items-start justify-between">
                             <div>
-                                <span class="text-[10px] font-bold uppercase text-indigo-600 tracking-wider block font-mono" x-text="'LVL ' + (selectedSlotDetail?.sap_level || '') + ' • ' + (selectedSlotDetail?.layer_label || '')"></span>
-                                <h3 class="text-base font-bold text-slate-900 font-mono flex items-center gap-2">
+                                <span class="text-[10px] font-bold uppercase text-indigo-600 dark:text-indigo-400 tracking-wider block font-mono" x-text="'LVL ' + (selectedSlotDetail?.sap_level || '') + ' • ' + (selectedSlotDetail?.layer_label || '')"></span>
+                                <h3 class="text-sm font-bold text-slate-900 dark:text-white font-mono flex items-center gap-1.5">
                                     <span x-text="selectedSlotDetail?.slot_code"></span>
                                     <span class="text-xs text-slate-500 font-sans font-medium" x-text="'(Box #' + (selectedSlotDetail?.box_number_display || selectedSlotDetail?.slot_number || '') + ')'"></span>
                                 </h3>
                             </div>
                             <span 
-                                class="px-2 py-0.5 text-[10px] font-bold uppercase rounded tracking-wider"
+                                class="px-1.5 py-0.2 text-[10px] font-bold uppercase rounded tracking-wider"
                                 :class="(selectedSlotDetail?.status === 'expired' || selectedSlotDetail?.archive?.is_expired) ? 'bg-rose-100 text-rose-800 border border-rose-300' : (selectedSlotDetail?.archive ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-emerald-100 text-emerald-800 border border-emerald-300')"
                                 x-text="(selectedSlotDetail?.status === 'expired' || selectedSlotDetail?.archive?.is_expired) ? 'EXPIRED' : (selectedSlotDetail?.archive ? 'TERISI' : 'KOSONG')"
                             ></span>
@@ -1697,46 +1745,46 @@
 
                         <!-- Delphi Property Table for Occupied Archive -->
                         <template x-if="selectedSlotDetail?.archive">
-                            <div class="space-y-3 text-xs">
+                            <div class="space-y-2.5 text-xs">
                                 <!-- Property Sheet Table -->
-                                <div class="bg-slate-50 border border-slate-200 rounded-lg divide-y divide-slate-200 overflow-hidden text-xs">
-                                    <div class="p-2.5 flex items-center justify-between">
+                                <div class="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded divide-y divide-slate-200 dark:divide-slate-800 overflow-hidden text-xs">
+                                    <div class="p-2 flex items-center justify-between">
                                         <span class="text-slate-500 text-[10px] font-mono uppercase font-bold">No. Box:</span>
-                                        <span class="font-mono text-xs font-bold text-amber-700" x-text="selectedSlotDetail.archive.box_number || '-'"></span>
+                                        <span class="font-mono text-xs font-bold text-amber-700 dark:text-amber-400" x-text="selectedSlotDetail.archive.box_number || '-'"></span>
                                     </div>
-                                    <div class="p-2.5 space-y-0.5">
+                                    <div class="p-2 space-y-0.5">
                                         <span class="text-slate-500 text-[10px] font-mono uppercase font-bold block">Judul Dokumen:</span>
-                                        <h4 class="font-semibold text-slate-900 text-xs leading-snug" x-text="selectedSlotDetail.archive.title"></h4>
+                                        <h4 class="font-semibold text-slate-900 dark:text-white text-xs leading-snug font-sans" x-text="selectedSlotDetail.archive.title"></h4>
                                     </div>
-                                    <div class="p-2.5 flex items-center justify-between">
+                                    <div class="p-2 flex items-center justify-between">
                                         <span class="text-slate-500 text-[10px] font-mono uppercase font-bold">Periode:</span>
-                                        <span class="font-mono text-xs text-slate-800" x-text="selectedSlotDetail.archive.periode_doc || '-'"></span>
+                                        <span class="font-mono text-xs text-slate-800 dark:text-slate-200" x-text="selectedSlotDetail.archive.periode_doc || '-'"></span>
                                     </div>
-                                    <div class="p-2.5 flex items-center justify-between">
+                                    <div class="p-2 flex items-center justify-between">
                                         <span class="text-slate-500 text-[10px] font-mono uppercase font-bold">Departemen:</span>
-                                        <span class="text-xs text-slate-800 font-medium" x-text="selectedSlotDetail.archive.department_name ? (selectedSlotDetail.archive.department + ' - ' + selectedSlotDetail.archive.department_name) : (selectedSlotDetail.archive.department || '-')"></span>
+                                        <span class="text-xs text-slate-800 dark:text-slate-200 font-medium" x-text="selectedSlotDetail.archive.department_name ? (selectedSlotDetail.archive.department + ' - ' + selectedSlotDetail.archive.department_name) : (selectedSlotDetail.archive.department || '-')"></span>
                                     </div>
                                     <template x-if="selectedSlotDetail.archive.sub_department || selectedSlotDetail.archive.sub_department_name">
-                                        <div class="p-2.5 flex items-center justify-between">
+                                        <div class="p-2 flex items-center justify-between">
                                             <span class="text-slate-500 text-[10px] font-mono uppercase font-bold">Sub-Dept:</span>
-                                            <span class="text-xs text-indigo-700 font-medium" x-text="selectedSlotDetail.archive.sub_department_name ? (selectedSlotDetail.archive.sub_department + ' - ' + selectedSlotDetail.archive.sub_department_name) : selectedSlotDetail.archive.sub_department"></span>
+                                            <span class="text-xs text-indigo-700 dark:text-indigo-400 font-medium" x-text="selectedSlotDetail.archive.sub_department_name ? (selectedSlotDetail.archive.sub_department + ' - ' + selectedSlotDetail.archive.sub_department_name) : selectedSlotDetail.archive.sub_department"></span>
                                         </div>
                                     </template>
-                                    <div class="p-2.5 flex items-center justify-between">
+                                    <div class="p-2 flex items-center justify-between">
                                         <span class="text-slate-500 text-[10px] font-mono uppercase font-bold">Masa Simpan:</span>
-                                        <span class="font-mono text-xs font-semibold" :class="(selectedSlotDetail.status === 'expired' || selectedSlotDetail.archive.is_expired) ? 'text-rose-600 font-bold' : 'text-slate-800'" x-text="selectedSlotDetail.archive.retention_expiry_date || '-'"></span>
+                                        <span class="font-mono text-xs font-semibold" :class="(selectedSlotDetail.status === 'expired' || selectedSlotDetail.archive?.is_expired) ? 'text-rose-600 font-bold' : 'text-slate-800 dark:text-slate-200'" x-text="selectedSlotDetail.archive.retention_expiry_date || '-'"></span>
                                     </div>
                                 </div>
 
                                 <!-- Expired Warning Alert -->
-                                <template x-if="selectedSlotDetail.status === 'expired' || selectedSlotDetail.archive.is_expired">
-                                    <div class="p-2.5 bg-rose-50 border border-rose-200 rounded-lg space-y-1">
-                                        <div class="flex items-center gap-1.5 text-rose-700 font-bold text-xs">
+                                <template x-if="selectedSlotDetail.status === 'expired' || selectedSlotDetail.archive?.is_expired">
+                                    <div class="p-2 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded space-y-0.5">
+                                        <div class="flex items-center gap-1 text-rose-700 dark:text-rose-400 font-bold text-xs">
                                             <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-rose-600"></i>
                                             <span>Masa Simpan Kedaluwarsa</span>
                                         </div>
-                                        <p class="text-[11px] text-rose-800">
-                                            Arsip pada box ini telah melewati masa retensi dan dapat diproses untuk pemusnahan dokumen.
+                                        <p class="text-[10px] text-rose-800 dark:text-rose-300 font-sans">
+                                            Arsip pada box ini telah melewati masa retensi dan dapat diproses untuk pemusnahan.
                                         </p>
                                     </div>
                                 </template>
@@ -1746,7 +1794,7 @@
                                     <a 
                                         :href="'/archives/' + selectedSlotDetail.archive.id" 
                                         target="_blank"
-                                        class="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-lg shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+                                        class="w-full py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded border border-indigo-700 shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
                                     >
                                         <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
                                         <span>Buka Detail Halaman Arsip</span>
@@ -1755,7 +1803,7 @@
                                     <a 
                                         :href="'/archives/print-labels?archive_id=' + selectedSlotDetail.archive.id" 
                                         target="_blank"
-                                        class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-lg transition flex items-center justify-center gap-1.5 border border-slate-300 cursor-pointer"
+                                        class="w-full py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold text-xs rounded transition flex items-center justify-center gap-1.5 border border-slate-300 dark:border-slate-700 cursor-pointer"
                                     >
                                         <i data-lucide="printer" class="w-3.5 h-3.5"></i>
                                         <span>Cetak Label Box Form A5 (TB 30g)</span>
@@ -1765,7 +1813,7 @@
                                         type="button" 
                                         @click="unassignCurrentSlot()"
                                         :disabled="slotAssignLoading"
-                                        class="w-full py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-800 border border-rose-300 font-bold text-xs rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer"
+                                        class="w-full py-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/30 dark:hover:bg-rose-950/50 text-rose-700 dark:text-rose-400 border border-rose-300 dark:border-rose-800 font-bold text-xs rounded transition flex items-center justify-center gap-1.5 cursor-pointer"
                                     >
                                         <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
                                         <span x-text="slotAssignLoading ? 'Memproses...' : 'Kosongkan / Lepas Box Dari Slot Ini'"></span>
@@ -1776,44 +1824,44 @@
 
                         <!-- If Empty Slot: Form Pengisian Dokumen / Alokasi Box -->
                         <template x-if="!selectedSlotDetail?.archive">
-                            <div class="space-y-3 text-xs">
-                                <div class="p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center justify-between">
-                                    <div class="flex items-center gap-1.5 text-emerald-700 font-bold">
-                                        <i data-lucide="inbox" class="w-4 h-4"></i>
+                            <div class="space-y-2.5 text-xs">
+                                <div class="p-2 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded flex items-center justify-between">
+                                    <div class="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 font-bold">
+                                        <i data-lucide="inbox" class="w-3.5 h-3.5"></i>
                                         <span>Isi Dokumen ke Slot Ini</span>
                                     </div>
-                                    <span class="text-[10px] font-mono text-emerald-800 font-bold">Slot Kosong</span>
+                                    <span class="text-[10px] font-mono text-emerald-800 dark:text-emerald-300 font-bold">Slot Kosong</span>
                                 </div>
 
-                                <!-- Segmented Mode Switch Tabs -->
-                                <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200">
+                                <!-- Segmented Mode Switch Tabs (Square Desktop Style) -->
+                                <div class="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-900 p-0.5 rounded border border-slate-200 dark:border-slate-800">
                                     <button 
                                         type="button" 
                                         @click="slotAssignMode = 'create_new'"
-                                        class="flex-1 py-1.5 rounded font-semibold text-[11px] transition text-center cursor-pointer"
-                                        :class="slotAssignMode === 'create_new' ? 'bg-white text-indigo-700 shadow-xs border border-slate-200' : 'text-slate-600 hover:text-slate-900'"
+                                        class="flex-1 py-1 rounded font-bold text-[11px] transition text-center cursor-pointer"
+                                        :class="slotAssignMode === 'create_new' ? 'bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-400 shadow-xs border border-slate-200 dark:border-slate-700' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'"
                                     >
                                         Input Dokumen Baru
                                     </button>
                                     <button 
                                         type="button" 
                                         @click="slotAssignMode = 'existing_archive'"
-                                        class="flex-1 py-1.5 rounded font-semibold text-[11px] transition text-center cursor-pointer"
-                                        :class="slotAssignMode === 'existing_archive' ? 'bg-white text-indigo-700 shadow-xs border border-slate-200' : 'text-slate-600 hover:text-slate-900'"
+                                        class="flex-1 py-1 rounded font-bold text-[11px] transition text-center cursor-pointer"
+                                        :class="slotAssignMode === 'existing_archive' ? 'bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-400 shadow-xs border border-slate-200 dark:border-slate-700' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'"
                                     >
                                         Pilih Antrean Arsip
                                     </button>
                                 </div>
 
                                 <!-- Mode 1: Form Input Dokumen Baru -->
-                                <div x-show="slotAssignMode === 'create_new'" class="space-y-2.5">
+                                <div x-show="slotAssignMode === 'create_new'" class="space-y-2">
                                     <!-- Departemen Dropdown -->
-                                    <div class="space-y-1">
-                                        <label class="text-[10px] font-mono font-bold uppercase text-slate-700 block">Departemen: <span class="text-rose-500">*</span></label>
+                                    <div class="space-y-0.5">
+                                        <label class="text-[10px] font-mono font-bold uppercase text-slate-700 dark:text-slate-300 block">Departemen: <span class="text-rose-500">*</span></label>
                                         <select 
                                             x-model="slotAssignForm.department_id" 
                                             @change="onDepartmentChange()"
-                                            class="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:border-indigo-500 font-medium"
+                                            class="w-full px-2 py-1 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 font-medium"
                                         >
                                             <option value="">-- Pilih Departemen --</option>
                                             <template x-for="dept in departments" :key="dept.id">
@@ -1823,15 +1871,15 @@
                                     </div>
 
                                     <!-- Sub Departemen Dropdown -->
-                                    <div class="space-y-1">
-                                        <label class="text-[10px] font-mono font-bold uppercase text-slate-700 block">Sub-Departemen / Bagian: <span class="text-slate-500 font-normal font-sans">(Opsional)</span></label>
+                                    <div class="space-y-0.5">
+                                        <label class="text-[10px] font-mono font-bold uppercase text-slate-700 dark:text-slate-300 block">Sub-Departemen: <span class="text-slate-500 font-normal font-sans">(Opsional)</span></label>
                                         <select 
                                             x-model="slotAssignForm.sub_department_id" 
                                             @change="onSubDepartmentChange()"
                                             :disabled="!slotAssignForm.department_id || getAvailableSubDepartments().length === 0"
-                                            class="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:border-indigo-500 font-medium disabled:opacity-50"
+                                            class="w-full px-2 py-1 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 font-medium disabled:opacity-50"
                                         >
-                                            <option value="" x-text="getAvailableSubDepartments().length === 0 ? '-- Tidak Ada Sub-Dept --' : '-- Pilih Sub-Departemen (Opsional) --'"></option>
+                                            <option value="" x-text="getAvailableSubDepartments().length === 0 ? '-- Tidak Ada Sub-Dept --' : '-- Pilih Sub-Dept (Opsional) --'"></option>
                                             <template x-for="sub in getAvailableSubDepartments()" :key="sub.id">
                                                 <option :value="sub.id" x-text="sub.code + ' - ' + sub.name"></option>
                                             </template>
@@ -1839,45 +1887,45 @@
                                     </div>
 
                                     <!-- Judul Dokumen -->
-                                    <div class="space-y-1">
-                                        <label class="text-[10px] font-mono font-bold uppercase text-slate-700 block">Judul / Uraian Dokumen: <span class="text-rose-500">*</span></label>
+                                    <div class="space-y-0.5">
+                                        <label class="text-[10px] font-mono font-bold uppercase text-slate-700 dark:text-slate-300 block">Judul / Uraian Dokumen: <span class="text-rose-500">*</span></label>
                                         <input 
                                             type="text" 
                                             x-model="slotAssignForm.title"
                                             placeholder="Contoh: Faktur Pajak Masukan & Keluaran"
-                                            class="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 font-medium"
+                                            class="w-full px-2 py-1 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-indigo-500 font-sans"
                                         >
                                     </div>
 
                                     <!-- Grid 2 Kolom: No. Box & Periode -->
-                                    <div class="grid grid-cols-2 gap-2">
-                                        <div class="space-y-1">
-                                            <label class="text-[10px] font-mono font-bold uppercase text-slate-700 block">No. Box Kardus:</label>
+                                    <div class="grid grid-cols-2 gap-1.5">
+                                        <div class="space-y-0.5">
+                                            <label class="text-[10px] font-mono font-bold uppercase text-slate-700 dark:text-slate-300 block">No. Box:</label>
                                             <input 
                                                 type="text" 
                                                 x-model="slotAssignForm.box_number"
                                                 placeholder="Otomatis..."
-                                                class="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-amber-700 placeholder-slate-400 focus:outline-none focus:border-indigo-500 font-mono font-bold"
+                                                class="w-full px-2 py-1 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-xs text-amber-700 dark:text-amber-400 placeholder-slate-400 focus:outline-none focus:border-indigo-500 font-mono font-bold"
                                             >
                                         </div>
-                                        <div class="space-y-1">
-                                            <label class="text-[10px] font-mono font-bold uppercase text-slate-700 block">Periode (YYYY/MM):</label>
+                                        <div class="space-y-0.5">
+                                            <label class="text-[10px] font-mono font-bold uppercase text-slate-700 dark:text-slate-300 block">Periode (YYYY/MM):</label>
                                             <input 
                                                 type="text" 
                                                 x-model="slotAssignForm.periode_doc"
                                                 placeholder="2024/01"
-                                                class="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 font-mono"
+                                                class="w-full px-2 py-1 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-indigo-500 font-mono"
                                             >
                                         </div>
                                     </div>
 
                                     <!-- Grid 2 Kolom: Tipe Dokumen & Masa Retensi -->
-                                    <div class="grid grid-cols-2 gap-2">
-                                        <div class="space-y-1">
-                                            <label class="text-[10px] font-mono font-bold uppercase text-slate-700 block">Tipe Dokumen:</label>
+                                    <div class="grid grid-cols-2 gap-1.5">
+                                        <div class="space-y-0.5">
+                                            <label class="text-[10px] font-mono font-bold uppercase text-slate-700 dark:text-slate-300 block">Tipe Dokumen:</label>
                                             <select 
                                                 x-model="slotAssignForm.document_type"
-                                                class="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:border-indigo-500 font-medium"
+                                                class="w-full px-2 py-1 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 font-medium"
                                             >
                                                 <option value="UMUM">UMUM</option>
                                                 <option value="KEUANGAN">KEUANGAN</option>
@@ -1886,38 +1934,38 @@
                                                 <option value="SDM">SDM</option>
                                             </select>
                                         </div>
-                                        <div class="space-y-1">
-                                            <label class="text-[10px] font-mono font-bold uppercase text-slate-700 block">Masa Retensi (Thn):</label>
+                                        <div class="space-y-0.5">
+                                            <label class="text-[10px] font-mono font-bold uppercase text-slate-700 dark:text-slate-300 block">Retensi (Thn):</label>
                                             <input 
                                                 type="number" 
                                                 x-model="slotAssignForm.retention_years"
                                                 min="1" max="50"
-                                                class="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:border-indigo-500 font-mono"
+                                                class="w-full px-2 py-1 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 font-mono"
                                             >
                                         </div>
                                     </div>
 
-                                    <!-- Submit Button -->
+                                    <!-- Submit Button (Square Desktop) -->
                                     <div class="pt-1">
                                         <button 
                                             type="button" 
                                             @click="submitAssignSlot()"
                                             :disabled="slotAssignLoading"
-                                            class="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+                                            class="w-full py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded border border-emerald-700 shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
                                         >
                                             <i data-lucide="check" class="w-3.5 h-3.5"></i>
-                                            <span x-text="slotAssignLoading ? 'Menyimpan Dokumen...' : 'Simpan & Tempatkan Kardus di Slot'"></span>
+                                            <span x-text="slotAssignLoading ? 'Menyimpan...' : 'Simpan & Tempatkan di Slot'"></span>
                                         </button>
                                     </div>
                                 </div>
 
                                 <!-- Mode 2: Form Pilih Dari Antrean Arsip -->
-                                <div x-show="slotAssignMode === 'existing_archive'" class="space-y-2.5">
-                                    <div class="space-y-1">
-                                        <label class="text-[10px] font-mono font-bold uppercase text-slate-700 block">Pilih Dokumen Arsip Terdaftar:</label>
+                                <div x-show="slotAssignMode === 'existing_archive'" class="space-y-2">
+                                    <div class="space-y-0.5">
+                                        <label class="text-[10px] font-mono font-bold uppercase text-slate-700 dark:text-slate-300 block">Pilih Dokumen Arsip Terdaftar:</label>
                                         <select 
                                             x-model="slotAssignForm.archive_id"
-                                            class="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:border-indigo-500 font-medium"
+                                            class="w-full px-2 py-1 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 font-medium"
                                         >
                                             <option value="">-- Pilih Dari Antrean Arsip --</option>
                                             <template x-for="arc in unassignedArchivesList" :key="arc.id">
@@ -1925,8 +1973,8 @@
                                             </template>
                                         </select>
                                         <template x-if="unassignedArchivesList.length === 0">
-                                            <p class="text-[11px] text-slate-500 italic pt-1">
-                                                Tidak ada antrean arsip yang belum memiliki rak. Gunakan tab 'Input Dokumen Baru' untuk membuat kardus baru.
+                                            <p class="text-[10px] text-slate-500 italic pt-0.5 font-sans">
+                                                Tidak ada antrean arsip yang belum memiliki rak. Gunakan tab 'Input Dokumen Baru'.
                                             </p>
                                         </template>
                                     </div>
@@ -1936,10 +1984,10 @@
                                             type="button" 
                                             @click="submitAssignSlot()"
                                             :disabled="slotAssignLoading || !slotAssignForm.archive_id"
-                                            class="w-full py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold text-xs rounded-lg shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+                                            class="w-full py-1.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold text-xs rounded border border-indigo-700 shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
                                         >
                                             <i data-lucide="folder-check" class="w-3.5 h-3.5"></i>
-                                            <span x-text="slotAssignLoading ? 'Menempatkan...' : 'Alokasikan Arsip Terpilih ke Slot'"></span>
+                                            <span x-text="slotAssignLoading ? 'Menempatkan...' : 'Alokasikan Arsip ke Slot'"></span>
                                         </button>
                                     </div>
                                 </div>
@@ -1948,11 +1996,11 @@
                     </div>
 
                     <!-- Footer Close Button -->
-                    <div class="pt-2 border-t border-slate-200">
+                    <div class="pt-2 border-t border-slate-200 dark:border-slate-800">
                         <button 
                             @click="rackGridModalOpen = false" 
                             type="button" 
-                            class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 font-semibold text-xs rounded-lg transition text-center border border-slate-300 cursor-pointer"
+                            class="w-full py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-bold text-xs rounded transition text-center border border-slate-300 dark:border-slate-700 cursor-pointer"
                         >
                             Tutup Modal Denah Rak
                         </button>
@@ -1962,7 +2010,7 @@
         </div>
     </div>
 
-    <!-- Floating Toast Notification Banner -->
+    <!-- Floating Toast Notification Banner (Square Desktop Style) -->
     <div 
         x-show="toastOpen" 
         x-cloak 
@@ -1972,7 +2020,7 @@
         x-transition:leave="transition ease-in duration-150"
         x-transition:leave-start="opacity-100 translate-y-0"
         x-transition:leave-end="opacity-0 translate-y-4"
-        class="fixed bottom-6 right-6 z-[99999] bg-slate-900/95 border border-amber-500/40 text-slate-100 font-bold text-xs px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-2.5 backdrop-blur-md"
+        class="fixed bottom-4 right-4 z-[99999] bg-slate-900 text-slate-100 font-mono font-bold text-xs px-3.5 py-2.5 rounded border border-amber-500/60 shadow-2xl flex items-center gap-2"
     >
         <i data-lucide="info" class="w-4 h-4 text-amber-400"></i>
         <span x-text="toastMessage"></span>

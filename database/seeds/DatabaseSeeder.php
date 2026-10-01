@@ -30,6 +30,9 @@ class DatabaseSeeder extends Seeder
         // 2. Seed Sub-Departments
         $this->call(SubDepartmentSeeder::class);
 
+        // 2.1 Seed Master Archives for Departments
+        $this->call(MasterArchiveSeeder::class);
+
         $subTax = SubDepartment::where('code', 'TAX')->first();
         $subRec = SubDepartment::where('code', 'REC')->first();
         $subExp = SubDepartment::where('code', 'EXP')->where('department_id', $deptMkt->id)->first();

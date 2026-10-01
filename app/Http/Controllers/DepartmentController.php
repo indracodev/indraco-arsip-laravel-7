@@ -3,9 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Department;
+use App\Models\MasterArchive;
 use App\Models\SubDepartment;
+use App\Models\User;
 use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 class DepartmentController extends Controller
 {
@@ -13,15 +16,17 @@ class DepartmentController extends Controller
     {
         $departments = Department::with(['subDepartments' => function ($q) {
             $q->withCount('archives')->orderBy('code', 'asc');
-        }])
-        ->withCount(['archives', 'subDepartments'])
+        }, 'picUsers', 'masterArchives.subDepartment'])
+        ->withCount(['archives', 'subDepartments', 'masterArchives', 'picUsers'])
         ->withCount(['archives as unassigned_archives_count' => function ($q) {
             $q->whereNull('sub_department_id');
         }])
         ->orderBy('code', 'asc')
         ->get();
 
-        return view('master.departments', compact('departments'));
+        $allUsers = User::orderBy('name', 'asc')->get();
+
+        return view('master.departments', compact('departments', 'allUsers'));
     }
 
     public function store(Request $request)
@@ -299,5 +304,167 @@ class DepartmentController extends Controller
             ],
             'archives' => $archives,
         ]);
+    }
+
+    /**
+     * API endpoint to get management data (PIC users, available users, and master archives) for a department.
+     */
+    public function apiGetManageData(Department $department)
+    {
+        $department->load([
+            'subDepartments' => function ($q) {
+                $q->orderBy('code', 'asc');
+            },
+            'masterArchives' => function ($q) {
+                $q->with('subDepartment')->orderBy('name', 'asc');
+            }
+        ]);
+
+        $picUsers = User::where('department_id', $department->id)
+            ->where('role', 'pic_dept')
+            ->orderBy('name', 'asc')
+            ->get();
+
+        $availableUsers = User::where(function ($q) use ($department) {
+                $q->whereNull('department_id')
+                  ->orWhere('department_id', '!=', $department->id);
+            })
+            ->where('role', '!=', 'admin')
+            ->orderBy('name', 'asc')
+            ->get();
+
+        return response()->json([
+            'status' => 'success',
+            'department' => [
+                'id' => $department->id,
+                'code' => $department->code,
+                'name' => $department->name,
+                'description' => $department->description,
+                'retention_years' => $department->retention_years,
+            ],
+            'sub_departments' => $department->subDepartments,
+            'pic_users' => $picUsers,
+            'available_users' => $availableUsers,
+            'master_archives' => $department->masterArchives,
+        ]);
+    }
+
+    /**
+     * Assign existing or new user as PIC for the specified department.
+     */
+    public function assignPic(Request $request, Department $department)
+    {
+        if ($request->filled('user_id')) {
+            $validated = $request->validate([
+                'user_id' => 'required|exists:users,id',
+            ]);
+
+            $user = User::findOrFail($validated['user_id']);
+            $user->update([
+                'department_id' => $department->id,
+                'role' => 'pic_dept',
+            ]);
+
+            ActivityLogger::log(
+                'MASTER_DEPT_PIC_ASSIGN',
+                "Menugaskan user '{$user->name}' sebagai PIC Departemen {$department->name} ({$department->code}).",
+                'MASTER_DEPT',
+                [
+                    'department_id' => $department->id,
+                    'user_id' => $user->id,
+                    'user_name' => $user->name,
+                ],
+                $department->name
+            );
+
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'status' => 'success',
+                    'message' => "User {$user->name} berhasil ditugaskan sebagai PIC Departemen {$department->name}.",
+                    'user' => $user,
+                ]);
+            }
+
+            return redirect()->back()->with('success', "User {$user->name} berhasil ditugaskan sebagai PIC.");
+        } else {
+            // Create a new user as PIC
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'email' => 'required|email|unique:users,email',
+                'password' => 'required|string|min:6',
+                'phone' => 'nullable|string|max:20',
+            ]);
+
+            $validated['password'] = Hash::make($validated['password']);
+            $validated['department_id'] = $department->id;
+            $validated['role'] = 'pic_dept';
+
+            $newUser = User::create($validated);
+
+            ActivityLogger::log(
+                'MASTER_DEPT_PIC_CREATE',
+                "Membuat user baru '{$newUser->name}' sebagai PIC Departemen {$department->name} ({$department->code}).",
+                'MASTER_DEPT',
+                [
+                    'department_id' => $department->id,
+                    'user_id' => $newUser->id,
+                    'user_name' => $newUser->name,
+                ],
+                $department->name
+            );
+
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'status' => 'success',
+                    'message' => "User PIC baru {$newUser->name} berhasil dibuat dan ditugaskan ke {$department->name}.",
+                    'user' => $newUser,
+                ]);
+            }
+
+            return redirect()->back()->with('success', "User PIC baru {$newUser->name} berhasil dibuat.");
+        }
+    }
+
+    /**
+     * Remove / unassign user from department PIC.
+     */
+    public function removePic(Request $request, Department $department, User $user)
+    {
+        if ($user->department_id == $department->id) {
+            $userName = $user->name;
+            $user->update([
+                'department_id' => null,
+            ]);
+
+            ActivityLogger::log(
+                'MASTER_DEPT_PIC_REMOVE',
+                "Melepaskan penugasan PIC '{$userName}' dari Departemen {$department->name}.",
+                'MASTER_DEPT',
+                [
+                    'department_id' => $department->id,
+                    'user_id' => $user->id,
+                    'user_name' => $userName,
+                ],
+                $department->name
+            );
+
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'status' => 'success',
+                    'message' => "Penugasan PIC {$userName} dari {$department->name} berhasil dilepaskan.",
+                ]);
+            }
+
+            return redirect()->back()->with('success', "Penugasan PIC {$userName} berhasil dilepaskan.");
+        }
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => "User tidak terdaftar pada departemen ini.",
+            ], 422);
+        }
+
+        return redirect()->back()->with('error', "User tidak terdaftar pada departemen ini.");
     }
 }

@@ -20,6 +20,12 @@ class Warehouse extends Model
         'is_active' => 'boolean',
     ];
 
+    public function getNameAttribute($value): string
+    {
+        $clean = preg_replace('/^(Gudang\s+)+/i', '', $value ?? '');
+        return 'Gudang ' . trim($clean);
+    }
+
     public function locations(): HasMany
     {
         return $this->hasMany(WarehouseLocation::class);

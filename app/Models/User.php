@@ -39,6 +39,11 @@ class User extends Authenticatable
         return $this->hasMany(Archive::class, 'created_by_user_id');
     }
 
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
     public function isSuperAdmin(): bool
     {
         return $this->role === 'admin';

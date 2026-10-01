@@ -35,4 +35,14 @@ class Department extends Model
     {
         return $this->hasMany(Archive::class);
     }
+
+    public function masterArchives(): HasMany
+    {
+        return $this->hasMany(MasterArchive::class);
+    }
+
+    public function picUsers(): HasMany
+    {
+        return $this->hasMany(User::class)->where('role', 'pic_dept');
+    }
 }

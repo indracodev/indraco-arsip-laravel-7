@@ -75,6 +75,9 @@ Route::middleware('auth')->group(function () {
     // Master Department & Sub-Department Archives Drill-Down API
     Route::get('/api/departments/{department}/archives', 'DepartmentController@apiGetDepartmentArchives')->name('api.departments.archives');
     Route::get('/api/sub-departments/{subDepartment}/archives', 'DepartmentController@apiGetSubDepartmentArchives')->name('api.sub_departments.archives');
+    Route::get('/api/departments/{department}/manage-data', 'DepartmentController@apiGetManageData')->name('api.departments.manage_data');
+    Route::get('/api/departments/{department}/master-archives', 'MasterArchiveController@apiGetByDepartment')->name('api.departments.master_archives');
+    Route::get('/api/settings/current', 'SettingController@getSettings')->name('api.settings.current');
 
     // Master Data Management (Admin & PIC Gudang)
     Route::middleware('role:admin,pic_gudang')->prefix('master')->name('master.')->group(function () {
@@ -82,6 +85,23 @@ Route::middleware('auth')->group(function () {
         Route::post('/departments', 'DepartmentController@store')->name('departments.store');
         Route::put('/departments/{department}', 'DepartmentController@update')->name('departments.update');
         Route::delete('/departments/{department}', 'DepartmentController@destroy')->name('departments.destroy');
+
+        // Department Manage PIC
+        Route::post('/departments/{department}/pic/assign', 'DepartmentController@assignPic')->name('departments.pic.assign');
+        Route::delete('/departments/{department}/pic/{user}', 'DepartmentController@removePic')->name('departments.pic.remove');
+
+        // Department Master Archives CRUD
+        Route::post('/departments/{department}/master-archives', 'MasterArchiveController@store')->name('departments.master_archives.store');
+        Route::post('/departments/{department}/master-archives/batch', 'MasterArchiveController@storeBatch')->name('departments.master_archives.batch');
+        Route::put('/departments/{department}/master-archives/{masterArchive}', 'MasterArchiveController@update')->name('departments.master_archives.update');
+        Route::delete('/departments/{department}/master-archives/{masterArchive}', 'MasterArchiveController@destroy')->name('departments.master_archives.destroy');
+
+        // System Settings & Appearance & Database Maintenance
+        Route::post('/settings/update', 'SettingController@updateSettings')->name('settings.update');
+        Route::post('/settings/reset-logo', 'SettingController@resetLogo')->name('settings.reset_logo');
+        Route::post('/settings/clear-logs', 'SettingController@clearLogs')->name('settings.clear_logs');
+        Route::post('/settings/clear-box-allocations', 'SettingController@clearBoxAllocations')->name('settings.clear_box_allocations');
+        Route::post('/settings/clear-archives', 'SettingController@clearArchives')->name('settings.clear_archives');
 
         Route::post('/sub-departments', 'DepartmentController@storeSubDepartment')->name('sub_departments.store');
         Route::put('/sub-departments/{subDepartment}', 'DepartmentController@updateSubDepartment')->name('sub_departments.update');
@@ -101,11 +121,11 @@ Route::middleware('auth')->group(function () {
         Route::post('/numbering', 'NumberingFormatController@store')->name('numbering.store')->middleware('role:admin');
         Route::put('/numbering/{numberingFormat}', 'NumberingFormatController@update')->name('numbering.update')->middleware('role:admin');
 
-        Route::get('/users', 'UserController@index')->name('users');
-        Route::post('/users', 'UserController@store')->name('users.store');
-        Route::put('/users/{user}', 'UserController@update')->name('users.update');
-        Route::delete('/users/{user}', 'UserController@destroy')->name('users.destroy');
-        Route::post('/users/{user}/impersonate', 'UserController@impersonate')->name('users.impersonate');
+        Route::get('/users', 'UserController@index')->name('users')->middleware('role:admin');
+        Route::post('/users', 'UserController@store')->name('users.store')->middleware('role:admin');
+        Route::put('/users/{user}', 'UserController@update')->name('users.update')->middleware('role:admin');
+        Route::delete('/users/{user}', 'UserController@destroy')->name('users.destroy')->middleware('role:admin');
+        Route::post('/users/{user}/impersonate', 'UserController@impersonate')->name('users.impersonate')->middleware('role:admin');
     });
 
     // Leave Impersonate Route

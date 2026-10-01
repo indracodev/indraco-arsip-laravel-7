@@ -57,13 +57,17 @@ class DashboardController extends Controller
             ->get();
 
         $recentArchives = (clone $archivesQuery)
-            ->with(['department', 'location', 'creator'])
+            ->with(['department', 'location.warehouse', 'rackSlot', 'creator'])
             ->latest()
-            ->take(6)
+            ->take(10)
             ->get();
 
         // Warehouse capacity stats (for admin & pic gudang)
-        $warehouseLocations = WarehouseLocation::with('warehouse')->get();
+        $warehouses = \App\Models\Warehouse::with(['locations' => function ($q) {
+            $q->where('is_active', true)->with('slots');
+        }])->where('is_active', true)->get();
+
+        $warehouseLocations = WarehouseLocation::with(['warehouse', 'slots'])->where('is_active', true)->get();
         $totalCapacity = $warehouseLocations->sum('box_capacity');
         $usedCapacity = $warehouseLocations->sum('current_box_count');
         $capacityPercent = $totalCapacity > 0 ? round(($usedCapacity / $totalCapacity) * 100, 1) : 0;
@@ -82,6 +86,7 @@ class DashboardController extends Controller
             'pendingBookings',
             'pendingBorrowings',
             'recentArchives',
+            'warehouses',
             'warehouseLocations',
             'totalCapacity',
             'usedCapacity',

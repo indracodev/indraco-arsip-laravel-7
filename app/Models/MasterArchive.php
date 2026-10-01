@@ -4,17 +4,17 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class SubDepartment extends Model
+class MasterArchive extends Model
 {
     protected $fillable = [
-        'sidar_id',
         'department_id',
+        'sub_department_id',
         'code',
         'name',
-        'description',
+        'document_type',
         'retention_years',
+        'description',
         'is_active',
     ];
 
@@ -28,18 +28,8 @@ class SubDepartment extends Model
         return $this->belongsTo(Department::class);
     }
 
-    public function archives(): HasMany
+    public function subDepartment(): BelongsTo
     {
-        return $this->hasMany(Archive::class);
-    }
-
-    public function users(): HasMany
-    {
-        return $this->hasMany(User::class);
-    }
-
-    public function masterArchives(): HasMany
-    {
-        return $this->hasMany(MasterArchive::class);
+        return $this->belongsTo(SubDepartment::class);
     }
 }
