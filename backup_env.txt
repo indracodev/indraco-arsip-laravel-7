@@ -1,0 +1,15 @@
+APP_NAME="INDRACO DMS"
+APP_ENV=local
+APP_KEY=base64:JqX5K+n+00e84L3H7Jq2K3J4L5M6N7O8P9Q0R1S2T3U=
+APP_DEBUG=true
+APP_URL=http://localhost:8000
+APP_TIMEZONE=Asia/Jakarta
+
+LOG_CHANNEL=stack
+
+DB_CONNECTION=sqlite
+DB_DATABASE="C:/laragon/www/#Project2026/indraco-arsip-laravel-7/database/database.sqlite"
+
+APP_FONT_SIZE=medium
+
+APP_DEMO=false
