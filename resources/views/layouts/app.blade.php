@@ -1049,7 +1049,7 @@
                     <span class="p-1 bg-amber-500/20 text-amber-400 border border-amber-400/40 rounded">
                         <i data-lucide="sliders" class="w-4 h-4"></i>
                     </span>
-                    <span>frmSystemSettings : Pengaturan Sistem & Tampilan</span>
+                    <span>Pengaturan Sistem & Tampilan</span>
                 </div>
                 <button @click="closeSettings()" type="button" class="text-slate-400 hover:text-white text-xs font-bold px-2 py-1 rounded hover:bg-rose-600 transition" title="Tutup (Esc)">✕</button>
             </div>
