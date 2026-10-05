@@ -1581,7 +1581,7 @@
                                     <div class="w-5 h-5 rounded bg-indigo-100 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-400 flex items-center justify-center font-mono font-bold text-xs">
                                         <span x-text="sapNum"></span>
                                     </div>
-                                    <h3 class="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide font-mono" x-text="'LVL ' + sapNum + (sapNum === 5 ? ' (TINGKAT 5 - PALING ATAS)' : (sapNum === 1 ? ' (TINGKAT 1 - PALING BAWAH)' : ' (TINGKAT ' + sapNum + ')'))"></h3>
+                                    <h3 class="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide font-mono" x-text="'LVL ' + sapNum"></h3>
                                 </div>
                                 <span class="text-[11px] font-mono text-slate-400" x-text="'20 Box (Nomor ' + ((sapNum-1)*20 + 1) + ' — ' + ((sapNum-1)*20 + 20) + ')'"></span>
                             </div>
@@ -1606,10 +1606,10 @@
                                                 (slotBlinkActive && highlightedSlotCode === slot.slot_code) ? '!ring-4 !ring-amber-500 !bg-amber-300 !text-slate-950 font-black scale-110 shadow-2xl z-30 animate-pulse border-amber-600 ring-offset-2' : '',
                                                 !isSlotMatchFilter(slot) ? 'opacity-20 grayscale' : 'opacity-100'
                                             ]"
-                                            :title="slot.archive ? ('Box #' + getBoxIndex(sapNum, 'top', slot.slot_number) + ': ' + (slot.archive.box_number || 'Box') + ' - ' + slot.archive.title) : ('Box #' + getBoxIndex(sapNum, 'top', slot.slot_number) + ': Slot Kosong')"
+                                            :title="slot.archive ? ('Box #' + (slot.box_number_display || slot.slot_number) + ': ' + (slot.archive.box_number || 'Box') + ' - ' + slot.archive.title) : ('Box #' + (slot.box_number_display || slot.slot_number) + ': Slot Kosong')"
                                         >
                                             <div class="w-full flex items-center justify-between text-[9px] font-mono font-bold opacity-90 mb-0.5">
-                                                <span class="text-amber-400 font-black text-[11px]" x-text="'#' + getBoxIndex(sapNum, 'top', slot.slot_number)"></span>
+                                                <span class="text-amber-400 font-black text-[11px]" x-text="'#' + (slot.box_number_display || slot.slot_number)"></span>
                                                 <template x-if="slot.status === 'expired' || slot.archive?.is_expired">
                                                     <span class="w-1.5 h-1.5 rounded-none bg-rose-500 animate-pulse"></span>
                                                 </template>
@@ -1661,10 +1661,10 @@
                                                 (slotBlinkActive && highlightedSlotCode === slot.slot_code) ? '!ring-4 !ring-amber-500 !bg-amber-300 !text-slate-950 font-black scale-110 shadow-2xl z-30 animate-pulse border-amber-600 ring-offset-2' : '',
                                                 !isSlotMatchFilter(slot) ? 'opacity-20 grayscale' : 'opacity-100'
                                             ]"
-                                            :title="slot.archive ? ('Box #' + getBoxIndex(sapNum, 'bottom', slot.slot_number) + ': ' + (slot.archive.box_number || 'Box') + ' - ' + slot.archive.title) : ('Box #' + getBoxIndex(sapNum, 'bottom', slot.slot_number) + ': Slot Kosong')"
+                                            :title="slot.archive ? ('Box #' + (slot.box_number_display || slot.slot_number) + ': ' + (slot.archive.box_number || 'Box') + ' - ' + slot.archive.title) : ('Box #' + (slot.box_number_display || slot.slot_number) + ': Slot Kosong')"
                                         >
                                             <div class="w-full flex items-center justify-between text-[9px] font-mono font-bold opacity-90 mb-0.5">
-                                                <span class="text-amber-400 font-black text-[11px]" x-text="'#' + getBoxIndex(sapNum, 'bottom', slot.slot_number)"></span>
+                                                <span class="text-amber-400 font-black text-[11px]" x-text="'#' + (slot.box_number_display || slot.slot_number)"></span>
                                                 <template x-if="slot.status === 'expired' || slot.archive?.is_expired">
                                                     <span class="w-1.5 h-1.5 rounded-none bg-rose-500 animate-pulse"></span>
                                                 </template>
@@ -1715,7 +1715,7 @@
                         <div class="border-b border-slate-200 dark:border-slate-800 pb-2.5 flex items-start justify-between">
                             <div>
                                 <span class="text-[10px] font-bold uppercase text-indigo-400 tracking-wider block font-mono" x-text="'Sap ' + (selectedSlotDetail?.sap_level || '') + ' • ' + (selectedSlotDetail?.layer_label || '')"></span>
-                                <h3 class="text-base font-bold text-white font-mono" x-text="'SLOT BOX #' + getBoxIndex(selectedSlotDetail?.sap_level, selectedSlotDetail?.layer, selectedSlotDetail?.slot_number)"></h3>
+                                <h3 class="text-base font-bold text-white font-mono" x-text="'SLOT BOX #' + (selectedSlotDetail?.box_number_display || selectedSlotDetail?.slot_number || getBoxIndex(selectedSlotDetail?.sap_level, selectedSlotDetail?.layer, selectedSlotDetail?.slot_number))"></h3>
                             </div>
                             <span 
                                 class="px-1.5 py-0.2 text-[10px] font-bold uppercase rounded tracking-wider"
@@ -4777,12 +4777,14 @@ function warehouseCanvasApp() {
         },
 
         getBoxIndex(sapLevel, layer, slotNumber) {
-            const sap = parseInt(sapLevel);
             const num = parseInt(slotNumber);
+            if (!isNaN(num) && num > 10) return num;
+            const sap = parseInt(sapLevel) || 1;
+            const n = isNaN(num) ? 1 : num;
             if (layer === 'bottom') {
-                return (sap - 1) * 20 + num;
+                return (sap - 1) * 20 + n;
             } else {
-                return (sap - 1) * 20 + 10 + num;
+                return (sap - 1) * 20 + 10 + n;
             }
         },
 

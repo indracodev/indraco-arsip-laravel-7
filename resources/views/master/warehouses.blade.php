@@ -6,49 +6,53 @@
 <div class="space-y-3" x-data="masterWarehousesManager()">
 
     <!-- DELPHI ACTION RIBBON TOOLBAR & HEADER -->
-    <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-3 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3 font-mono">
-        <div class="flex items-center gap-2">
-            <span class="p-1.5 bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 rounded">
-                <i data-lucide="warehouse" class="w-4 h-4"></i>
-            </span>
-            <div>
-                <h1 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Master Gudang & Slot Rak Storage</h1>
-                <p class="text-[11px] text-slate-500 dark:text-slate-400">Pengelolaan Gedung Depo Gudang & Alokasi Kapasitas Slot Rak (TDBGrid Engine)</p>
+    <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-2.5 sm:p-3 shadow-sm font-mono">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2.5">
+            <!-- Left Header Title Area -->
+            <div class="flex items-center gap-2.5 min-w-0">
+                <span class="p-2 bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 rounded shrink-0">
+                    <i data-lucide="warehouse" class="w-4 h-4"></i>
+                </span>
+                <div class="min-w-0">
+                    <h1 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider truncate">Master Gudang & Slot Rak Storage</h1>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate">Pengelolaan Gedung Depo Gudang & Alokasi Kapasitas Slot Rak</p>
+                </div>
             </div>
-        </div>
 
-        <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
-            <!-- Search Input -->
-            <div class="relative w-full sm:w-56">
-                <i data-lucide="search" class="w-3.5 h-3.5 absolute left-2.5 top-2 text-slate-400"></i>
-                <input 
-                    type="text" 
-                    x-model="searchQuery" 
-                    placeholder="Cari gudang/rak... (Ctrl+F)" 
-                    class="w-full pl-8 pr-7 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition"
-                >
-                <button x-show="searchQuery" @click="searchQuery = ''" type="button" class="absolute right-2 top-1.5 text-slate-400 hover:text-slate-600">
-                    <i data-lucide="x" class="w-3 h-3"></i>
+            <!-- Right Action Controls (Search & Action Buttons) -->
+            <div class="flex flex-wrap items-center gap-2">
+                <!-- Search Input -->
+                <div class="relative flex-1 sm:w-56 min-w-[140px]">
+                    <i data-lucide="search" class="w-3.5 h-3.5 absolute left-2.5 top-2 text-slate-400"></i>
+                    <input 
+                        type="text" 
+                        x-model="searchQuery" 
+                        placeholder="Cari gudang/rak... (Ctrl+F)" 
+                        class="w-full pl-8 pr-7 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition"
+                    >
+                    <button x-show="searchQuery" @click="searchQuery = ''" type="button" class="absolute right-2 top-1.5 text-slate-400 hover:text-slate-600">
+                        <i data-lucide="x" class="w-3 h-3"></i>
+                    </button>
+                </div>
+
+                <!-- Refresh Button (F5) -->
+                <button @click="window.location.reload()" type="button" class="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-400 dark:border-slate-600 rounded text-xs font-mono font-bold transition flex items-center gap-1 shadow-sm shrink-0 cursor-pointer" title="Segarkan Data (F5)">
+                    <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                    <span>Refresh (F5)</span>
+                </button>
+
+                <!-- Add Warehouse (F2) -->
+                <button @click="openAddWarehouse = true" type="button" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-white font-mono font-bold text-xs rounded border border-slate-900 shadow transition flex items-center gap-1 shrink-0 cursor-pointer">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                    <span>+ Gudang (F2)</span>
+                </button>
+
+                <!-- Add Location Rak (F3) -->
+                <button @click="openAddLocation = true" type="button" class="px-3 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-mono font-black text-xs rounded border border-amber-600 shadow transition flex items-center gap-1 shrink-0 cursor-pointer">
+                    <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+                    <span>+ Slot Rak (F3)</span>
                 </button>
             </div>
-
-            <!-- Refresh Button (F5) -->
-            <button @click="window.location.reload()" type="button" class="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-400 dark:border-slate-600 rounded text-xs font-mono font-bold transition flex items-center gap-1 shadow-sm shrink-0" title="Segarkan Data (F5)">
-                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-                <span>Refresh (F5)</span>
-            </button>
-
-            <!-- Add Warehouse (F2) -->
-            <button @click="openAddWarehouse = true" type="button" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-white font-mono font-bold text-xs rounded border border-slate-900 shadow transition flex items-center gap-1 shrink-0">
-                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-                <span>+ Gudang (F2)</span>
-            </button>
-
-            <!-- Add Location Rak (F3) -->
-            <button @click="openAddLocation = true" type="button" class="px-3 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-mono font-black text-xs rounded border border-amber-600 shadow transition flex items-center gap-1 shrink-0">
-                <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
-                <span>+ Slot Rak (F3)</span>
-            </button>
         </div>
     </div>
 
@@ -66,14 +70,14 @@
                 <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-3 shadow-sm space-y-3 flex flex-col justify-between">
                     <div>
                         <!-- Warehouse Header Panel -->
-                        <div class="flex items-start justify-between bg-slate-100 dark:bg-slate-900 p-2.5 rounded border border-slate-200 dark:border-slate-800 font-mono">
-                            <div class="space-y-1">
+                        <div class="flex flex-wrap sm:flex-nowrap items-start justify-between bg-slate-100 dark:bg-slate-900 p-2.5 rounded border border-slate-200 dark:border-slate-800 font-mono gap-2">
+                            <div class="space-y-1 min-w-0 flex-1">
                                 <div class="flex items-center gap-2 flex-wrap">
-                                    <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30" x-text="wh.code"></span>
-                                    <h2 class="text-xs font-extrabold text-slate-900 dark:text-white" :class="wh.is_active === false ? 'opacity-60 line-through' : ''" x-text="wh.name"></h2>
+                                    <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 shrink-0" x-text="wh.code"></span>
+                                    <h2 class="text-xs font-extrabold text-slate-900 dark:text-white truncate" :class="wh.is_active === false ? 'opacity-60 line-through' : ''" x-text="wh.name"></h2>
                                     
                                     <!-- Active / Inactive Toggle Switch Button -->
-                                    <div class="inline-flex items-center gap-2 ml-1.5">
+                                    <div class="inline-flex items-center gap-2 ml-1.5 shrink-0">
                                         @if(auth()->user()->isSuperAdmin())
                                         <button 
                                             type="button" 
@@ -107,11 +111,11 @@
                                         ></span>
                                     </div>
                                 </div>
-                                <p class="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1 font-medium mt-0.5">
-                                    <i data-lucide="map-pin" class="w-3 h-3 text-slate-400"></i> <span x-text="wh.address || 'Alamat lokasi belum diisi'"></span>
+                                <p class="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1 font-medium mt-0.5 truncate">
+                                    <i data-lucide="map-pin" class="w-3 h-3 text-slate-400 shrink-0"></i> <span class="truncate" x-text="wh.address || 'Alamat lokasi belum diisi'"></span>
                                 </p>
                             </div>
-                            <div class="flex items-center gap-1">
+                            <div class="flex items-center gap-1 shrink-0">
                                 <button @click="editWarehouseItem = Object.assign({}, wh)" class="px-2 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-400 dark:border-slate-600 rounded text-[11px] font-bold transition flex items-center gap-1" title="Edit Gudang">
                                     <i data-lucide="edit-3" class="w-3 h-3 text-amber-500"></i> Edit
                                 </button>
@@ -133,9 +137,9 @@
                             </div>
                             
                             <div class="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded">
-                                <table class="w-full text-left border-collapse font-sans text-xs">
+                                <table class="w-full text-left border-collapse font-sans text-xs min-w-[340px]">
                                     <thead>
-                                        <tr class="font-mono text-[10px] select-none bg-slate-100 dark:bg-slate-900">
+                                        <tr class="font-mono text-[10px] select-none bg-slate-100 dark:bg-slate-900 whitespace-nowrap">
                                             <th class="py-1.5 px-2">LOKASI RAK</th>
                                             <th class="py-1.5 px-2">KAPASITAS</th>
                                             <th class="py-1.5 px-2 text-right">AKSI</th>
@@ -145,7 +149,7 @@
                                         <template x-for="loc in (wh.locations || [])" :key="loc.id">
                                             <tr class="hover:bg-amber-500/10 dark:hover:bg-amber-500/20 transition group">
                                                 <!-- Clickable Rack Location Code -->
-                                                <td class="py-1.5 px-2">
+                                                <td class="py-1.5 px-2 whitespace-nowrap">
                                                     <button 
                                                         type="button" 
                                                         @click="openRackSlotModal(loc)" 
@@ -158,21 +162,21 @@
                                                 </td>
 
                                                 <!-- Clickable Capacity Badge (Opens 100-Slot Denah Rak Modal) -->
-                                                <td class="py-1.5 px-2 font-mono text-[11px]">
+                                                <td class="py-1.5 px-2 font-mono text-[11px] whitespace-nowrap">
                                                     <button 
                                                         type="button" 
                                                         @click="openRackSlotModal(loc)" 
                                                         class="px-2 py-0.5 rounded bg-slate-100 hover:bg-indigo-500/15 dark:bg-slate-900 dark:hover:bg-indigo-500/25 border border-slate-300 hover:border-indigo-400 dark:border-slate-800 dark:hover:border-indigo-500/50 font-bold text-slate-800 hover:text-indigo-700 dark:text-slate-200 dark:hover:text-indigo-300 transition flex items-center gap-1.5 cursor-pointer shadow-2xs group/btn"
                                                         title="Klik untuk Buka Visualisasi Denah 100 Slot Rak"
                                                     >
-                                                        <span class="w-1.5 h-1.5 rounded-full" :class="(loc.current_box_count > 0) ? 'bg-amber-500' : 'bg-emerald-500'"></span>
+                                                        <span class="w-1.5 h-1.5 rounded-full shrink-0" :class="(loc.current_box_count > 0) ? 'bg-amber-500' : 'bg-emerald-500'"></span>
                                                         <span x-text="(loc.current_box_count || 0) + ' / ' + loc.box_capacity + ' Box'"></span>
-                                                        <i data-lucide="external-link" class="w-2.5 h-2.5 opacity-40 group-hover/btn:opacity-100 text-indigo-500 transition"></i>
+                                                        <i data-lucide="external-link" class="w-2.5 h-2.5 opacity-40 group-hover/btn:opacity-100 text-indigo-500 transition shrink-0"></i>
                                                     </button>
                                                 </td>
 
                                                 <!-- Action Buttons -->
-                                                <td class="py-1.5 px-2 text-right font-mono">
+                                                <td class="py-1.5 px-2 text-right font-mono whitespace-nowrap">
                                                     <div class="flex items-center justify-end gap-1">
                                                         <!-- Tombol Edit Lokasi Rak -->
                                                         <button 
@@ -374,7 +378,7 @@
                                             <div class="w-5 h-5 rounded bg-indigo-100 dark:bg-indigo-600/30 border border-indigo-200 dark:border-indigo-500/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-mono font-bold text-xs">
                                                 <span x-text="sapNum"></span>
                                             </div>
-                                            <h3 class="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide font-mono" x-text="'LVL ' + sapNum + (sapNum === 5 ? ' (TINGKAT 5 - PALING ATAS)' : (sapNum === 1 ? ' (TINGKAT 1 - PALING BAWAH)' : ' (TINGKAT ' + sapNum + ')'))"></h3>
+                                            <h3 class="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide font-mono" x-text="'LVL ' + sapNum"></h3>
                                         </div>
                                         <span class="text-[11px] font-mono text-slate-500 dark:text-slate-400">20 Box (10 Atas + 10 Bawah)</span>
                                     </div>

@@ -21,11 +21,27 @@
       @mousemove.window="onDrag($event)"
       @mouseup.window="stopDrag()"
       :class="theme === 'dark' ? 'dark' : ''"
+      :style="'font-size: ' + currentFontSize + ';'"
       style="font-size: {{ $fontSizeScale }};">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DMS PT Indraco - Desktop Edition</title>
+    
+    <script>
+        (function() {
+            var storedFont = localStorage.getItem('app_font_size');
+            if (storedFont) {
+                document.documentElement.style.fontSize = storedFont;
+            }
+            var storedTheme = localStorage.getItem('theme');
+            if (storedTheme === 'dark' || (!storedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            } else if (storedTheme === 'light') {
+                document.documentElement.classList.remove('dark');
+            }
+        })();
+    </script>
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -361,6 +377,7 @@
                     </fieldset>
 
                     <!-- 4. DEMO QUICK LOGIN TOOLBAR PANEL (TSpeedButton Delphi Desktop Toolbar) -->
+                    @if(config('app.demo', env('APP_DEMO', true)))
                     <div class="mt-3 pt-3 border-t border-slate-300 dark:border-slate-800">
                         <div class="flex items-center justify-between mb-2">
                             <span class="font-mono text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1">
@@ -401,6 +418,7 @@
                             </button>
                         </div>
                     </div>
+                    @endif
 
                 </div>
             </div>
@@ -426,8 +444,47 @@
             </template>
         </div>
 
-        <!-- System Tray Info -->
-        <div class="flex items-center gap-4 text-[11px] text-slate-400 font-mono">
+        <!-- System Tray Info & Settings -->
+        <div class="flex items-center gap-3 text-[11px] text-slate-400 font-mono">
+            <!-- Font Size Controller -->
+            <div class="flex items-center gap-1 bg-slate-800/90 border border-slate-700/80 rounded px-1.5 py-0.5 shadow-sm">
+                <i data-lucide="type" class="w-3.5 h-3.5 text-amber-400"></i>
+                <span class="text-[10px] text-slate-400 font-bold mr-0.5">Font:</span>
+
+                <!-- Quick Decrease Button -->
+                <button 
+                    @click="decreaseFontSize()" 
+                    type="button" 
+                    title="Kecilkan Font (A-)"
+                    class="w-5 h-5 flex items-center justify-center rounded bg-slate-700 hover:bg-slate-600 text-slate-200 hover:text-white text-[10px] font-bold transition active:scale-95 border border-slate-600/50"
+                >
+                    A-
+                </button>
+
+                <!-- Font Size Settings Modal Trigger -->
+                <button 
+                    @click="fontSizeModal = true; playClickSound()" 
+                    type="button" 
+                    title="Buka Pengaturan Ukuran Font"
+                    class="px-1.5 py-0.5 rounded hover:bg-slate-700 text-amber-300 font-bold text-[10px] transition flex items-center gap-1"
+                >
+                    <span x-text="getFontSizeLabel(currentFontSize)">Standar (19px)</span>
+                    <i data-lucide="settings-2" class="w-3 h-3 text-slate-400"></i>
+                </button>
+
+                <!-- Quick Increase Button -->
+                <button 
+                    @click="increaseFontSize()" 
+                    type="button" 
+                    title="Besarkan Font (A+)"
+                    class="w-5 h-5 flex items-center justify-center rounded bg-slate-700 hover:bg-slate-600 text-slate-200 hover:text-white text-[10px] font-bold transition active:scale-95 border border-slate-600/50"
+                >
+                    A+
+                </button>
+            </div>
+
+            <span class="text-slate-700">|</span>
+
             <span class="hidden sm:inline-flex items-center gap-1.5">
                 <i data-lucide="wifi" class="w-3.5 h-3.5 text-emerald-400 animate-pulse"></i>
                 <span>URL: <strong class="text-slate-200" x-text="connectionUrl">http://127.0.0.1:8000</strong></span>
@@ -465,6 +522,7 @@
                     <li class="flex justify-between p-1.5 bg-slate-200 dark:bg-slate-800 rounded">
                         <span>[F1]</span> <strong class="text-slate-900 dark:text-slate-100">Buka Panduan Bantuan Ini</strong>
                     </li>
+                    @if(config('app.demo', env('APP_DEMO', true)))
                     <li class="flex justify-between p-1.5 bg-slate-200 dark:bg-slate-800 rounded">
                         <span>[Alt + 1]</span> <strong class="text-purple-600 dark:text-purple-400">Autofill Super Admin</strong>
                     </li>
@@ -474,6 +532,7 @@
                     <li class="flex justify-between p-1.5 bg-slate-200 dark:bg-slate-800 rounded">
                         <span>[Alt + 3]</span> <strong class="text-blue-600 dark:text-blue-400">Autofill PIC Keuangan</strong>
                     </li>
+                    @endif
                     <li class="flex justify-between p-1.5 bg-slate-200 dark:bg-slate-800 rounded">
                         <span>[Alt + T]</span> <strong class="text-slate-900 dark:text-slate-100">Ganti Theme (Dark / Light)</strong>
                     </li>
@@ -519,6 +578,101 @@
         </div>
     </div>
 
+    <!-- MODAL DIALOG 3: FONT SIZE SETTINGS -->
+    <div 
+        x-show="fontSizeModal" 
+        x-cloak 
+        x-transition
+        class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+    >
+        <div 
+            @click.away="fontSizeModal = false"
+            class="delphi-window bg-slate-100 dark:bg-slate-900 border-2 border-slate-400 dark:border-slate-700 rounded-lg max-w-sm w-full shadow-2xl overflow-hidden font-mono"
+        >
+            <div class="bg-slate-800 text-white px-3 py-2 flex items-center justify-between font-bold text-xs border-b border-slate-700">
+                <span class="flex items-center gap-1.5">
+                    <i data-lucide="type" class="w-4 h-4 text-amber-400"></i>
+                    Pengaturan Ukuran Font
+                </span>
+                <button @click="fontSizeModal = false" type="button" class="text-slate-400 hover:text-white">✕</button>
+            </div>
+
+            <div class="p-4 space-y-3.5 text-xs text-slate-700 dark:text-slate-300 font-sans">
+                <div class="flex items-center justify-between text-xs font-mono">
+                    <span class="text-slate-700 dark:text-slate-300 font-bold">Ukuran Font Aktif:</span>
+                    <span class="px-2.5 py-0.5 bg-amber-500 text-slate-950 rounded font-bold text-xs shadow-sm" x-text="getFontSizeLabel(currentFontSize)"></span>
+                </div>
+
+                <!-- Presets Buttons -->
+                <div>
+                    <span class="block text-[10px] text-slate-500 font-mono font-bold uppercase mb-2">Pilihan Skala Preset:</span>
+                    <div class="grid grid-cols-2 gap-2 font-mono">
+                        <button 
+                            @click="setFontSize('16px')" 
+                            type="button" 
+                            class="px-2.5 py-2 rounded border text-xs font-bold transition flex flex-col items-center justify-center text-center"
+                            :class="currentFontSize === '16px' ? 'bg-amber-500 text-slate-950 border-amber-600 shadow-sm' : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-amber-500/10'"
+                        >
+                            <span>Kecil (16px)</span>
+                            <span class="text-[9px] opacity-75 font-normal">Compact / 85%</span>
+                        </button>
+                        <button 
+                            @click="setFontSize('19px')" 
+                            type="button" 
+                            class="px-2.5 py-2 rounded border text-xs font-bold transition flex flex-col items-center justify-center text-center"
+                            :class="(currentFontSize === '19px' || currentFontSize === '100%') ? 'bg-amber-500 text-slate-950 border-amber-600 shadow-sm' : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-amber-500/10'"
+                        >
+                            <span>Standar (19px)</span>
+                            <span class="text-[9px] opacity-75 font-normal">Default / 100%</span>
+                        </button>
+                        <button 
+                            @click="setFontSize('21px')" 
+                            type="button" 
+                            class="px-2.5 py-2 rounded border text-xs font-bold transition flex flex-col items-center justify-center text-center"
+                            :class="currentFontSize === '21px' ? 'bg-amber-500 text-slate-950 border-amber-600 shadow-sm' : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-amber-500/10'"
+                        >
+                            <span>Besar (21px)</span>
+                            <span class="text-[9px] opacity-75 font-normal">Large / 110%</span>
+                        </button>
+                        <button 
+                            @click="setFontSize('23px')" 
+                            type="button" 
+                            class="px-2.5 py-2 rounded border text-xs font-bold transition flex flex-col items-center justify-center text-center"
+                            :class="currentFontSize === '23px' ? 'bg-amber-500 text-slate-950 border-amber-600 shadow-sm' : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-amber-500/10'"
+                        >
+                            <span>X-Large (23px)</span>
+                            <span class="text-[9px] opacity-75 font-normal">Ekstra / 120%</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Slider Control -->
+                <div class="space-y-1.5 pt-1">
+                    <div class="flex justify-between text-[10px] text-slate-500 font-mono font-bold">
+                        <span>14px (Kecil)</span>
+                        <span>Slider Presisi (14px - 24px)</span>
+                        <span>24px (Besar)</span>
+                    </div>
+                    <input 
+                        type="range" 
+                        min="14" 
+                        max="24" 
+                        step="1" 
+                        :value="parseInt(currentFontSize) || 19" 
+                        @input="setFontSize($event.target.value + 'px')"
+                        class="w-full accent-amber-500 cursor-pointer h-2 bg-slate-300 dark:bg-slate-700 rounded-lg appearance-none"
+                    >
+                </div>
+            </div>
+
+            <div class="p-3 bg-slate-200 dark:bg-slate-800 border-t border-slate-300 dark:border-slate-700 flex justify-end font-mono">
+                <button @click="fontSizeModal = false; playClickSound()" type="button" class="px-4 py-1.5 bg-slate-700 text-white rounded text-xs font-bold hover:bg-slate-600">
+                    Selesai
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- ALPINE JS LOGIC SCRIPT -->
     <script>
         function loginDesktopApp() {
@@ -531,6 +685,8 @@
                 showPassword: false,
                 helpModal: false,
                 closeConfirmModal: false,
+                fontSizeModal: false,
+                currentFontSize: localStorage.getItem('app_font_size') || '{{ $fontSizeScale }}',
                 soundEnabled: true,
                 serverTime: '00:00:00',
                 connectionUrl: 'http://127.0.0.1:8000',
@@ -544,6 +700,13 @@
                     lucide.createIcons();
                     this.updateTime();
                     setInterval(() => this.updateTime(), 1000);
+
+                    // Apply stored font size immediately if present
+                    const storedFont = localStorage.getItem('app_font_size');
+                    if (storedFont) {
+                        this.currentFontSize = storedFont;
+                        document.documentElement.style.fontSize = storedFont;
+                    }
 
                     // Default login page is NOT full screen
                     sessionStorage.setItem('app_fullscreen', 'false');
@@ -566,6 +729,35 @@
                     } else {
                         this.connectionUrl = window.location.origin;
                     }
+                },
+
+                setFontSize(size) {
+                    this.currentFontSize = size;
+                    localStorage.setItem('app_font_size', size);
+                    document.documentElement.style.fontSize = size;
+                    this.playClickSound();
+                },
+
+                increaseFontSize() {
+                    let cur = parseInt(this.currentFontSize) || 19;
+                    let next = Math.min(cur + 1, 24);
+                    this.setFontSize(next + 'px');
+                },
+
+                decreaseFontSize() {
+                    let cur = parseInt(this.currentFontSize) || 19;
+                    let next = Math.max(cur - 1, 14);
+                    this.setFontSize(next + 'px');
+                },
+
+                getFontSizeLabel(size) {
+                    if (!size) return 'Standar (19px)';
+                    let s = size.toString().toLowerCase();
+                    if (s === '16px' || s === '90%' || s === 'small' || s === 'sm') return 'Kecil (16px)';
+                    if (s === '19px' || s === '100%' || s === 'medium' || s === 'md') return 'Standar (19px)';
+                    if (s === '21px' || s === '110%' || s === 'large' || s === 'lg') return 'Besar (21px)';
+                    if (s === '23px' || s === '120%' || s === 'xlarge' || s === 'xl') return 'X-Large (23px)';
+                    return size;
                 },
 
                 toggleFullscreen() {
@@ -680,6 +872,8 @@
                             this.helpModal = false;
                         } else if (this.closeConfirmModal) {
                             this.closeConfirmModal = false;
+                        } else if (this.fontSizeModal) {
+                            this.fontSizeModal = false;
                         } else if (this.minimized) {
                             this.minimized = false;
                         } else {
@@ -687,6 +881,7 @@
                         }
                         this.playClickSound();
                     }
+                    @if(config('app.demo', env('APP_DEMO', true)))
                     // Alt+1: Quick Login Admin
                     else if (e.altKey && (e.key === '1' || e.code === 'Digit1')) {
                         e.preventDefault();
@@ -702,6 +897,7 @@
                         e.preventDefault();
                         this.fillLogin('fin@indraco.com');
                     }
+                    @endif
                     // Alt+T: Toggle Theme
                     else if (e.altKey && (e.key === 't' || e.key === 'T')) {
                         e.preventDefault();

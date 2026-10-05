@@ -6,43 +6,47 @@
 <div class="space-y-3" x-data="masterUsersManager()">
 
     <!-- DELPHI ACTION RIBBON TOOLBAR & HEADER -->
-    <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-3 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3 font-mono">
-        <div class="flex items-center gap-2">
-            <span class="p-1.5 bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30 rounded">
-                <i data-lucide="users" class="w-4 h-4"></i>
-            </span>
-            <div>
-                <h1 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Kelola User Pengguna & Hak Akses</h1>
-                <p class="text-[11px] text-slate-500 dark:text-slate-400">Pengaturan Peran Super Admin, PIC Gudang Arsip, dan PIC Departemen (TDBGrid Engine)</p>
+    <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-2.5 sm:p-3 shadow-sm font-mono">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2.5">
+            <!-- Left Header Title Area -->
+            <div class="flex items-center gap-2.5 min-w-0">
+                <span class="p-2 bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30 rounded shrink-0">
+                    <i data-lucide="users" class="w-4 h-4"></i>
+                </span>
+                <div class="min-w-0">
+                    <h1 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider truncate">Kelola User Pengguna & Hak Akses</h1>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate">Pengaturan Peran Super Admin, PIC Gudang Arsip, dan PIC Departemen</p>
+                </div>
             </div>
-        </div>
 
-        <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
-            <!-- Search Input -->
-            <div class="relative w-full sm:w-64">
-                <i data-lucide="search" class="w-3.5 h-3.5 absolute left-2.5 top-2 text-slate-400"></i>
-                <input 
-                    type="text" 
-                    x-model="searchQuery" 
-                    placeholder="Cari nama/email/role... (Ctrl+F)" 
-                    class="w-full pl-8 pr-7 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition"
-                >
-                <button x-show="searchQuery" @click="searchQuery = ''" type="button" class="absolute right-2 top-1.5 text-slate-400 hover:text-slate-600">
-                    <i data-lucide="x" class="w-3 h-3"></i>
+            <!-- Right Action Controls -->
+            <div class="flex flex-wrap items-center gap-2">
+                <!-- Search Input -->
+                <div class="relative flex-1 sm:w-56 min-w-[140px]">
+                    <i data-lucide="search" class="w-3.5 h-3.5 absolute left-2.5 top-2 text-slate-400"></i>
+                    <input 
+                        type="text" 
+                        x-model="searchQuery" 
+                        placeholder="Cari user/role... (Ctrl+F)" 
+                        class="w-full pl-8 pr-7 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition"
+                    >
+                    <button x-show="searchQuery" @click="searchQuery = ''" type="button" class="absolute right-2 top-1.5 text-slate-400 hover:text-slate-600">
+                        <i data-lucide="x" class="w-3 h-3"></i>
+                    </button>
+                </div>
+
+                <!-- Refresh Button (F5) -->
+                <button @click="window.location.reload()" type="button" class="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-400 dark:border-slate-600 rounded text-xs font-mono font-bold transition flex items-center gap-1 shadow-sm shrink-0 cursor-pointer" title="Segarkan Data (F5)">
+                    <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                    <span>Refresh (F5)</span>
+                </button>
+
+                <!-- Add Button (F2) -->
+                <button @click="openAdd = true" type="button" class="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white font-mono font-bold text-xs rounded border border-blue-700 shadow transition flex items-center gap-1.5 shrink-0 cursor-pointer">
+                    <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
+                    <span>Tambah User (F2)</span>
                 </button>
             </div>
-
-            <!-- Refresh Button (F5) -->
-            <button @click="window.location.reload()" type="button" class="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-400 dark:border-slate-600 rounded text-xs font-mono font-bold transition flex items-center gap-1 shadow-sm shrink-0" title="Segarkan Data (F5)">
-                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-                <span>Refresh (F5)</span>
-            </button>
-
-            <!-- Add Button (F2) -->
-            <button @click="openAdd = true" type="button" class="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white font-mono font-bold text-xs rounded border border-blue-700 shadow transition flex items-center gap-1.5 shrink-0">
-                <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
-                <span>Tambah User (F2)</span>
-            </button>
         </div>
     </div>
 
@@ -57,10 +61,10 @@
         </div>
 
         <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse font-sans text-xs">
+            <table class="w-full text-left border-collapse font-sans text-xs min-w-[720px]">
                 <thead>
-                    <tr class="font-mono text-[11px] select-none">
-                        <th @click="sortBy('name')" class="py-2 px-3 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800 transition">
+                    <tr class="font-mono text-[11px] select-none bg-slate-100 dark:bg-slate-900/90">
+                        <th @click="sortBy('name')" class="py-2.5 px-3 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800 transition whitespace-nowrap">
                             <div class="flex items-center gap-1">
                                 NAMA PENGGUNA
                                 <i data-lucide="arrow-up-down" class="w-3 h-3 opacity-40" x-show="sortColumn !== 'name'"></i>
@@ -68,7 +72,7 @@
                                 <i data-lucide="arrow-down" class="w-3 h-3 text-blue-600" x-show="sortColumn === 'name' && sortDirection === 'desc'"></i>
                             </div>
                         </th>
-                        <th @click="sortBy('email')" class="py-2 px-3 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800 transition">
+                        <th @click="sortBy('email')" class="py-2.5 px-3 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800 transition whitespace-nowrap">
                             <div class="flex items-center gap-1">
                                 ALAMAT EMAIL
                                 <i data-lucide="arrow-up-down" class="w-3 h-3 opacity-40" x-show="sortColumn !== 'email'"></i>
@@ -76,7 +80,7 @@
                                 <i data-lucide="arrow-down" class="w-3 h-3 text-blue-600" x-show="sortColumn === 'email' && sortDirection === 'desc'"></i>
                             </div>
                         </th>
-                        <th @click="sortBy('role')" class="py-2 px-3 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800 transition">
+                        <th @click="sortBy('role')" class="py-2.5 px-3 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800 transition whitespace-nowrap">
                             <div class="flex items-center gap-1">
                                 PERAN (ROLE)
                                 <i data-lucide="arrow-up-down" class="w-3 h-3 opacity-40" x-show="sortColumn !== 'role'"></i>
@@ -84,7 +88,7 @@
                                 <i data-lucide="arrow-down" class="w-3 h-3 text-blue-600" x-show="sortColumn === 'role' && sortDirection === 'desc'"></i>
                             </div>
                         </th>
-                        <th @click="sortBy('department')" class="py-2 px-3 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800 transition">
+                        <th @click="sortBy('department')" class="py-2.5 px-3 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800 transition whitespace-nowrap">
                             <div class="flex items-center gap-1">
                                 DEPARTEMEN LINKED
                                 <i data-lucide="arrow-up-down" class="w-3 h-3 opacity-40" x-show="sortColumn !== 'department'"></i>
@@ -92,49 +96,51 @@
                                 <i data-lucide="arrow-down" class="w-3 h-3 text-blue-600" x-show="sortColumn === 'department' && sortDirection === 'desc'"></i>
                             </div>
                         </th>
-                        <th class="py-2 px-3 font-mono">TELEPON / WA</th>
-                        <th class="py-2 px-3 text-right">AKSI</th>
+                        <th class="py-2.5 px-3 font-mono whitespace-nowrap">TELEPON / WA</th>
+                        <th class="py-2.5 px-3 text-right whitespace-nowrap">AKSI</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
                     <template x-for="usr in filteredUsers" :key="usr.id">
                         <tr class="hover:bg-amber-500/10 dark:hover:bg-amber-500/20 transition">
-                            <td class="py-2 px-3 font-bold text-slate-900 dark:text-white" x-text="usr.name"></td>
-                            <td class="py-2 px-3 text-xs font-mono text-amber-600 dark:text-amber-400 font-bold" x-text="usr.email"></td>
-                            <td class="py-2 px-3 font-mono text-xs">
+                            <td class="py-2 px-3 font-bold text-slate-900 dark:text-white whitespace-nowrap" x-text="usr.name"></td>
+                            <td class="py-2 px-3 text-xs font-mono text-amber-600 dark:text-amber-400 font-bold whitespace-nowrap" x-text="usr.email"></td>
+                            <td class="py-2 px-3 font-mono text-xs whitespace-nowrap">
                                 <span x-show="usr.role === 'admin'" class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-500/30">Super Admin</span>
                                 <span x-show="usr.role === 'pic_gudang'" class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30">PIC Gudang Arsip</span>
                                 <span x-show="usr.role === 'pic_dept'" class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-500/30">PIC Departemen</span>
                             </td>
-                            <td class="py-2 px-3 font-mono text-xs text-slate-700 dark:text-slate-300 font-bold" x-text="usr.department ? (usr.department.code + ' - ' + usr.department.name) : 'Global (Seluruh)'"></td>
-                            <td class="py-2 px-3 text-xs font-mono text-slate-500" x-text="usr.phone || '-'"></td>
-                            <td class="py-2 px-3 text-right flex items-center justify-end gap-1 font-mono">
-                                <button @click="editUserItem = Object.assign({}, usr)" class="px-2 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-400 dark:border-slate-600 rounded text-[11px] font-bold transition flex items-center gap-1" title="Edit Pengguna">
-                                    <i data-lucide="edit-3" class="w-3 h-3 text-amber-500"></i> Edit
-                                </button>
+                            <td class="py-2 px-3 font-mono text-xs text-slate-700 dark:text-slate-300 font-bold whitespace-nowrap" x-text="usr.department ? (usr.department.code + ' - ' + usr.department.name) : 'Global (Seluruh)'"></td>
+                            <td class="py-2 px-3 text-xs font-mono text-slate-500 whitespace-nowrap" x-text="usr.phone || '-'"></td>
+                            <td class="py-2 px-3 text-right whitespace-nowrap">
+                                <div class="inline-flex items-center justify-end gap-1 font-mono">
+                                    <button @click="editUserItem = Object.assign({}, usr)" class="px-2 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-400 dark:border-slate-600 rounded text-[11px] font-bold transition flex items-center gap-1 cursor-pointer" title="Edit Pengguna">
+                                        <i data-lucide="edit-3" class="w-3 h-3 text-amber-500"></i> Edit
+                                    </button>
 
-                                <template x-if="currentUserId !== usr.id">
-                                    <div class="inline-flex items-center gap-1">
-                                        <form :action="'{{ url('/master/users') }}/' + usr.id + '/impersonate'" method="POST" class="inline">
-                                            @csrf
-                                            <button type="submit" onclick="return confirm('Login sebagai user ' + usr.name + ' (' + usr.email + ')?')" class="px-2 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded text-[11px] font-bold transition inline-flex items-center gap-1" title="Login Sebagai User Ini (Impersonate)">
-                                                <i data-lucide="user-check" class="w-3 h-3"></i>
-                                                <span>Login As</span>
-                                            </button>
-                                        </form>
+                                    <template x-if="currentUserId !== usr.id">
+                                        <div class="inline-flex items-center gap-1">
+                                            <form :action="'{{ url('/master/users') }}/' + usr.id + '/impersonate'" method="POST" class="inline">
+                                                @csrf
+                                                <button type="submit" onclick="return confirm('Login sebagai user ' + usr.name + ' (' + usr.email + ')?')" class="px-2 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded text-[11px] font-bold transition inline-flex items-center gap-1 cursor-pointer" title="Login Sebagai User Ini (Impersonate)">
+                                                    <i data-lucide="user-check" class="w-3 h-3"></i>
+                                                    <span>Login As</span>
+                                                </button>
+                                            </form>
 
-                                        <form :action="'{{ url('/master/users') }}/' + usr.id" method="POST" class="inline" @submit="submitting = true">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" onclick="return confirm('Hapus user pengguna ini?')" class="px-2 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/30 rounded text-[11px] font-bold transition flex items-center gap-1" title="Hapus User">
-                                                <i data-lucide="trash-2" class="w-3 h-3 text-rose-500"></i> Hapus
-                                            </button>
-                                        </form>
-                                    </div>
-                                </template>
-                                <template x-if="currentUserId === usr.id">
-                                    <span class="text-[10px] text-slate-400 italic">Akun Anda</span>
-                                </template>
+                                            <form :action="'{{ url('/master/users') }}/' + usr.id" method="POST" class="inline" @submit="submitting = true">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" onclick="return confirm('Hapus user pengguna ini?')" class="px-2 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/30 rounded text-[11px] font-bold transition flex items-center gap-1 cursor-pointer" title="Hapus User">
+                                                    <i data-lucide="trash-2" class="w-3 h-3 text-rose-500"></i> Hapus
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </template>
+                                    <template x-if="currentUserId === usr.id">
+                                        <span class="text-[10px] text-slate-400 italic">Akun Anda</span>
+                                    </template>
+                                </div>
                             </td>
                         </tr>
                     </template>
@@ -148,7 +154,7 @@
         <!-- Table Footer Count Bar -->
         <div class="bg-slate-100 dark:bg-slate-900 border-t border-slate-300 dark:border-slate-800 px-3 py-1 font-mono text-[11px] flex items-center justify-between text-slate-600 dark:text-slate-400">
             <span>Menampilkan <strong class="text-blue-600 dark:text-blue-400" x-text="filteredUsers.length"></strong> dari <strong x-text="users.length"></strong> pengguna</span>
-            <span>TDBGrid View Mode</span>
+            <span></span>
         </div>
     </div>
 

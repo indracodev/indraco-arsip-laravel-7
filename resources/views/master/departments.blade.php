@@ -6,65 +6,69 @@
 <div class="space-y-3" x-data="masterDepartmentsManager()">
 
     <!-- DELPHI ACTION RIBBON TOOLBAR & HEADER -->
-    <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-3 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3 font-mono">
-        <div class="flex items-center gap-2">
-            <span class="p-1.5 bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/30 rounded">
-                <i data-lucide="building-2" class="w-4 h-4"></i>
-            </span>
-            <div>
-                <h1 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Master Departemen & Sub-Departemen</h1>
-                <p class="text-[11px] text-slate-500 dark:text-slate-400">Hierarki Unit Kerja & Manajemen Berkas Arsip (TDBGrid Master-Detail Engine)</p>
+    <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-2.5 sm:p-3 shadow-sm font-mono">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2.5">
+            <!-- Left Header Title Area -->
+            <div class="flex items-center gap-2.5 min-w-0">
+                <span class="p-2 bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/30 rounded shrink-0">
+                    <i data-lucide="building-2" class="w-4 h-4"></i>
+                </span>
+                <div class="min-w-0">
+                    <h1 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider truncate">Master Departemen & Sub-Departemen</h1>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate">Hierarki Unit Kerja & Manajemen Berkas Arsip </p>
+                </div>
             </div>
-        </div>
 
-        <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
-            <!-- Search Input -->
-            <div class="relative w-full sm:w-60">
-                <i data-lucide="search" class="w-3.5 h-3.5 absolute left-2.5 top-2 text-slate-400"></i>
-                <input 
-                    type="search" 
-                    x-model="searchQuery" 
-                    placeholder="Cari Dept / Sub-Dept..." 
-                    autocomplete="off"
-                    autocorrect="off"
-                    autocapitalize="off"
-                    spellcheck="false"
-                    name="dept_table_search_filter"
-                    id="deptTableSearchFilter"
-                    class="w-full pl-8 pr-7 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 transition"
-                >
-                <button x-show="searchQuery" @click="searchQuery = ''" type="button" class="absolute right-2 top-1.5 text-slate-400 hover:text-slate-600 cursor-pointer">
-                    <i data-lucide="x" class="w-3 h-3"></i>
+            <!-- Right Action Controls -->
+            <div class="flex flex-wrap items-center gap-2">
+                <!-- Search Input -->
+                <div class="relative flex-1 sm:w-60 min-w-[140px]">
+                    <i data-lucide="search" class="w-3.5 h-3.5 absolute left-2.5 top-2 text-slate-400"></i>
+                    <input 
+                        type="search" 
+                        x-model="searchQuery" 
+                        placeholder="Cari Dept / Sub-Dept..." 
+                        autocomplete="off"
+                        autocorrect="off"
+                        autocapitalize="off"
+                        spellcheck="false"
+                        name="dept_table_search_filter"
+                        id="deptTableSearchFilter"
+                        class="w-full pl-8 pr-7 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 transition"
+                    >
+                    <button x-show="searchQuery" @click="searchQuery = ''" type="button" class="absolute right-2 top-1.5 text-slate-400 hover:text-slate-600 cursor-pointer">
+                        <i data-lucide="x" class="w-3 h-3"></i>
+                    </button>
+                </div>
+
+                <!-- Expand / Collapse All -->
+                <button @click="expandAll()" type="button" class="px-2 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-400 dark:border-slate-600 rounded text-[11px] font-mono font-bold transition flex items-center gap-1 shadow-sm shrink-0 cursor-pointer" title="Buka Semua Sub-Departemen">
+                    <i data-lucide="chevrons-down" class="w-3 h-3"></i>
+                    <span>Expand All</span>
+                </button>
+                <button @click="collapseAll()" type="button" class="px-2 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-400 dark:border-slate-600 rounded text-[11px] font-mono font-bold transition flex items-center gap-1 shadow-sm shrink-0 cursor-pointer" title="Tutup Semua Sub-Departemen">
+                    <i data-lucide="chevrons-up" class="w-3 h-3"></i>
+                    <span>Collapse</span>
+                </button>
+
+                <!-- Refresh Button (F5) -->
+                <button @click="window.location.reload()" type="button" class="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-400 dark:border-slate-600 rounded text-xs font-mono font-bold transition flex items-center gap-1 shadow-sm shrink-0 cursor-pointer" title="Segarkan Data (F5)">
+                    <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                    <span>Refresh</span>
+                </button>
+
+                <!-- Add Sub-Dept Button -->
+                <button @click="openCreateSubDept('')" type="button" class="px-2.5 py-1 bg-amber-600 hover:bg-amber-500 text-white font-mono font-bold text-xs rounded border border-amber-700 shadow transition flex items-center gap-1.5 shrink-0 cursor-pointer" title="Tambah Sub-Departemen Baru">
+                    <i data-lucide="layers" class="w-3.5 h-3.5"></i>
+                    <span>+ Sub-Dept</span>
+                </button>
+
+                <!-- Add Department (F2) -->
+                <button @click="openAddModal()" type="button" class="px-3 py-1 bg-purple-600 hover:bg-purple-500 text-white font-mono font-bold text-xs rounded border border-purple-700 shadow transition flex items-center gap-1.5 shrink-0 cursor-pointer">
+                    <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+                    <span>+ Dept (F2)</span>
                 </button>
             </div>
-
-            <!-- Expand / Collapse All -->
-            <button @click="expandAll()" type="button" class="px-2 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-400 dark:border-slate-600 rounded text-[11px] font-mono font-bold transition flex items-center gap-1 shadow-sm" title="Buka Semua Sub-Departemen">
-                <i data-lucide="chevrons-down" class="w-3 h-3"></i>
-                <span>Expand All</span>
-            </button>
-            <button @click="collapseAll()" type="button" class="px-2 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-400 dark:border-slate-600 rounded text-[11px] font-mono font-bold transition flex items-center gap-1 shadow-sm" title="Tutup Semua Sub-Departemen">
-                <i data-lucide="chevrons-up" class="w-3 h-3"></i>
-                <span>Collapse</span>
-            </button>
-
-            <!-- Refresh Button (F5) -->
-            <button @click="window.location.reload()" type="button" class="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-400 dark:border-slate-600 rounded text-xs font-mono font-bold transition flex items-center gap-1 shadow-sm shrink-0" title="Segarkan Data (F5)">
-                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-                <span>Refresh</span>
-            </button>
-
-            <!-- Add Sub-Dept Button -->
-            <button @click="openCreateSubDept('')" type="button" class="px-2.5 py-1 bg-amber-600 hover:bg-amber-500 text-white font-mono font-bold text-xs rounded border border-amber-700 shadow transition flex items-center gap-1.5 shrink-0" title="Tambah Sub-Departemen Baru">
-                <i data-lucide="layers" class="w-3.5 h-3.5"></i>
-                <span>+ Sub-Dept</span>
-            </button>
-
-            <!-- Add Dept Button (F2) -->
-            <button @click="openAddDept = true" type="button" class="px-3 py-1 bg-purple-600 hover:bg-purple-500 text-white font-mono font-bold text-xs rounded border border-purple-700 shadow transition flex items-center gap-1.5 shrink-0" title="Tambah Departemen Baru (F2)">
-                <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
-                <span>+ Dept (F2)</span>
-            </button>
         </div>
     </div>
 
@@ -315,7 +319,7 @@
         <!-- Table Footer Count Bar -->
         <div class="bg-slate-100 dark:bg-slate-900 border-t border-slate-300 dark:border-slate-800 px-3 py-1.5 font-mono text-[11px] flex items-center justify-between text-slate-600 dark:text-slate-400">
             <span>Menampilkan <strong class="text-purple-600 dark:text-purple-400" x-text="filteredItems.length"></strong> dari <strong x-text="items.length"></strong> departemen utama</span>
-            <span>TDBGrid Master-Detail Engine</span>
+            <span></span>
         </div>
     </div>
 

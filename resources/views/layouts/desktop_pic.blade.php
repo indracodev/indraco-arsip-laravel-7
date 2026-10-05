@@ -93,6 +93,17 @@
         .dark main table th { background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); border-right: 1px solid #334155; border-bottom: 2px solid #475569; color: #f8fafc; }
         main table td { border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; padding-top: 7px; padding-bottom: 7px; }
         .dark main table td { border-right: 1px solid #1e293b; border-bottom: 1px solid #1e293b; }
+
+        @keyframes indeterminate-progress {
+            0% { transform: translateX(-100%) scaleX(0.2); }
+            50% { transform: translateX(30%) scaleX(0.6); }
+            100% { transform: translateX(200%) scaleX(0.2); }
+        }
+        .animate-indeterminate {
+            width: 100%;
+            transform-origin: 0% 50%;
+            animation: indeterminate-progress 1.5s infinite cubic-bezier(0.65, 0.815, 0.735, 0.395);
+        }
     </style>
 </head>
 <body class="h-full bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 p-3 sm:p-4 overflow-y-auto font-sans text-xs">
@@ -711,7 +722,7 @@
                 x-show="!win.minimized" 
                 @mousedown="focusWindow(win.id)"
                 :class="win.maximized ? 'absolute inset-0 z-20 w-full h-full rounded-none my-0 border-0 shadow-none' : 'absolute rounded-t-lg rounded-b-sm border-2 border-slate-400 dark:border-slate-700 shadow-2xl resize overflow-hidden'"
-                :style="getWindowStyle(win) + (win.maximized ? '' : 'width: 860px; max-width: 94vw; height: 560px; max-height: 78vh; min-width: 420px; min-height: 280px;')"
+                :style="getWindowStyle(win) + (win.maximized ? '' : 'width: 980px; max-width: 96vw; height: 580px; max-height: 82vh; min-width: 480px; min-height: 320px;')"
                 class="delphi-window bg-slate-100 dark:bg-slate-900 flex flex-col transition-shadow duration-150"
             >
                 <!-- WINDOW TITLE BAR (Draggable Desktop Caption & 3 Window Control Buttons) -->
@@ -778,13 +789,49 @@
                 </div>
 
                 <!-- WINDOW IFRAME CONTAINER (ISOLATED FORM EMBED CONTENT) -->
-                <div class="flex-1 bg-white dark:bg-slate-900 relative overflow-hidden">
+                <div class="flex-1 bg-slate-100 dark:bg-slate-900 relative overflow-hidden flex flex-col">
+                    <!-- Modern Desktop Loading Overlay (Progress Bar & Spinner) -->
+                    <div 
+                        x-show="win.loading" 
+                        x-transition:leave="transition ease-out duration-200"
+                        x-transition:leave-start="opacity-100"
+                        x-transition:leave-end="opacity-0 pointer-events-none"
+                        class="absolute inset-0 z-30 bg-slate-100/95 dark:bg-slate-900/95 backdrop-blur-xs flex flex-col items-center justify-center p-6 text-center select-none"
+                    >
+                        <!-- Animated Modern Spinner -->
+                        <div class="relative flex items-center justify-center mb-3">
+                            <div class="w-12 h-12 rounded-full border-[3px] border-slate-300 dark:border-slate-800 border-t-amber-500 dark:border-t-amber-400 animate-spin"></div>
+                            <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <i :data-lucide="win.icon || 'layout'" class="w-5 h-5 text-amber-500"></i>
+                            </div>
+                        </div>
+
+                        <!-- Title & Status Text -->
+                        <div class="space-y-1 font-mono">
+                            <div class="flex items-center justify-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wider">
+                                <span>Memuat Form</span>
+                                <span class="text-amber-600 dark:text-amber-400" x-text="win.title"></span>
+                            </div>
+                            <p class="text-[11px] text-slate-500 dark:text-slate-400 font-sans">Menyiapkan antarmuka & memuat data...</p>
+                        </div>
+
+                        <!-- Animated Indeterminate Progress Bar -->
+                        <div class="w-52 sm:w-64 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden mt-3.5 border border-slate-300 dark:border-slate-700 relative">
+                            <div class="animate-indeterminate h-full bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600 rounded-full"></div>
+                        </div>
+
+                        <div class="text-[10px] font-mono text-slate-400 mt-2 flex items-center gap-1.5">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
+                            <span>DMS PT INDRACO DESKTOP ENGINE</span>
+                        </div>
+                    </div>
+
                     <iframe 
                         :id="'iframe-' + win.id"
                         :src="win.url" 
                         :class="activeDragWin ? 'pointer-events-none' : ''"
-                        @load="applyFontSizeToIframe($event.target)"
-                        class="w-full h-full border-0 block"
+                        @load="win.loading = false; applyFontSizeToIframe($event.target)"
+                        class="w-full h-full border-0 block flex-1"
                     ></iframe>
                 </div>
             </div>
@@ -1545,6 +1592,7 @@
                             title: form.title,
                             icon: form.icon,
                             url: form.url,
+                            loading: true,
                             posX: offsetX,
                             posY: offsetY,
                             zIndex: ++this.maxZIndex,
@@ -1564,7 +1612,10 @@
                     let win = this.openWindows.find(w => w.id === id);
                     if (win) {
                         win.minimized = false;
-                        win.url = url;
+                        if (win.url !== url) {
+                            win.loading = true;
+                            win.url = url;
+                        }
                         this.focusWindow(win.id);
                     } else {
                         const count = this.openWindows.length;
@@ -1576,6 +1627,7 @@
                             title: title,
                             icon: icon || 'folder-open',
                             url: url,
+                            loading: true,
                             posX: offsetX,
                             posY: offsetY,
                             zIndex: ++this.maxZIndex,

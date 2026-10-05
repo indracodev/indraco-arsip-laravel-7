@@ -20,20 +20,20 @@
 }">
 
     <!-- DELPHI ACTION RIBBON TOOLBAR & HEADER -->
-    <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-3 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3 font-mono">
-        <div class="flex items-center gap-2">
-            <span class="p-1.5 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 rounded">
+    <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-2.5 sm:p-3 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-2.5 sm:gap-3 font-mono">
+        <div class="flex items-center gap-2.5 min-w-0 flex-1">
+            <span class="p-2 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 rounded shrink-0">
                 <i data-lucide="binary" class="w-4 h-4"></i>
             </span>
-            <div>
-                <h1 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Dynamic Custom Box Code Engine</h1>
-                <p class="text-[11px] text-slate-500 dark:text-slate-400">Pengaturan Custom Engine Format Penomoran Otomatis Box Arsip (TGroupBox Controls)</p>
+            <div class="min-w-0 flex-1">
+                <h1 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider truncate">Dynamic Custom Box Code Engine</h1>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate">Pengaturan Custom Engine Format Penomoran Otomatis Box Arsip (TGroupBox Controls)</p>
             </div>
         </div>
 
-        <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+        <div class="flex flex-wrap items-center gap-2 w-full md:w-auto justify-start md:justify-end shrink-0">
             <!-- Search Input -->
-            <div class="relative w-full sm:w-56">
+            <div class="relative flex-1 md:w-56 min-w-[150px]">
                 <i data-lucide="search" class="w-3.5 h-3.5 absolute left-2.5 top-2 text-slate-400"></i>
                 <input 
                     type="text" 
@@ -47,13 +47,13 @@
             </div>
 
             <!-- Refresh Button (F5) -->
-            <button @click="window.location.reload()" type="button" class="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-400 dark:border-slate-600 rounded text-xs font-mono font-bold transition flex items-center gap-1 shadow-sm shrink-0" title="Segarkan Data (F5)">
+            <button @click="window.location.reload()" type="button" class="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-400 dark:border-slate-600 rounded text-xs font-mono font-bold transition flex items-center gap-1 shadow-sm shrink-0 cursor-pointer" title="Segarkan Data (F5)">
                 <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
                 <span>Refresh (F5)</span>
             </button>
 
             <!-- Add Format (F2) -->
-            <button @click="openAdd = true" type="button" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-mono font-bold text-xs rounded border border-emerald-700 shadow transition flex items-center gap-1 shrink-0">
+            <button @click="openAdd = true" type="button" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-mono font-bold text-xs rounded border border-emerald-700 shadow transition flex items-center gap-1 shrink-0 cursor-pointer">
                 <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
                 <span>Format Baru (F2)</span>
             </button>

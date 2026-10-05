@@ -55,7 +55,7 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $picFin = User::create([
-            'name' => 'Siti Finance Curator (FAT)',
+            'name' => 'PIC_' . $deptFin->name,
             'email' => 'fin@indraco.com',
             'password' => Hash::make('password'),
             'department_id' => $deptFin->id,
@@ -64,7 +64,7 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $picHrd = User::create([
-            'name' => 'Rina HR Manager',
+            'name' => 'PIC_' . $deptHrd->name,
             'email' => 'hrd@indraco.com',
             'password' => Hash::make('password'),
             'department_id' => $deptHrd->id,
@@ -73,13 +73,16 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $picMkt = User::create([
-            'name' => 'Dewi Marketing PIC',
+            'name' => 'PIC_' . $deptMkt->name,
             'email' => 'mkt@indraco.com',
             'password' => Hash::make('password'),
             'department_id' => $deptMkt->id,
             'role' => 'pic_dept',
             'phone' => '081234567894',
         ]);
+
+        // 3.1 Seed all PIC Departemen for all remaining Indraco Departments
+        $this->call(DepartmentPicUserSeeder::class);
 
         // 4. Seed Dynamic Numbering Format
         NumberingFormat::create([
