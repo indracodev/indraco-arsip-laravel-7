@@ -14,3 +14,7 @@ yarn-error.log
 public/images/images.zip
 /public/images
 *.zip
+
+# Graphify
+/graphify-out/
+.graphify*
