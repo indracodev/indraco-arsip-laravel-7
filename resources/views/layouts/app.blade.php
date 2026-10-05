@@ -1192,12 +1192,12 @@
                     </div>
                 </fieldset>
 
-                <!-- SECTION 3: PEMELIHARAAN & RESET DATA (MAINTENANCE) -->
-                @if(auth()->check() && (auth()->user()->isSuperAdmin() || auth()->user()->isPicGudang()))
+                <!-- SECTION 3: PEMELIHARAAN & RESET DATA (MAINTENANCE) (Super Admin Only) -->
+                @if(auth()->check() && auth()->user()->isSuperAdmin())
                 <fieldset class="border border-rose-500/40 p-3.5 rounded bg-rose-50/30 dark:bg-rose-950/20 space-y-3 shadow-xs font-mono">
                     <legend class="px-2 font-mono text-[11px] font-bold text-rose-800 dark:text-rose-400 bg-rose-100 dark:bg-slate-800 border border-rose-400 dark:border-rose-700 rounded shadow-sm flex items-center gap-1.5">
                         <i data-lucide="shield-alert" class="w-3.5 h-3.5 text-rose-600"></i>
-                        3. Pemeliharaan & Reset Database (Super Admin & PIC Gudang)
+                        3. Pemeliharaan & Reset Database (Super Admin)
                     </legend>
 
                     <div class="space-y-2.5 text-xs">
