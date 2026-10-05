@@ -1214,7 +1214,9 @@
                             </div>
                             <a 
                                 href="{{ route('master.settings.backup_database') }}" 
-                                class="shrink-0 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs rounded border border-emerald-700 shadow-xs transition flex items-center justify-center gap-1"
+                                target="_blank"
+                                @click="playClickSound()"
+                                class="shrink-0 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs rounded border border-emerald-700 shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
                             >
                                 <i data-lucide="download-cloud" class="w-3.5 h-3.5"></i>
                                 <span>Backup Database</span>
