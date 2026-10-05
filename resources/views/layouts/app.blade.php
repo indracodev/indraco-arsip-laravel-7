@@ -1335,7 +1335,10 @@
                     { id: 'users', title: 'Kelola User & Hak Akses', icon: 'users', url: '{{ route("master.users") }}?embed=1' },
                     @endif
                     { id: 'archives', title: 'Katalog Arsip', icon: 'folder-archive', url: '{{ route("archives.index") }}?embed=1' },
-                    { id: 'logs', title: 'Log History', icon: 'history', url: '{{ route("logs.index") }}?embed=1' }
+                    { id: 'logs', title: 'Log History', icon: 'history', url: '{{ route("logs.index") }}?embed=1' },
+                    @if(auth()->check() && auth()->user()->isSuperAdmin())
+                    { id: 'reports', title: 'Report', icon: 'file-text', url: '{{ route("reports.index") }}?embed=1' }
+                    @endif
                 ],
 
                 initMdi() {
@@ -1347,6 +1350,7 @@
                     @elseif(request()->routeIs('master.users') && auth()->check() && auth()->user()->isSuperAdmin()) initialId = 'users';
                     @elseif(request()->routeIs('archives.*')) initialId = 'archives';
                     @elseif(request()->routeIs('logs.*')) initialId = 'logs';
+                    @elseif(request()->routeIs('reports.*')) initialId = 'reports';
                     @endif
 
                     // Apply stored font size on startup

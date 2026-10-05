@@ -26,6 +26,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>DMS PT Indraco - Desktop Edition</title>
     
     <script>
@@ -41,6 +42,13 @@
                 document.documentElement.classList.remove('dark');
             }
         })();
+
+        // Automatically refresh page if restored from browser cache / bfcache to ensure CSRF token is fresh
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted) {
+                window.location.reload();
+            }
+        });
     </script>
     
     <!-- Fonts -->
@@ -268,10 +276,31 @@
                 <!-- Right Credentials GroupBox (TGroupBox Delphi Desktop Style) -->
                 <div class="md:col-span-7 flex flex-col justify-between">
                     
+                    @if (session('warning'))
+                    <div class="mb-3 p-2.5 rounded bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs font-semibold font-mono flex items-center gap-2">
+                        <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-500 shrink-0"></i>
+                        <span>{{ session('warning') }}</span>
+                    </div>
+                    @endif
+
+                    @if (session('error'))
+                    <div class="mb-3 p-2.5 rounded bg-rose-500/10 border border-rose-500/30 text-rose-800 dark:text-rose-300 text-xs font-semibold font-mono flex items-center gap-2">
+                        <i data-lucide="alert-octagon" class="w-4 h-4 text-rose-500 shrink-0"></i>
+                        <span>{{ session('error') }}</span>
+                    </div>
+                    @endif
+
                     @if (session('info'))
                     <div class="mb-3 p-2.5 rounded bg-blue-500/10 border border-blue-500/30 text-blue-800 dark:text-blue-300 text-xs font-semibold font-mono flex items-center gap-2">
                         <i data-lucide="info" class="w-4 h-4 text-blue-500 shrink-0"></i>
                         <span>{{ session('info') }}</span>
+                    </div>
+                    @endif
+
+                    @if (session('status'))
+                    <div class="mb-3 p-2.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 text-xs font-semibold font-mono flex items-center gap-2">
+                        <i data-lucide="check-circle" class="w-4 h-4 text-emerald-500 shrink-0"></i>
+                        <span>{{ session('status') }}</span>
                     </div>
                     @endif
 

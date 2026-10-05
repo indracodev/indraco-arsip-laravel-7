@@ -60,6 +60,12 @@ Route::middleware('auth')->group(function () {
     // Global Audit Trail Logs
     Route::get('/logs', 'AuditLogController@index')->name('logs.index');
 
+    // Pusat Laporan & Dokumen PDF
+    Route::get('/reports', 'ReportController@index')->name('reports.index');
+    Route::get('/reports/data/{type}', 'ReportController@data')->name('reports.data');
+    Route::get('/reports/print/{type}', 'ReportController@print')->name('reports.print');
+    Route::get('/reports/export-csv/{type}', 'ReportController@exportCsv')->name('reports.export_csv');
+
     // Layout Gudang Interactive Canvas & API
     Route::get('/master/warehouses/layout', 'WarehouseLayoutController@index')->name('master.warehouses.layout');
     Route::get('/api/warehouse/layout-data', 'WarehouseLayoutController@apiLayoutData')->name('api.warehouse.layout_data');

@@ -50,6 +50,18 @@ class Handler extends ExceptionHandler
      */
     public function render($request, Throwable $exception)
     {
+        if ($exception instanceof \Illuminate\Session\TokenMismatchException) {
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'message' => 'Sesi keamanan Anda telah berakhir. Silakan muat ulang halaman atau login kembali.',
+                    'redirect' => route('login'),
+                ], 419);
+            }
+
+            return redirect()->route('login')
+                ->with('warning', 'Sesi keamanan Anda telah diperbarui atau berakhir. Silakan masukkan kredensial kembali.');
+        }
+
         return parent::render($request, $exception);
     }
 }

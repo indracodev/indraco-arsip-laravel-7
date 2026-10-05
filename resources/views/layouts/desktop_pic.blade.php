@@ -333,7 +333,6 @@
                 <button @click="openFormWindow('archives')" type="button" class="hover:text-amber-400 transition" :class="activeWinId === 'archives' ? 'text-amber-400 font-bold' : ''">Catalog</button>
                 <button @click="openFormWindow('borrowings')" type="button" class="hover:text-amber-400 transition" :class="activeWinId === 'borrowings' ? 'text-amber-400 font-bold' : ''">Borrowings</button>
                 <button @click="openFormWindow('destructions')" type="button" class="hover:text-amber-400 transition" :class="activeWinId === 'destructions' ? 'text-amber-400 font-bold' : ''">Retention</button>
-                <button @click="openFormWindow('logs')" type="button" class="hover:text-amber-400 transition" :class="activeWinId === 'logs' ? 'text-amber-400 font-bold' : ''">Log History</button>
             </nav>
         </div>
 
@@ -1300,12 +1299,6 @@
                         url: '{{ route("destructions.index") }}?embed=1' 
                     },
                     { 
-                        id: 'logs', 
-                        title: 'Log History', 
-                        icon: 'history', 
-                        url: '{{ route("logs.index") }}?embed=1' 
-                    },
-                    { 
                         id: 'archives_create', 
                         title: 'Draft Pengajuan Box Baru', 
                         icon: 'plus-circle', 
@@ -1318,7 +1311,6 @@
                     @if(request()->routeIs('archives.create')) initialId = 'archives_create';
                     @elseif(request()->routeIs('borrowings.*')) initialId = 'borrowings';
                     @elseif(request()->routeIs('destructions.*')) initialId = 'destructions';
-                    @elseif(request()->routeIs('logs.*')) initialId = 'logs';
                     @elseif(request()->routeIs('archives.*')) initialId = 'archives';
                     @endif
 
