@@ -105,6 +105,8 @@ Route::middleware('auth')->group(function () {
         // System Settings & Appearance & Database Maintenance
         Route::post('/settings/update', 'SettingController@updateSettings')->name('settings.update');
         Route::post('/settings/reset-logo', 'SettingController@resetLogo')->name('settings.reset_logo');
+        Route::get('/settings/backup-database', 'SettingController@backupDatabase')->name('settings.backup_database');
+        Route::post('/settings/backup-database', 'SettingController@backupDatabase');
         Route::post('/settings/clear-logs', 'SettingController@clearLogs')->name('settings.clear_logs');
         Route::post('/settings/clear-box-allocations', 'SettingController@clearBoxAllocations')->name('settings.clear_box_allocations');
         Route::post('/settings/clear-archives', 'SettingController@clearArchives')->name('settings.clear_archives');

@@ -271,4 +271,120 @@ class SettingController extends Controller
             return redirect()->back()->with('error', 'Gagal mengosongkan data pengajuan arsip: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Generate and download a complete SQL database backup.
+     */
+    public function backupDatabase(Request $request)
+    {
+        try {
+            // Increase time and memory limits for backup execution
+            @ini_set('memory_limit', '512M');
+            @set_time_limit(300);
+
+            $connection = config('database.default', 'mysql');
+            $dbConfig = config("database.connections.{$connection}", []);
+            $dbName = $dbConfig['database'] ?? env('DB_DATABASE', 'indraco_arsip');
+
+            $tables = \Illuminate\Support\Facades\DB::select('SHOW TABLES');
+
+            $currentUser = auth()->user() ? auth()->user()->name : 'Super Admin';
+            $now = now()->format('Y-m-d H:i:s');
+
+            $sql = "-- ======================================================\n";
+            $sql .= "-- DMS PT INDRACO - DATABASE BACKUP DUMP\n";
+            $sql .= "-- Application: Document Management System Desktop Edition\n";
+            $sql .= "-- Database: {$dbName}\n";
+            $sql .= "-- Generated At: {$now}\n";
+            $sql .= "-- Exported By: {$currentUser}\n";
+            $sql .= "-- ======================================================\n\n";
+            $sql .= "SET FOREIGN_KEY_CHECKS=0;\n";
+            $sql .= "SET SQL_MODE = 'NO_AUTO_VALUE_ON_ZERO';\n";
+            $sql .= "SET AUTOCOMMIT = 0;\n";
+            $sql .= "START TRANSACTION;\n";
+            $sql .= "SET time_zone = '+00:00';\n\n";
+
+            $totalTables = 0;
+            $totalRows = 0;
+
+            foreach ($tables as $tableObj) {
+                $tableObjArr = (array) $tableObj;
+                $tableName = reset($tableObjArr);
+
+                if (empty($tableName)) continue;
+
+                $totalTables++;
+
+                $sql .= "-- --------------------------------------------------------\n";
+                $sql .= "-- Table structure for table `{$tableName}`\n";
+                $sql .= "-- --------------------------------------------------------\n";
+                $sql .= "DROP TABLE IF EXISTS `{$tableName}`;\n";
+
+                $createTable = \Illuminate\Support\Facades\DB::select("SHOW CREATE TABLE `{$tableName}`");
+                if (!empty($createTable)) {
+                    $createArr = (array) $createTable[0];
+                    $createKey = isset($createArr['Create Table']) ? 'Create Table' : array_keys($createArr)[1];
+                    $sql .= $createArr[$createKey] . ";\n\n";
+                }
+
+                // Table rows / data
+                $rows = \Illuminate\Support\Facades\DB::table($tableName)->get();
+                $rowCount = $rows->count();
+                $totalRows += $rowCount;
+
+                if ($rowCount > 0) {
+                    $sql .= "-- Dumping data for table `{$tableName}` ({$rowCount} rows)\n";
+                    $chunks = $rows->chunk(100);
+                    foreach ($chunks as $chunk) {
+                        $firstRow = (array) $chunk->first();
+                        $columnNames = array_map(function ($col) {
+                            return "`" . str_replace("`", "``", $col) . "`";
+                        }, array_keys($firstRow));
+
+                        $sql .= "INSERT INTO `{$tableName}` (" . implode(', ', $columnNames) . ") VALUES \n";
+                        
+                        $valuesArr = [];
+                        foreach ($chunk as $row) {
+                            $rowArr = (array) $row;
+                            $escapedValues = array_map(function ($value) {
+                                if (is_null($value)) {
+                                    return 'NULL';
+                                }
+                                if (is_numeric($value) && !is_string($value)) {
+                                    return $value;
+                                }
+                                return "'" . addslashes((string)$value) . "'";
+                            }, array_values($rowArr));
+                            
+                            $valuesArr[] = "(" . implode(", ", $escapedValues) . ")";
+                        }
+                        $sql .= implode(",\n", $valuesArr) . ";\n";
+                    }
+                    $sql .= "\n";
+                }
+            }
+
+            $sql .= "SET FOREIGN_KEY_CHECKS=1;\n";
+            $sql .= "COMMIT;\n";
+
+            $filename = 'backup_indraco_dms_' . date('Y_m_d_His') . '.sql';
+
+            ActivityLogger::log(
+                'SYSTEM_DATABASE_BACKUP',
+                "Membuat dan mengunduh backup database '{$filename}' ({$totalTables} tabel, {$totalRows} baris data).",
+                'SETTINGS',
+                ['filename' => $filename, 'database' => $dbName, 'tables_count' => $totalTables, 'rows_count' => $totalRows]
+            );
+
+            return response($sql, 200, [
+                'Content-Type' => 'application/sql; charset=utf-8',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+                'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
+                'Pragma' => 'public',
+                'Expires' => '0',
+            ]);
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal membuat backup database: ' . $e->getMessage());
+        }
+    }
 }

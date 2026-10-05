@@ -1201,6 +1201,26 @@
                     </legend>
 
                     <div class="space-y-2.5 text-xs">
+                        <!-- Action 0: Backup Database -->
+                        <div class="p-2.5 bg-white dark:bg-slate-950 rounded border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs">
+                            <div class="space-y-0.5">
+                                <div class="flex items-center gap-1.5 font-bold text-slate-800 dark:text-slate-200">
+                                    <i data-lucide="database" class="w-3.5 h-3.5 text-emerald-500"></i>
+                                    <span>Backup Database (.sql)</span>
+                                </div>
+                                <p class="text-[11px] text-slate-500 dark:text-slate-400 font-sans">
+                                    Mengunduh seluruh skema tabel & data arsip sistem ke dalam file SQL Dump langsung ke komputer Anda.
+                                </p>
+                            </div>
+                            <a 
+                                href="{{ route('master.settings.backup_database') }}" 
+                                class="shrink-0 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs rounded border border-emerald-700 shadow-xs transition flex items-center justify-center gap-1"
+                            >
+                                <i data-lucide="download-cloud" class="w-3.5 h-3.5"></i>
+                                <span>Backup Database</span>
+                            </a>
+                        </div>
+
                         <!-- Action 1: Clear Log History -->
                         <div class="p-2.5 bg-white dark:bg-slate-950 rounded border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs">
                             <div class="space-y-0.5">
