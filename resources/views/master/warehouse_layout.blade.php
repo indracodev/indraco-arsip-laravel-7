@@ -1583,7 +1583,7 @@
                                     </div>
                                     <h3 class="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide font-mono" x-text="'LVL ' + sapNum + (sapNum === 5 ? ' (TINGKAT 5 - PALING ATAS)' : (sapNum === 1 ? ' (TINGKAT 1 - PALING BAWAH)' : ' (TINGKAT ' + sapNum + ')'))"></h3>
                                 </div>
-                                <span class="text-[10px] font-mono text-slate-500 font-medium">20 Box (10 Atas + 10 Bawah)</span>
+                                <span class="text-[11px] font-mono text-slate-400" x-text="'20 Box (Nomor ' + ((sapNum-1)*20 + 1) + ' — ' + ((sapNum-1)*20 + 20) + ')'"></span>
                             </div>
 
                             <!-- Row 1: Baris Atas (Layer Top - 10 Slots) -->
@@ -1593,7 +1593,7 @@
                                         <i data-lucide="arrow-up" class="w-3 h-3 text-indigo-600"></i>
                                         <span>Baris Atas (10 Box TB 30g)</span>
                                     </span>
-                                    <span class="text-[10px] text-slate-600 dark:text-slate-400 font-mono font-bold bg-slate-100 dark:bg-slate-900 px-1.5 py-0.2 rounded border border-slate-200 dark:border-slate-800" x-text="((sapNum - 1) * 20 + 11) + ' — ' + ((sapNum - 1) * 20 + 20)"></span>
+                                    <span class="text-[10px] text-slate-500 font-mono" x-text="((sapNum-1)*20 + 11) + ' — ' + ((sapNum-1)*20 + 20)"></span>
                                 </div>
                                 <div class="grid grid-cols-5 sm:grid-cols-10 gap-1">
                                     <template x-for="slot in getSapSlots(sapNum, 'top')" :key="slot.slot_code || slot.id">
@@ -1606,18 +1606,10 @@
                                                 (slotBlinkActive && highlightedSlotCode === slot.slot_code) ? '!ring-4 !ring-amber-500 !bg-amber-300 !text-slate-950 font-black scale-110 shadow-2xl z-30 animate-pulse border-amber-600 ring-offset-2' : '',
                                                 !isSlotMatchFilter(slot) ? 'opacity-20 grayscale' : 'opacity-100'
                                             ]"
-                                            :title="slot.archive ? (slot.slot_code + ' [No. ' + (slot.box_number_display || slot.slot_number) + ']: ' + (slot.archive.box_number || 'Box') + ' - ' + slot.archive.title) : (slot.slot_code + ' [No. ' + (slot.box_number_display || slot.slot_number) + ']: Slot Kosong')"
+                                            :title="slot.archive ? ('Box #' + getBoxIndex(sapNum, 'top', slot.slot_number) + ': ' + (slot.archive.box_number || 'Box') + ' - ' + slot.archive.title) : ('Box #' + getBoxIndex(sapNum, 'top', slot.slot_number) + ': Slot Kosong')"
                                         >
-                                            <!-- Blinking Ping Beacon when Box is searched -->
-                                            <template x-if="slotBlinkActive && highlightedSlotCode === slot.slot_code">
-                                                <span class="absolute -top-1 -right-1 flex h-3.5 w-3.5 z-40">
-                                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                                                    <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-amber-600 border border-white items-center justify-center text-[7px] font-black text-white">★</span>
-                                                </span>
-                                            </template>
-
-                                            <div class="w-full flex items-center justify-between text-[8px] font-mono font-bold opacity-90 mb-0.5">
-                                                <span class="text-slate-700 dark:text-slate-300 font-bold" :class="(slotBlinkActive && highlightedSlotCode === slot.slot_code) ? '!text-slate-950 font-black' : ''" x-text="slot.box_number_display || slot.slot_number"></span>
+                                            <div class="w-full flex items-center justify-between text-[9px] font-mono font-bold opacity-90 mb-0.5">
+                                                <span class="text-amber-400 font-black text-[11px]" x-text="'#' + getBoxIndex(sapNum, 'top', slot.slot_number)"></span>
                                                 <template x-if="slot.status === 'expired' || slot.archive?.is_expired">
                                                     <span class="w-1.5 h-1.5 rounded-none bg-rose-500 animate-pulse"></span>
                                                 </template>
@@ -1656,7 +1648,7 @@
                                         <i data-lucide="arrow-down" class="w-3 h-3 text-blue-600"></i>
                                         <span>Baris Bawah (10 Box TB 30g)</span>
                                     </span>
-                                    <span class="text-[10px] text-slate-600 dark:text-slate-400 font-mono font-bold bg-slate-100 dark:bg-slate-900 px-1.5 py-0.2 rounded border border-slate-200 dark:border-slate-800" x-text="((sapNum - 1) * 20 + 1) + ' — ' + ((sapNum - 1) * 20 + 10)"></span>
+                                    <span class="text-[10px] text-slate-500 font-mono" x-text="((sapNum-1)*20 + 1) + ' — ' + ((sapNum-1)*20 + 10)"></span>
                                 </div>
                                 <div class="grid grid-cols-5 sm:grid-cols-10 gap-1">
                                     <template x-for="slot in getSapSlots(sapNum, 'bottom')" :key="slot.slot_code || slot.id">
@@ -1669,18 +1661,10 @@
                                                 (slotBlinkActive && highlightedSlotCode === slot.slot_code) ? '!ring-4 !ring-amber-500 !bg-amber-300 !text-slate-950 font-black scale-110 shadow-2xl z-30 animate-pulse border-amber-600 ring-offset-2' : '',
                                                 !isSlotMatchFilter(slot) ? 'opacity-20 grayscale' : 'opacity-100'
                                             ]"
-                                            :title="slot.archive ? (slot.slot_code + ' [No. ' + (slot.box_number_display || slot.slot_number) + ']: ' + (slot.archive.box_number || 'Box') + ' - ' + slot.archive.title) : (slot.slot_code + ' [No. ' + (slot.box_number_display || slot.slot_number) + ']: Slot Kosong')"
+                                            :title="slot.archive ? ('Box #' + getBoxIndex(sapNum, 'bottom', slot.slot_number) + ': ' + (slot.archive.box_number || 'Box') + ' - ' + slot.archive.title) : ('Box #' + getBoxIndex(sapNum, 'bottom', slot.slot_number) + ': Slot Kosong')"
                                         >
-                                            <!-- Blinking Ping Beacon when Box is searched -->
-                                            <template x-if="slotBlinkActive && highlightedSlotCode === slot.slot_code">
-                                                <span class="absolute -top-1 -right-1 flex h-3.5 w-3.5 z-40">
-                                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                                                    <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-amber-600 border border-white items-center justify-center text-[7px] font-black text-white">★</span>
-                                                </span>
-                                            </template>
-
-                                            <div class="w-full flex items-center justify-between text-[8px] font-mono font-bold opacity-90 mb-0.5">
-                                                <span class="text-slate-700 dark:text-slate-300 font-bold" :class="(slotBlinkActive && highlightedSlotCode === slot.slot_code) ? '!text-slate-950 font-black' : ''" x-text="slot.box_number_display || slot.slot_number"></span>
+                                            <div class="w-full flex items-center justify-between text-[9px] font-mono font-bold opacity-90 mb-0.5">
+                                                <span class="text-amber-400 font-black text-[11px]" x-text="'#' + getBoxIndex(sapNum, 'bottom', slot.slot_number)"></span>
                                                 <template x-if="slot.status === 'expired' || slot.archive?.is_expired">
                                                     <span class="w-1.5 h-1.5 rounded-none bg-rose-500 animate-pulse"></span>
                                                 </template>
@@ -1730,11 +1714,8 @@
                         <!-- Inspector Header -->
                         <div class="border-b border-slate-200 dark:border-slate-800 pb-2.5 flex items-start justify-between">
                             <div>
-                                <span class="text-[10px] font-bold uppercase text-indigo-600 dark:text-indigo-400 tracking-wider block font-mono" x-text="'LVL ' + (selectedSlotDetail?.sap_level || '') + ' • ' + (selectedSlotDetail?.layer_label || '')"></span>
-                                <h3 class="text-sm font-bold text-slate-900 dark:text-white font-mono flex items-center gap-1.5">
-                                    <span x-text="selectedSlotDetail?.slot_code"></span>
-                                    <span class="text-xs text-slate-500 font-sans font-medium" x-text="'(Box #' + (selectedSlotDetail?.box_number_display || selectedSlotDetail?.slot_number || '') + ')'"></span>
-                                </h3>
+                                <span class="text-[10px] font-bold uppercase text-indigo-400 tracking-wider block font-mono" x-text="'Sap ' + (selectedSlotDetail?.sap_level || '') + ' • ' + (selectedSlotDetail?.layer_label || '')"></span>
+                                <h3 class="text-base font-bold text-white font-mono" x-text="'SLOT BOX #' + getBoxIndex(selectedSlotDetail?.sap_level, selectedSlotDetail?.layer, selectedSlotDetail?.slot_number)"></h3>
                             </div>
                             <span 
                                 class="px-1.5 py-0.2 text-[10px] font-bold uppercase rounded tracking-wider"
@@ -4793,6 +4774,16 @@ function warehouseCanvasApp() {
                 }
             }
             return result;
+        },
+
+        getBoxIndex(sapLevel, layer, slotNumber) {
+            const sap = parseInt(sapLevel);
+            const num = parseInt(slotNumber);
+            if (layer === 'bottom') {
+                return (sap - 1) * 20 + num;
+            } else {
+                return (sap - 1) * 20 + 10 + num;
+            }
         },
 
         getRackSlotStats(rack) {

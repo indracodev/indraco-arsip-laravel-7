@@ -35,6 +35,10 @@ class WarehouseLocation extends Model
         'is_active',
     ];
 
+    protected $appends = [
+        'full_location',
+    ];
+
     protected $casts = [
         'is_booked' => 'boolean',
         'is_locked' => 'boolean',
@@ -72,7 +76,7 @@ class WarehouseLocation extends Model
 
     public function slots(): HasMany
     {
-        return $this->hasMany(WarehouseRackSlot::class, 'warehouse_location_id')->orderBy('sap_level', 'desc')->orderBy('layer', 'asc')->orderBy('slot_number', 'asc');
+        return $this->hasMany(WarehouseRackSlot::class, 'warehouse_location_id')->orderBy('sap_level', 'asc')->orderBy('layer', 'asc')->orderBy('slot_number', 'asc');
     }
 
     public function getRackIdentifierAttribute(): string

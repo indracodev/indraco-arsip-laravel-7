@@ -120,7 +120,7 @@
 
                         <td class="py-4 px-4 text-xs space-y-1 font-medium">
                             <div class="text-slate-700 dark:text-slate-300">Tgl Pinjam: {{ $bLog->borrow_date ? $bLog->borrow_date->format('d M Y') : 'Menunggu Dispatch' }}</div>
-                            <div class="text-amber-600 dark:text-amber-400 font-extrabold">Est. Kembali: {{ \Carbon\Carbon::parse($bLog->expected_return_date)->format('d M Y') }}</div>
+                            <div class="text-amber-600 dark:text-amber-400 font-extrabold">Est. Kembali: {{ $bLog->expected_return_date ? \Carbon\Carbon::parse($bLog->expected_return_date)->format('d M Y') : 'Hanya Diambil (Permanen)' }}</div>
                         </td>
 
                         <td class="py-4 px-4 text-xs text-slate-600 dark:text-slate-300 max-w-xs truncate font-medium">
@@ -135,7 +135,11 @@
                             @elseif($bLog->status === 'approved')
                                 <span class="inline-flex items-center whitespace-nowrap px-2.5 py-1 rounded-full text-xs font-bold bg-blue-500/10 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300 border border-blue-500/30">Disetujui Gudang</span>
                             @elseif($bLog->status === 'dispatched')
-                                <span class="inline-flex items-center whitespace-nowrap px-2.5 py-1 rounded-full text-xs font-bold bg-purple-500/10 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300 border border-purple-500/30">Sedang Dipinjam</span>
+                                @if(empty($bLog->expected_return_date))
+                                    <span class="inline-flex items-center whitespace-nowrap px-2.5 py-1 rounded-full text-xs font-bold bg-indigo-500/10 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300 border border-indigo-500/30">Diambil (Permanen)</span>
+                                @else
+                                    <span class="inline-flex items-center whitespace-nowrap px-2.5 py-1 rounded-full text-xs font-bold bg-purple-500/10 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300 border border-purple-500/30">Sedang Dipinjam</span>
+                                @endif
                             @elseif($bLog->status === 'returned')
                                 <span class="inline-flex items-center whitespace-nowrap px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300 border border-emerald-500/30">Dikembalikan</span>
                             @endif
@@ -221,7 +225,7 @@
         </div>
 
         <div class="mt-4">
-            {{ $borrowings->links() }}
+            {{ $borrowings->links('vendor.pagination.tailwind') }}
         </div>
     </div>
 </div>

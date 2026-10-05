@@ -249,6 +249,47 @@ class Revisi1UatTest extends TestCase
     }
 
     /**
+     * UAT Test 2b: Borrowing Workflow - Permanent Pickup without Expected Return Date
+     */
+    public function test_borrowing_workflow_supports_permanent_pickup_without_return_date()
+    {
+        $archive = Archive::create([
+            'department_id' => $this->hrDepartment->id,
+            'sub_department_id' => $this->hrSubDepartment->id,
+            'box_number' => 'BOX-HR-PERM-001',
+            'title' => 'Berkas HR Ambil Permanen 2026',
+            'periode_doc' => '2026/09',
+            'tgl_penyerahan' => '2026-09-20',
+            'period_start_date' => '2026-09-01',
+            'period_end_date' => '2026-09-30',
+            'retention_years' => 5,
+            'content_description' => 'Dokumen HR Ambil Permanen',
+            'physical_condition' => 'Baik',
+            'status' => 'in_warehouse',
+            'warehouse_location_id' => $this->generalLocation->id,
+            'created_by_user_id' => $this->picDeptHrUser->id,
+        ]);
+
+        $this->actingAs($this->picDeptHrUser);
+
+        $file = UploadedFile::fake()->create('approval_permanent_take.pdf', 250, 'application/pdf');
+        $response = $this->post(route('borrowings.store'), [
+            'archive_id' => $archive->id,
+            'purpose' => 'Pengambilan berkas fisik secara permanen untuk keperluan legal audit luar',
+            'is_permanent' => 1,
+            'expected_return_date' => '',
+            'approval_file' => $file,
+        ]);
+
+        $response->assertRedirect(route('borrowings.index'));
+
+        $borrowLog = BorrowingLog::where('archive_id', $archive->id)->first();
+        $this->assertNotNull($borrowLog);
+        $this->assertEquals('requested', $borrowLog->status);
+        $this->assertNull($borrowLog->expected_return_date);
+    }
+
+    /**
      * UAT Test 3: Destruction Workflow & Approval File Upload Guarding
      */
     public function test_destruction_workflow_requires_approval_file_and_frees_slot()
@@ -681,6 +722,58 @@ class Revisi1UatTest extends TestCase
         $responseSuggestions->assertStatus(200);
         $this->assertEquals('suggestions', $responseSuggestions->json('type'));
         $this->assertNotEmpty($responseSuggestions->json('keywords'));
+    }
+
+    public function testDispatchVacatesRackSlotAndSupportsTakenStatus()
+    {
+        $slot = $this->generalLocation->slots()->first();
+        $archive = Archive::create([
+            'box_number' => 'BOX-DISPATCH-TEST',
+            'department_id' => $this->hrDepartment->id,
+            'title' => 'Berkas Uji Dispatch Rack Slot',
+            'content_description' => 'Rincian Berkas Dokumen Test',
+            'period_start_date' => '2026-09-01',
+            'period_end_date' => '2026-09-30',
+            'periode_doc' => '2026/09',
+            'status' => 'in_warehouse',
+            'warehouse_location_id' => $this->generalLocation->id,
+            'warehouse_rack_slot_id' => $slot->id,
+            'created_by_user_id' => $this->picDeptHrUser->id,
+        ]);
+
+        $slot->update([
+            'status' => 'filled',
+            'archive_id' => $archive->id,
+        ]);
+        $this->generalLocation->update(['current_box_count' => 1]);
+
+        // 1. Permanent Take-out (is_permanent = true, no expected_return_date)
+        $borrowingLog = BorrowingLog::create([
+            'archive_id' => $archive->id,
+            'borrower_user_id' => $this->picDeptHrUser->id,
+            'request_date' => now(),
+            'expected_return_date' => null,
+            'purpose' => 'Pengambilan berkas permanen',
+            'status' => 'requested',
+            'approval_file' => 'test_approval.pdf',
+        ]);
+
+        $this->actingAs($this->picGudangUser);
+        $response = $this->post(route('borrowings.dispatch', $borrowingLog));
+        $response->assertRedirect();
+
+        // Assert archive status is taken
+        $archive->refresh();
+        $this->assertEquals('taken', $archive->status);
+
+        // Assert slot is now empty
+        $slot->refresh();
+        $this->assertEquals('empty', $slot->status);
+        $this->assertNull($slot->archive_id);
+
+        // Assert BorrowingLog status label displays "Diambil (Permanen)"
+        $borrowingLog->refresh();
+        $this->assertEquals('Diambil (Permanen)', $borrowingLog->status_label);
     }
 }
 

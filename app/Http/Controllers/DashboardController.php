@@ -30,7 +30,7 @@ class DashboardController extends Controller
                 return $q->where('department_id', $user->department_id);
             })
             ->count();
-        $borrowedCount = (clone $archivesQuery)->where('status', 'borrowed')->count();
+        $borrowedCount = (clone $archivesQuery)->whereIn('status', ['borrowed', 'taken'])->count();
 
         // Expiry alerts (archives nearing expiration within 90 days or passed)
         $expiringArchives = (clone $archivesQuery)
