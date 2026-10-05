@@ -369,9 +369,21 @@
                                         @click="showPassword = !showPassword; playClickSound()" 
                                         type="button" 
                                         tabindex="-1"
-                                        class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                                        :title="showPassword ? 'Sembunyikan Kata Sandi' : 'Lihat Kata Sandi'"
+                                        class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 transition cursor-pointer focus:outline-none"
                                     >
-                                        <i :data-lucide="showPassword ? 'eye-off' : 'eye'" class="w-4 h-4"></i>
+                                        <!-- Eye Icon (Password Hidden) -->
+                                        <svg x-show="!showPassword" class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+                                            <circle cx="12" cy="12" r="3"/>
+                                        </svg>
+                                        <!-- Eye Off Icon (Password Visible) -->
+                                        <svg x-show="showPassword" x-cloak class="w-4 h-4 text-amber-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/>
+                                            <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/>
+                                            <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/>
+                                            <line x1="2" x2="22" y1="2" y2="22"/>
+                                        </svg>
                                     </button>
                                 </div>
 
