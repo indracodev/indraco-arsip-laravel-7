@@ -32,6 +32,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/archives', 'ArchiveController@index')->name('archives.index');
     Route::get('/archives/create', 'ArchiveController@create')->name('archives.create');
     Route::post('/archives', 'ArchiveController@store')->name('archives.store');
+    Route::get('/archives/{archive}/edit', 'ArchiveController@edit')->name('archives.edit');
+    Route::put('/archives/{archive}', 'ArchiveController@update')->name('archives.update');
     Route::get('/archives/print-labels', 'ArchiveController@printLabels')->name('archives.print_labels');
     Route::post('/archives/print-labels', 'ArchiveController@printLabels')->name('archives.print_labels_post');
     Route::get('/archives/{archive}', 'ArchiveController@show')->name('archives.show');
@@ -91,6 +93,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/departments', 'DepartmentController@store')->name('departments.store');
         Route::put('/departments/{department}', 'DepartmentController@update')->name('departments.update');
         Route::delete('/departments/{department}', 'DepartmentController@destroy')->name('departments.destroy');
+        Route::post('/departments/{department}/toggle-active', 'DepartmentController@toggleActive')->name('departments.toggle_active')->middleware('role:admin');
 
         // Department Manage PIC
         Route::post('/departments/{department}/pic/assign', 'DepartmentController@assignPic')->name('departments.pic.assign');
@@ -114,6 +117,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/sub-departments', 'DepartmentController@storeSubDepartment')->name('sub_departments.store');
         Route::put('/sub-departments/{subDepartment}', 'DepartmentController@updateSubDepartment')->name('sub_departments.update');
         Route::delete('/sub-departments/{subDepartment}', 'DepartmentController@destroySubDepartment')->name('sub_departments.destroy');
+        Route::post('/sub-departments/{subDepartment}/toggle-active', 'DepartmentController@toggleSubDepartmentActive')->name('sub_departments.toggle_active')->middleware('role:admin');
 
         Route::get('/warehouses', 'WarehouseController@index')->name('warehouses');
         Route::post('/warehouses', 'WarehouseController@storeWarehouse')->name('warehouses.store');

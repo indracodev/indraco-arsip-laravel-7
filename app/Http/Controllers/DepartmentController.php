@@ -14,16 +14,26 @@ class DepartmentController extends Controller
 {
     public function index()
     {
-        $departments = Department::with(['subDepartments' => function ($q) {
+        $user = auth()->user();
+        $isSuperAdmin = $user && $user->isSuperAdmin();
+
+        $query = Department::with(['subDepartments' => function ($q) use ($isSuperAdmin) {
+            if (!$isSuperAdmin) {
+                $q->where('is_active', true);
+            }
             $q->withCount('archives')->orderBy('code', 'asc');
         }, 'picUsers', 'masterArchives.subDepartment'])
         ->withCount(['archives', 'subDepartments', 'masterArchives', 'picUsers'])
         ->withCount(['archives as unassigned_archives_count' => function ($q) {
             $q->whereNull('sub_department_id');
         }])
-        ->orderBy('code', 'asc')
-        ->get();
+        ->orderBy('code', 'asc');
 
+        if (!$isSuperAdmin) {
+            $query->where('is_active', true);
+        }
+
+        $departments = $query->get();
         $allUsers = User::orderBy('name', 'asc')->get();
 
         return view('master.departments', compact('departments', 'allUsers'));
@@ -114,6 +124,32 @@ class DepartmentController extends Controller
             ->with('success', "Departemen {$name} berhasil dihapus.");
     }
 
+    public function toggleActive(Request $request, Department $department)
+    {
+        $department->is_active = !$department->is_active;
+        $department->save();
+
+        $statusText = $department->is_active ? 'diaktifkan' : 'dinonaktifkan';
+
+        ActivityLogger::log('MASTER_DEPT_TOGGLE_ACTIVE', "Departemen {$department->name} ({$department->code}) {$statusText}", 'master', [
+            'id' => $department->id,
+            'code' => $department->code,
+            'name' => $department->name,
+            'is_active' => (bool)$department->is_active,
+        ], $department->id);
+
+        if ($request->expectsJson() || $request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Departemen {$department->name} berhasil {$statusText}.",
+                'is_active' => (bool)$department->is_active,
+            ]);
+        }
+
+        return redirect()->route('master.departments')
+            ->with('success', "Departemen {$department->name} berhasil {$statusText}.");
+    }
+
     public function storeSubDepartment(Request $request)
     {
         $validated = $request->validate([
@@ -202,6 +238,32 @@ class DepartmentController extends Controller
 
         return redirect()->route('master.departments')
             ->with('success', "Sub-Departemen {$name} berhasil dihapus.");
+    }
+
+    public function toggleSubDepartmentActive(Request $request, SubDepartment $subDepartment)
+    {
+        $subDepartment->is_active = !$subDepartment->is_active;
+        $subDepartment->save();
+
+        $statusText = $subDepartment->is_active ? 'diaktifkan' : 'dinonaktifkan';
+
+        ActivityLogger::log('MASTER_SUBDEPT_TOGGLE_ACTIVE', "Sub-Departemen {$subDepartment->name} ({$subDepartment->code}) {$statusText}", 'master', [
+            'id' => $subDepartment->id,
+            'code' => $subDepartment->code,
+            'name' => $subDepartment->name,
+            'is_active' => (bool)$subDepartment->is_active,
+        ], $subDepartment->id);
+
+        if ($request->expectsJson() || $request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Sub-Departemen {$subDepartment->name} berhasil {$statusText}.",
+                'is_active' => (bool)$subDepartment->is_active,
+            ]);
+        }
+
+        return redirect()->route('master.departments')
+            ->with('success', "Sub-Departemen {$subDepartment->name} berhasil {$statusText}.");
     }
 
     public function apiGetDepartmentArchives(Request $request, Department $department)

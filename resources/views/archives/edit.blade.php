@@ -1,18 +1,21 @@
 @extends(auth()->check() && auth()->user()->isPicDept() ? 'layouts.desktop_pic' : 'layouts.app')
 
-@section('title', 'Form Pengajuan Box Arsip (TB 30g) - DMS PT Indraco')
+@section('title', 'Edit Draft Pengajuan Box Arsip - ' . $archive->title)
 
 @section('content')
-<div class="max-w-5xl mx-auto space-y-3 font-sans pb-10" x-data="archiveCreateApp()">
+<div class="max-w-5xl mx-auto space-y-3 font-sans pb-10" x-data="archiveEditApp()">
 
     <!-- DELPHI FORM TOOLBAR HEADER -->
     <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-3 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 font-mono">
         <div class="flex items-center gap-2.5">
             <span class="p-2 bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 rounded">
-                <i data-lucide="package-plus" class="w-4 h-4"></i>
+                <i data-lucide="edit-3" class="w-4 h-4"></i>
             </span>
             <div>
-                <h1 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Form Pengajuan Box Arsip (TB 30g) & Label A5</h1>
+                <div class="flex items-center gap-2">
+                    <h1 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Edit Draft Pengajuan Box Arsip (TB 30g)</h1>
+                    <span class="px-1.5 py-0.2 bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-300 text-[9px] font-bold rounded uppercase border border-slate-300 dark:border-slate-700">Status: {{ $archive->status_label }}</span>
+                </div>
                 <p class="text-[11px] text-slate-500 dark:text-slate-400">Pencatatan Master Kardus & Multi-Item Butir Dokumen Arsip • Standar Box TB 30g</p>
             </div>
         </div>
@@ -24,8 +27,9 @@
     </div>
 
     <!-- MAIN FORM WINDOW CARD -->
-    <form action="{{ route('archives.store', request()->has('embed') ? ['embed' => 1] : []) }}" method="POST" enctype="multipart/form-data" class="space-y-3">
+    <form action="{{ route('archives.update', array_merge(['archive' => $archive->id], request()->has('embed') ? ['embed' => 1] : [])) }}" method="POST" enctype="multipart/form-data" class="space-y-3">
         @csrf
+        @method('PUT')
         @if(request()->has('embed'))
             <input type="hidden" name="embed" value="1">
         @endif
@@ -293,7 +297,7 @@
                         type="text" 
                         name="document_type" 
                         id="document_type" 
-                        value="{{ old('document_type') }}" 
+                        value="{{ old('document_type', $archive->document_type) }}" 
                         placeholder="Contoh: Pajak, Keuangan, SDM, Logistik..." 
                         class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 transition"
                     >
@@ -372,7 +376,7 @@
                         type="text" 
                         name="physical_condition" 
                         id="physical_condition" 
-                        value="{{ old('physical_condition', 'Baik / Box Karton Standar TB 30g') }}" 
+                        value="{{ old('physical_condition', $archive->physical_condition) }}" 
                         required 
                         class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition"
                     >
@@ -594,6 +598,12 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3 font-mono text-xs">
                 <div>
                     <label for="scan_input_form" class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Scan Formulir Input</label>
+                    @if($archive->scan_input_form)
+                        <div class="mb-1 text-[10px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                            <i data-lucide="file-check" class="w-3 h-3"></i>
+                            <a href="{{ asset('storage/' . $archive->scan_input_form) }}" target="_blank" class="underline">File saat ini tersimpan</a>
+                        </div>
+                    @endif
                     <input 
                         type="file" 
                         name="scan_input_form" 
@@ -605,6 +615,12 @@
 
                 <div>
                     <label for="scan_approval_input" class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Scan Bukti Approval Input</label>
+                    @if($archive->scan_approval_input)
+                        <div class="mb-1 text-[10px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                            <i data-lucide="file-check" class="w-3 h-3"></i>
+                            <a href="{{ asset('storage/' . $archive->scan_approval_input) }}" target="_blank" class="underline">File saat ini tersimpan</a>
+                        </div>
+                    @endif
                     <input 
                         type="file" 
                         name="scan_approval_input" 
@@ -616,6 +632,12 @@
 
                 <div>
                     <label for="file" class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Lampiran Digital Dokumen</label>
+                    @if($archive->file_path)
+                        <div class="mb-1 text-[10px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                            <i data-lucide="file-check" class="w-3 h-3"></i>
+                            <a href="{{ asset('storage/' . $archive->file_path) }}" target="_blank" class="underline">File saat ini tersimpan</a>
+                        </div>
+                    @endif
                     <input 
                         type="file" 
                         name="file" 
@@ -632,26 +654,27 @@
             <a href="{{ route('archives.index', request()->has('embed') ? ['embed' => 1] : []) }}" class="px-3.5 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded text-xs font-bold border border-slate-300 dark:border-slate-700 transition">
                 Batal
             </a>
-            <!-- Simpan Sebagai Draft (Simpan Sementara / PIC Dept) -->
+            <!-- Simpan Sebagai Draft (Simpan Sementara) -->
             <button 
                 type="submit" 
                 name="submit_action" 
                 value="draft" 
                 class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs rounded border border-slate-400 dark:border-slate-600 shadow-xs transition flex items-center gap-1.5 cursor-pointer"
-                title="Simpan sementara sebagai draft usulan (tidak dikirim ke PIC Gudang)"
+                title="Perbarui data dan tetap simpan sementara sebagai draft"
             >
                 <i data-lucide="file-clock" class="w-3.5 h-3.5 text-amber-500"></i>
                 <span>Simpan Sementara (Draft)</span>
             </button>
-            <!-- Simpan & Ajukan Box Arsip -->
+            <!-- Simpan & Ajukan Box Arsip Permanen -->
             <button 
                 type="submit" 
                 name="submit_action" 
                 value="submit" 
                 class="px-5 py-2 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black text-xs rounded border border-amber-600 shadow-md transition flex items-center gap-1.5 cursor-pointer"
+                title="Simpan permanen dan teruskan pengajuan ke PIC Gudang untuk diverifikasi"
             >
                 <i data-lucide="send" class="w-3.5 h-3.5 text-slate-950"></i>
-                <span>Simpan & Ajukan Box Arsip (TB 30g)</span>
+                <span>Simpan & Ajukan Permanen ke Gudang</span>
             </button>
         </div>
     </form>
@@ -659,25 +682,37 @@
 
 @push('scripts')
 <script>
-function archiveCreateApp() {
+function archiveEditApp() {
+    const rawItems = @json($archive->items);
+    let initialItems = [];
+    if (rawItems && rawItems.length > 0) {
+        initialItems = rawItems.map(it => ({
+            id: it.id || (Date.now() + Math.random()),
+            document_name: it.document_name,
+            is_custom: false,
+            period_start: it.period_start || '',
+            period_end: it.period_end || '',
+            notes: it.notes || ''
+        }));
+    } else {
+        initialItems = [
+            { id: 1, document_name: '', is_custom: false, period_start: '{{ date('Y-06') }}', period_end: '{{ date('Y-08') }}', notes: '' }
+        ];
+    }
+
     return {
         departments: @json($departments),
-        selectedCompany: '{{ old('company_name', 'PT Indraco Jaya Perkasa') }}',
-        selectedDeptId: '{{ old('department_id', auth()->user()->isPicDept() ? auth()->user()->department_id : ($departments->first()->id ?? '')) }}',
-        selectedSubDeptId: '{{ old('sub_department_id', '') }}',
+        selectedCompany: '{{ old('company_name', $archive->company_name ?? 'PT Indraco Jaya Perkasa') }}',
+        selectedDeptId: '{{ old('department_id', $archive->department_id) }}',
+        selectedSubDeptId: '{{ old('sub_department_id', $archive->sub_department_id ?? '') }}',
         subDepartments: [],
         masterArchives: [],
-        isCustomDocName: {{ old('is_custom_doc_name') ? 'true' : 'false' }},
-        customDocName: @json(old('custom_doc_name', '')),
-        title: @json(old('title', '')),
-        tglPenyerahan: '{{ old('tgl_penyerahan', date('Y-m-d')) }}',
+        isCustomDocName: {{ old('is_custom_doc_name', $archive->is_custom_doc_name ? 'true' : 'false') }},
+        customDocName: @json(old('custom_doc_name', $archive->custom_doc_name ?? '')),
+        title: @json(old('title', $archive->title ?? '')),
+        tglPenyerahan: '{{ old('tgl_penyerahan', $archive->tgl_penyerahan ? $archive->tgl_penyerahan->format('Y-m-d') : date('Y-m-d')) }}',
 
-        // Dynamic items repeater (1 Box = Banyak Berkas Arsip)
-        items: [
-            { id: 1, document_name: '', is_custom: false, period_start: '{{ date('Y-06') }}', period_end: '{{ date('Y-08') }}', notes: '' },
-            { id: 2, document_name: '', is_custom: false, period_start: '{{ date('Y-07') }}', period_end: '{{ date('Y-07') }}', notes: '' },
-            { id: 3, document_name: '', is_custom: false, period_start: '{{ date('Y-01') }}', period_end: '{{ date('Y-12') }}', notes: '' }
-        ],
+        items: initialItems,
 
         init() {
             this.updateSubDepartments();
@@ -713,7 +748,6 @@ function archiveCreateApp() {
             } else {
                 this.subDepartments = [];
             }
-            this.selectedSubDeptId = '';
             this.updateMasterArchives();
         },
 
@@ -728,7 +762,6 @@ function archiveCreateApp() {
                 allArchives = dept.master_archives;
                 this.filterAndSetArchives(allArchives);
             } else if (this.selectedDeptId) {
-                // Fallback fetch if not present in initial JSON
                 fetch('{{ url('/api/departments') }}/' + this.selectedDeptId + '/master-archives')
                     .then(res => res.json())
                     .then(data => {
@@ -755,15 +788,6 @@ function archiveCreateApp() {
                 });
             } else {
                 this.masterArchives = allArchives;
-            }
-
-            // Set default document_name for items if empty or no longer in filtered list
-            if (this.masterArchives.length > 0) {
-                this.items.forEach((it, idx) => {
-                    if (!it.document_name || !this.masterArchives.some(m => m.name === it.document_name)) {
-                        it.document_name = this.masterArchives[idx % this.masterArchives.length].name;
-                    }
-                });
             }
         }
     };

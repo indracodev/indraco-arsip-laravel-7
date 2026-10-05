@@ -18,6 +18,12 @@
         </div>
 
         <div class="flex items-center gap-2">
+            @if($archive->status === 'draft' && (auth()->user()->isPicDept() || auth()->user()->isSuperAdmin()))
+            <a href="{{ route('archives.edit', array_merge(['archive' => $archive->id], request()->has('embed') ? ['embed' => 1] : [])) }}" class="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-md transition flex items-center gap-2">
+                <i data-lucide="edit-3" class="w-4 h-4"></i> Edit & Ajukan Permanen
+            </a>
+            @endif
+
             @if(!auth()->user()->isPicDept())
             <a href="{{ route('archives.print_sticker', $archive) }}" target="_blank" class="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-md transition flex items-center gap-2">
                 <i data-lucide="printer" class="w-4 h-4"></i> Cetak Stiker Box Label
@@ -39,6 +45,25 @@
             @endif
         </div>
     </div>
+
+    <!-- Draft Notice Banner (PIC Dept & Super Admin) -->
+    @if($archive->status === 'draft' && (auth()->user()->isPicDept() || auth()->user()->isSuperAdmin()))
+    <div class="bg-amber-500/10 border border-amber-500/30 rounded-3xl p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <div class="p-2.5 bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded-2xl shrink-0">
+                <i data-lucide="file-edit" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <h3 class="text-base font-extrabold text-slate-900 dark:text-white">Dokumen Masih Berupa Draft Sementara</h3>
+                <p class="text-xs text-amber-800 dark:text-amber-200/80 font-medium">Draft ini belum diajukan ke PIC Gudang. Anda dapat melengkapi atau mengubah rincian butir berkas kapan saja lalu menyimpannya secara permanen.</p>
+            </div>
+        </div>
+        <a href="{{ route('archives.edit', array_merge(['archive' => $archive->id], request()->has('embed') ? ['embed' => 1] : [])) }}" class="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-2 shrink-0">
+            <i data-lucide="edit-3" class="w-4 h-4"></i>
+            <span>Edit Draft & Simpan Permanen</span>
+        </a>
+    </div>
+    @endif
 
     <!-- Status Tracker & Rejection Alert -->
     <div class="bg-white dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4">

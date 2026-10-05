@@ -119,7 +119,7 @@
                 <template x-for="dept in filteredItems" :key="dept.id">
                     <tbody class="border-b border-slate-200 dark:border-slate-800">
                         <!-- Parent Department Row -->
-                        <tr :class="expandedDepts[dept.id] ? 'bg-purple-50/50 dark:bg-purple-950/20 font-semibold' : 'hover:bg-amber-500/10 dark:hover:bg-amber-500/20'" class="transition">
+                        <tr :class="[expandedDepts[dept.id] ? 'bg-purple-50/50 dark:bg-purple-950/20 font-semibold' : 'hover:bg-amber-500/10 dark:hover:bg-amber-500/20', dept.is_active === false ? 'opacity-65 bg-rose-50/30 dark:bg-rose-950/20' : '']" class="transition">
                             <td class="py-2 px-2 text-center">
                                 <button 
                                     @click="toggleExpand(dept.id)" 
@@ -132,9 +132,10 @@
                             </td>
                             <td class="py-2 px-3 font-mono text-xs text-amber-600 dark:text-amber-400 font-bold" x-text="dept.code"></td>
                             <td class="py-2 px-3 font-bold text-slate-900 dark:text-white">
-                                <div class="flex items-center gap-1.5">
-                                    <span x-text="dept.name"></span>
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    <span :class="dept.is_active === false ? 'line-through text-slate-500' : ''" x-text="dept.name"></span>
                                     <span x-show="dept.code === 'FIN'" class="px-1.5 py-0.2 bg-rose-500/20 text-rose-700 dark:text-rose-300 text-[9px] font-mono font-bold border border-rose-500/30 rounded uppercase">Ruang FAT Locked</span>
+                                    <span x-show="dept.is_active === false" class="px-1.5 py-0.2 bg-rose-500/20 text-rose-700 dark:text-rose-400 text-[9px] font-mono font-bold border border-rose-500/30 rounded uppercase">Nonaktif</span>
                                 </div>
                             </td>
                             <td class="py-2 px-3 text-xs text-slate-600 dark:text-slate-300 font-medium" x-text="dept.description || '-'"></td>
@@ -163,6 +164,19 @@
                             </td>
                             <td class="py-2 px-3 text-right">
                                 <div class="flex items-center justify-end gap-1 font-mono">
+                                    @if(auth()->user()->isSuperAdmin())
+                                    <!-- Toggle Active Dept (Superadmin Only) -->
+                                    <button 
+                                        @click.stop="toggleDeptActive(dept)" 
+                                        type="button" 
+                                        :class="dept.is_active !== false ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30' : 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/30'" 
+                                        class="px-2 py-1 border rounded text-[11px] font-bold transition flex items-center gap-1 shadow-xs cursor-pointer" 
+                                        :title="dept.is_active !== false ? 'Klik untuk Nonaktifkan Departemen (Hanya Superadmin)' : 'Klik untuk Aktifkan Departemen (Hanya Superadmin)'"
+                                    >
+                                        <i :data-lucide="dept.is_active !== false ? 'check-circle' : 'power-off'" class="w-3 h-3" :class="dept.is_active !== false ? 'text-emerald-500' : 'text-rose-500'"></i>
+                                        <span x-text="dept.is_active !== false ? 'Aktif' : 'Nonaktif'"></span>
+                                    </button>
+                                    @endif
                                     <!-- Kelola Dept (PIC & Master Arsip) -->
                                     <button @click.stop="openManageDept(dept)" type="button" class="px-2 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-[11px] font-bold transition flex items-center gap-1 shadow-xs border border-indigo-700 cursor-pointer" title="Kelola User PIC dan Master Dokumen Arsip Departemen ini">
                                         <i data-lucide="sliders" class="w-3 h-3 text-amber-300"></i>
@@ -222,9 +236,14 @@
                                             </thead>
                                             <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
                                                 <template x-for="sub in (dept.sub_departments || [])" :key="sub.id">
-                                                    <tr class="hover:bg-indigo-50/50 dark:hover:bg-indigo-950/30 transition">
+                                                    <tr :class="sub.is_active === false ? 'opacity-65 bg-rose-50/20 dark:bg-rose-950/20' : 'hover:bg-indigo-50/50 dark:hover:bg-indigo-950/30'" class="transition">
                                                         <td class="py-1.5 px-2.5 font-mono font-bold text-indigo-600 dark:text-indigo-400" x-text="dept.code + '-' + sub.code"></td>
-                                                        <td class="py-1.5 px-2.5 font-bold text-slate-800 dark:text-slate-200" x-text="sub.name"></td>
+                                                        <td class="py-1.5 px-2.5 font-bold text-slate-800 dark:text-slate-200">
+                                                            <div class="flex items-center gap-1.5 flex-wrap">
+                                                                <span :class="sub.is_active === false ? 'line-through text-slate-500' : ''" x-text="sub.name"></span>
+                                                                <span x-show="sub.is_active === false" class="px-1.5 py-0.2 bg-rose-500/20 text-rose-700 dark:text-rose-400 text-[8px] font-mono font-bold border border-rose-500/30 rounded uppercase">Nonaktif</span>
+                                                            </div>
+                                                        </td>
                                                         <td class="py-1.5 px-2.5 text-slate-600 dark:text-slate-400" x-text="sub.description || '-'"></td>
                                                         <td class="py-1.5 px-2.5 font-mono text-center">
                                                             <!-- Clickable Sub-Dept Berkas Arsip Badge -->
@@ -237,8 +256,22 @@
                                                                 <i data-lucide="folder-archive" class="w-3 h-3"></i>
                                                                 <span x-text="(sub.archives_count || 0) + ' Berkas'"></span>
                                                             </button>
-                                                        </td>                                                         <td class="py-1.5 px-2.5 text-right">
+                                                        </td>
+                                                        <td class="py-1.5 px-2.5 text-right">
                                                             <div class="flex items-center justify-end gap-1 font-mono">
+                                                                @if(auth()->user()->isSuperAdmin())
+                                                                <!-- Toggle Active Sub-Dept (Superadmin Only) -->
+                                                                <button 
+                                                                    @click.stop="toggleSubDeptActive(sub, dept)" 
+                                                                    type="button" 
+                                                                    :class="sub.is_active !== false ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30' : 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/30'" 
+                                                                    class="px-1.5 py-0.5 border rounded text-[10px] font-bold transition flex items-center gap-1 shadow-xs cursor-pointer" 
+                                                                    :title="sub.is_active !== false ? 'Klik untuk Nonaktifkan Sub-Dept (Hanya Superadmin)' : 'Klik untuk Aktifkan Sub-Dept (Hanya Superadmin)'"
+                                                                >
+                                                                    <i :data-lucide="sub.is_active !== false ? 'check-circle' : 'power-off'" class="w-2.5 h-2.5" :class="sub.is_active !== false ? 'text-emerald-500' : 'text-rose-500'"></i>
+                                                                    <span x-text="sub.is_active !== false ? 'Aktif' : 'Nonaktif'"></span>
+                                                                </button>
+                                                                @endif
                                                                 <button @click.stop="openManageSubDept(dept, sub)" type="button" class="px-1.5 py-0.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-[10px] font-bold transition flex items-center gap-1 shadow-xs border border-indigo-700 cursor-pointer" title="Kelola Master Dokumen Sub-Departemen ini">
                                                                     <i data-lucide="sliders" class="w-2.5 h-2.5 text-amber-300"></i>
                                                                     <span>Kelola</span>
@@ -254,7 +287,7 @@
                                                                     </button>
                                                                 </form>
                                                             </div>
-                                                         </td>
+                                                        </td>
                                                     </tr>
                                                 </template>
 
@@ -1876,6 +1909,62 @@ function masterDepartmentsManager() {
         collapseAll() {
             this.expandedDepts = {};
             this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+        },
+
+        toggleDeptActive(dept) {
+            const actionText = dept.is_active !== false ? 'menonaktifkan' : 'mengaktifkan';
+            if (!confirm('Yakin ingin ' + actionText + ' departemen "' + dept.name + '"?')) return;
+            
+            this.isLoading = true;
+            fetch('{{ url('/master/departments') }}/' + dept.id + '/toggle-active', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    dept.is_active = data.is_active;
+                }
+                this.isLoading = false;
+                this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+            })
+            .catch(err => {
+                console.error(err);
+                this.isLoading = false;
+                alert('Gagal mengubah status aktif departemen.');
+            });
+        },
+
+        toggleSubDeptActive(sub, dept) {
+            const actionText = sub.is_active !== false ? 'menonaktifkan' : 'mengaktifkan';
+            if (!confirm('Yakin ingin ' + actionText + ' sub-departemen "' + sub.name + '"?')) return;
+            
+            this.isLoading = true;
+            fetch('{{ url('/master/sub-departments') }}/' + sub.id + '/toggle-active', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    sub.is_active = data.is_active;
+                }
+                this.isLoading = false;
+                this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+            })
+            .catch(err => {
+                console.error(err);
+                this.isLoading = false;
+                alert('Gagal mengubah status aktif sub-departemen.');
+            });
         },
 
         openCreateSubDept(deptId) {

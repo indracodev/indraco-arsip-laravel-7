@@ -33,6 +33,8 @@ class ArchiveController extends Controller
 
         if ($user->isPicDept()) {
             $query->where('department_id', $user->department_id);
+        } elseif ($user->isPicGudang()) {
+            $query->where('status', '!=', 'draft');
         }
 
         // Filters
@@ -90,7 +92,17 @@ class ArchiveController extends Controller
         }
 
         $archives = $query->paginate(10)->withQueryString();
-        $departments = Department::with('subDepartments')->get();
+
+        $isSuperAdmin = $user && $user->isSuperAdmin();
+        $deptQuery = Department::with(['subDepartments' => function ($q) use ($isSuperAdmin) {
+            if (!$isSuperAdmin) {
+                $q->where('is_active', true);
+            }
+        }]);
+        if (!$isSuperAdmin) {
+            $deptQuery->where('is_active', true);
+        }
+        $departments = $deptQuery->get();
 
         // Pending Borrowing Requests Count for PIC Gudang Alert Banner
         $pendingBorrowingRequestsCount = 0;
@@ -126,7 +138,7 @@ class ArchiveController extends Controller
             'custom_doc_name' => 'nullable|string|max:255',
             'title' => 'nullable|string|max:255',
             'periode_doc' => 'nullable|string|max:100',
-            'tgl_penyerahan' => 'required|date',
+            'tgl_penyerahan' => 'required|date|before_or_equal:today',
             'period_text' => 'nullable|string|max:100',
             'content_description' => 'nullable|string',
             'retention_years' => 'nullable|integer|min:1|max:30',
@@ -293,6 +305,9 @@ class ArchiveController extends Controller
             $scanApprovalInputPath = $request->file('scan_approval_input')->store('archive_scans', 'public');
         }
 
+            $isDraft = ($request->input('submit_action') === 'draft' || $request->has('save_draft') || $request->input('action') === 'draft');
+        $archiveStatus = $isDraft ? 'draft' : 'pending_verification';
+
         $archive = Archive::create([
             'department_id' => $validated['department_id'],
             'sub_department_id' => $validated['sub_department_id'] ?? null,
@@ -316,7 +331,7 @@ class ArchiveController extends Controller
             'file_path' => $filePath,
             'scan_input_form' => $scanInputFormPath,
             'scan_approval_input' => $scanApprovalInputPath,
-            'status' => 'pending_verification',
+            'status' => $archiveStatus,
         ]);
 
         // 6. Save items in archive_items table
@@ -324,27 +339,301 @@ class ArchiveController extends Controller
             $archive->items()->create($itemData);
         }
 
-        ActivityLogger::log(
-            'ARCHIVE_CREATE',
-            "Pengajuan arsip baru '{$archive->title}' (" . count($parsedItems) . " butir berkas) oleh {$user->name} (" . ($department ? $department->name : '') . ").",
-            'DOKUMEN_ARSIP',
-            [
-                'archive_id' => $archive->id,
-                'title' => $archive->title,
-                'department_id' => $archive->department_id,
-                'sub_department_id' => $archive->sub_department_id,
-                'period_doc' => $archive->periode_doc,
-                'retention_years' => $archive->retention_years,
-                'retention_expiry_date' => $archive->retention_expiry_date,
-                'items_count' => count($parsedItems),
-            ],
-            $archive->box_number ?: "ID: {$archive->id}"
-        );
+        if ($isDraft) {
+            ActivityLogger::log(
+                'ARCHIVE_DRAFT_SAVE',
+                "Menyimpan draft sementara pengajuan arsip '{$archive->title}' (" . count($parsedItems) . " butir berkas) oleh {$user->name}.",
+                'DOKUMEN_ARSIP',
+                [
+                    'archive_id' => $archive->id,
+                    'title' => $archive->title,
+                    'department_id' => $archive->department_id,
+                    'status' => 'draft',
+                    'items_count' => count($parsedItems),
+                ],
+                $archive->box_number ?: "Draft ID: {$archive->id}"
+            );
+
+            $successMessage = 'Draft usulan box arsip (' . count($parsedItems) . ' butir dokumen) berhasil disimpan sementara. Belum diteruskan ke PIC Gudang.';
+        } else {
+            ActivityLogger::log(
+                'ARCHIVE_CREATE',
+                "Pengajuan arsip baru '{$archive->title}' (" . count($parsedItems) . " butir berkas) oleh {$user->name} (" . ($department ? $department->name : '') . ").",
+                'DOKUMEN_ARSIP',
+                [
+                    'archive_id' => $archive->id,
+                    'title' => $archive->title,
+                    'department_id' => $archive->department_id,
+                    'sub_department_id' => $archive->sub_department_id,
+                    'period_doc' => $archive->periode_doc,
+                    'retention_years' => $archive->retention_years,
+                    'retention_expiry_date' => $archive->retention_expiry_date,
+                    'items_count' => count($parsedItems),
+                ],
+                $archive->box_number ?: "ID: {$archive->id}"
+            );
+
+            $successMessage = 'Pengajuan booking box arsip (' . count($parsedItems) . ' butir dokumen) berhasil disubmit untuk diverifikasi PIC Gudang.';
+        }
 
         $redirectParams = $this->getEmbedParams($request);
 
         return redirect()->route('archives.index', $redirectParams)
-            ->with('success', 'Pengajuan booking box arsip (' . count($parsedItems) . ' butir dokumen) berhasil disubmit untuk diverifikasi PIC Gudang.');
+            ->with('success', $successMessage);
+    }
+
+    public function edit(Archive $archive)
+    {
+        $user = auth()->user();
+
+        // Ensure PIC Dept can only edit archives from their own department
+        if ($user->isPicDept() && $archive->department_id !== $user->department_id) {
+            abort(403, 'Anda tidak memiliki hak akses untuk mengedit arsip departemen ini.');
+        }
+
+        $archive->load(['department', 'subDepartment', 'items']);
+
+        $departments = Department::with(['subDepartments' => function ($q) {
+            $q->where('is_active', true);
+        }, 'masterArchives' => function ($q) {
+            $q->where('is_active', true)->with('subDepartment')->orderBy('name', 'asc');
+        }])->where('is_active', true)->get();
+
+        return view('archives.edit', compact('user', 'archive', 'departments'));
+    }
+
+    public function update(Request $request, Archive $archive)
+    {
+        $user = auth()->user();
+
+        if ($user->isPicDept() && $archive->department_id !== $user->department_id) {
+            abort(403, 'Anda tidak memiliki hak akses untuk mengedit arsip departemen ini.');
+        }
+
+        $validated = $request->validate([
+            'department_id' => 'required|exists:departments,id',
+            'sub_department_id' => 'nullable|exists:sub_departments,id',
+            'company_name' => 'nullable|string|max:150',
+            'document_type' => 'nullable|string|max:100',
+            'is_custom_doc_name' => 'nullable|boolean',
+            'custom_doc_name' => 'nullable|string|max:255',
+            'title' => 'nullable|string|max:255',
+            'periode_doc' => 'nullable|string|max:100',
+            'tgl_penyerahan' => 'required|date|before_or_equal:today',
+            'period_text' => 'nullable|string|max:100',
+            'content_description' => 'nullable|string',
+            'retention_years' => 'nullable|integer|min:1|max:30',
+            'masa_simpan_custom' => 'nullable|integer|min:1|max:30',
+            'physical_condition' => 'required|string|max:100',
+            'file' => 'nullable|file|mimes:pdf,jpg,png,doc,docx,zip|max:10240',
+            'scan_input_form' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
+            'scan_approval_input' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
+            'items' => 'nullable|array',
+            'items.*.document_name' => 'nullable|string|max:255',
+            'items.*.period_start' => 'nullable|string|max:50',
+            'items.*.period_end' => 'nullable|string|max:50',
+            'items.*.period_text' => 'nullable|string|max:150',
+            'items.*.notes' => 'nullable|string|max:255',
+        ]);
+
+        if ($user->isPicDept()) {
+            $validated['department_id'] = $user->department_id;
+        }
+
+        // 1. Business Rule: Periode Dokumen (derived from tgl_penyerahan or explicit input)
+        $tglPenyerahan = Carbon::parse($validated['tgl_penyerahan']);
+        $rawPeriod = !empty($validated['periode_doc']) ? trim($validated['periode_doc']) : $tglPenyerahan->format('Y/m');
+        
+        if (preg_match('/^(\d{4}\/(?:0[1-9]|1[0-2]))\s*(?:-|s\/d|hingga|to)\s*(\d{4}\/(?:0[1-9]|1[0-2]))$/i', $rawPeriod, $matches)) {
+            $startPeriodStr = $matches[1];
+            $endPeriodStr = $matches[2];
+            [$sYear, $sMonth] = explode('/', $startPeriodStr);
+            [$eYear, $eMonth] = explode('/', $endPeriodStr);
+            $startDate = Carbon::createFromDate((int)$sYear, (int)$sMonth, 1)->startOfDay();
+            $endDate = Carbon::createFromDate((int)$eYear, (int)$eMonth, 1)->endOfMonth()->endOfDay();
+            $formattedPeriodDoc = $startPeriodStr . ' - ' . $endPeriodStr;
+            $periodText = !empty($validated['period_text']) ? $validated['period_text'] : ($startDate->isoFormat('MMMM Y') . ' - ' . $endDate->isoFormat('MMMM Y'));
+        } elseif (preg_match('/^(\d{4}\/(?:0[1-9]|1[0-2]))$/', $rawPeriod, $matches)) {
+            $periodStr = $matches[1];
+            [$year, $month] = explode('/', $periodStr);
+            $startDate = Carbon::createFromDate((int)$year, (int)$month, 1)->startOfDay();
+            $endDate = $startDate->copy()->endOfMonth()->endOfDay();
+            $formattedPeriodDoc = $periodStr;
+            $periodText = !empty($validated['period_text']) ? $validated['period_text'] : $startDate->isoFormat('MMMM Y');
+        } else {
+            $startDate = $tglPenyerahan->copy()->startOfMonth();
+            $endDate = $tglPenyerahan->copy()->endOfMonth();
+            $formattedPeriodDoc = $rawPeriod;
+            $periodText = !empty($validated['period_text']) ? $validated['period_text'] : $tglPenyerahan->isoFormat('MMMM Y');
+        }
+
+        $validated['periode_doc'] = $formattedPeriodDoc;
+        $periodYyMm = $formattedPeriodDoc;
+
+        // 2. Parse Items Repeater
+        $itemsInput = $request->input('items', []);
+        $parsedItems = [];
+        $itemLines = [];
+
+        if (is_array($itemsInput) && count($itemsInput) > 0) {
+            $idx = 1;
+            foreach ($itemsInput as $rawItem) {
+                if (is_array($rawItem) && !empty(trim($rawItem['document_name'] ?? ''))) {
+                    $docName = trim($rawItem['document_name']);
+                    $pStart = trim($rawItem['period_start'] ?? '');
+                    $pEnd = trim($rawItem['period_end'] ?? '');
+                    
+                    $pText = trim($rawItem['period_text'] ?? '');
+                    if (empty($pText)) {
+                        if (!empty($pStart) && !empty($pEnd)) {
+                            $pText = ($pStart === $pEnd) ? $pStart : "{$pStart} s/d {$pEnd}";
+                        } elseif (!empty($pStart)) {
+                            $pText = $pStart;
+                        } elseif (!empty($pEnd)) {
+                            $pText = $pEnd;
+                        } else {
+                            $pText = $formattedPeriodDoc;
+                        }
+                    }
+                    
+                    $notes = trim($rawItem['notes'] ?? '');
+                    
+                    $parsedItems[] = [
+                        'item_number' => $idx,
+                        'document_name' => $docName,
+                        'period_start' => !empty($pStart) ? $pStart : null,
+                        'period_end' => !empty($pEnd) ? $pEnd : null,
+                        'period_text' => $pText,
+                        'notes' => $notes,
+                    ];
+                    
+                    $itemLines[] = "{$idx}. {$docName}" . ($pText ? " ({$pText})" : "");
+                    $idx++;
+                }
+            }
+        }
+
+        // If empty, create at least 1 default item
+        if (empty($parsedItems)) {
+            $fallbackTitle = !empty($validated['title']) ? $validated['title'] : 'Arsip Dokumen ' . $tglPenyerahan->isoFormat('MMMM Y');
+            $parsedItems[] = [
+                'item_number' => 1,
+                'document_name' => $fallbackTitle,
+                'period_text' => $formattedPeriodDoc,
+                'notes' => null,
+            ];
+            $itemLines[] = "1. {$fallbackTitle}";
+        }
+
+        $formattedContentDescription = !empty($itemLines) ? implode("\n", $itemLines) : ($validated['content_description'] ?? 'Rincian Berkas');
+
+        // 3. Title & Custom Doc Name Handling
+        $isCustomDocName = !empty($validated['is_custom_doc_name']);
+        $customDocName = $isCustomDocName ? ($validated['custom_doc_name'] ?? $request->input('custom_doc_name')) : null;
+        $primaryItemName = $parsedItems[0]['document_name'] ?? ('Arsip ' . $formattedPeriodDoc);
+        $finalTitle = $isCustomDocName ? $customDocName : (!empty($validated['title']) ? $validated['title'] : $primaryItemName);
+
+        // 4. Automated Retention Years & Expiry Calculation
+        $department = Department::find($validated['department_id']);
+        $subDepartment = !empty($validated['sub_department_id']) ? SubDepartment::find($validated['sub_department_id']) : null;
+
+        $effectiveRetentionYears = 5;
+        if (!empty($validated['masa_simpan_custom']) && (int)$validated['masa_simpan_custom'] > 0) {
+            $effectiveRetentionYears = (int)$validated['masa_simpan_custom'];
+        } elseif ($subDepartment && $subDepartment->retention_years > 0) {
+            $effectiveRetentionYears = (int)$subDepartment->retention_years;
+        } elseif ($department && $department->retention_years > 0) {
+            $effectiveRetentionYears = (int)$department->retention_years;
+        } elseif (!empty($validated['retention_years']) && (int)$validated['retention_years'] > 0) {
+            $effectiveRetentionYears = (int)$validated['retention_years'];
+        }
+
+        $retentionExpiryDate = $endDate->copy()->addYears($effectiveRetentionYears)->format('Y-m-d');
+
+        // 5. File uploads (only update if new files provided)
+        $filePath = $archive->file_path;
+        if ($request->hasFile('file')) {
+            $filePath = $request->file('file')->store('archive_digital', 'public');
+        }
+
+        $scanInputFormPath = $archive->scan_input_form;
+        if ($request->hasFile('scan_input_form')) {
+            $scanInputFormPath = $request->file('scan_input_form')->store('archive_scans', 'public');
+        }
+
+        $scanApprovalInputPath = $archive->scan_approval_input;
+        if ($request->hasFile('scan_approval_input')) {
+            $scanApprovalInputPath = $request->file('scan_approval_input')->store('archive_scans', 'public');
+        }
+
+        $isDraft = ($request->input('submit_action') === 'draft' || $request->has('save_draft') || $request->input('action') === 'draft');
+        $archiveStatus = $isDraft ? 'draft' : 'pending_verification';
+
+        $archive->update([
+            'department_id' => $validated['department_id'],
+            'sub_department_id' => $validated['sub_department_id'] ?? null,
+            'company_name' => $validated['company_name'] ?? $archive->company_name,
+            'document_type' => $validated['document_type'] ?? $archive->document_type,
+            'title' => $finalTitle,
+            'is_custom_doc_name' => $isCustomDocName,
+            'custom_doc_name' => $customDocName,
+            'period_start_date' => $startDate->format('Y-m-d'),
+            'period_end_date' => $endDate->format('Y-m-d'),
+            'period_text' => $periodText,
+            'period_yy_mm' => $periodYyMm,
+            'periode_doc' => $validated['periode_doc'],
+            'tgl_penyerahan' => $validated['tgl_penyerahan'],
+            'content_description' => $formattedContentDescription,
+            'retention_years' => $effectiveRetentionYears,
+            'masa_simpan_custom' => $validated['masa_simpan_custom'] ?? null,
+            'retention_expiry_date' => $retentionExpiryDate,
+            'physical_condition' => $validated['physical_condition'],
+            'file_path' => $filePath,
+            'scan_input_form' => $scanInputFormPath,
+            'scan_approval_input' => $scanApprovalInputPath,
+            'status' => $archiveStatus,
+        ]);
+
+        // Sync items
+        $archive->items()->delete();
+        foreach ($parsedItems as $itemData) {
+            $archive->items()->create($itemData);
+        }
+
+        if ($isDraft) {
+            ActivityLogger::log(
+                'ARCHIVE_DRAFT_UPDATE',
+                "Memperbarui draft sementara pengajuan arsip '{$archive->title}' (" . count($parsedItems) . " butir berkas) oleh {$user->name}.",
+                'DOKUMEN_ARSIP',
+                [
+                    'archive_id' => $archive->id,
+                    'title' => $archive->title,
+                    'status' => 'draft',
+                ],
+                $archive->box_number ?: "Draft ID: {$archive->id}"
+            );
+
+            $successMessage = 'Draft usulan box arsip (' . count($parsedItems) . ' butir dokumen) berhasil diperbarui dan tersimpan sementara.';
+        } else {
+            ActivityLogger::log(
+                'ARCHIVE_SUBMIT',
+                "Mengajukan pengajuan box arsip '{$archive->title}' (" . count($parsedItems) . " butir berkas) ke PIC Gudang oleh {$user->name}.",
+                'DOKUMEN_ARSIP',
+                [
+                    'archive_id' => $archive->id,
+                    'title' => $archive->title,
+                    'status' => 'pending_verification',
+                ],
+                $archive->box_number ?: "ID: {$archive->id}"
+            );
+
+            $successMessage = 'Pengajuan booking box arsip (' . count($parsedItems) . ' butir dokumen) berhasil diajukan dan diteruskan ke PIC Gudang untuk diverifikasi.';
+        }
+
+        $redirectParams = $this->getEmbedParams($request);
+
+        return redirect()->route('archives.index', $redirectParams)
+            ->with('success', $successMessage);
     }
 
     protected function getEmbedParams(Request $request)
