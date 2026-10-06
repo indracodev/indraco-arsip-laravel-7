@@ -1,5 +1,16 @@
 <!-- PT INDRACO DMS - 100% Offline Asset Suite (Zero External Dependency) -->
 <link rel="stylesheet" href="{{ asset('css/fonts.css') }}">
+<script>
+    // Ensure default theme is always 'light' (never fallback to OS system dark mode)
+    (function() {
+        var storedTheme = localStorage.getItem('theme');
+        if (storedTheme === 'dark') {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    })();
+</script>
 <script src="{{ asset('js/vendor/tailwindcss.js') }}"></script>
 <script>
     tailwind.config = {

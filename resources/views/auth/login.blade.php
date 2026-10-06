@@ -36,9 +36,9 @@
                 document.documentElement.style.fontSize = storedFont;
             }
             var storedTheme = localStorage.getItem('theme');
-            if (storedTheme === 'dark' || (!storedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            if (storedTheme === 'dark') {
                 document.documentElement.classList.add('dark');
-            } else if (storedTheme === 'light') {
+            } else {
                 document.documentElement.classList.remove('dark');
             }
         })();
@@ -643,7 +643,7 @@
     <script>
         function loginDesktopApp() {
             return {
-                theme: localStorage.getItem('theme') || 'dark',
+                theme: localStorage.getItem('theme') || 'light',
                 minimized: false,
                 maximized: false,
                 isFullscreen: false,
