@@ -20,3 +20,5 @@ public/images/images.zip
 /graphify-out/
 .graphify*
 /storage/framework/lsp-*.php
+benchmark_summary.html
+benchmark_results.json
