@@ -16,3 +16,20 @@
 </script>
 <script src="{{ asset('js/vendor/lucide.min.js') }}"></script>
 <script defer src="{{ asset('js/vendor/alpine.min.js') }}"></script>
+
+<script>
+    // PT INDRACO DMS - Global Diagnostics & Error Helper
+    window.dmsCopyError = function(errorText) {
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(errorText).then(function() {
+                alert('Detail error berhasil disalin ke clipboard!');
+            });
+        }
+    };
+    window.addEventListener('unhandledrejection', function(event) {
+        if (event.reason && (event.reason.name === 'AbortError' || event.reason.message === 'The user aborted a request.')) {
+            return;
+        }
+        console.warn('DMS Global Exception Caught:', event.reason);
+    });
+</script>
