@@ -20,22 +20,41 @@ echo.
 :: ===============================================================================
 set "FOUND_PHP="
 
-:: 1. Prioritas Utama: Cek folder internal "evironment" atau "environment"
-if exist "%~dp0evironment" (
-    for /d %%d in ("%~dp0evironment\php-*") do (
-        if exist "%%d\php.exe" set "FOUND_PHP=%%d"
-    )
+:: 1. Prioritas Utama: Cek folder internal "environment" atau "evironment" (PHP 7.x / 8.0 / 8.1)
+if exist "%~dp0environment" (
+    for /d %%d in ("%~dp0environment\php-7*") do if exist "%%d\php.exe" set "FOUND_PHP=%%d"
+    if not defined FOUND_PHP for /d %%d in ("%~dp0environment\php-8.0*") do if exist "%%d\php.exe" set "FOUND_PHP=%%d"
+    if not defined FOUND_PHP for /d %%d in ("%~dp0environment\php-8.1*") do if exist "%%d\php.exe" set "FOUND_PHP=%%d"
+    if not defined FOUND_PHP if exist "%~dp0environment\php\php.exe" set "FOUND_PHP=%~dp0environment\php"
+)
+if not defined FOUND_PHP if exist "%~dp0evironment" (
+    for /d %%d in ("%~dp0evironment\php-7*") do if exist "%%d\php.exe" set "FOUND_PHP=%%d"
+    if not defined FOUND_PHP for /d %%d in ("%~dp0evironment\php-8.0*") do if exist "%%d\php.exe" set "FOUND_PHP=%%d"
+    if not defined FOUND_PHP for /d %%d in ("%~dp0evironment\php-8.1*") do if exist "%%d\php.exe" set "FOUND_PHP=%%d"
     if not defined FOUND_PHP if exist "%~dp0evironment\php\php.exe" set "FOUND_PHP=%~dp0evironment\php"
 )
 
-if not defined FOUND_PHP if exist "%~dp0environment" (
-    for /d %%d in ("%~dp0environment\php-*") do (
-        if exist "%%d\php.exe" set "FOUND_PHP=%%d"
-    )
-    if not defined FOUND_PHP if exist "%~dp0environment\php\php.exe" set "FOUND_PHP=%~dp0environment\php"
+:: 2. Prioritas Laragon (Prioritaskan PHP 7.4.x / 7.x / 8.0 / 8.1 yang kompatibel penuh dengan Laravel 7)
+if not defined FOUND_PHP if exist "C:\laragon\bin\php" (
+    for /d %%d in (C:\laragon\bin\php\php-7.4*) do if exist "%%d\php.exe" set "FOUND_PHP=%%d"
+    if not defined FOUND_PHP for /d %%d in (C:\laragon\bin\php\php-7.*) do if exist "%%d\php.exe" set "FOUND_PHP=%%d"
+    if not defined FOUND_PHP for /d %%d in (C:\laragon\bin\php\php-8.1*) do if exist "%%d\php.exe" set "FOUND_PHP=%%d"
+    if not defined FOUND_PHP for /d %%d in (C:\laragon\bin\php\php-8.0*) do if exist "%%d\php.exe" set "FOUND_PHP=%%d"
+    if not defined FOUND_PHP for /d %%d in (C:\laragon\bin\php\php-*) do if exist "%%d\php.exe" set "FOUND_PHP=%%d"
+)
+if not defined FOUND_PHP if exist "D:\laragon\bin\php" (
+    for /d %%d in (D:\laragon\bin\php\php-7.4*) do if exist "%%d\php.exe" set "FOUND_PHP=%%d"
+    if not defined FOUND_PHP for /d %%d in (D:\laragon\bin\php\php-7.*) do if exist "%%d\php.exe" set "FOUND_PHP=%%d"
+    if not defined FOUND_PHP for /d %%d in (D:\laragon\bin\php\php-8.1*) do if exist "%%d\php.exe" set "FOUND_PHP=%%d"
+    if not defined FOUND_PHP for /d %%d in (D:\laragon\bin\php\php-8.0*) do if exist "%%d\php.exe" set "FOUND_PHP=%%d"
+    if not defined FOUND_PHP for /d %%d in (D:\laragon\bin\php\php-*) do if exist "%%d\php.exe" set "FOUND_PHP=%%d"
 )
 
-:: 2. Cek System PATH
+:: 3. Cek XAMPP C: & D:
+if not defined FOUND_PHP if exist "C:\xampp\php\php.exe" set "FOUND_PHP=C:\xampp\php"
+if not defined FOUND_PHP if exist "D:\xampp\php\php.exe" set "FOUND_PHP=D:\xampp\php"
+
+:: 4. Fallback ke System PATH
 if not defined FOUND_PHP (
     where php >nul 2>&1
     if !ERRORLEVEL! EQU 0 (
@@ -47,22 +66,6 @@ if not defined FOUND_PHP (
         )
     )
 )
-
-:: 3. Cek Laragon C: & D:
-if not defined FOUND_PHP if exist "C:\laragon\bin\php" (
-    for /d %%d in (C:\laragon\bin\php\php-*) do (
-        if exist "%%d\php.exe" set "FOUND_PHP=%%d"
-    )
-)
-if not defined FOUND_PHP if exist "D:\laragon\bin\php" (
-    for /d %%d in (D:\laragon\bin\php\php-*) do (
-        if exist "%%d\php.exe" set "FOUND_PHP=%%d"
-    )
-)
-
-:: 4. Cek XAMPP C: & D:
-if not defined FOUND_PHP if exist "C:\xampp\php\php.exe" set "FOUND_PHP=C:\xampp\php"
-if not defined FOUND_PHP if exist "D:\xampp\php\php.exe" set "FOUND_PHP=D:\xampp\php"
 
 :: -------------------------------------------------------------------------------
 :: JIKA PHP DITEMUKAN:
@@ -197,7 +200,12 @@ if not exist "database\database.sqlite" (
     
     echo [*] Menjalankan migrasi tabel database awal dan seeder master...
     php artisan migrate:fresh --seed --force
-    echo [OK] Database siap digunakan.
+    php artisan tinker --execute="DB::statement('PRAGMA journal_mode = WAL;');" >nul 2>&1
+    echo [OK] Database siap digunakan (SQLite WAL mode aktif).
+) else (
+    echo [*] Memeriksa pembaruan skema database...
+    php artisan migrate --force
+    php artisan tinker --execute="DB::statement('PRAGMA journal_mode = WAL;');" >nul 2>&1
 )
 
 :: ===============================================================================
