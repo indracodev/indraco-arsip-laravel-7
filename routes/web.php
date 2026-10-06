@@ -72,16 +72,19 @@ Route::middleware('auth')->group(function () {
     Route::get('/reports/export-csv/{type}', 'ReportController@exportCsv')->name('reports.export_csv');
 
     // Layout Gudang Interactive Canvas & API
-    Route::get('/master/warehouses/layout', 'WarehouseLayoutController@index')->name('master.warehouses.layout');
+    Route::get('/master/warehouses/layout', 'WarehouseLayoutController@index')->name('master.warehouses.layout')->middleware('role:admin,pic_gudang');
     Route::get('/api/warehouse/layout-data', 'WarehouseLayoutController@apiLayoutData')->name('api.warehouse.layout_data');
-    Route::post('/api/warehouse/locations/store', 'WarehouseLayoutController@storeLocation')->name('api.warehouse.locations.store');
-    Route::post('/api/warehouse/locations/{location}/book', 'WarehouseLayoutController@bookLocation')->name('api.warehouse.locations.book');
-    Route::post('/api/warehouse/locations/{location}/unbook', 'WarehouseLayoutController@unbookLocation')->name('api.warehouse.locations.unbook');
-    Route::post('/api/warehouse/locations/{location}/update', 'WarehouseLayoutController@updateLocation')->name('api.warehouse.locations.update');
-    Route::post('/api/warehouse/locations/{location}/delete', 'WarehouseLayoutController@destroyLocation')->name('api.warehouse.locations.delete');
-    Route::post('/api/warehouse/locations/{location}/slots/assign', 'WarehouseLayoutController@assignSlotArchive')->name('api.warehouse.locations.slots.assign');
-    Route::post('/api/warehouse/locations/{location}/slots/unassign', 'WarehouseLayoutController@unassignSlotArchive')->name('api.warehouse.locations.slots.unassign');
-    Route::post('/api/warehouse/locations/{location}/slots/toggle-active', 'WarehouseLayoutController@toggleSlotActive')->name('api.warehouse.locations.slots.toggle_active');
+
+    Route::middleware('role:admin,pic_gudang')->group(function () {
+        Route::post('/api/warehouse/locations/store', 'WarehouseLayoutController@storeLocation')->name('api.warehouse.locations.store');
+        Route::post('/api/warehouse/locations/{location}/book', 'WarehouseLayoutController@bookLocation')->name('api.warehouse.locations.book');
+        Route::post('/api/warehouse/locations/{location}/unbook', 'WarehouseLayoutController@unbookLocation')->name('api.warehouse.locations.unbook');
+        Route::post('/api/warehouse/locations/{location}/update', 'WarehouseLayoutController@updateLocation')->name('api.warehouse.locations.update');
+        Route::post('/api/warehouse/locations/{location}/delete', 'WarehouseLayoutController@destroyLocation')->name('api.warehouse.locations.delete');
+        Route::post('/api/warehouse/locations/{location}/slots/assign', 'WarehouseLayoutController@assignSlotArchive')->name('api.warehouse.locations.slots.assign');
+        Route::post('/api/warehouse/locations/{location}/slots/unassign', 'WarehouseLayoutController@unassignSlotArchive')->name('api.warehouse.locations.slots.unassign');
+        Route::post('/api/warehouse/locations/{location}/slots/toggle-active', 'WarehouseLayoutController@toggleSlotActive')->name('api.warehouse.locations.slots.toggle_active');
+    });
 
     // Master Department & Sub-Department Archives Drill-Down API
     Route::get('/api/departments/{department}/archives', 'DepartmentController@apiGetDepartmentArchives')->name('api.departments.archives');
