@@ -226,21 +226,54 @@ php artisan route:cache >nul 2>&1
 php artisan view:cache >nul 2>&1
 
 :: ===============================================================================
-:: JALANKAN REALTIME SERVER RUNNER (ZERO-SCROLL TUI DASHBOARD)
+:: DETEKSI IP NETWORK LOKAL (WIFI / LAN)
 :: ===============================================================================
-echo [*] Meluncurkan Realtime Server Runner (Stationary TUI Dashboard)...
-
-set "ROOT_PATH=%CD%"
-if "%ROOT_PATH:~-1%"=="\" set "ROOT_PATH=%ROOT_PATH:~0,-1%"
-
-powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT_PATH%\scripts\server_runner.ps1" -PhpExe "!FOUND_PHP!\php.exe" -ProjectRoot "%ROOT_PATH%" -Port 8000
-
-if %ERRORLEVEL% NEQ 0 (
-    echo [PERHATIAN] Fallback ke artisan serve standar...
-    php artisan serve --host=0.0.0.0 --port=8000
+set "LOCAL_IP="
+for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /i "IPv4"') do (
+    if "!LOCAL_IP!"=="" (
+        set "temp_ip=%%a"
+        set "temp_ip=!temp_ip: =!"
+        if not "!temp_ip!"=="" set "LOCAL_IP=!temp_ip!"
+    )
 )
+if "!LOCAL_IP!"=="" set "LOCAL_IP=127.0.0.1"
 
 echo.
-echo [OK] Server DMS PT Indraco telah dimatikan secara bersih.
+echo ===============================================================================
+echo   SELURUH REQUIREMENT LENGKAP - MEMULAI SERVER DMS PT INDRACO
+echo ===============================================================================
+echo.
+echo   * Direktori Project : %CD%
+echo   * IP Jaringan Lokal : !LOCAL_IP!
+echo.
+echo   * URL Akses Komputer Ini (Localhost) :
+echo     --^> http://127.0.0.1:8000  atau  http://localhost:8000
+echo.
+echo   * URL Akses Jaringan Komputer Lain / HP (WiFi/LAN Kantor) :
+echo     --^> http://!LOCAL_IP!:8000
+echo.
+echo   * Panel Metrik & Diagnostik Server (Super Admin) :
+echo     --^> http://!LOCAL_IP!:8000/diagnostics
+echo.
+echo ===============================================================================
+echo   STATUS: [ SERVER AKTIF ^& SIAP MENERIMA KONEKSI ]
+echo.
+echo   Catatan: Layar ini sengaja dikunci agar alamat IP di atas selalu terlihat.
+echo            Log akses HTTP dialihkan ke: storage\logs\http-access.log
+echo            JIKA JENDELA INI DITUTUP [X] ATAU TEKAN Ctrl+C, SERVER OTOMATIS MATI.
+echo ===============================================================================
+echo.
+
+:: Trigger pembukaan web browser otomatis
+start /b "" cmd /c "ping 127.0.0.1 -n 3 >nul & start http://127.0.0.1:8000"
+
+:: Pastikan folder storage\logs tersedia
+if not exist "storage\logs" mkdir "storage\logs"
+
+:: Jalankan artisan serve resmi Laravel (output dialihkan agar layar tidak scroll terus menerus)
+php artisan serve --host=0.0.0.0 --port=8000 > "storage\logs\http-access.log" 2>&1
+
+echo.
+echo [OK] Server DMS PT Indraco telah dimatikan.
 pause
 
