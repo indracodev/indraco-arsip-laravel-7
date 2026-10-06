@@ -1320,7 +1320,8 @@
                     { id: 'archives', title: 'Katalog Arsip', icon: 'folder-archive', url: '{{ route("archives.index") }}?embed=1' },
                     { id: 'logs', title: 'Log History', icon: 'history', url: '{{ route("logs.index") }}?embed=1' },
                     @if(auth()->check() && auth()->user()->isSuperAdmin())
-                    { id: 'reports', title: 'Report', icon: 'file-text', url: '{{ route("reports.index") }}?embed=1' }
+                    { id: 'reports', title: 'Report', icon: 'file-text', url: '{{ route("reports.index") }}?embed=1' },
+                    { id: 'diagnostics', title: 'Live Monitor LAN & User', icon: 'activity', url: '{{ route("diagnostics.index") }}?embed=1' }
                     @endif
                 ],
 
@@ -1334,6 +1335,7 @@
                     @elseif(request()->routeIs('archives.*')) initialId = 'archives';
                     @elseif(request()->routeIs('logs.*')) initialId = 'logs';
                     @elseif(request()->routeIs('reports.*')) initialId = 'reports';
+                    @elseif(request()->routeIs('diagnostics.index')) initialId = 'diagnostics';
                     @endif
 
                     // Apply stored font size on startup

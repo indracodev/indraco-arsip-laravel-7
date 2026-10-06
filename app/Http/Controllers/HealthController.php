@@ -180,7 +180,28 @@ class HealthController extends Controller
                 'wal_mode_active' => true,
             ],
             'recent_clients' => $recentClients,
+            'connected_users' => app(\App\Services\UserPresenceService::class)->getConnectedUsers(auth()->id()),
             'diagnostic_key' => $diagnosticKey,
+        ])->withHeaders([
+            'Cache-Control' => 'no-cache, no-store, must-revalidate',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
+        ]);
+    }
+
+    /**
+     * Realtime Connected Users & LAN Client Telemetry
+     * Usage: GET /api/health/connected-users
+     */
+    public function connectedUsers(Request $request, \App\Services\UserPresenceService $presenceService): JsonResponse
+    {
+        $data = $presenceService->getConnectedUsers(auth()->id());
+
+        return response()->json([
+            'status' => 'ok',
+            'timestamp' => microtime(true),
+            'summary' => $data['summary'],
+            'users' => $data['users'],
         ])->withHeaders([
             'Cache-Control' => 'no-cache, no-store, must-revalidate',
             'Pragma' => 'no-cache',

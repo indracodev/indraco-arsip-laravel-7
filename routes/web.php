@@ -14,6 +14,7 @@ Route::get('/api/health/ping', 'HealthController@ping')->name('api.health.ping')
 // Restricted Server Telemetry, Logs & Diagnostics (Super Admin only or diagnostic key)
 Route::middleware('diagnostics.auth')->group(function () {
     Route::get('/api/health/metrics', 'HealthController@metrics')->name('api.health.metrics');
+    Route::get('/api/health/connected-users', 'HealthController@connectedUsers')->name('api.health.connected_users');
     Route::get('/api/health/probe-ip', 'HealthController@probeIp')->name('api.health.probe_ip');
     Route::get('/api/health/logs', 'HealthController@logs')->name('api.health.logs');
     Route::get('/diagnostics', 'HealthController@diagnosticsView')->name('diagnostics.index');

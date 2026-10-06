@@ -215,7 +215,7 @@
         </div>
 
         <!-- Section 2: Interactive Remote IP Probe Tool -->
-        <div class="glass-card rounded-2xl p-6 shadow-xl border border-slate-800">
+        <div id="remoteProbeSection" class="glass-card rounded-2xl p-6 shadow-xl border border-slate-800">
             <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-4 border-b border-slate-800/80">
                 <div>
                     <h2 class="text-base font-bold text-white flex items-center gap-2">
@@ -283,6 +283,250 @@
                         <div class="text-[10px] uppercase font-bold tracking-wider opacity-75">Respon Waktu</div>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Section: Live Connected LAN Clients & User Presence Hub -->
+        <div class="glass-card rounded-2xl p-6 shadow-xl border border-slate-800 space-y-5">
+            <!-- Header & Summary Stats -->
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-4 border-b border-slate-800/80">
+                <div>
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30 shadow-md">
+                            <i data-lucide="users" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-base font-bold text-white flex items-center gap-2">
+                                Monitor User Realtime & Klien LAN Terhubung
+                                <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1 font-bold">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 pulse-dot"></span> Live Realtime
+                                </span>
+                            </h2>
+                            <p class="text-xs text-slate-400 mt-0.5">
+                                Pantau status user aktif, IP laptop di jaringan lokal, OS perangkat, dan web browser secara instan tanpa beban database.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Summary Badges Pills -->
+                <div class="flex flex-wrap items-center gap-2 text-xs">
+                    <div class="px-3 py-1.5 rounded-xl bg-emerald-950/40 border border-emerald-800/60 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 pulse-dot"></span>
+                        <span class="text-slate-300 font-medium">Online:</span>
+                        <strong class="font-mono text-emerald-300 font-bold" x-text="metrics.connected_users?.summary?.online_count || 0"></strong>
+                    </div>
+                    <div class="px-3 py-1.5 rounded-xl bg-amber-950/40 border border-amber-800/60 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                        <span class="text-slate-300 font-medium">Idle:</span>
+                        <strong class="font-mono text-amber-300 font-bold" x-text="metrics.connected_users?.summary?.idle_count || 0"></strong>
+                    </div>
+                    <div class="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-slate-500"></span>
+                        <span class="text-slate-400 font-medium">Offline:</span>
+                        <strong class="font-mono text-slate-300 font-bold" x-text="metrics.connected_users?.summary?.offline_count || 0"></strong>
+                    </div>
+                    <div class="px-3 py-1.5 rounded-xl bg-indigo-950/40 border border-indigo-800/60 flex items-center gap-2">
+                        <i data-lucide="laptop" class="w-3.5 h-3.5 text-indigo-400"></i>
+                        <span class="text-slate-300 font-medium">Laptop Aktif:</span>
+                        <strong class="font-mono text-indigo-300 font-bold" x-text="metrics.connected_users?.summary?.active_clients_count || 0"></strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filter Tabs & Search Controls -->
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <!-- Status Filter Tabs -->
+                <div class="flex items-center gap-1 bg-slate-900/90 p-1 rounded-xl border border-slate-800">
+                    <button type="button" 
+                            @click="userStatusFilter = 'all'"
+                            :class="userStatusFilter === 'all' ? 'bg-slate-800 text-white font-bold shadow-sm' : 'text-slate-400 hover:text-slate-200'"
+                            class="px-3 py-1 rounded-lg text-xs transition">
+                        Semua (<span x-text="metrics.connected_users?.summary?.total_registered || 0"></span>)
+                    </button>
+                    <button type="button" 
+                            @click="userStatusFilter = 'online'"
+                            :class="userStatusFilter === 'online' ? 'bg-emerald-950/70 text-emerald-300 font-bold border border-emerald-800/50 shadow-sm' : 'text-slate-400 hover:text-slate-200'"
+                            class="px-3 py-1 rounded-lg text-xs transition flex items-center gap-1.5">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                        Online (<span x-text="metrics.connected_users?.summary?.online_count || 0"></span>)
+                    </button>
+                    <button type="button" 
+                            @click="userStatusFilter = 'idle'"
+                            :class="userStatusFilter === 'idle' ? 'bg-amber-950/70 text-amber-300 font-bold border border-amber-800/50 shadow-sm' : 'text-slate-400 hover:text-slate-200'"
+                            class="px-3 py-1 rounded-lg text-xs transition flex items-center gap-1.5">
+                        <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                        Idle (<span x-text="metrics.connected_users?.summary?.idle_count || 0"></span>)
+                    </button>
+                    <button type="button" 
+                            @click="userStatusFilter = 'offline'"
+                            :class="userStatusFilter === 'offline' ? 'bg-slate-800 text-slate-300 font-bold shadow-sm' : 'text-slate-400 hover:text-slate-200'"
+                            class="px-3 py-1 rounded-lg text-xs transition">
+                        Offline (<span x-text="metrics.connected_users?.summary?.offline_count || 0"></span>)
+                    </button>
+                </div>
+
+                <!-- Search Input -->
+                <div class="relative w-full sm:w-72">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
+                        <i data-lucide="search" class="w-3.5 h-3.5"></i>
+                    </div>
+                    <input type="text" 
+                           x-model="userSearchQuery"
+                           placeholder="Cari user, IP, dept, browser..."
+                           class="w-full pl-9 pr-8 py-1.5 bg-slate-900 border border-slate-700 focus:border-indigo-500 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none transition">
+                    <button type="button" 
+                            x-show="userSearchQuery" 
+                            @click="userSearchQuery = ''" 
+                            class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-500 hover:text-rose-400">
+                        <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Table of Connected Users -->
+            <div class="overflow-x-auto rounded-xl border border-slate-800/80 bg-slate-900/40">
+                <table class="w-full text-left text-xs">
+                    <thead>
+                        <tr class="bg-slate-900/90 text-slate-400 border-b border-slate-800 font-semibold">
+                            <th class="py-3 px-3 w-28">Status</th>
+                            <th class="py-3 px-3">Nama Pengguna & Akun</th>
+                            <th class="py-3 px-3">Departemen</th>
+                            <th class="py-3 px-3">IP Address LAN</th>
+                            <th class="py-3 px-3">Perangkat & OS</th>
+                            <th class="py-3 px-3">Web Browser</th>
+                            <th class="py-3 px-3">Halaman / Aktivitas</th>
+                            <th class="py-3 px-3 text-right">Waktu Aktif</th>
+                            <th class="py-3 px-3 text-center w-24">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800/60 font-sans">
+                        <template x-for="user in connectedUsersList" :key="user.id">
+                            <tr class="hover:bg-slate-800/40 transition"
+                                :class="user.is_current_user ? 'bg-indigo-950/20' : ''">
+                                
+                                <!-- Status Badge Column -->
+                                <td class="py-3 px-3 whitespace-nowrap">
+                                    <template x-if="user.status === 'online'">
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 pulse-dot"></span>
+                                            Online
+                                        </span>
+                                    </template>
+                                    <template x-if="user.status === 'idle'">
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                                            Idle
+                                        </span>
+                                    </template>
+                                    <template x-if="user.status === 'offline'">
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-800 text-slate-400 border border-slate-700">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
+                                            Offline
+                                        </span>
+                                    </template>
+                                </td>
+
+                                <!-- User Name, Role, Email -->
+                                <td class="py-3 px-3">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-7 h-7 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-[11px] text-slate-300 shrink-0 uppercase"
+                                             x-text="user.name ? user.name.substring(0, 2) : 'US'"></div>
+                                        <div class="min-w-0">
+                                            <div class="flex items-center gap-1.5">
+                                                <span class="font-bold text-slate-100 truncate" x-text="user.name"></span>
+                                                <template x-if="user.is_current_user">
+                                                    <span class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-indigo-500/30 text-indigo-300 border border-indigo-500/40 font-bold">Anda</span>
+                                                </template>
+                                            </div>
+                                            <div class="flex items-center gap-1.5 mt-0.5">
+                                                <span class="text-[10px] font-semibold px-1.5 py-0.2 rounded"
+                                                      :class="{
+                                                          'bg-purple-900/40 text-purple-300 border border-purple-800/50': user.role === 'admin',
+                                                          'bg-amber-900/40 text-amber-300 border border-amber-800/50': user.role === 'pic_gudang',
+                                                          'bg-blue-900/40 text-blue-300 border border-blue-800/50': user.role === 'pic_dept'
+                                                      }"
+                                                      x-text="user.role_label"></span>
+                                                <span class="text-[11px] text-slate-500 truncate" x-text="user.email"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <!-- Department -->
+                                <td class="py-3 px-3 whitespace-nowrap">
+                                    <div class="font-medium text-slate-300" x-text="user.department_name"></div>
+                                    <div class="text-[10px] font-mono text-slate-500" x-text="user.department_code"></div>
+                                </td>
+
+                                <!-- IP Address LAN -->
+                                <td class="py-3 px-3 whitespace-nowrap">
+                                    <template x-if="user.ip">
+                                        <div class="flex items-center gap-1.5">
+                                            <code class="font-mono text-xs px-2 py-0.5 rounded bg-slate-950 border border-slate-800 text-indigo-300 font-bold select-all" x-text="user.ip"></code>
+                                        </div>
+                                    </template>
+                                    <template x-if="!user.ip">
+                                        <span class="text-slate-600 font-mono">-</span>
+                                    </template>
+                                </td>
+
+                                <!-- Device & OS -->
+                                <td class="py-3 px-3 whitespace-nowrap">
+                                    <div class="flex items-center gap-1.5">
+                                        <i :data-lucide="user.device_icon || 'monitor'" class="w-3.5 h-3.5 text-slate-400 shrink-0"></i>
+                                        <span class="font-medium text-slate-200" x-text="user.device || '-'"></span>
+                                    </div>
+                                    <div class="text-[10px] text-slate-400 font-mono pl-5" x-text="user.os || '-'"></div>
+                                </td>
+
+                                <!-- Browser -->
+                                <td class="py-3 px-3 whitespace-nowrap">
+                                    <div class="flex items-center gap-1.5">
+                                        <i :data-lucide="user.browser_icon || 'globe'" class="w-3.5 h-3.5 text-cyan-400 shrink-0"></i>
+                                        <span class="text-slate-300 font-medium" x-text="user.browser || '-'"></span>
+                                    </div>
+                                </td>
+
+                                <!-- Last Action / Page -->
+                                <td class="py-3 px-3">
+                                    <div class="text-slate-200 truncate max-w-xs" x-text="user.last_action || '-'"></div>
+                                </td>
+
+                                <!-- Last Active Time -->
+                                <td class="py-3 px-3 text-right whitespace-nowrap">
+                                    <div class="font-medium" 
+                                         :class="user.status === 'online' ? 'text-emerald-400' : (user.status === 'idle' ? 'text-amber-400' : 'text-slate-500')"
+                                         x-text="user.last_seen_relative"></div>
+                                    <div class="text-[10px] text-slate-500 font-mono" x-text="user.last_seen_time || '-'"></div>
+                                </td>
+
+                                <!-- Action Button: Ping IP -->
+                                <td class="py-3 px-3 text-center whitespace-nowrap">
+                                    <button type="button" 
+                                            @click="quickPingUser(user.ip)" 
+                                            :disabled="!user.ip || user.ip === '-'"
+                                            class="px-2.5 py-1 rounded-lg bg-indigo-600/80 hover:bg-indigo-600 text-white text-[11px] font-semibold flex items-center justify-center gap-1 transition disabled:opacity-30 disabled:pointer-events-none mx-auto shadow-xs"
+                                            title="Uji Ping / Latensi ke laptop ini secara instan">
+                                        <i data-lucide="zap" class="w-3 h-3 text-amber-300"></i>
+                                        <span>Ping</span>
+                                    </button>
+                                </td>
+                            </tr>
+                        </template>
+
+                        <!-- Empty State -->
+                        <tr x-show="connectedUsersList.length === 0">
+                            <td colspan="9" class="py-8 text-center text-slate-500">
+                                <div class="space-y-1">
+                                    <i data-lucide="user-x" class="w-6 h-6 mx-auto text-slate-500 mb-1"></i>
+                                    <p class="font-medium text-xs">Tidak ada user yang cocok dengan kriteria pencarian.</p>
+                                    <p class="text-[11px] text-slate-600">Coba ubah kata kunci atau ganti tab filter status.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
 
@@ -449,6 +693,42 @@
             refreshInterval: 3000,
             timerId: null,
             
+            // Connected Users state
+            userSearchQuery: '',
+            userStatusFilter: 'all',
+
+            get connectedUsersList() {
+                const list = this.metrics.connected_users?.users || [];
+                let filtered = list;
+                if (this.userStatusFilter !== 'all') {
+                    filtered = filtered.filter(u => u.status === this.userStatusFilter);
+                }
+                if (this.userSearchQuery && this.userSearchQuery.trim()) {
+                    const q = this.userSearchQuery.toLowerCase();
+                    filtered = filtered.filter(u => 
+                        (u.name && u.name.toLowerCase().includes(q)) ||
+                        (u.email && u.email.toLowerCase().includes(q)) ||
+                        (u.ip && u.ip.includes(q)) ||
+                        (u.department_name && u.department_name.toLowerCase().includes(q)) ||
+                        (u.role_label && u.role_label.toLowerCase().includes(q)) ||
+                        (u.device && u.device.toLowerCase().includes(q)) ||
+                        (u.browser && u.browser.toLowerCase().includes(q)) ||
+                        (u.last_action && u.last_action.toLowerCase().includes(q))
+                    );
+                }
+                return filtered;
+            },
+
+            quickPingUser(ip) {
+                if (!ip || ip === '-') return;
+                this.targetIpInput = ip;
+                this.runIpProbe();
+                const probeElem = document.getElementById('remoteProbeSection');
+                if (probeElem) {
+                    probeElem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            },
+
             // Remote IP Probe state
             targetIpInput: '',
             probing: false,
@@ -471,6 +751,8 @@
                 this.measurePing();
                 this.fetchServerLogs();
                 this.updateTimer();
+                this.$watch('userStatusFilter', () => this.$nextTick(() => { if (window.lucide) window.lucide.createIcons(); }));
+                this.$watch('userSearchQuery', () => this.$nextTick(() => { if (window.lucide) window.lucide.createIcons(); }));
                 this.$nextTick(() => {
                     if (window.lucide) window.lucide.createIcons();
                 });
