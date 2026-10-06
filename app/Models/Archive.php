@@ -20,6 +20,7 @@ class Archive extends Model
         'title',
         'is_custom_doc_name',
         'custom_doc_name',
+        'periode',
         'period_start_date',
         'period_end_date',
         'period_text',
@@ -45,6 +46,7 @@ class Archive extends Model
     protected $appends = [
         'full_slot_location',
         'short_location',
+        'display_location',
     ];
 
     protected $casts = [
@@ -233,6 +235,46 @@ class Archive extends Model
         }
 
         return "{$sector} - {$rackLetter}{$slotNumStr}";
+    }
+
+    public function getEffectivePeriodeAttribute(): string
+    {
+        if (!empty($this->periode)) {
+            return (string) $this->periode;
+        }
+        if (!empty($this->periode_doc)) {
+            return (string) $this->periode_doc;
+        }
+        if (!empty($this->period_text)) {
+            return (string) $this->period_text;
+        }
+        if ($this->period_start_date && $this->period_end_date) {
+            $s = Carbon::parse($this->period_start_date)->format('Y/m');
+            $e = Carbon::parse($this->period_end_date)->format('Y/m');
+            return $s === $e ? $s : "{$s} - {$e}";
+        }
+        return '-';
+    }
+
+    public function getDisplayLocationAttribute(): string
+    {
+        if (!$this->location) {
+            return 'Belum Ditentukan';
+        }
+
+        $whRaw = $this->location->warehouse ? trim($this->location->warehouse->name) : ($this->location->room_sector ?? 'Gudang');
+        $cleanWh = preg_replace('/^(Gudang\s+)+/i', '', $whRaw);
+        $whName = 'Gudang ' . trim($cleanWh);
+
+        if ($this->rackSlot && !empty($this->rackSlot->slot_code)) {
+            return "{$whName} - {$this->rackSlot->slot_code}";
+        }
+
+        if ($this->rackSlot) {
+            return "{$whName} - S{$this->rackSlot->slot_number}";
+        }
+
+        return "{$whName} - {$this->location->rack_code}";
     }
 
     public function getStatusLabelAttribute(): string

@@ -14,7 +14,14 @@
                 <i data-lucide="file-text" class="w-7 h-7 text-amber-600 dark:text-amber-400"></i>
                 Detail Berkas Arsip
             </h1>
-            <p class="text-slate-600 dark:text-slate-400 text-xs sm:text-sm font-medium">Nomor Box: <span class="font-mono text-amber-600 dark:text-amber-400 font-bold">{{ $archive->box_number ?? 'Belum ter-generate (Pending Verification)' }}</span></p>
+            <div class="flex flex-wrap items-center gap-2 mt-1">
+                <p class="text-slate-600 dark:text-slate-400 text-xs sm:text-sm font-medium">Nomor Box: <span class="font-mono text-amber-600 dark:text-amber-400 font-bold">{{ $archive->box_number ?? 'Belum ter-generate (Pending Verification)' }}</span></p>
+                @if($archive->effective_periode && $archive->effective_periode !== '-')
+                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                    <i data-lucide="clock" class="w-3 h-3"></i> Periode: {{ $archive->effective_periode }}
+                </span>
+                @endif
+            </div>
         </div>
 
         <div class="flex items-center gap-2">
@@ -231,8 +238,8 @@
                         <span class="text-slate-500 dark:text-slate-400 block mb-1">Tgl. Penyerahan & Periode:</span>
                         <span class="font-bold text-amber-600 dark:text-amber-400 text-sm">
                             {{ $archive->tgl_penyerahan ? $archive->tgl_penyerahan->format('d/m/Y') : ($archive->period_text ?? '-') }}
-                            @if($archive->periode_doc)
-                                <span class="font-mono text-xs bg-amber-500/20 px-1.5 py-0.5 rounded ml-1">({{ $archive->periode_doc }})</span>
+                            @if($archive->effective_periode && $archive->effective_periode !== '-')
+                                <span class="font-mono text-xs bg-amber-500/20 px-1.5 py-0.5 rounded ml-1">({{ $archive->effective_periode }})</span>
                             @endif
                         </span>
                     </div>

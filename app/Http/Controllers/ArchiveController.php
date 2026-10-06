@@ -139,6 +139,7 @@ class ArchiveController extends Controller
             'is_custom_doc_name' => 'nullable|boolean',
             'custom_doc_name' => 'nullable|string|max:255',
             'title' => 'nullable|string|max:255',
+            'periode' => 'nullable|string|max:100',
             'periode_doc' => 'nullable|string|max:100',
             'tgl_penyerahan' => 'required|date|before_or_equal:today',
             'period_text' => 'nullable|string|max:100',
@@ -161,11 +162,17 @@ class ArchiveController extends Controller
             $validated['department_id'] = $user->department_id;
         }
 
-        // 1. Business Rule: Periode Dokumen (derived from tgl_penyerahan or explicit input)
+        // 1. Business Rule: Periode Dokumen (derived from periode, periode_doc, or tgl_penyerahan)
         $tglPenyerahan = Carbon::parse($validated['tgl_penyerahan']);
-        $rawPeriod = !empty($validated['periode_doc']) ? trim($validated['periode_doc']) : $tglPenyerahan->format('Y/m');
+        $rawPeriod = !empty($validated['periode']) ? trim($validated['periode']) : (!empty($validated['periode_doc']) ? trim($validated['periode_doc']) : $tglPenyerahan->format('Y/m'));
         
-        if (preg_match('/^(\d{4}\/(?:0[1-9]|1[0-2]))\s*(?:-|s\/d|hingga|to)\s*(\d{4}\/(?:0[1-9]|1[0-2]))$/i', $rawPeriod, $matches)) {
+        if (preg_match('/^(\d+)\s*(?:bulan|bln|m)?$/i', $rawPeriod, $matches)) {
+            $months = (int) $matches[1];
+            $startDate = $tglPenyerahan->copy()->startOfMonth();
+            $endDate = $tglPenyerahan->copy()->addMonths($months)->endOfMonth();
+            $formattedPeriodDoc = "{$months} Bulan";
+            $periodText = !empty($validated['period_text']) ? $validated['period_text'] : "{$months} Bulan (s/d " . $endDate->isoFormat('MMMM Y') . ")";
+        } elseif (preg_match('/^(\d{4}\/(?:0[1-9]|1[0-2]))\s*(?:-|s\/d|hingga|to)\s*(\d{4}\/(?:0[1-9]|1[0-2]))$/i', $rawPeriod, $matches)) {
             $startPeriodStr = $matches[1];
             $endPeriodStr = $matches[2];
             [$sYear, $sMonth] = explode('/', $startPeriodStr);
@@ -319,6 +326,7 @@ class ArchiveController extends Controller
             'title' => $finalTitle,
             'is_custom_doc_name' => $isCustomDocName,
             'custom_doc_name' => $customDocName,
+            'periode' => !empty($validated['periode']) ? $validated['periode'] : $formattedPeriodDoc,
             'period_start_date' => $startDate->format('Y-m-d'),
             'period_end_date' => $endDate->format('Y-m-d'),
             'period_text' => $periodText,
@@ -435,6 +443,7 @@ class ArchiveController extends Controller
             'is_custom_doc_name' => 'nullable|boolean',
             'custom_doc_name' => 'nullable|string|max:255',
             'title' => 'nullable|string|max:255',
+            'periode' => 'nullable|string|max:100',
             'periode_doc' => 'nullable|string|max:100',
             'tgl_penyerahan' => 'required|date|before_or_equal:today',
             'period_text' => 'nullable|string|max:100',
@@ -457,11 +466,17 @@ class ArchiveController extends Controller
             $validated['department_id'] = $user->department_id;
         }
 
-        // 1. Business Rule: Periode Dokumen (derived from tgl_penyerahan or explicit input)
+        // 1. Business Rule: Periode Dokumen (derived from periode, periode_doc, or tgl_penyerahan)
         $tglPenyerahan = Carbon::parse($validated['tgl_penyerahan']);
-        $rawPeriod = !empty($validated['periode_doc']) ? trim($validated['periode_doc']) : $tglPenyerahan->format('Y/m');
+        $rawPeriod = !empty($validated['periode']) ? trim($validated['periode']) : (!empty($validated['periode_doc']) ? trim($validated['periode_doc']) : $tglPenyerahan->format('Y/m'));
         
-        if (preg_match('/^(\d{4}\/(?:0[1-9]|1[0-2]))\s*(?:-|s\/d|hingga|to)\s*(\d{4}\/(?:0[1-9]|1[0-2]))$/i', $rawPeriod, $matches)) {
+        if (preg_match('/^(\d+)\s*(?:bulan|bln|m)?$/i', $rawPeriod, $matches)) {
+            $months = (int) $matches[1];
+            $startDate = $tglPenyerahan->copy()->startOfMonth();
+            $endDate = $tglPenyerahan->copy()->addMonths($months)->endOfMonth();
+            $formattedPeriodDoc = "{$months} Bulan";
+            $periodText = !empty($validated['period_text']) ? $validated['period_text'] : "{$months} Bulan (s/d " . $endDate->isoFormat('MMMM Y') . ")";
+        } elseif (preg_match('/^(\d{4}\/(?:0[1-9]|1[0-2]))\s*(?:-|s\/d|hingga|to)\s*(\d{4}\/(?:0[1-9]|1[0-2]))$/i', $rawPeriod, $matches)) {
             $startPeriodStr = $matches[1];
             $endPeriodStr = $matches[2];
             [$sYear, $sMonth] = explode('/', $startPeriodStr);
@@ -594,6 +609,7 @@ class ArchiveController extends Controller
             'title' => $finalTitle,
             'is_custom_doc_name' => $isCustomDocName,
             'custom_doc_name' => $customDocName,
+            'periode' => !empty($validated['periode']) ? $validated['periode'] : $formattedPeriodDoc,
             'period_start_date' => $startDate->format('Y-m-d'),
             'period_end_date' => $endDate->format('Y-m-d'),
             'period_text' => $periodText,

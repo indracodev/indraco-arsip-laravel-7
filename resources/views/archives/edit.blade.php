@@ -349,7 +349,7 @@
                 3. Tanggal Penyerahan & Wadah Fisik Box
             </legend>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <!-- Tgl Penyerahan (Disatukan sebagai tanggal serah terima & periode pengajuan, max hari ini) -->
                 <div>
                     <label for="tgl_penyerahan" class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
@@ -365,6 +365,42 @@
                         class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition"
                     >
                     <span class="text-[10px] text-slate-500 dark:text-slate-400 font-mono block mt-0.5">Tanggal serah terima fisik ke Gudang Arsip (maksimal hari ini)</span>
+                </div>
+
+                <!-- Periode Dokumen (Bulan) -->
+                <div>
+                    <label for="periode_bulan" class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        PERIODE DOKUMEN (BULAN) <span class="text-slate-400 font-normal">(Opsional)</span>
+                    </label>
+                    <div class="relative flex items-center">
+                        <input 
+                            type="number" 
+                            id="periode_bulan" 
+                            x-model="periodeBulan"
+                            min="1" 
+                            max="600"
+                            placeholder="Misal: 1, 3, 4, 15..." 
+                            class="w-full pl-2.5 pr-14 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 transition"
+                        >
+                        <span class="absolute right-2.5 text-xs font-mono font-bold text-slate-400 pointer-events-none select-none">Bulan</span>
+                    </div>
+                    <input type="hidden" name="periode" :value="periodeBulan ? (periodeBulan + ' Bulan') : ''">
+
+                    <!-- Quick Preset Buttons -->
+                    <div class="flex flex-wrap items-center gap-1 mt-1 font-mono text-[10px]">
+                        <span class="text-slate-400 text-[9px] mr-0.5">Preset:</span>
+                        <template x-for="preset in [1, 3, 4, 6, 12, 15, 24, 60]" :key="preset">
+                            <button 
+                                type="button" 
+                                @click="periodeBulan = preset" 
+                                class="px-1.5 py-0.2 rounded border transition cursor-pointer"
+                                :class="periodeBulan == preset 
+                                    ? 'bg-amber-500 text-slate-950 border-amber-600 font-black' 
+                                    : 'bg-slate-100 dark:bg-slate-900 hover:bg-amber-500/20 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 font-medium'"
+                                x-text="preset + ' Bln'"
+                            ></button>
+                        </template>
+                    </div>
                 </div>
 
                 <!-- Kondisi Fisik -->
@@ -549,14 +585,17 @@
                                         >
                                     </div>
                                 </td>
-                                <td class="py-2 px-3">
-                                    <input 
-                                        type="text" 
+                                <td class="py-2 px-3 align-top">
+                                    <textarea 
                                         :name="'items[' + index + '][notes]'" 
                                         x-model="item.notes" 
+                                        rows="1"
                                         placeholder="No. berkas fisik / catatan" 
-                                        class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-700 dark:text-slate-300 placeholder-slate-400 focus:outline-none focus:border-emerald-500"
-                                    >
+                                        @input="$el.style.height = 'auto'; $el.style.height = Math.max(34, $el.scrollHeight) + 'px'"
+                                        x-init="$nextTick(() => { $el.style.height = 'auto'; $el.style.height = Math.max(34, $el.scrollHeight) + 'px'; })"
+                                        class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-700 dark:text-slate-300 placeholder-slate-400 focus:outline-none focus:border-emerald-500 transition resize-none overflow-hidden leading-relaxed block shadow-2xs"
+                                        style="min-height: 34px;"
+                                    ></textarea>
                                 </td>
                                 <td class="py-2 px-2.5 text-center">
                                     <button 
@@ -711,6 +750,7 @@ function archiveEditApp() {
         customDocName: @json(old('custom_doc_name', $archive->custom_doc_name ?? '')),
         title: @json(old('title', $archive->title ?? '')),
         tglPenyerahan: '{{ old('tgl_penyerahan', $archive->tgl_penyerahan ? $archive->tgl_penyerahan->format('Y-m-d') : date('Y-m-d')) }}',
+        periodeBulan: '{{ old('periode_bulan', preg_match('/(\d+)/', $archive->periode ?? $archive->periode_doc ?? '', $m) ? $m[1] : '') }}',
 
         items: initialItems,
 
