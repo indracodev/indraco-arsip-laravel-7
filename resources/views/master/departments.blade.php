@@ -134,8 +134,8 @@
                             <td class="py-2 px-3 font-bold text-slate-900 dark:text-white">
                                 <div class="flex items-center gap-1.5 flex-wrap">
                                     <span :class="dept.is_active === false ? 'line-through text-slate-500' : ''" x-text="dept.name"></span>
-                                    <span x-show="dept.code === 'FIN'" class="px-1.5 py-0.2 bg-rose-500/20 text-rose-700 dark:text-rose-300 text-[9px] font-mono font-bold border border-rose-500/30 rounded uppercase">Ruang FAT Locked</span>
-                                    <span x-show="dept.is_active === false" class="px-1.5 py-0.2 bg-rose-500/20 text-rose-700 dark:text-rose-400 text-[9px] font-mono font-bold border border-rose-500/30 rounded uppercase">Nonaktif</span>
+                                    <span x-show="dept.code === 'FIN'" class="px-1.5 py-0.5 bg-rose-500/20 text-rose-700 dark:text-rose-300 text-xs font-mono font-bold border border-rose-500/30 rounded uppercase">Ruang FAT Locked</span>
+                                    <span x-show="dept.is_active === false" class="px-1.5 py-0.5 bg-rose-500/20 text-rose-700 dark:text-rose-400 text-xs font-mono font-bold border border-rose-500/30 rounded uppercase">Nonaktif</span>
                                 </div>
                             </td>
                             <td class="py-2 px-3 text-xs text-slate-600 dark:text-slate-300 font-medium" x-text="dept.description || '-'"></td>
@@ -241,7 +241,7 @@
                                                         <td class="py-1.5 px-2.5 font-bold text-slate-800 dark:text-slate-200">
                                                             <div class="flex items-center gap-1.5 flex-wrap">
                                                                 <span :class="sub.is_active === false ? 'line-through text-slate-500' : ''" x-text="sub.name"></span>
-                                                                <span x-show="sub.is_active === false" class="px-1.5 py-0.2 bg-rose-500/20 text-rose-700 dark:text-rose-400 text-[8px] font-mono font-bold border border-rose-500/30 rounded uppercase">Nonaktif</span>
+                                                                <span x-show="sub.is_active === false" class="px-1.5 py-0.5 bg-rose-500/20 text-rose-700 dark:text-rose-400 text-xs font-mono font-bold border border-rose-500/30 rounded uppercase">Nonaktif</span>
                                                             </div>
                                                         </td>
                                                         <td class="py-1.5 px-2.5 text-slate-600 dark:text-slate-400" x-text="sub.description || '-'"></td>
@@ -301,7 +301,7 @@
                                                         <td class="py-1.5 px-2.5 font-bold text-slate-800 dark:text-slate-200">
                                                             <div class="flex items-center gap-1.5">
                                                                 <span>Arsip Induk & Umum (Non Sub-Unit)</span>
-                                                                <span class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40">Induk / General</span>
+                                                                <span class="px-1.5 py-0.5 rounded text-xs font-mono font-bold bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40">Induk / General</span>
                                                             </div>
                                                         </td>
                                                         <td class="py-1.5 px-2.5 text-slate-500 dark:text-slate-400 italic">

@@ -14,7 +14,7 @@
             <div>
                 <div class="flex items-center gap-2">
                     <h1 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Edit Draft Pengajuan Box Arsip (TB 30g)</h1>
-                    <span class="px-1.5 py-0.2 bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-300 text-[9px] font-bold rounded uppercase border border-slate-300 dark:border-slate-700">Status: {{ $archive->status_label }}</span>
+                    <span class="px-1.5 py-0.5 bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-300 text-xs font-bold rounded uppercase border border-slate-300 dark:border-slate-700">Status: {{ $archive->status_label }}</span>
                 </div>
                 <p class="text-[11px] text-slate-500 dark:text-slate-400">Pencatatan Master Kardus & Multi-Item Butir Dokumen Arsip • Standar Box TB 30g</p>
             </div>

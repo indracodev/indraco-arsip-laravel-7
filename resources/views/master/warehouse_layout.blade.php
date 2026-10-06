@@ -323,7 +323,7 @@
                 >
                     <i data-lucide="scaling" class="w-3 h-3 text-cyan-400 group-hover:text-white"></i>
                     <span x-text="canvasWidth + ' × ' + canvasHeight + ' px'"></span>
-                    <span class="text-[9px] opacity-75">⇲</span>
+                    <span class="text-xs opacity-75">⇲</span>
                 </div>
             </div>
 
@@ -482,7 +482,7 @@
                                 <i data-lucide="plus-square" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i>
                                 <span class="truncate">Tambah Rak ke Gudang...</span>
                             </div>
-                            <span class="text-[9px] px-1 py-0.2 bg-emerald-500/20 text-emerald-300 rounded font-mono font-bold border border-emerald-500/30 shrink-0">1 - 50 Rak</span>
+                            <span class="text-xs px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300 rounded font-mono font-bold border border-emerald-500/30 shrink-0">1 - 50 Rak</span>
                         </button>
 
                         <div class="border-t border-slate-800 my-1"></div>
@@ -566,7 +566,7 @@
                                 <i data-lucide="layout-grid" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i>
                                 <span class="truncate">Visualisasi 100 Slot Rak</span>
                             </div>
-                            <span class="text-[9px] px-1 py-0.2 bg-amber-500/20 text-amber-300 rounded font-mono font-bold border border-amber-500/30 shrink-0">5 LVL</span>
+                            <span class="text-xs px-1.5 py-0.5 bg-amber-500/20 text-amber-300 rounded font-mono font-bold border border-amber-500/30 shrink-0">5 LVL</span>
                         </button>
 
                         <div class="border-t border-slate-800 my-1"></div>

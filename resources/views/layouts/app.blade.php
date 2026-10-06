@@ -879,7 +879,7 @@
                         <div class="flex items-center gap-1.5 flex-wrap">
                             <span class="px-1.5 py-0.2 rounded text-[10px] font-black bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-500/30" x-text="toast.deptCode + ' (' + toast.deptName + ')'"></span>
                             <span class="text-xs font-bold text-amber-600 dark:text-amber-400" x-text="toast.boxNumber"></span>
-                            <span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/20" x-text="toast.statusLabel"></span>
+                            <span class="px-1.5 py-0.5 rounded text-xs font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/20" x-text="toast.statusLabel"></span>
                         </div>
                         <div class="text-xs font-bold text-slate-900 dark:text-white leading-tight line-clamp-2 font-sans" x-text="toast.title"></div>
                         <div class="text-[11px] text-slate-500 dark:text-slate-400">
@@ -1086,7 +1086,7 @@
                                     :class="tempFontSize === '16px' ? 'bg-indigo-600 text-white border-indigo-700 shadow-sm' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-indigo-50'"
                                 >
                                     <span>Kecil (16px)</span>
-                                    <span class="text-[9px] opacity-75">Compact / 85%</span>
+                                    <span class="text-xs opacity-75">Compact / 85%</span>
                                 </button>
                                 <button 
                                     @click="applyFontSizeLive('19px')" 
@@ -1095,7 +1095,7 @@
                                     :class="tempFontSize === '19px' ? 'bg-indigo-600 text-white border-indigo-700 shadow-sm' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-indigo-50'"
                                 >
                                     <span>Standar (19px)</span>
-                                    <span class="text-[9px] opacity-75">Default / 100%</span>
+                                    <span class="text-xs opacity-75">Default / 100%</span>
                                 </button>
                                 <button 
                                     @click="applyFontSizeLive('21px')" 
@@ -1104,7 +1104,7 @@
                                     :class="tempFontSize === '21px' ? 'bg-indigo-600 text-white border-indigo-700 shadow-sm' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-indigo-50'"
                                 >
                                     <span>Besar (21px)</span>
-                                    <span class="text-[9px] opacity-75">Large / 110%</span>
+                                    <span class="text-xs opacity-75">Large / 110%</span>
                                 </button>
                                 <button 
                                     @click="applyFontSizeLive('23px')" 
@@ -1113,7 +1113,7 @@
                                     :class="tempFontSize === '23px' ? 'bg-indigo-600 text-white border-indigo-700 shadow-sm' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-indigo-50'"
                                 >
                                     <span>X-Large (23px)</span>
-                                    <span class="text-[9px] opacity-75">Ekstra / 120%</span>
+                                    <span class="text-xs opacity-75">Ekstra / 120%</span>
                                 </button>
                             </div>
                         </div>

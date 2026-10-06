@@ -6,6 +6,7 @@
     <title>Cetak Label Box 10 x 10 cm - DMS PT Indraco</title>
     <link rel="stylesheet" href="{{ asset('css/fonts.css') }}">
     <script src="{{ asset('js/vendor/tailwindcss.js') }}"></script>
+    <script src="{{ asset('js/vendor/qrcode.min.js') }}"></script>
     <script defer src="{{ asset('js/vendor/alpine.min.js') }}"></script>
 
     <!-- Base Print & Screen Styles -->
@@ -245,10 +246,9 @@
 
                     <!-- Barcode Lokasi (QR Code Isian Lokasi Lengkap) -->
                     <div x-show="showQr" class="shrink-0 flex items-center justify-center">
-                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={{ urlencode($fullLocationString . ($slotLabel ? ' ('.$slotLabel.')' : '')) }}" 
-                             alt="Barcode Lokasi" 
-                             class="h-11 w-11 sm:h-12 sm:w-12 object-contain border border-slate-900 rounded p-0.5 bg-white shadow-xs"
-                             title="Barcode Lokasi">
+                        <div x-init="new QRCode($el, { text: {!! json_encode($fullLocationString . ($slotLabel ? ' ('.$slotLabel.')' : '')) !!}, width: 48, height: 48, correctLevel: QRCode.CorrectLevel.M })" 
+                             class="w-12 h-12 flex items-center justify-center border border-slate-900 rounded p-0.5 bg-white shadow-xs overflow-hidden [&_img]:w-full [&_img]:h-full [&_canvas]:w-full [&_canvas]:h-full"
+                             title="Barcode Lokasi"></div>
                     </div>
                 </div>
 
@@ -394,9 +394,9 @@
 
                         <!-- QR Code Footer (Optional) -->
                         <div x-show="showQr" class="flex items-center justify-center pt-1 border-t border-slate-200">
-                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data={{ urlencode($item->box_number ?? 'DRAFT') }}" 
-                                 alt="QR Code" 
-                                 class="w-12 h-12 border border-slate-300 rounded p-0.5 bg-white">
+                            <div x-init="new QRCode($el, { text: {!! json_encode($item->box_number ?? 'DRAFT') !!}, width: 48, height: 48, correctLevel: QRCode.CorrectLevel.M })" 
+                                 class="w-12 h-12 flex items-center justify-center border border-slate-300 rounded p-0.5 bg-white overflow-hidden [&_img]:w-full [&_img]:h-full [&_canvas]:w-full [&_canvas]:h-full"
+                                 title="QR Code Box"></div>
                         </div>
 
                     </div>

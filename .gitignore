@@ -19,3 +19,4 @@ public/images/images.zip
 # Graphify
 /graphify-out/
 .graphify*
+/storage/framework/lsp-*.php

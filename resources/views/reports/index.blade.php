@@ -15,7 +15,7 @@
                 </span>
                 <div class="min-w-0">
                     <h1 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider truncate">Pusat Laporan & Dokumen PDF</h1>
-                    <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate">Generator Laporan Master, Utilisasi Depo Gudang & Analisis Rak 2D (TDBGrid Report Engine)</p>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate">Generator Laporan Master, Utilisasi Depo Gudang & Analisis Rak 2D</p>
                 </div>
             </div>
 
@@ -60,7 +60,7 @@
                         : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 font-bold'"
                     class="px-2.5 py-1.5 rounded border text-[11px] transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
                 >
-                    <span class="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold" 
+                    <span class="w-4 h-4 rounded-full flex items-center justify-center text-xs font-bold" 
                           :class="activeType === tab.id ? 'bg-slate-950 text-amber-400' : 'bg-slate-300 dark:bg-slate-700 text-slate-700 dark:text-slate-300'" 
                           x-text="tab.number"></span>
                     <i :data-lucide="tab.icon" class="w-3.5 h-3.5"></i>

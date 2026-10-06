@@ -219,7 +219,7 @@
                             <td class="py-3.5 px-4 whitespace-nowrap">
                                 <div class="font-bold text-slate-900 dark:text-white font-mono flex items-center gap-1.5">
                                     <span>{{ $log->created_at->timezone('Asia/Jakarta')->format('d/m/Y H:i:s') }}</span>
-                                    <span class="text-[9px] px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded font-semibold border border-slate-200 dark:border-slate-700">WIB</span>
+                                    <span class="text-xs px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded font-semibold border border-slate-200 dark:border-slate-700">WIB</span>
                                 </div>
                                 <div class="text-[10px] text-slate-400 flex items-center gap-1.5 mt-0.5">
                                     <span>{{ $log->created_at->timezone('Asia/Jakarta')->diffForHumans() }}</span>

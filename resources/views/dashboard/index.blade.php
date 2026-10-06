@@ -212,7 +212,7 @@
                                       x-text="item.status_label">
                                 </span>
                                 <template x-if="item.is_expired">
-                                    <span class="px-1.5 py-0.2 rounded text-[9px] font-black bg-rose-500 text-white">EXPIRED</span>
+                                    <span class="px-1.5 py-0.5 rounded text-xs font-bold bg-rose-500 text-white">EXPIRED</span>
                                 </template>
                             </div>
                         </a>
@@ -259,7 +259,7 @@
                                       x-text="item.status_label">
                                 </span>
                                 <template x-if="item.is_expired">
-                                    <span class="px-1.5 py-0.2 rounded text-[9px] font-black bg-rose-500 text-white">EXPIRED</span>
+                                    <span class="px-1.5 py-0.5 rounded text-xs font-bold bg-rose-500 text-white">EXPIRED</span>
                                 </template>
                             </div>
                         </a>
@@ -389,7 +389,7 @@
         <div class="p-2.5 bg-slate-100 dark:bg-slate-900 border-b border-slate-300 dark:border-slate-800 flex items-center justify-between font-mono">
             <div class="flex items-center gap-1.5 text-xs font-bold text-slate-900 dark:text-white">
                 <i data-lucide="folder-git-2" class="w-4 h-4 text-blue-500"></i>
-                BERKAS ARSIP TERBARU (TDBGrid View)
+                BERKAS ARSIP TERBARU
             </div>
             <a href="{{ route('archives.index') }}" class="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-400 dark:border-slate-600 rounded text-xs font-mono font-bold transition">
                 Buka Katalog Utama

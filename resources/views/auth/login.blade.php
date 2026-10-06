@@ -417,7 +417,7 @@
                                 class="px-2 py-1.5 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/40 rounded text-purple-700 dark:text-purple-300 font-mono text-[11px] font-bold text-center transition active:scale-95 flex items-center justify-center gap-1 shadow-sm"
                             >
                                 <i data-lucide="shield" class="w-3 h-3 text-purple-500"></i>
-                                <span>Super Admin <span class="text-[9px] opacity-75">(Alt+1)</span></span>
+                                <span>Super Admin <span class="text-xs opacity-75">(Alt+1)</span></span>
                             </button>
 
                             <button 
@@ -427,7 +427,7 @@
                                 class="px-2 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/40 rounded text-amber-700 dark:text-amber-300 font-mono text-[11px] font-bold text-center transition active:scale-95 flex items-center justify-center gap-1 shadow-sm"
                             >
                                 <i data-lucide="archive" class="w-3 h-3 text-amber-500"></i>
-                                <span>PIC Gudang <span class="text-[9px] opacity-75">(Alt+2)</span></span>
+                                <span>PIC Gudang <span class="text-xs opacity-75">(Alt+2)</span></span>
                             </button>
 
                             <button 
@@ -437,7 +437,7 @@
                                 class="px-2 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/40 rounded text-blue-700 dark:text-blue-300 font-mono text-[11px] font-bold text-center transition active:scale-95 flex items-center justify-center gap-1 shadow-sm"
                             >
                                 <i data-lucide="briefcase" class="w-3 h-3 text-blue-500"></i>
-                                <span>PIC Keuangan <span class="text-[9px] opacity-75">(Alt+3)</span></span>
+                                <span>PIC Keuangan <span class="text-xs opacity-75">(Alt+3)</span></span>
                             </button>
                         </div>
                     </div>
@@ -637,7 +637,7 @@
                             :class="currentFontSize === '16px' ? 'bg-amber-500 text-slate-950 border-amber-600 shadow-sm' : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-amber-500/10'"
                         >
                             <span>Kecil (16px)</span>
-                            <span class="text-[9px] opacity-75 font-normal">Compact / 85%</span>
+                            <span class="text-xs opacity-75 font-normal">Compact / 85%</span>
                         </button>
                         <button 
                             @click="setFontSize('19px')" 
@@ -646,7 +646,7 @@
                             :class="(currentFontSize === '19px' || currentFontSize === '100%') ? 'bg-amber-500 text-slate-950 border-amber-600 shadow-sm' : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-amber-500/10'"
                         >
                             <span>Standar (19px)</span>
-                            <span class="text-[9px] opacity-75 font-normal">Default / 100%</span>
+                            <span class="text-xs opacity-75 font-normal">Default / 100%</span>
                         </button>
                         <button 
                             @click="setFontSize('21px')" 
@@ -655,7 +655,7 @@
                             :class="currentFontSize === '21px' ? 'bg-amber-500 text-slate-950 border-amber-600 shadow-sm' : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-amber-500/10'"
                         >
                             <span>Besar (21px)</span>
-                            <span class="text-[9px] opacity-75 font-normal">Large / 110%</span>
+                            <span class="text-xs opacity-75 font-normal">Large / 110%</span>
                         </button>
                         <button 
                             @click="setFontSize('23px')" 
@@ -664,7 +664,7 @@
                             :class="currentFontSize === '23px' ? 'bg-amber-500 text-slate-950 border-amber-600 shadow-sm' : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-amber-500/10'"
                         >
                             <span>X-Large (23px)</span>
-                            <span class="text-[9px] opacity-75 font-normal">Ekstra / 120%</span>
+                            <span class="text-xs opacity-75 font-normal">Ekstra / 120%</span>
                         </button>
                     </div>
                 </div>
