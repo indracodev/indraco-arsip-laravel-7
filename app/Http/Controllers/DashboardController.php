@@ -65,14 +65,25 @@ class DashboardController extends Controller
             ->get();
 
         // Warehouse capacity stats (for admin & pic gudang)
-        $warehouses = \App\Models\Warehouse::with(['locations' => function ($q) {
-            $q->where('is_active', true)->with('slots');
+        $capacityStats = WarehouseLocation::where('is_active', true)
+            ->selectRaw('SUM(box_capacity) as total, SUM(current_box_count) as used')
+            ->first();
+        $totalCapacity = (int) ($capacityStats->total ?? 0);
+        $usedCapacity = (int) ($capacityStats->used ?? 0);
+        $capacityPercent = $totalCapacity > 0 ? round(($usedCapacity / $totalCapacity) * 100, 1) : 0;
+
+        $warehouses = \App\Models\Warehouse::select('id', 'name', 'code')->with(['locations' => function ($q) {
+            $q->select('id', 'warehouse_id', 'rack_code', 'total_sap', 'boxes_per_sap')
+              ->where('is_active', true)
+              ->with(['slots' => function ($sq) {
+                  $sq->select('id', 'warehouse_location_id', 'sap_level', 'layer', 'slot_number', 'status', 'archive_id')
+                     ->where('status', '!=', 'empty');
+              }]);
         }])->where('is_active', true)->get();
 
-        $warehouseLocations = WarehouseLocation::with(['warehouse', 'slots'])->where('is_active', true)->get();
-        $totalCapacity = $warehouseLocations->sum('box_capacity');
-        $usedCapacity = $warehouseLocations->sum('current_box_count');
-        $capacityPercent = $totalCapacity > 0 ? round(($usedCapacity / $totalCapacity) * 100, 1) : 0;
+        $warehouseLocations = WarehouseLocation::select('id', 'warehouse_id', 'rack_code', 'total_sap', 'boxes_per_sap')
+            ->where('is_active', true)
+            ->get();
 
         // Department Breakdown chart data
         $deptBreakdown = Department::withCount('archives')->get();

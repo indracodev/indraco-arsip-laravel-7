@@ -214,11 +214,10 @@ function lanLatencyEngine() {
         isModalOpen: false,
         isSlowWarningVisible: false,
         isBurstTesting: false,
+        consecutiveSlowCount: 0,
         timer: null,
 
         get statusBadgePrefix() {
-            if (this.status === 'offline') return 'LAN: ';
-            if (this.status === 'slow') return 'LAN Lemot: ';
             return 'LAN: ';
         },
 
@@ -230,22 +229,26 @@ function lanLatencyEngine() {
 
         get statusTitle() {
             if (this.status === 'good') return 'Koneksi LAN Sangat Cepat & Stabil';
-            if (this.status === 'medium') return 'Koneksi LAN Cukup Baik';
+            if (this.status === 'medium') return 'Koneksi LAN Normal & Lancar';
             if (this.status === 'slow') return 'Peringatan: Koneksi LAN Lemot / Latensi Tinggi';
             if (this.status === 'offline') return 'Koneksi LAN Terputus ke Server';
             return 'Memeriksa Kualitas Jaringan...';
         },
 
         get statusDescription() {
-            if (this.status === 'good') return 'Komunikasi antar PC client dan server berjalan instan (< 30ms).';
-            if (this.status === 'medium') return 'Kecepatan normal, transaksi data sinkron lancar.';
-            if (this.status === 'slow') return 'Respon jaringan di atas 150ms. Periksa kabel LAN atau switch-hub.';
+            if (this.status === 'good') return 'Komunikasi antar PC client dan server berjalan instan (< 80ms).';
+            if (this.status === 'medium') return 'Kecepatan normal LAN/WiFi, transaksi data sinkron lancar (80-250ms).';
+            if (this.status === 'slow') return 'Respon jaringan di atas 250ms berturut-turut. Periksa kabel LAN atau switch-hub.';
             if (this.status === 'offline') return 'Server tidak merespon dalam batas waktu. Periksa jaringan fisik.';
             return 'Mengirim paket uji RTT ke server...';
         },
 
         startMonitoring() {
-            this.pingServer();
+            // Berikan jeda 800ms saat halaman baru dibuka agar tidak bentrok dengan render awal
+            setTimeout(() => {
+                this.pingServer();
+            }, 800);
+
             this.timer = setInterval(() => {
                 if (!this.isBurstTesting) {
                     this.pingServer();
@@ -288,21 +291,28 @@ function lanLatencyEngine() {
                 // Calculate Stats
                 this.recordLatency(rtt);
 
-                if (rtt <= 30) {
+                if (rtt <= 80) {
                     this.status = 'good';
+                    this.consecutiveSlowCount = 0;
                     this.isSlowWarningVisible = false;
-                } else if (rtt <= 150) {
+                } else if (rtt <= 250) {
                     this.status = 'medium';
+                    this.consecutiveSlowCount = 0;
                     this.isSlowWarningVisible = false;
                 } else {
                     this.status = 'slow';
-                    this.isSlowWarningVisible = true;
+                    this.consecutiveSlowCount++;
+                    // Hanya tampilkan toast peringatan jika latensi tinggi beruntun >= 3 kali
+                    if (this.consecutiveSlowCount >= 3) {
+                        this.isSlowWarningVisible = true;
+                    }
                 }
             } catch (err) {
                 clearTimeout(timeoutId);
                 this.failedPings++;
                 this.latency = null;
                 this.status = 'offline';
+                this.consecutiveSlowCount = 0;
                 this.isSlowWarningVisible = true;
             } finally {
                 this.packetLoss = Math.round((this.failedPings / this.totalPings) * 100);
