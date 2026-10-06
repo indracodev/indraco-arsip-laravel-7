@@ -54,6 +54,19 @@ class WarehouseLocation extends Model
         'boxes_per_sap' => 'integer',
     ];
 
+    protected static function booted()
+    {
+        static::created(function ($loc) {
+            if ($loc->location_type === 'rack') {
+                try {
+                    $loc->generateStandardSlots();
+                } catch (\Exception $e) {
+                    // Ignore duplicate slot key errors
+                }
+            }
+        });
+    }
+
     public function warehouse(): BelongsTo
     {
         return $this->belongsTo(Warehouse::class);

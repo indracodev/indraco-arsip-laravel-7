@@ -382,18 +382,17 @@ class DepartmentController extends Controller
             }
         ]);
 
-        $picUsers = User::where('department_id', $department->id)
-            ->where('role', 'pic_dept')
+        $allUsers = User::where('role', '!=', 'admin')
             ->orderBy('name', 'asc')
             ->get();
 
-        $availableUsers = User::where(function ($q) use ($department) {
-                $q->whereNull('department_id')
-                  ->orWhere('department_id', '!=', $department->id);
-            })
-            ->where('role', '!=', 'admin')
-            ->orderBy('name', 'asc')
-            ->get();
+        $picUsers = $allUsers->filter(function ($u) use ($department) {
+            return $u->department_id === $department->id && $u->role === 'pic_dept';
+        })->values();
+
+        $availableUsers = $allUsers->filter(function ($u) use ($department) {
+            return $u->department_id === null || $u->department_id !== $department->id;
+        })->values();
 
         return response()->json([
             'status' => 'success',

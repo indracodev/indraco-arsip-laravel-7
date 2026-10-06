@@ -22,6 +22,7 @@ class ArchiveController extends Controller
             'department', 
             'subDepartment', 
             'location.warehouse', 
+            'rackSlot',
             'creator',
             'borrowingLogs' => function ($q) {
                 $q->whereIn('status', ['requested', 'dept_approved', 'approved', 'dispatched'])

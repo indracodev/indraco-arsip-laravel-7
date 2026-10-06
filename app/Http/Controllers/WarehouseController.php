@@ -14,42 +14,47 @@ class WarehouseController extends Controller
         // 1. Sync Gudang rooms from 2D Layout (warehouse_locations) into warehouses table
         $roomLocations = WarehouseLocation::where('location_type', 'room')->get();
 
-        $validCodes = [];
-        foreach ($roomLocations as $room) {
-            $code = $room->rack_code;
-            $sector = $room->room_sector ?? $code;
-            $validCodes[] = $code;
+        $validCodes = $roomLocations->pluck('rack_code')->filter()->values()->toArray();
+        $existingCodes = Warehouse::pluck('code')->toArray();
 
-            Warehouse::firstOrCreate(
-                ['code' => $code],
-                [
-                    'name' => \Illuminate\Support\Str::startsWith(strtoupper($code), 'GUDANG') ? $code : "Gudang " . $code,
-                    'address' => "Kawasan Industri Indraco - Sektor " . $sector,
-                ]
-            );
+        // Only synchronize if there are differences
+        if (count(array_diff($validCodes, $existingCodes)) > 0 || count(array_diff($existingCodes, $validCodes)) > 0) {
+            foreach ($roomLocations as $room) {
+                $code = $room->rack_code;
+                $sector = $room->room_sector ?? $code;
+
+                Warehouse::firstOrCreate(
+                    ['code' => $code],
+                    [
+                        'name' => \Illuminate\Support\Str::startsWith(strtoupper($code), 'GUDANG') ? $code : "Gudang " . $code,
+                        'address' => "Kawasan Industri Indraco - Sektor " . $sector,
+                    ]
+                );
+            }
+
+            if (count($validCodes) > 0) {
+                Warehouse::whereNotIn('code', $validCodes)->delete();
+            }
         }
 
-        if (count($validCodes) > 0) {
-            Warehouse::whereNotIn('code', $validCodes)->delete();
-        }
+        // 2. Fetch all registered racks in ONE single query with eager loading
+        $allRacks = WarehouseLocation::where(function ($q) {
+            $q->whereNull('location_type')->orWhere('location_type', 'rack');
+        })
+        ->with(['slots', 'archives'])
+        ->get();
 
-        // 2. Fetch warehouses with registered racks
-        $warehouses = Warehouse::all()->map(function ($wh) {
+        // 3. Map warehouses and assign racks in memory without extra queries
+        $warehouses = Warehouse::all()->map(function ($wh) use ($allRacks) {
             $sectorCode = preg_replace('/^gudang\s*/i', '', $wh->code);
             $sectorName = preg_replace('/^gudang\s*/i', '', $wh->name);
 
-            $racks = WarehouseLocation::where(function ($q) {
-                $q->whereNull('location_type')->orWhere('location_type', 'rack');
-            })
-            ->where(function ($q) use ($wh, $sectorCode, $sectorName) {
-                $q->where('room_sector', $wh->code)
-                  ->orWhere('room_sector', $sectorCode)
-                  ->orWhere('room_sector', $sectorName)
-                  ->orWhere('warehouse_id', $wh->id);
-            })
-            ->with(['slots', 'archives'])
-            ->get()
-            ->map(function ($loc) {
+            $racks = $allRacks->filter(function ($loc) use ($wh, $sectorCode, $sectorName) {
+                return $loc->warehouse_id === $wh->id
+                    || strcasecmp($loc->room_sector, $wh->code) === 0
+                    || strcasecmp($loc->room_sector, $sectorCode) === 0
+                    || strcasecmp($loc->room_sector, $sectorName) === 0;
+            })->map(function ($loc) {
                 return [
                     'id' => $loc->id,
                     'warehouse_id' => $loc->warehouse_id,
@@ -60,7 +65,7 @@ class WarehouseController extends Controller
                     'box_capacity' => $loc->box_capacity ?? 100,
                     'current_box_count' => $loc->current_box_count,
                 ];
-            });
+            })->values();
 
             return [
                 'id' => $wh->id,
