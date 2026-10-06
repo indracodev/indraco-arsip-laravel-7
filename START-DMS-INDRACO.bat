@@ -218,6 +218,14 @@ if not exist "public\storage" (
 )
 
 :: ===============================================================================
+:: CHECK 6: PRE-COMPILE & CACHE UNTUK PERFORMA INSTAN (AMD A9 DUAL-CORE TUNING)
+:: ===============================================================================
+echo [*] Memuat cache rute, konfigurasi, dan template Blade ke RAM...
+php artisan config:cache >nul 2>&1
+php artisan route:cache >nul 2>&1
+php artisan view:cache >nul 2>&1
+
+:: ===============================================================================
 :: DETEKSI IP NETWORK LOKAL (WIFI / LAN)
 :: ===============================================================================
 set "LOCAL_IP="

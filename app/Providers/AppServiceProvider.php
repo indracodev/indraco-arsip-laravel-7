@@ -35,6 +35,9 @@ class AppServiceProvider extends ServiceProvider
                     $event->connection->statement('PRAGMA journal_mode = WAL;');
                     $event->connection->statement('PRAGMA busy_timeout = 5000;');
                     $event->connection->statement('PRAGMA synchronous = NORMAL;');
+                    $event->connection->statement('PRAGMA temp_store = MEMORY;');
+                    $event->connection->statement('PRAGMA cache_size = -32000;');
+                    $event->connection->statement('PRAGMA mmap_size = 67108864;');
                 } catch (\Exception $e) {
                     // Ignore if memory database or unsupported pragma
                 }
