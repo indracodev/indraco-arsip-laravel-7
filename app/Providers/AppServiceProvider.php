@@ -26,27 +26,33 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        View::composer('*', function ($view) {
-            $appLogo = 'images/logo-indraco.png';
-            $appFontSize = '19px';
-            $appName = 'DMS PT INDRACO';
+        static $cachedGlobalSettings = null;
 
-            if (Schema::hasTable('app_settings')) {
-                try {
-                    $appLogo = AppSetting::get('app_logo', 'images/logo-indraco.png');
-                    $appFontSize = AppSetting::get('app_font_size', '19px');
-                    $appName = AppSetting::get('app_name', 'DMS PT INDRACO');
-                } catch (\Exception $e) {
-                    // Fallback to default
+        View::composer('*', function ($view) use (&$cachedGlobalSettings) {
+            if ($cachedGlobalSettings === null) {
+                $appLogo = 'logo-indraco-est.png';
+                $appFontSize = '14px';
+                $appName = 'DMS PT INDRACO';
+
+                if (Schema::hasTable('app_settings')) {
+                    try {
+                        $appLogo = AppSetting::get('app_logo', 'logo-indraco-est.png');
+                        $appFontSize = AppSetting::get('app_font_size', '14px');
+                        $appName = AppSetting::get('app_name', 'DMS PT INDRACO');
+                    } catch (\Exception $e) {
+                        // Fallback to default
+                    }
                 }
+
+                $cachedGlobalSettings = [
+                    'globalAppLogo' => asset($appLogo),
+                    'globalAppLogoRaw' => $appLogo,
+                    'globalAppFontSize' => $appFontSize,
+                    'globalAppName' => $appName,
+                ];
             }
 
-            $view->with([
-                'globalAppLogo' => asset($appLogo),
-                'globalAppLogoRaw' => $appLogo,
-                'globalAppFontSize' => $appFontSize,
-                'globalAppName' => $appName,
-            ]);
+            $view->with($cachedGlobalSettings);
         });
     }
 }

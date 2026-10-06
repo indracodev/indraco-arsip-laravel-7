@@ -4,8 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cetak Label Box 10 x 10 cm - DMS PT Indraco</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link rel="stylesheet" href="{{ asset('css/fonts.css') }}">
+    <script src="{{ asset('js/vendor/tailwindcss.js') }}"></script>
+    <script defer src="{{ asset('js/vendor/alpine.min.js') }}"></script>
 
     <!-- Base Print & Screen Styles -->
     <style id="print-dynamic-style">

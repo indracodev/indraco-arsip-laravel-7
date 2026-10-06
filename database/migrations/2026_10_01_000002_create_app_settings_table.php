@@ -29,7 +29,7 @@ class CreateAppSettingsTable extends Migration
         DB::table('app_settings')->insert([
             [
                 'key' => 'app_logo',
-                'value' => 'images/logo-indraco.png',
+                'value' => 'logo-indraco-est.png',
                 'group' => 'appearance',
                 'type' => 'image',
                 'description' => 'Logo utama aplikasi DMS Indraco',
@@ -38,7 +38,7 @@ class CreateAppSettingsTable extends Migration
             ],
             [
                 'key' => 'app_font_size',
-                'value' => '19px',
+                'value' => '14px',
                 'group' => 'appearance',
                 'type' => 'string',
                 'description' => 'Ukuran basis font scaling global antarmuka aplikasi',

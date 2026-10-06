@@ -144,8 +144,8 @@
 @endpush
 
 @push('scripts')
-   <!-- Chart.js CDN -->
-   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+   <!-- Chart.js Offline Vendor -->
+   <script src="{{ asset('js/vendor/chart.min.js') }}"></script>
    <script>
       document.addEventListener('DOMContentLoaded', function() {
          // 1. Visit Trend Line Chart

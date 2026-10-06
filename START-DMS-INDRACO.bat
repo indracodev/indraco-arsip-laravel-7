@@ -171,6 +171,23 @@ if not exist ".env" (
 )
 
 :: ===============================================================================
+:: CHECK 2B: DEPENDENSI PHP / VENDOR (vendor/autoload.php)
+:: ===============================================================================
+if not exist "vendor\autoload.php" (
+    echo [*] Memeriksa folder vendor/autoload.php...
+    where composer >nul 2>&1
+    if !ERRORLEVEL! EQU 0 (
+        echo [*] Menjalankan composer install untuk menginisialisasi dependensi...
+        composer install --no-dev --optimize-autoloader
+    ) else (
+        echo [PERHATIAN] Folder vendor belum tersedia dan perintah composer tidak ditemukan.
+        echo             Harap jalankan 'composer install' di direktori ini terlebih dahulu.
+        pause
+        exit /b 1
+    )
+)
+
+:: ===============================================================================
 :: CHECK 3: DATABASE SQLITE & DIREKTORI
 :: ===============================================================================
 if not exist "database\database.sqlite" (

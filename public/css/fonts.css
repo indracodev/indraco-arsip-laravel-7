@@ -1,0 +1,17 @@
+/* PT INDRACO DMS - Offline Typography Design System */
+@layer base {
+    :root {
+        --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        --font-mono: 'JetBrains Mono', Consolas, "Courier New", monospace;
+    }
+}
+
+body, html, input, button, select, textarea {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+code, kbd, samp, pre, .font-mono {
+    font-family: var(--font-mono);
+}

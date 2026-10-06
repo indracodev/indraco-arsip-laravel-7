@@ -12,7 +12,8 @@ npm-debug.log
 yarn-error.log
 
 public/images/images.zip
-/public/images
+/public/images/*
+!/public/images/logo-*.png
 *.zip
 
 # Graphify

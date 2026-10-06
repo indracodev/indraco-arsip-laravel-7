@@ -8,7 +8,7 @@
     <!-- Tailwind CSS (Local / CDN) -->
     <link href="{{ asset('css/app.css') }}" rel="stylesheet">
     <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="{{ asset('js/vendor/lucide.min.js') }}"></script>
 
     <style>
         @page {
