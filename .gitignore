@@ -20,5 +20,10 @@ public/images/images.zip
 /graphify-out/
 .graphify*
 /storage/framework/lsp-*.php
+
+# Grafana k6 Local Benchmarks (Local only, do not push to GitHub)
+/tests/k6/
+/RUN-K6-BENCHMARK.bat
 benchmark_summary.html
 benchmark_results.json
+
