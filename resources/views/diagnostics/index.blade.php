@@ -77,8 +77,51 @@
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
+        <!-- Automated Health & Diagnosis Summary Banner (Easy for AI & Super Admin) -->
+        <div class="glass-card rounded-2xl p-4 border border-indigo-900/50 bg-gradient-to-r from-indigo-950/40 via-slate-900/60 to-slate-900/40 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm"
+                     :class="{
+                         'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30': metrics.diagnosis?.overall_status === 'OPTIMAL',
+                         'bg-amber-500/20 text-amber-400 border border-amber-500/30': metrics.diagnosis?.overall_status === 'WARNING',
+                         'bg-rose-500/20 text-rose-400 border border-rose-500/30': metrics.diagnosis?.overall_status === 'CRITICAL'
+                     }">
+                    <span x-text="(metrics.diagnosis?.health_score || 100) + '%'"></span>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 flex items-center gap-1">
+                            <i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Super Admin Diagnostic Verdict
+                        </span>
+                        <span class="font-bold text-xs"
+                              :class="{
+                                  'text-emerald-400': metrics.diagnosis?.overall_status === 'OPTIMAL',
+                                  'text-amber-400': metrics.diagnosis?.overall_status === 'WARNING',
+                                  'text-rose-400': metrics.diagnosis?.overall_status === 'CRITICAL'
+                              }"
+                              x-text="metrics.diagnosis?.overall_status || 'OPTIMAL'"></span>
+                    </div>
+                    <p class="text-xs text-slate-300 font-mono mt-1" x-text="metrics.diagnosis?.summary_for_ai || 'Menganalisis performa server...'"></p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <div class="text-right text-[11px] text-slate-400">
+                    <div>Token Diagnostik Remote:</div>
+                    <code class="font-mono text-indigo-300 text-xs select-all" x-text="metrics.diagnostic_key || '--'"></code>
+                </div>
+                <button type="button" 
+                        @click="copyDiagnosticToken()" 
+                        class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition"
+                        title="Salin Token Diagnostik untuk API / AI">
+                    <i data-lucide="copy" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+
         <!-- Top Telemetry Row: Server ID, Latency RTT, RAM, OPcache -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+
             
             <!-- Card 1: Server Identification -->
             <div class="glass-card rounded-2xl p-5 shadow-lg relative overflow-hidden">
@@ -517,6 +560,18 @@
                     this.$nextTick(() => {
                         if (window.lucide) window.lucide.createIcons();
                     });
+                }
+            },
+
+            copyDiagnosticToken() {
+                const token = this.metrics.diagnostic_key;
+                if (!token) return;
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(token).then(() => {
+                        alert('Token Diagnostik berhasil disalin ke clipboard:\n' + token);
+                    });
+                } else {
+                    prompt('Salin token berikut:', token);
                 }
             }
         }

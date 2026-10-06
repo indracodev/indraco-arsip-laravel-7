@@ -109,9 +109,53 @@ class HealthController extends Controller
             // In case table not reachable
         }
 
+        // 5. Automated AI & Engineer Diagnostic Verdict
+
+        $bottlenecks = [];
+        $recommendations = [];
+        $healthScore = 100;
+
+        $memMb = round($memUsage / (1024 * 1024), 2);
+        if ($memMb > 180) {
+            $bottlenecks[] = "Penggunaan RAM PHP mendekati batas ($memMb MB)";
+            $healthScore -= 20;
+        }
+
+        if (!$opcacheData['enabled']) {
+            $bottlenecks[] = "OPcache belum aktif di php.ini";
+            $recommendations[] = "Aktifkan opcache.enable=1 di evironment/php-8.2.29-Win32-vs16-x64/php.ini";
+            $healthScore -= 30;
+        }
+
+        if ($walSizeKb > 50000) {
+            $bottlenecks[] = "File WAL SQLite membesar ($walSizeKb KB)";
+            $recommendations[] = "Jalankan checkpoint WAL: PRAGMA wal_checkpoint(TRUNCATE)";
+            $healthScore -= 15;
+        }
+
+        $overallStatus = $healthScore >= 90 ? 'OPTIMAL' : ($healthScore >= 70 ? 'WARNING' : 'CRITICAL');
+        $summary = sprintf(
+            'Status %s (%d/100) • RAM: %.1f MB • OPcache: %s • JIT: %s • SQLite WAL: %.1f KB',
+            $overallStatus,
+            $healthScore,
+            $memMb,
+            $opcacheData['enabled'] ? 'AKTIF (' . $opcacheData['hit_rate_pct'] . '%)' : 'NON-AKTIF',
+            $opcacheData['jit_enabled'] ? 'ON' : 'OFF',
+            $walSizeKb
+        );
+
+        $diagnosticKey = config('app.diagnostic_key') ?? substr(hash('sha256', config('app.key', 'indraco-secret')), 0, 16);
+
         return response()->json([
             'status' => 'ok',
             'timestamp' => microtime(true),
+            'diagnosis' => [
+                'health_score' => $healthScore,
+                'overall_status' => $overallStatus,
+                'summary_for_ai' => $summary,
+                'bottlenecks' => $bottlenecks,
+                'recommendations' => $recommendations,
+            ],
             'server' => [
                 'name' => gethostname(),
                 'ip' => $serverIp,
@@ -123,7 +167,7 @@ class HealthController extends Controller
                 'ip' => $clientIp,
             ],
             'memory' => [
-                'current_mb' => round($memUsage / (1024 * 1024), 2),
+                'current_mb' => $memMb,
                 'peak_mb' => round($memPeak / (1024 * 1024), 2),
                 'limit' => $memLimit,
             ],
@@ -136,12 +180,14 @@ class HealthController extends Controller
                 'wal_mode_active' => true,
             ],
             'recent_clients' => $recentClients,
+            'diagnostic_key' => $diagnosticKey,
         ])->withHeaders([
             'Cache-Control' => 'no-cache, no-store, must-revalidate',
             'Pragma' => 'no-cache',
             'Expires' => '0',
         ]);
     }
+
 
     /**
      * Probe / Ping a specific IP on the LAN from the server

@@ -178,10 +178,13 @@
             <div class="px-5 py-3 bg-slate-100 dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
                 <span class="text-[11px] text-slate-500">Auto-ping setiap 6 detik</span>
                 <div class="flex items-center gap-2">
+                    @if(auth()->check() && (auth()->user()->isAdmin() || auth()->user()->role === 'admin'))
                     <a href="{{ route('diagnostics.index') }}" target="_blank" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition">
                         <i data-lucide="activity" class="w-3.5 h-3.5"></i>
                         <span>Panel Metrik Lengkap</span>
                     </a>
+                    @endif
+
                     <button type="button" 
                             @click="runBurstTest()" 
                             :disabled="isBurstTesting"
