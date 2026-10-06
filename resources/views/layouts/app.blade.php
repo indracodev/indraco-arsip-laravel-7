@@ -293,7 +293,7 @@
                         @keydown.arrow-down.prevent="navigateResults(1)"
                         @keydown.arrow-up.prevent="navigateResults(-1)"
                         @keydown.enter.prevent="selectActiveResult()"
-                        placeholder="Cari semua dokumen (nama arsip, dept, butir isi, no. box, rak gudang) [Ctrl+F]..." 
+                        placeholder="{{ auth()->check() && auth()->user()->isPicGudang() ? 'Cari rak gudang & label/judul box arsip (Layout 2D) [Ctrl+F]...' : 'Cari semua dokumen (nama arsip, dept, butir isi, no. box, rak gudang) [Ctrl+F]...' }}" 
                         class="w-full pl-9 pr-8 py-1 bg-slate-950/80 border border-slate-700 hover:border-slate-600 focus:border-amber-400 rounded text-xs font-mono text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-400 transition shadow-inner"
                     >
 
@@ -332,12 +332,18 @@
                                 <circle cx="11" cy="11" r="8"></circle>
                                 <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                             </svg>
-                            PENCARIAN GLOBAL SELURUH ARSIP & LOKASI GUDANG
+                            <span>{{ auth()->check() && auth()->user()->isPicGudang() ? 'PENCARIAN LOKASI GUDANG & DENAH 2D (RAK & BOX ARSIP)' : 'PENCARIAN GLOBAL SELURUH ARSIP & LOKASI GUDANG' }}</span>
                         </span>
                         <div class="flex items-center gap-2">
-                            <span class="hidden sm:inline-block px-2 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-400/40 rounded text-[10px] font-bold">
-                                SUPER ADMIN • ALL DEPARTMENTS
-                            </span>
+                            @if(auth()->check() && auth()->user()->isPicGudang())
+                                <span class="hidden sm:inline-block px-2 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 rounded text-[10px] font-bold">
+                                    PIC GUDANG • LOKASI GUDANG & LAYOUT 2D
+                                </span>
+                            @else
+                                <span class="hidden sm:inline-block px-2 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-400/40 rounded text-[10px] font-bold">
+                                    SUPER ADMIN • ALL DEPARTMENTS
+                                </span>
+                            @endif
                             <!-- CLOSE SUGGESTION BUTTON IN HEADER -->
                             <button 
                                 type="button" 
@@ -418,7 +424,9 @@
 
                     <!-- Suggestion / Quick Filters Chips -->
                     <div x-show="suggestedKeywords.length > 0 && !searchQuery && !hasActiveFilters()" class="px-3.5 py-2 bg-slate-50 dark:bg-slate-950/80 border-b border-slate-200 dark:border-slate-800">
-                        <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1.5">Filter Cepat / Topik Dokumen:</span>
+                        <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1.5">
+                            {{ auth()->check() && auth()->user()->isPicGudang() ? 'Saran Lokasi Gudang & Label Box:' : 'Filter Cepat / Topik Dokumen:' }}
+                        </span>
                         <div class="flex flex-wrap gap-1.5">
                             <template x-for="kw in suggestedKeywords" :key="kw">
                                 <button 
@@ -439,10 +447,14 @@
                             <svg class="w-3.5 h-3.5 text-amber-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
                             </svg>
-                            <span x-show="!searchQuery && !hasActiveFilters()">Sugesti Berkas Arsip Terkini:</span>
-                            <span x-show="searchQuery || hasActiveFilters()">Hasil Arsip: <span class="text-amber-600 dark:text-amber-400 font-bold" x-text="searchResults.length + ' item ditemukan'"></span></span>
+                            <span x-show="!searchQuery && !hasActiveFilters()">
+                                {{ auth()->check() && auth()->user()->isPicGudang() ? 'Rekomendasi Rak & Box Gudang Terkini:' : 'Sugesti Berkas Arsip Terkini:' }}
+                            </span>
+                            <span x-show="searchQuery || hasActiveFilters()">Hasil Pencarian: <span class="text-amber-600 dark:text-amber-400 font-bold" x-text="searchResults.length + ' item ditemukan'"></span></span>
                         </span>
-                        <span class="text-[10px] text-slate-500 font-medium hidden sm:inline">Klik item untuk membuka form detail</span>
+                        <span class="text-[10px] text-slate-500 font-medium hidden sm:inline">
+                            {{ auth()->check() && auth()->user()->isPicGudang() ? 'Klik item untuk membuka Layout 2D / Form' : 'Klik item untuk membuka form detail' }}
+                        </span>
                     </div>
 
                     <!-- Results List Scroll Container -->
@@ -462,86 +474,129 @@
                                 :class="selectedIndex === idx ? 'bg-amber-500/15 dark:bg-amber-950/40 border-l-4 border-amber-500' : 'hover:bg-slate-50 dark:hover:bg-slate-800/80'"
                                 class="p-3 cursor-pointer transition flex flex-col gap-1.5 select-none"
                             >
-                                <!-- Top Row: Box Number (Left) and Department / Sub-Department (Right Kanan Atas) -->
-                                <div class="flex items-center justify-between gap-2">
-                                    <div class="flex items-center gap-2">
-                                        <span class="font-black text-amber-600 dark:text-amber-400 text-xs sm:text-sm flex items-center gap-1.5">
-                                            <svg class="w-4 h-4 text-amber-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-                                                <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-                                                <line x1="12" y1="22.08" x2="12" y2="12"></line>
-                                            </svg>
-                                            <span x-text="(item.archive_title ? (item.archive_title + ' - ') : '') + (item.box_number || 'Penomoran Pending')"></span>
-                                        </span>
+                                <!-- RACK ITEM CARD (FOR RACK SEARCH RESULTS) -->
+                                <template x-if="item.result_type === 'rack'">
+                                    <div class="space-y-1.5">
+                                        <div class="flex items-center justify-between gap-2">
+                                            <div class="flex items-center gap-2">
+                                                <span class="p-1.5 rounded bg-blue-500/20 text-blue-600 dark:text-blue-400">
+                                                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                        <rect x="2" y="3" width="20" height="18" rx="2"></rect>
+                                                        <line x1="2" y1="9" x2="22" y2="9"></line>
+                                                        <line x1="2" y1="15" x2="22" y2="15"></line>
+                                                        <line x1="12" y1="3" x2="12" y2="21"></line>
+                                                    </svg>
+                                                </span>
+                                                <div>
+                                                    <span class="font-black text-blue-600 dark:text-blue-400 text-sm" x-text="'Rak ' + item.rack_code"></span>
+                                                    <span class="text-[11px] text-slate-500 ml-1.5 font-bold" x-text="'[' + item.room_sector + ']'"></span>
+                                                </div>
+                                            </div>
+                                            <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[10px] font-bold">
+                                                DENAH 2D RAK
+                                            </span>
+                                        </div>
+
+                                        <div class="flex items-center justify-between text-xs pt-1 border-t border-slate-100 dark:border-slate-800">
+                                            <span class="text-slate-600 dark:text-slate-400 font-bold" x-text="item.content_description"></span>
+                                            <span class="text-[11px] text-amber-600 dark:text-amber-400 font-black flex items-center gap-1">
+                                                <span>Buka Layout Gudang 2D</span>
+                                                <svg class="w-3 h-3 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                                    <polyline points="12 5 19 12 12 19"></polyline>
+                                                </svg>
+                                            </span>
+                                        </div>
                                     </div>
+                                </template>
 
-                                    <!-- Right: Department & Sub-Department Badge (Kanan Atas) -->
-                                    <span class="px-2 py-0.5 rounded bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20 text-[10px] font-bold uppercase flex items-center gap-1 shrink-0" title="Departemen / Sub Departemen">
-                                        <svg class="w-3 h-3 text-blue-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
-                                            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
-                                        </svg>
-                                        <span x-text="item.dept_code + (item.sub_dept ? ' / ' + item.sub_dept : (item.dept_name ? ' - ' + item.dept_name : ''))"></span>
-                                    </span>
-                                </div>
+                                <!-- BOX / ARCHIVE ITEM CARD -->
+                                <template x-if="item.result_type !== 'rack'">
+                                    <div class="space-y-1.5">
+                                        <!-- Top Row: Box Number (Left) and Department / Sub-Department (Right Kanan Atas) -->
+                                        <div class="flex items-center justify-between gap-2">
+                                            <div class="flex items-center gap-2">
+                                                <span class="font-black text-amber-600 dark:text-amber-400 text-xs sm:text-sm flex items-center gap-1.5">
+                                                    <svg class="w-4 h-4 text-amber-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                                                        <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                                                        <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                                                    </svg>
+                                                    <span x-text="(item.archive_title ? (item.archive_title + ' - ') : '') + (item.box_number || 'Penomoran Pending')"></span>
+                                                </span>
+                                            </div>
 
-                                <!-- Middle Row: Judul / Nama Dokumen Arsip (Left) & Periode + Status (Right, di bawah Departemen) -->
-                                <div class="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
-                                    <div class="font-bold text-slate-900 dark:text-white text-xs sm:text-sm leading-snug flex items-center gap-2 min-w-0">
-                                        <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                            <polyline points="14 2 14 8 20 8"></polyline>
-                                            <line x1="16" y1="13" x2="8" y2="13"></line>
-                                            <line x1="16" y1="17" x2="8" y2="17"></line>
-                                            <polyline points="10 9 9 9 8 9"></polyline>
-                                        </svg>
-                                        <span class="truncate" x-text="item.document_name || item.title"></span>
+                                            <!-- Right: Department & Sub-Department Badge (Kanan Atas) -->
+                                            <span class="px-2 py-0.5 rounded bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20 text-[10px] font-bold uppercase flex items-center gap-1 shrink-0" title="Departemen / Sub Departemen">
+                                                <svg class="w-3 h-3 text-blue-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                                                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                                                </svg>
+                                                <span x-text="item.dept_code + (item.sub_dept ? ' / ' + item.sub_dept : (item.dept_name ? ' - ' + item.dept_name : ''))"></span>
+                                            </span>
+                                        </div>
+
+                                        <!-- Middle Row: Judul / Nama Dokumen Arsip (Left) & Periode + Status (Right, di bawah Departemen) -->
+                                        <div class="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
+                                            <div class="font-bold text-slate-900 dark:text-white text-xs sm:text-sm leading-snug flex items-center gap-2 min-w-0">
+                                                <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                                                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                                                    <polyline points="10 9 9 9 8 9"></polyline>
+                                                </svg>
+                                                <span class="truncate" x-text="item.document_name || item.title"></span>
+                                            </div>
+
+                                            <!-- Periode & Status Badge (Di Bawah Departemen) -->
+                                            <div class="flex items-center gap-1.5 shrink-0">
+                                                <!-- Periode Dokumen -->
+                                                <span class="px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-bold whitespace-nowrap" x-text="item.periode_doc"></span>
+
+                                                <!-- Status Badge -->
+                                                <span 
+                                                    :class="item.status === 'in_warehouse' ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30' : (item.status === 'borrowed' ? 'bg-purple-500/20 text-purple-700 dark:text-purple-300 border-purple-500/30' : 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/30')"
+                                                    class="px-2 py-0.5 rounded border text-[11px] font-bold whitespace-nowrap"
+                                                    x-text="item.status_label"
+                                                ></span>
+                                            </div>
+                                        </div>
+
+                                        @if(!auth()->check() || !auth()->user()->isPicGudang())
+                                        <!-- Content Description snippet if matched (Hidden for PIC Gudang) -->
+                                        <div x-show="item.content_description" class="text-xs text-slate-500 dark:text-slate-400 italic line-clamp-2 pl-5">
+                                            <span class="text-slate-400 font-bold not-italic">Catatan:</span> <span x-text="item.content_description"></span>
+                                        </div>
+                                        @endif
+
+                                        <!-- Bottom Row: Physical Warehouse & Rack Location -->
+                                        <div class="flex items-center justify-between gap-2 pt-1 border-t border-slate-100 dark:border-slate-800 text-xs">
+                                            <div class="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 font-bold">
+                                                <svg class="w-3.5 h-3.5 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                                    <circle cx="12" cy="10" r="3"></circle>
+                                                </svg>
+                                                <span x-text="item.location"></span>
+                                            </div>
+
+                                            <span class="text-[11px] text-amber-600 dark:text-amber-400 font-bold hover:underline flex items-center gap-1 shrink-0">
+                                                Buka Detail Form 
+                                                <svg class="w-3 h-3 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                                    <polyline points="12 5 19 12 12 19"></polyline>
+                                                </svg>
+                                            </span>
+                                        </div>
                                     </div>
-
-                                    <!-- Periode & Status Badge (Di Bawah Departemen) -->
-                                    <div class="flex items-center gap-1.5 shrink-0">
-                                        <!-- Periode Dokumen -->
-                                        <span class="px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-bold whitespace-nowrap" x-text="item.periode_doc"></span>
-
-                                        <!-- Status Badge -->
-                                        <span 
-                                            :class="item.status === 'in_warehouse' ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30' : (item.status === 'borrowed' ? 'bg-purple-500/20 text-purple-700 dark:text-purple-300 border-purple-500/30' : 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/30')"
-                                            class="px-2 py-0.5 rounded border text-[11px] font-bold whitespace-nowrap"
-                                            x-text="item.status_label"
-                                        ></span>
-                                    </div>
-                                </div>
-
-                                <!-- Content Description snippet if matched -->
-                                <div x-show="item.content_description" class="text-xs text-slate-500 dark:text-slate-400 italic line-clamp-2 pl-5">
-                                    <span class="text-slate-400 font-bold not-italic">Catatan:</span> <span x-text="item.content_description"></span>
-                                </div>
-
-                                <!-- Bottom Row: Physical Warehouse & Rack Location -->
-                                <div class="flex items-center justify-between gap-2 pt-1 border-t border-slate-100 dark:border-slate-800 text-xs">
-                                    <div class="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 font-bold">
-                                        <svg class="w-3.5 h-3.5 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                                            <circle cx="12" cy="10" r="3"></circle>
-                                        </svg>
-                                        <span x-text="item.location"></span>
-                                    </div>
-
-                                    <span class="text-[11px] text-amber-600 dark:text-amber-400 font-bold hover:underline flex items-center gap-1 shrink-0">
-                                        Buka Detail Form 
-                                        <svg class="w-3 h-3 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                            <line x1="5" y1="12" x2="19" y2="12"></line>
-                                            <polyline points="12 5 19 12 12 19"></polyline>
-                                        </svg>
-                                    </span>
-                                </div>
+                                </template>
                             </div>
                         </template>
 
                         <!-- Empty Result State -->
                         <div x-show="!isLoading && searchResults.length === 0" class="p-6 text-center text-slate-500 dark:text-slate-400">
-                            <p class="font-bold text-xs text-slate-700 dark:text-slate-300">Tidak ada dokumen ditemukan</p>
-                            <p class="text-[11px] text-slate-500 mt-0.5">Tidak ditemukan berkas dengan kata kunci "<span class="font-bold text-amber-600 dark:text-amber-400" x-text="searchQuery"></span>"</p>
+                            <p class="font-bold text-xs text-slate-700 dark:text-slate-300">Tidak ada data ditemukan</p>
+                            <p class="text-[11px] text-slate-500 mt-0.5">Tidak ditemukan data dengan kata kunci "<span class="font-bold text-amber-600 dark:text-amber-400" x-text="searchQuery"></span>"</p>
                         </div>
                     </div>
 
@@ -2100,12 +2155,38 @@
                 },
 
                 selectArchive(archive) {
+                    if (archive.result_type === 'rack') {
+                        let url = archive.url || ('{{ route("master.warehouses.layout") }}?rack_id=' + (archive.rack_id || archive.id));
+                        url += (url.includes('?') ? '&embed=1' : '?embed=1');
+                        window.dispatchEvent(new CustomEvent('open-form-window', {
+                            detail: {
+                                id: 'warehouse_layout',
+                                title: 'Layout Gudang 2D',
+                                icon: 'map',
+                                url: url
+                            }
+                        }));
+                        // Post message directly to the layout iframe in case window is already open
+                        setTimeout(() => {
+                            const ifr = document.getElementById('iframe-warehouse_layout');
+                            if (ifr && ifr.contentWindow) {
+                                ifr.contentWindow.postMessage({
+                                    action: 'highlight_rack',
+                                    rack_id: archive.rack_id || archive.id,
+                                    rack_code: archive.rack_code
+                                }, '*');
+                            }
+                        }, 250);
+                        this.closeDropdown();
+                        return;
+                    }
+
                     const parentArchiveId = archive.archive_id || archive.id;
                     const detailId = 'archive_detail_' + parentArchiveId;
                     const boxLabel = archive.box_number ? archive.box_number : ('ID #' + parentArchiveId);
                     const docTitle = archive.document_name || archive.title || 'Dokumen Arsip';
                     const title = `[Detail] ${boxLabel} - ${docTitle}`;
-                    let url = archive.url || ('{{ url("/archives") }}/' + parentArchiveId);
+                    let url = archive.detail_url || archive.url || ('{{ url("/archives") }}/' + parentArchiveId);
                     url += (url.includes('?') ? '&embed=1' : '?embed=1');
 
                     window.dispatchEvent(new CustomEvent('open-form-window', {

@@ -2542,6 +2542,22 @@ function warehouseCanvasApp() {
             // Window Keyboard Arrow Listener for Selected Object Repositioning
             window.addEventListener('keydown', (e) => this.handleKeyDown(e));
 
+            // Window Message Listener for Communication from Parent Window (Header Search, Dashboard, etc.)
+            window.addEventListener('message', (e) => {
+                if (e.data && e.data.action === 'highlight_rack') {
+                    this.highlightRackByIdOrCode(e.data.rack_id, e.data.rack_code);
+                } else if (e.data && e.data.action === 'highlight_archive') {
+                    this.highlightArchiveById(e.data.archive_id);
+                }
+            });
+
+            // Window CustomEvent Listener for intra-window events
+            window.addEventListener('highlight-rack', (e) => {
+                if (e.detail) {
+                    this.highlightRackByIdOrCode(e.detail.rack_id, e.detail.rack_code);
+                }
+            });
+
             // Sync API Fullscreen state changes (e.g. User presses Esc natively)
             document.addEventListener('fullscreenchange', () => {
                 const isApiFullscreen = !!document.fullscreenElement;
@@ -2986,6 +3002,26 @@ function warehouseCanvasApp() {
                         if (updated) this.selectedRackForModal = updated;
                     }
                     this.renderCanvas();
+
+                    // Check for Query Parameters from URL (e.g. ?rack_id=... or ?rack_code=... or ?archive_id=...)
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const rackId = urlParams.get('rack_id') || urlParams.get('rack');
+                    const rackCode = urlParams.get('rack_code');
+                    const archiveId = urlParams.get('archive_id');
+
+                    if (rackId || rackCode) {
+                        this.$nextTick(() => {
+                            setTimeout(() => {
+                                this.highlightRackByIdOrCode(rackId, rackCode);
+                            }, 150);
+                        });
+                    } else if (archiveId) {
+                        this.$nextTick(() => {
+                            setTimeout(() => {
+                                this.highlightArchiveById(archiveId);
+                            }, 150);
+                        });
+                    }
                 }
             } catch (err) {
                 console.error('Error fetching layout:', err);
@@ -3884,15 +3920,17 @@ function warehouseCanvasApp() {
 
             // Blinking / Pulsing animation if matched by Search
             if (isBlinking) {
-                const pulse = (Math.sin(Date.now() / 140) + 1) / 2; // 0..1 oscillating
+                const pulse = (Math.sin(Date.now() / 100) + 1) / 2; // Fast pulsating effect
                 ctx.save();
-                ctx.shadowColor = '#fbbf24'; // Amber gold neon glow
-                ctx.shadowBlur = 20 + (pulse * 25);
-                ctx.strokeStyle = '#f59e0b';
+                ctx.shadowColor = '#f59e0b'; // Amber gold neon glow
+                ctx.shadowBlur = 20 + (pulse * 30);
+                
+                const expand = 3 + (pulse * 6);
+                ctx.strokeStyle = `rgba(245, 158, 11, ${0.85 + pulse * 0.15})`;
                 ctx.lineWidth = 4 + (pulse * 3);
-                ctx.strokeRect(x - 4, y - 4, w + 8, h + 8);
+                ctx.strokeRect(x - expand, y - expand, w + (expand * 2), h + (expand * 2));
 
-                ctx.fillStyle = `rgba(251, 191, 36, ${0.2 + pulse * 0.4})`;
+                ctx.fillStyle = `rgba(251, 191, 36, ${0.35 + pulse * 0.45})`;
                 ctx.fillRect(x, y, w, h);
                 ctx.restore();
             }
@@ -5312,6 +5350,52 @@ function warehouseCanvasApp() {
                 top: scrollY,
                 behavior: 'smooth'
             });
+        },
+
+        highlightRackByIdOrCode(rackId, rackCode) {
+            let rack = null;
+            if (rackId) {
+                rack = this.locations.find(l => String(l.id) === String(rackId));
+            }
+            if (!rack && rackCode) {
+                const cleanCode = String(rackCode).trim().toLowerCase();
+                rack = this.locations.find(l => 
+                    l.location_type !== 'room' && (
+                        (l.rack_code && l.rack_code.trim().toLowerCase() === cleanCode) ||
+                        (this.getRackIdentifier(l).toLowerCase() === cleanCode)
+                    )
+                );
+                if (!rack) {
+                    rack = this.locations.find(l => 
+                        (l.rack_code && l.rack_code.trim().toLowerCase().includes(cleanCode)) ||
+                        (cleanCode.includes(l.rack_code ? l.rack_code.trim().toLowerCase() : '')) ||
+                        (l.room_sector && l.room_sector.trim().toLowerCase().includes(cleanCode))
+                    );
+                }
+            }
+            if (rack) {
+                this.selectedLocations = [rack];
+                this.selectedLocation = rack;
+                this.panToLocation(rack);
+                this.triggerLocationBlink(rack);
+                this.showToast(`🗄️ Menemukan Rak '${rack.rack_code}' (Rak berkedip pada layout)`);
+            }
+        },
+
+        highlightArchiveById(archiveId) {
+            if (!archiveId) return;
+            const allRacks = this.locations.filter(l => l.location_type !== 'room');
+            for (const rack of allRacks) {
+                const slots = rack.slots || [];
+                const matchedSlot = slots.find(s => s.archive && String(s.archive.id) === String(archiveId));
+                if (matchedSlot) {
+                    this.selectSearchResult('box', {
+                        ...matchedSlot,
+                        rack: rack
+                    });
+                    return;
+                }
+            }
         }
     }
 }

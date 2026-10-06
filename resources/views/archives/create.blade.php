@@ -24,7 +24,7 @@
     </div>
 
     <!-- MAIN FORM WINDOW CARD -->
-    <form action="{{ route('archives.store', request()->has('embed') ? ['embed' => 1] : []) }}" method="POST" enctype="multipart/form-data" class="space-y-3">
+    <form id="archiveCreateForm" action="{{ route('archives.store', request()->has('embed') ? ['embed' => 1] : []) }}" method="POST" enctype="multipart/form-data" class="space-y-3">
         @csrf
         @if(request()->has('embed'))
             <input type="hidden" name="embed" value="1">
@@ -623,45 +623,54 @@
             </div>
         </fieldset>
 
-        <!-- SECTION 5: UPLOAD BERKAS DIGITAL & SCAN APPROVAL -->
+        <!-- SECTION 5: UPLOAD BERKAS DIGITAL & SCAN FORMULIR -->
         <fieldset class="border border-slate-300 dark:border-slate-800 p-3.5 rounded bg-white dark:bg-slate-950 shadow-sm space-y-3">
             <legend class="px-2 font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded shadow-sm flex items-center gap-1.5">
                 <i data-lucide="file-check" class="w-3.5 h-3.5 text-slate-500"></i>
                 5. Upload Berkas Digital & Scan Formulir
             </legend>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 font-mono text-xs">
-                <div>
-                    <label for="scan_input_form" class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Scan Formulir Input</label>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-xs">
+                <!-- 1. Scan Formulir Input (Wajib untuk Pengajuan) -->
+                <div class="p-3 bg-slate-50 dark:bg-slate-900/60 rounded border border-slate-200 dark:border-slate-800 space-y-1.5">
+                    <div class="flex items-center justify-between">
+                        <label for="scan_input_form" class="text-[11px] font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1">
+                            <span>Scan Formulir Input</span>
+                            <span class="text-rose-500 font-black">*</span>
+                        </label>
+                        <span class="px-1.5 py-0.2 bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30 rounded text-[9px] font-bold">
+                            WAJIB UNTUK PENGAJUAN
+                        </span>
+                    </div>
                     <input 
                         type="file" 
                         name="scan_input_form" 
                         id="scan_input_form" 
+                        @change="hasScanForm = !!$event.target.files.length"
                         accept=".pdf,.jpg,.jpeg,.png"
-                        class="w-full px-2 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-[11px] text-slate-700 dark:text-slate-300 file:mr-2 file:py-0.5 file:px-2 file:rounded file:border-0 file:text-[11px] file:font-bold file:bg-amber-500/20 file:text-amber-700 dark:file:text-amber-400"
+                        class="w-full px-2 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-[11px] text-slate-700 dark:text-slate-300 file:mr-2 file:py-0.5 file:px-2 file:rounded file:border-0 file:text-[11px] file:font-bold file:bg-amber-500/20 file:text-amber-700 dark:file:text-amber-400 cursor-pointer"
                     >
+                    <p class="text-[10px] text-slate-500">Format: PDF, JPG, PNG (Maksimal 10MB). Wajib diunggah sebelum pengajuan verifikasi box arsip.</p>
                 </div>
 
-                <div>
-                    <label for="scan_approval_input" class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Scan Bukti Approval Input</label>
-                    <input 
-                        type="file" 
-                        name="scan_approval_input" 
-                        id="scan_approval_input" 
-                        accept=".pdf,.jpg,.jpeg,.png"
-                        class="w-full px-2 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-[11px] text-slate-700 dark:text-slate-300 file:mr-2 file:py-0.5 file:px-2 file:rounded file:border-0 file:text-[11px] file:font-bold file:bg-amber-500/20 file:text-amber-700 dark:file:text-amber-400"
-                    >
-                </div>
-
-                <div>
-                    <label for="file" class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Lampiran Digital Dokumen</label>
+                <!-- 2. Lampiran Digital Dokumen (Opsional) -->
+                <div class="p-3 bg-slate-50 dark:bg-slate-900/60 rounded border border-slate-200 dark:border-slate-800 space-y-1.5">
+                    <div class="flex items-center justify-between">
+                        <label for="file" class="text-[11px] font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1">
+                            <span>Lampiran Digital Dokumen</span>
+                        </label>
+                        <span class="px-1.5 py-0.2 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded text-[9px] font-bold">
+                            OPSIONAL
+                        </span>
+                    </div>
                     <input 
                         type="file" 
                         name="file" 
                         id="file" 
                         accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.zip"
-                        class="w-full px-2 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-[11px] text-slate-700 dark:text-slate-300 file:mr-2 file:py-0.5 file:px-2 file:rounded file:border-0 file:text-[11px] file:font-bold file:bg-slate-500/20 file:text-slate-700 dark:file:text-slate-400"
+                        class="w-full px-2 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-[11px] text-slate-700 dark:text-slate-300 file:mr-2 file:py-0.5 file:px-2 file:rounded file:border-0 file:text-[11px] file:font-bold file:bg-slate-500/20 file:text-slate-700 dark:file:text-slate-400 cursor-pointer"
                     >
+                    <p class="text-[10px] text-slate-500">Format: PDF, JPG, DOCX, ZIP (Maksimal 10MB). Opsional untuk kelengkapan digital.</p>
                 </div>
             </div>
         </fieldset>
@@ -671,7 +680,7 @@
             <a href="{{ route('archives.index', request()->has('embed') ? ['embed' => 1] : []) }}" class="px-3.5 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded text-xs font-bold border border-slate-300 dark:border-slate-700 transition">
                 Batal
             </a>
-            <!-- Simpan Sebagai Draft (Simpan Sementara / PIC Dept) -->
+            <!-- Simpan Sebagai Draft (Simpan Sementara / PIC Dept) - Selalu Aktif -->
             <button 
                 type="submit" 
                 name="submit_action" 
@@ -684,12 +693,13 @@
             </button>
             <!-- Simpan & Ajukan Box Arsip -->
             <button 
-                type="submit" 
-                name="submit_action" 
-                value="submit" 
-                class="px-5 py-2 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black text-xs rounded border border-amber-600 shadow-md transition flex items-center gap-1.5 cursor-pointer"
+                type="button" 
+                @click="submitFinal('submit')"
+                :class="hasScanForm ? 'bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:from-amber-400 hover:to-amber-300 text-slate-950 border-amber-600 shadow-md cursor-pointer' : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-300 dark:border-slate-700 cursor-pointer'"
+                class="px-5 py-2 font-black text-xs rounded border transition flex items-center gap-1.5"
+                title="Simpan & Ajukan ke PIC Gudang (Wajib menyertakan Scan Formulir Input)"
             >
-                <i data-lucide="send" class="w-3.5 h-3.5 text-slate-950"></i>
+                <i data-lucide="send" class="w-3.5 h-3.5" :class="hasScanForm ? 'text-slate-950' : 'text-slate-400 dark:text-slate-500'"></i>
                 <span>Simpan & Ajukan Box Arsip (TB 30g)</span>
             </button>
         </div>
@@ -700,6 +710,7 @@
 <script>
 function archiveCreateApp() {
     return {
+        hasScanForm: false,
         departments: @json($departments),
         selectedCompany: '{{ old('company_name', 'PT Indraco Jaya Perkasa') }}',
         selectedDeptId: '{{ old('department_id', auth()->user()->isPicDept() ? auth()->user()->department_id : ($departments->first()->id ?? '')) }}',
@@ -804,6 +815,31 @@ function archiveCreateApp() {
                         it.document_name = this.masterArchives[idx % this.masterArchives.length].name;
                     }
                 });
+            }
+        },
+
+        submitFinal(action) {
+            if (!this.hasScanForm) {
+                alert('⚠️ PERHATIAN: BERKAS BELUM LENGKAP!\n\n"Scan Formulir Input" wajib diunggah sebelum mengajukan verifikasi box arsip.\n\nSilakan unggah Scan Formulir Input pada Bagian 5, atau klik tombol "Simpan Sementara (Draft)" jika ingin menyimpan data sementara tanpa pengajuan.');
+                const fileInput = document.getElementById('scan_input_form');
+                if (fileInput) {
+                    fileInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    fileInput.focus();
+                }
+                return;
+            }
+
+            const form = document.getElementById('archiveCreateForm');
+            if (form) {
+                let actionInput = form.querySelector('input[name="submit_action"]');
+                if (!actionInput) {
+                    actionInput = document.createElement('input');
+                    actionInput.type = 'hidden';
+                    actionInput.name = 'submit_action';
+                    form.appendChild(actionInput);
+                }
+                actionInput.value = action;
+                form.submit();
             }
         }
     };

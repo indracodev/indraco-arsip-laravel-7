@@ -35,8 +35,6 @@ class ArchiveController extends Controller
 
         if ($user->isPicDept()) {
             $query->where('department_id', $user->department_id);
-        } elseif ($user->isPicGudang()) {
-            $query->where('status', '!=', 'draft');
         }
 
         // Filters
@@ -149,7 +147,6 @@ class ArchiveController extends Controller
             'physical_condition' => 'required|string|max:100',
             'file' => 'nullable|file|mimes:pdf,jpg,png,doc,docx,zip|max:10240',
             'scan_input_form' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
-            'scan_approval_input' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
             'items' => 'nullable|array',
             'items.*.document_name' => 'nullable|string|max:255',
             'items.*.period_start' => 'nullable|string|max:50',
@@ -316,17 +313,18 @@ class ArchiveController extends Controller
             $filePath = $request->file('file')->store('archive_digital', 'public');
         }
 
+        $isDraft = ($request->input('submit_action') === 'draft' || $request->has('save_draft') || $request->input('action') === 'draft');
+        if (!$isDraft && !$request->hasFile('scan_input_form')) {
+            return back()->withInput()->withErrors([
+                'scan_input_form' => 'Scan Formulir Input wajib diunggah sebelum mengajukan verifikasi box arsip.'
+            ]);
+        }
+
         $scanInputFormPath = null;
         if ($request->hasFile('scan_input_form')) {
             $scanInputFormPath = $request->file('scan_input_form')->store('archive_scans', 'public');
         }
 
-        $scanApprovalInputPath = null;
-        if ($request->hasFile('scan_approval_input')) {
-            $scanApprovalInputPath = $request->file('scan_approval_input')->store('archive_scans', 'public');
-        }
-
-            $isDraft = ($request->input('submit_action') === 'draft' || $request->has('save_draft') || $request->input('action') === 'draft');
         $archiveStatus = $isDraft ? 'draft' : 'pending_verification';
 
         $archive = Archive::create([
@@ -352,7 +350,6 @@ class ArchiveController extends Controller
             'physical_condition' => $validated['physical_condition'],
             'file_path' => $filePath,
             'scan_input_form' => $scanInputFormPath,
-            'scan_approval_input' => $scanApprovalInputPath,
             'status' => $archiveStatus,
         ]);
 
@@ -465,7 +462,6 @@ class ArchiveController extends Controller
             'physical_condition' => 'required|string|max:100',
             'file' => 'nullable|file|mimes:pdf,jpg,png,doc,docx,zip|max:10240',
             'scan_input_form' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
-            'scan_approval_input' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
             'items' => 'nullable|array',
             'items.*.document_name' => 'nullable|string|max:255',
             'items.*.period_start' => 'nullable|string|max:50',
@@ -612,17 +608,18 @@ class ArchiveController extends Controller
             $filePath = $request->file('file')->store('archive_digital', 'public');
         }
 
+        $isDraft = ($request->input('submit_action') === 'draft' || $request->has('save_draft') || $request->input('action') === 'draft');
+        if (!$isDraft && empty($archive->scan_input_form) && !$request->hasFile('scan_input_form')) {
+            return back()->withInput()->withErrors([
+                'scan_input_form' => 'Scan Formulir Input wajib diunggah sebelum mengajukan verifikasi box arsip.'
+            ]);
+        }
+
         $scanInputFormPath = $archive->scan_input_form;
         if ($request->hasFile('scan_input_form')) {
             $scanInputFormPath = $request->file('scan_input_form')->store('archive_scans', 'public');
         }
 
-        $scanApprovalInputPath = $archive->scan_approval_input;
-        if ($request->hasFile('scan_approval_input')) {
-            $scanApprovalInputPath = $request->file('scan_approval_input')->store('archive_scans', 'public');
-        }
-
-        $isDraft = ($request->input('submit_action') === 'draft' || $request->has('save_draft') || $request->input('action') === 'draft');
         $archiveStatus = $isDraft ? 'draft' : 'pending_verification';
 
         $archive->update([
@@ -647,7 +644,6 @@ class ArchiveController extends Controller
             'physical_condition' => $validated['physical_condition'],
             'file_path' => $filePath,
             'scan_input_form' => $scanInputFormPath,
-            'scan_approval_input' => $scanApprovalInputPath,
             'status' => $archiveStatus,
         ]);
 
