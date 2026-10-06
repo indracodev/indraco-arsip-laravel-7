@@ -20,18 +20,12 @@ echo.
 :: ===============================================================================
 set "FOUND_PHP="
 
-:: 1. Prioritas Utama: Cek folder internal "environment" atau "evironment" (PHP 7.x / 8.0 / 8.1)
-if exist "%~dp0environment" (
-    for /d %%d in ("%~dp0environment\php-7*") do if exist "%%d\php.exe" set "FOUND_PHP=%%d"
-    if not defined FOUND_PHP for /d %%d in ("%~dp0environment\php-8.0*") do if exist "%%d\php.exe" set "FOUND_PHP=%%d"
-    if not defined FOUND_PHP for /d %%d in ("%~dp0environment\php-8.1*") do if exist "%%d\php.exe" set "FOUND_PHP=%%d"
-    if not defined FOUND_PHP if exist "%~dp0environment\php\php.exe" set "FOUND_PHP=%~dp0environment\php"
+:: 1. Prioritas Utama: Folder internal "evironment" atau "environment" lokal project
+if exist "%~dp0evironment" (
+    for /d %%d in ("%~dp0evironment\php*") do if exist "%%d\php.exe" set "FOUND_PHP=%%d"
 )
-if not defined FOUND_PHP if exist "%~dp0evironment" (
-    for /d %%d in ("%~dp0evironment\php-7*") do if exist "%%d\php.exe" set "FOUND_PHP=%%d"
-    if not defined FOUND_PHP for /d %%d in ("%~dp0evironment\php-8.0*") do if exist "%%d\php.exe" set "FOUND_PHP=%%d"
-    if not defined FOUND_PHP for /d %%d in ("%~dp0evironment\php-8.1*") do if exist "%%d\php.exe" set "FOUND_PHP=%%d"
-    if not defined FOUND_PHP if exist "%~dp0evironment\php\php.exe" set "FOUND_PHP=%~dp0evironment\php"
+if not defined FOUND_PHP if exist "%~dp0environment" (
+    for /d %%d in ("%~dp0environment\php*") do if exist "%%d\php.exe" set "FOUND_PHP=%%d"
 )
 
 :: 2. Prioritas Laragon (Prioritaskan PHP 7.4.x / 7.x / 8.0 / 8.1 yang kompatibel penuh dengan Laravel 7)
@@ -200,12 +194,10 @@ if not exist "database\database.sqlite" (
     
     echo [*] Menjalankan migrasi tabel database awal dan seeder master...
     php artisan migrate:fresh --seed --force
-    php artisan tinker --execute="DB::statement('PRAGMA journal_mode = WAL;');" >nul 2>&1
-    echo [OK] Database siap digunakan (SQLite WAL mode aktif).
+    echo [OK] Database siap digunakan [SQLite WAL mode aktif].
 ) else (
     echo [*] Memeriksa pembaruan skema database...
     php artisan migrate --force
-    php artisan tinker --execute="DB::statement('PRAGMA journal_mode = WAL;');" >nul 2>&1
 )
 
 :: ===============================================================================
@@ -260,11 +252,11 @@ echo ===========================================================================
 echo.
 
 :: Trigger pembukaan web browser otomatis
-start /b "" cmd /c "timeout /t 2 /nobreak >nul & start http://127.0.0.1:8000"
+start /b "" cmd /c "ping 127.0.0.1 -n 3 >nul & start http://127.0.0.1:8000"
 
 :: Jalankan artisan serve secara foreground
 php artisan serve --host=0.0.0.0 --port=8000
 
 echo.
 echo [OK] Server DMS PT Indraco telah dimatikan.
-timeout /t 2 >nul
+pause
