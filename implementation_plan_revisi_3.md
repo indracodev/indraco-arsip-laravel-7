@@ -2,13 +2,13 @@
 **Aplikasi:** Document Management System (DMS) PT Indraco (Laravel 7 Edition)  
 **Branch:** `danu-revisi-3`  
 **Target Lingkungan:** Full Offline / Localhost & Jaringan Lokal (LAN / WiFi Multi-User)  
-**Tujuan Utama:** Performa Maksimal, Realtime Super Ringan, Eliminasi AI-Slop & Micro-Text, Offline Independence, dan Zero N+1 Query (Preserving Exact Business Logic)  
+**Tujuan Utama:** Performa Maksimal, Realtime Super Ringan, Eliminasi AI-Slop & Micro-Text, Offline Independence, Zero N+1 Query, Diagnostik Latensi LAN Lemot, dan Error Handling Menyeluruh (Preserving Exact Business Logic)  
 
 ---
 
 ## 1. HASIL AUDIT ULANG TERTARGET (RE-AUDIT EVALUATION)
 
-Berdasarkan instruksi kebutuhan khusus (Full Offline, LAN Realtime, Eliminasi AI-Slop Design, dan Optimasi Query), audit mendalam menemukan 6 hambatan kritis berikut:
+Berdasarkan instruksi kebutuhan khusus (Full Offline, LAN Realtime, Eliminasi AI-Slop Design, Optimasi Query, dan Error Handling Komprehensif), audit mendalam menemukan 7 hambatan kritis:
 
 ### A. Ketergantungan Online Fatal (Zero Offline Readiness)
 - Seluruh antarmuka utama (`layouts/app.blade.php`, `layouts/desktop_pic.blade.php`, `auth/login.blade.php`) memuat **Tailwind CSS (`cdn.tailwindcss.com`)**, **Alpine.js (`cdn.jsdelivr.net`)**, **Lucide Icons (`unpkg.com`)**, dan **Google Fonts Inter/JetBrains Mono** via link internet CDN.
@@ -40,6 +40,11 @@ Berdasarkan instruksi kebutuhan khusus (Full Offline, LAN Realtime, Eliminasi AI
 - Trik CSS root font scaling manual pada `app.blade.php` merusak skala standar rem Tailwind CSS.
 - Duplikasi kode layout mencapai **>4.200 baris** antara `app.blade.php` (2.179 baris) dan `desktop_pic.blade.php` (2.115 baris).
 
+### F. Ketiadaan Error Handling Terstandarisasi & Diagnostik Jaringan LAN Lemot
+- Saat koneksi antar PC di jaringan WiFi/LAN lambat (*high latency / packet drop*), form input freeze atau muncul spinner tanpa akhir tanpa ada indikasi berapa ms latensi server.
+- Error backend (misal validasi gagal, file upload korup, SQLite busy/locked) sering kali hanya menampilkan halaman error generik "Whoops, looks like something went wrong" tanpa kode referensi atau petunjuk penanganan.
+- Tidak ada indikator visual kesehatan koneksi LAN (*LAN Connection Health Pill*) di status bar untuk membedakan antara server offline, koneksi lambat, atau database lock.
+
 ---
 
 ## 2. ARSITEKTUR SOLUSI & DESAIN TEKNIS
@@ -50,6 +55,7 @@ graph TD
         C1["Workstation PIC Dept (F2/F5/F9)"]
         C2["Workstation PIC Gudang"]
         C3["Workstation Super Admin"]
+        STATUS_PILL["Status Bar: LAN Latency Monitor (RTT ms)"]
     end
 
     subgraph OfflineAssets["2. 100% Offline Asset Engine"]
@@ -59,14 +65,20 @@ graph TD
         FONTS["Local WOFF2 Fonts (Inter / JetBrains)"]
     end
 
-    subgraph RealtimeEngine["3. Ultra-Lightweight Event Ledger (Realtime LAN)"]
-        EV_TABLE[("system_events Table / In-Memory Atomic Seq")]
-        POLL_REQ["Client Check: ?since_seq=X"] --> FAST_CHK{"Any Event > X?"}
-        FAST_CHK -- "Tidak Ada (99.9%)" --> HTTP304["HTTP 304 / {has_change: false} (< 1ms, 0 Count Query)"]
-        FAST_CHK -- "Ada Event Baru" --> EV_PAYLOAD["Return Diff Payload Saja (1 Query Indexed)"]
+    subgraph Diagnostics["3. Diagnostic & Error Handling Engine"]
+        PING_API["GET /api/health/ping (< 2ms Heartbeat)"]
+        ERR_HANDLER["Global Exception Handler + Trace ID"]
+        DIAG_MODAL["User-Friendly Error Modal (Salin Detail / Retry)"]
     end
 
-    subgraph StorageEngine["4. High-Performance SQLite & Query Engine"]
+    subgraph RealtimeEngine["4. Ultra-Lightweight Event Ledger (Realtime LAN)"]
+        EV_TABLE[("system_events Table")]
+        POLL_REQ["Client Check: ?since_seq=X"] --> FAST_CHK{"Any Event > X?"}
+        FAST_CHK -- "Tidak Ada (99.9%)" --> HTTP304["HTTP 304 / {has_change: false} (< 1ms)"]
+        FAST_CHK -- "Ada Event Baru" --> EV_PAYLOAD["Return Diff Payload Saja (1 Query)"]
+    end
+
+    subgraph StorageEngine["5. High-Performance SQLite & Query Engine"]
         WAL["PRAGMA journal_mode = WAL;"]
         TIMEOUT["PRAGMA busy_timeout = 5000;"]
         INDEXES["Composite Indexes (status, dept_id, dates)"]
@@ -74,8 +86,10 @@ graph TD
     end
 
     ClientLayer --> OfflineAssets
+    ClientLayer --> Diagnostics
     ClientLayer --> RealtimeEngine
     RealtimeEngine --> StorageEngine
+    Diagnostics --> StorageEngine
 ```
 
 ---
@@ -90,7 +104,7 @@ graph TD
 **Tujuan:** Aplikasi dapat dijalankan tanpa koneksi internet sama sekali dari file `.bat`.
 
 1. **Penyediaan Asset Lokal (`public/`):**
-   - Download dan bundle `tailwindcss.min.css` (kompilasi utility class yang digunakan) atau standalone compiler offline ke `public/css/vendor/tailwind.min.css`.
+   - Download dan bundle `tailwindcss.min.css` ke `public/css/vendor/tailwind.min.css`.
    - Simpan `alpine.min.js` ke `public/js/vendor/alpine.min.js`.
    - Simpan `lucide.min.js` ke `public/js/vendor/lucide.min.js`.
    - Download font `Inter` dan `JetBrains Mono` (.woff2) ke `public/fonts/` dengan `@font-face` lokal di `public/css/fonts.css`.
@@ -98,10 +112,10 @@ graph TD
    - Ubah default logo di `AppServiceProvider`, `SettingController`, dan migrasi dari `images/logo-indraco.png` menjadi `logo-indraco-est.png` yang sudah tersedia di root `public/`.
 3. **Penyempurnaan Auto-Launcher `START-DMS-INDRACO.bat`:**
    - Tambahkan pengecekan file `vendor/autoload.php`.
-   - Jika `vendor` belum ada, periksa apakah runtime composer/php lokal tersedia untuk menjalankan `composer install --no-dev --optimize-autoloader` secara otomatis.
+   - Jika `vendor` belum ada, jalankan `composer install --no-dev --optimize-autoloader` otomatis jika composer tersedia, atau tampilkan panduan yang jelas.
    - Aktifkan ekstensi PHP SQLite PDO secara otomatis pada `php.ini`.
 
-*Gate Check Fase 1:* Matikan koneksi internet (airplane mode / cabut kabel LAN). Buka aplikasi via `.bat` $\rightarrow$ seluruh styling, logo, font, icon, dan interaktivitas Alpine.js wajib berfungsi sempurna tanpa request gagal ke internet.
+*Gate Check Fase 1:* Matikan koneksi internet (airplane mode). Buka aplikasi via `.bat` $\rightarrow$ seluruh styling, logo, font, icon, dan interaktivitas Alpine.js wajib berfungsi 100% tanpa request ke internet.
 
 ---
 
@@ -127,22 +141,42 @@ graph TD
 
 ---
 
-### FASE 3: Ultra-Fast Incremental Realtime Event Engine
+### FASE 3: Diagnostik Koneksi LAN & Deteksi Jaringan Lemot
+**Tujuan:** Memantau latensi antar PC di jaringan LAN secara realtime dan memberikan umpan balik visual saat koneksi lambat.
+
+1. **Endpoint Ping Ultra-Ringan (`GET /api/health/ping`):**
+   - Mengembalikan response super-cepat tanpa query database:
+     ```json
+     { "status": "ok", "server_time": 1775437890 }
+     ```
+   - Execution time target: **< 2 milidetik**.
+2. **Client-side LAN Latency & RTT Monitor:**
+   - Script monitor berkala menghitung Round Trip Time (RTT):
+     $$\text{RTT} = \text{Date.now()} - \text{startTime}$$
+   - **Tingkat Kualitas Koneksi:**
+     - 🟢 **Lancar (< 50ms):** Indikator hijau pada footer status bar bertuliskan `LAN Cepat (12ms)`.
+     - 🟡 **Sedang (50ms - 250ms):** Indikator kuning bertuliskan `LAN Sedang (140ms)`.
+     - 🔴 **Lemot / Terhambat (> 250ms):** Indikator merah berkedip bertuliskan `LAN Lemot (380ms)`. Menampilkan peringatan non-intrusif: *"Koneksi LAN lambat. Sistem memproteksi dari double submission"*.
+     - ⚪ **Terputus (Timeout / Offline):** Banner atas merah: *"Terputus dari Komputer Host Server. Menghubungkan kembali dalam X detik..."*.
+3. **Graceful Request Timeout & Abort Controller:**
+   - Setiap fetch mutasi penting dilengkapi timeout 8 detik menggunakan `AbortController`.
+   - Tombol submit otomatis disable dan menampilkan state loading dengan indikator waktu: *"Menyimpan data... (Menunggu host)"*.
+
+*Gate Check Fase 3:* Simulasi network throttling pada browser DevTools (Slow 3G / 500ms latency). Indikator footer status bar langsung berubah warna dan mengidentifikasi status "LAN Lemot" secara akurat tanpa membuat antarmuka macet.
+
+---
+
+### FASE 4: Ultra-Fast Incremental Realtime Event Engine
 **Tujuan:** Notifikasi perubahan data antar komputer seketika (< 200ms) dengan penggunaan resource server mendekati nol.
 
 1. **Tabel Event Ledger Ringan (`system_events`):**
    - Kolom: `id` (bigint auto increment), `event_type` (varchar: `ARCHIVE_CREATED`, `ARCHIVE_STATUS_CHANGED`, `BORROWING_UPDATED`, `SLOT_ALLOCATED`), `module` (varchar), `reference_id` (varchar), `payload` (json nullable), `created_at` (datetime).
 2. **Event Dispatcher Otomatis:**
    - Buat helper/service `SystemEventStream::emit($type, $referenceId, $payload)`.
-   - Panggil saat:
-     - Draft diajukan / dibuat (`ArchiveController@store`).
-     - Verifikasi persetujuan / penolakan PIC Gudang (`ArchiveController@verify`).
-     - Checkin penempatan rak fisik (`ArchiveController@checkin`).
-     - Pengajuan / persetujuan / dispatch / return peminjaman (`BorrowingController`).
-     - Booking / unbooking slot canvas (`WarehouseLayoutController`).
+   - Panggil saat draft diajukan, verifikasi PIC Gudang, checkin rak, disposisi pinjam/kembali, dan booking slot canvas.
 3. **Endpoint Realtime Teroptimasi (`/api/realtime/events`):**
    - Client hanya mengirim parameter `?last_seq=X`.
-   - Server menjalankan query tunggal:
+   - Server menjalankan query tunggal berindeks:
      ```sql
      SELECT id, event_type, reference_id, payload, created_at 
      FROM system_events 
@@ -150,20 +184,49 @@ graph TD
      ORDER BY id ASC LIMIT 25;
      ```
    - Jika tidak ada event baru: Response instan `{ has_changes: false, latest_seq: X }` (0 query agregasi, ukuran payload < 50 byte).
-   - Menghilangkan 5 query `count()` berat per interval polling.
 4. **Client-side Event Listener:**
-   - Interval polling dapat dipersingkat menjadi 1-2 detik tanpa membebani server, memberikan efek "instant update" antar komputer di jaringan LAN.
-   - Client menerima event spesifik (misal: "Box X telah disetujui", "Peminjaman Box Y diajukan") dan langsung memperbarui baris tabel / toast tanpa perlu me-reload seluruh halaman.
+   - Interval polling dapat dipersingkat menjadi 1-2 detik tanpa membebani server.
+   - Client menerima event spesifik dan langsung memperbarui baris tabel / toast tanpa perlu me-reload seluruh halaman.
 
-*Gate Check Fase 3:* Buka 2 tab/browser berbeda. Lakukan pengajuan box di tab 1 $\rightarrow$ tab 2 menerima alert dan update status dalam waktu < 2 detik tanpa lonjakan beban CPU/SQLite.
+*Gate Check Fase 4:* Buka 2 tab/browser berbeda. Lakukan pengajuan box di tab 1 $\rightarrow$ tab 2 menerima alert dan update status dalam waktu < 2 detik tanpa lonjakan beban CPU/SQLite.
 
 ---
 
-### FASE 4: Optimasi Query, Eager Loading & Eliminasi N+1
+### FASE 5: Error Handling Komprehensif di Seluruh Modul
+**Tujuan:** Mempermudah staf IT & pengguna mengidentifikasi setiap error secara presisi.
+
+1. **Centralized Exception Handling (`app/Exceptions/Handler.php`):**
+   - Tangkap `QueryException`, `ModelNotFoundException`, `ValidationException`, dan `PostTooLargeException`.
+   - Format response error JSON terstandarisasi:
+     ```json
+     {
+         "success": false,
+         "error_code": "ERR_DB_LOCKED",
+         "message": "Basis data sedang sibuk memproses transaksi lain. Silakan coba kembali dalam beberapa detik.",
+         "trace_id": "ERR-20261006-A1B2",
+         "timestamp": "2026-10-06 09:10:00"
+     }
+     ```
+2. **Try-Catch & Atomic Database Transactions:**
+   - Bungkus seluruh operasi mutasi multi-tabel (`ArchiveController@store`, `verify`, `checkin`, `BorrowingController@dispatch`, `returnArchive`, `DestructionController@propose`) di dalam `DB::beginTransaction()` dan `DB::rollBack()`.
+   - Catat setiap kegagalan transaksi ke `ActivityLogger` dengan modul `ERROR_LOG`.
+3. **Komponen Modal Error Dialog Ramah Pengguna:**
+   - Buat komponen modal Alpine.js global `x-error-modal` yang otomatis muncul saat request gagal.
+   - Menampilkan:
+     - Pesan error dalam bahasa Indonesia yang manusiawi.
+     - Kode error & Trace ID (misal: `TRACE: ERR-20261006-A1B2`).
+     - Tombol *"Salin Detail Error"* (untuk dikirim ke tim IT via WhatsApp).
+     - Tombol *"Coba Lagi"* atau *"Tutup"*.
+
+*Gate Check Fase 5:* Simulasi kesalahan data dan matikan service database sementara. Sistem harus memunculkan modal error informatif dengan Trace ID unik tanpa merusak state antarmuka.
+
+---
+
+### FASE 6: Optimasi Query, Eager Loading & Eliminasi N+1
 **Tujuan:** Menghilangkan over-fetching, N+1 queries, dan perulangan sequential di backend.
 
 1. **Perbaikan `ArchiveController@index`:**
-   - Tambahkan eager loading `rackSlot` pada query utama untuk mematikan N+1 query pada kolom lokasi rak di tabel:
+   - Tambahkan eager loading `rackSlot` pada query utama untuk mematikan N+1 query:
      ```php
      $query->with([
          'department:id,code,name',
@@ -172,7 +235,6 @@ graph TD
          'location.warehouse:id,name,code',
          'rackSlot:id,slot_code,sap_level,layer,slot_number',
          'creator:id,name,role',
-         ...
      ]);
      ```
    - Terapkan proyeksi kolom (`select(...)`) pada relasi agar tidak mengambil blob/text yang tidak dibutuhkan di tabel daftar.
@@ -184,11 +246,11 @@ graph TD
 4. **Optimasi `AppServiceProvider` View Composer:**
    - Simpan hasil query `AppSetting` dalam cache statis per-request lifecycle (`static $cachedSettings = null;`), mencegah query schema berulang di setiap render view dan sub-component.
 
-*Gate Check Fase 4:* Ukur jumlah database query di halaman katalog dan dashboard (target: penurunan > 70% total query per request).
+*Gate Check Fase 6:* Ukur jumlah database query di halaman katalog dan dashboard (target: penurunan > 70% total query per request).
 
 ---
 
-### FASE 5: Pembersihan AI-Slop Design & Konsolidasi Layout Desktop
+### FASE 7: Pembersihan AI-Slop Design & Konsolidasi Layout Desktop
 **Tujuan:** Tampilan profesional, teks terbaca jelas (ergonomis), dan penghapusan duplikasi kode ribuan baris.
 
 1. **Konsolidasi Dual Layout (`layouts/app.blade.php` & `layouts/desktop_pic.blade.php`):**
@@ -206,11 +268,11 @@ graph TD
 3. **Penyederhanaan Font Scaling:**
    - Hapus trik manipulasi inline font-size CSS yang kompleks dan gantikan dengan scaling class standar yang stabil (`zoom-90`, `zoom-100`, `zoom-110`).
 
-*Gate Check Fase 5:* Evaluasi visual layout desktop workstation. Teks terbaca jelas di layar monitor 14" hingga 24", tata letak konsisten, dan ukuran berkas template berkurang drastis tanpa ada fungsi yang hilang.
+*Gate Check Fase 7:* Evaluasi visual layout desktop workstation. Teks terbaca jelas di layar monitor 14" hingga 24", tata letak konsisten, dan ukuran berkas template berkurang drastis tanpa ada fungsi yang hilang.
 
 ---
 
-### FASE 6: Penanganan Celah Otorisasi & Concurrency Safety
+### FASE 8: Penanganan Celah Otorisasi & Concurrency Safety
 **Tujuan:** Menutup celah keamanan dan memastikan integritas data box code & slot.
 
 1. **Proteksi Otorisasi API Canvas Gudang (P0):**
@@ -222,11 +284,11 @@ graph TD
    - Saat dokumen dikeluarkan (`dispatch`), kosongkan relasi slot pada arsip `warehouse_rack_slot_id = null`.
    - Saat pengembalian (`returnArchive`), periksa ketersediaan slot. Jika slot telah dipakai box lain, tandai arsip membutuhkan penempatan rak baru oleh PIC Gudang tanpa menimpa slot orang lain.
 
-*Gate Check Fase 6:* Jalankan test script untuk simulasi user `pic_dept` mengakses endpoint delete lokasi (harus HTTP 403 Forbidden). Uji 2 request approval paralel (nomor box wajib berurutan tanpa duplikasi).
+*Gate Check Fase 8:* Jalankan test script untuk simulasi user `pic_dept` mengakses endpoint delete lokasi (harus HTTP 403 Forbidden). Uji 2 request approval paralel (nomor box wajib berurutan tanpa duplikasi).
 
 ---
 
-### FASE 7: Codebase Hygiene & Pembersihan Dead Code
+### FASE 9: Codebase Hygiene & Pembersihan Dead Code
 **Tujuan:** Repository bersih, ramping, dan bebas dari artefak yang tidak berhubungan.
 
 1. **Penghapusan File Orphan E-Commerce:**
@@ -240,7 +302,7 @@ graph TD
    - Tambahkan `$this->call(SyncArchiveItemsSeeder::class);` di `DatabaseSeeder.php` agar data dummy memiliki rincian berkas.
    - Aktifkan konfigurasi SQLite in-memory pada `phpunit.xml`.
 
-*Gate Check Fase 7:* Jalankan `git status` dan pastikan struktur direktori rapi, bebas dari berkas sampah, dan suite test otomatis berjalan dengan bersih.
+*Gate Check Fase 9:* Jalankan `git status` dan pastikan struktur direktori rapi, bebas dari berkas sampah, dan suite test otomatis berjalan dengan bersih.
 
 ---
 
@@ -251,6 +313,8 @@ graph TD
 | **Konektivitas Aset** | Bergantung pada CDN internet publik | 100% lokal di `public/` (offline ready) | Server & client berjalan lancar tanpa internet |
 | **Beban Realtime LAN** | Polling 5 query count berat tiap 4 detik (750 qpm / 10 client) | Event Sequence Ledger query tunggal (< 1ms) + ETag | Penurunan beban query realtime > 90% |
 | **Cakupan Realtime** | Hanya insert box baru (`id > lastId`) | Seluruh event (Insert, Approval, Pinjam, Return) | Sinkronisasi status instan di semua layar |
+| **Deteksi LAN Lemot** | Tidak ada indikator, form freeze tanpa pesan | Status bar RTT monitor (Hijau/Kuning/Merah) + Smart Retry | Masalah jaringan LAN langsung teridentifikasi |
+| **Error Handling** | Halaman generik "Whoops", inspect console | Centralized Handler + Trace ID + Modal Salin Error | Troubleshooting cepat & transparan |
 | **SQLite Concurrency** | Rollback journal (rawan `database is locked`) | WAL mode + busy timeout 5000ms | Multi-user LAN tanpa lock contention |
 | **Query N+1 Katalog** | Eager load tidak lengkap (`rackSlot` N+1) | Eager load terpilih (`with` & `select`) | Penurunan query dari puluhan menjadi 2-3 query |
 | **Tipografi & Desain** | AI-slop micro-text (`text-[8px]`, `text-[9px]`) | Tipografi profesional ergonomis ($\ge$ 12px) | Mata tidak lelah, UI bersih & enterprise-grade |
