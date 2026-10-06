@@ -1669,13 +1669,28 @@
                     document.addEventListener('click', unlockHandler);
                     document.addEventListener('keydown', unlockHandler);
 
-                    // Polling every 4 seconds
-                    if (this.pollTimer) clearInterval(this.pollTimer);
-                    this.pollTimer = setInterval(() => this.pollNewArchives(), 4000);
+                    // Polling every 5 seconds with Page Visibility support
+                    const startPolling = () => {
+                        if (this.pollTimer) clearInterval(this.pollTimer);
+                        this.pollTimer = setInterval(() => this.pollNewArchives(), 5000);
+                    };
+                    startPolling();
+
+                    document.addEventListener('visibilitychange', () => {
+                        if (document.hidden) {
+                            if (this.pollTimer) {
+                                clearInterval(this.pollTimer);
+                                this.pollTimer = null;
+                            }
+                        } else {
+                            this.pollNewArchives();
+                            startPolling();
+                        }
+                    });
                 },
 
                 async pollNewArchives() {
-                    if (this.lastArchiveId === undefined || this.lastArchiveId === null) return;
+                    if (document.hidden || this.lastArchiveId === undefined || this.lastArchiveId === null) return;
                     try {
                         const res = await fetch(`{{ route("api.realtime.check") }}?last_id=${this.lastArchiveId}&since_seq=${this.lastEventSeq || 0}`);
                         if (!res.ok) return;
@@ -1764,7 +1779,11 @@
 
                 startSystemMonitor() {
                     this.updateStats();
-                    setInterval(() => this.updateStats(), 3000);
+                    setInterval(() => {
+                        if (!document.hidden) {
+                            this.updateStats();
+                        }
+                    }, 30000);
                 },
 
                 updateStats() {

@@ -30,15 +30,9 @@ class UpdateUserPresence
     {
         $response = $next($request);
 
-        // Only track authenticated users on standard web requests
-        if (Auth::check()) {
-            // Avoid overhead on ping/health polling endpoints or static asset requests
-            if (!$request->is('api/health/*') && 
-                !$request->is('css/*') && 
-                !$request->is('js/*') && 
-                !$request->is('images/*')) {
-                $this->presenceService->recordPresence(Auth::user(), $request);
-            }
+        // Only track authenticated users on standard web page navigations (exclude APIs and background pollers)
+        if (Auth::check() && $request->isMethod('GET') && !$request->expectsJson() && !$request->is('api/*')) {
+            $this->presenceService->recordPresence(Auth::user(), $request);
         }
 
         return $response;

@@ -187,7 +187,7 @@
 
             <!-- Modal Footer -->
             <div class="px-5 py-3 bg-slate-100 dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
-                <span class="text-[11px] text-slate-500">Auto-ping setiap 6 detik</span>
+                <span class="text-[11px] text-slate-500">Auto-ping setiap 15 detik</span>
                 <div class="flex items-center gap-2">
                     @if(auth()->check() && (auth()->user()->isAdmin() || auth()->user()->role === 'admin'))
                     <a href="{{ route('diagnostics.index') }}" target="_blank" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition">
@@ -268,11 +268,25 @@ function lanLatencyEngine() {
                 this.pingServer();
             }, 800);
 
-            this.timer = setInterval(() => {
-                if (!this.isBurstTesting) {
-                    this.pingServer();
+            const startTimer = () => {
+                if (this.timer) clearInterval(this.timer);
+                this.timer = setInterval(() => {
+                    if (!this.isBurstTesting && !document.hidden) {
+                        this.pingServer();
+                    }
+                }, 15000);
+            };
+            startTimer();
+
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden) {
+                    if (!this.isBurstTesting) this.pingServer();
+                    startTimer();
+                } else if (this.timer) {
+                    clearInterval(this.timer);
+                    this.timer = null;
                 }
-            }, 6000);
+            });
 
             this.$nextTick(() => {
                 if (window.lucide) lucide.createIcons();
@@ -280,6 +294,7 @@ function lanLatencyEngine() {
         },
 
         async pingServer() {
+            if (document.hidden) return;
             const start = performance.now();
             this.totalPings++;
             const controller = new AbortController();

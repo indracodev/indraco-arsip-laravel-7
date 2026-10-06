@@ -75,9 +75,9 @@
                 <div class="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 px-2.5 py-1 rounded-lg text-xs">
                     <span class="text-slate-500 dark:text-slate-400 text-[11px]">Interval:</span>
                     <select x-model="refreshInterval" @change="updateTimer()" class="bg-transparent text-slate-800 dark:text-slate-200 text-xs font-semibold focus:outline-none cursor-pointer">
-                        <option value="1000" class="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">1 Detik</option>
-                        <option value="3000" class="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200" selected>3 Detik</option>
                         <option value="5000" class="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">5 Detik</option>
+                        <option value="10000" class="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200" selected>10 Detik (Rekomendasi)</option>
+                        <option value="30000" class="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">30 Detik</option>
                         <option value="0" class="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">Jeda (Pause)</option>
                     </select>
                 </div>
@@ -711,8 +711,9 @@
             metrics: {},
             loading: false,
             pingRtt: null,
-            refreshInterval: 3000,
+            refreshInterval: 10000,
             timerId: null,
+            lastUsersHash: null,
             currentTheme: localStorage.getItem('theme') || 'light',
             
             // Connected Users state
@@ -793,6 +794,21 @@
                 this.measurePing();
                 this.fetchServerLogs();
                 this.updateTimer();
+
+                // Page Visibility: Jeda polling saat tab diminimalkan / tidak aktif di layar
+                document.addEventListener('visibilitychange', () => {
+                    if (document.hidden) {
+                        if (this.timerId) {
+                            clearInterval(this.timerId);
+                            this.timerId = null;
+                        }
+                    } else {
+                        this.fetchMetrics();
+                        this.measurePing();
+                        this.updateTimer();
+                    }
+                });
+
                 this.$watch('userStatusFilter', () => this.$nextTick(() => { if (window.lucide) window.lucide.createIcons(); }));
                 this.$watch('userSearchQuery', () => this.$nextTick(() => { if (window.lucide) window.lucide.createIcons(); }));
                 this.$nextTick(() => {
@@ -815,6 +831,7 @@
             },
 
             async measurePing() {
+                if (document.hidden) return;
                 const t0 = performance.now();
                 try {
                     const res = await fetch('{{ route("api.health.ping") }}?_t=' + Date.now(), { cache: 'no-store' });
@@ -827,11 +844,46 @@
             },
 
             async fetchMetrics() {
+                if (document.hidden) return;
                 this.loading = true;
                 try {
                     const res = await fetch('{{ route("api.health.metrics") }}?_t=' + Date.now(), { cache: 'no-store' });
                     if (res.ok) {
-                        this.metrics = await res.json();
+                        const newMetrics = await res.json();
+                        
+                        // Smart Diffing: Cek apakah data user ada perubahan riil
+                        const incomingHash = newMetrics.connected_users?.content_hash || 
+                            JSON.stringify(newMetrics.connected_users?.users?.map(u => ({ id: u.id, s: u.status, ip: u.ip, a: u.last_action, d: u.device })));
+
+                        if (!this.lastUsersHash || this.lastUsersHash !== incomingHash) {
+                            // Ada user baru / status berubah: Perbarui state & render ulang icon
+                            this.lastUsersHash = incomingHash;
+                            this.metrics = newMetrics;
+                            this.$nextTick(() => {
+                                if (window.lucide) window.lucide.createIcons();
+                            });
+                        } else {
+                            // Data user SAMA PERSIS: Jangan re-assign array user agar DOM tabel tidak di-render ulang!
+                            if (this.metrics.system) this.metrics.system = newMetrics.system;
+                            if (this.metrics.memory) this.metrics.memory = newMetrics.memory;
+                            if (this.metrics.diagnosis) this.metrics.diagnosis = newMetrics.diagnosis;
+                            if (this.metrics.database) this.metrics.database = newMetrics.database;
+                            if (this.metrics.connected_users) {
+                                this.metrics.connected_users.summary = newMetrics.connected_users.summary;
+                                // Patch relative time in-place pada user objects yang sudah ada tanpa mutasi array
+                                if (newMetrics.connected_users.users && this.metrics.connected_users.users) {
+                                    const newMap = new Map(newMetrics.connected_users.users.map(u => [u.id, u]));
+                                    for (const u of this.metrics.connected_users.users) {
+                                        const fresh = newMap.get(u.id);
+                                        if (fresh) {
+                                            u.last_seen_relative = fresh.last_seen_relative;
+                                            u.last_seen_time = fresh.last_seen_time;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
                         if (!this.targetIpInput && this.metrics.client && this.metrics.client.ip) {
                             this.targetIpInput = this.metrics.client.ip;
                         }
@@ -840,9 +892,6 @@
                     console.error('Failed fetching metrics:', e);
                 } finally {
                     this.loading = false;
-                    this.$nextTick(() => {
-                        if (window.lucide) window.lucide.createIcons();
-                    });
                 }
             },
 

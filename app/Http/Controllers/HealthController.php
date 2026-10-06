@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ActivityLog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class HealthController extends Controller
@@ -89,25 +90,26 @@ class HealthController extends Controller
         $walSizeKb = file_exists($walPath) ? round(filesize($walPath) / 1024, 1) : 0;
         $shmSizeKb = file_exists($shmPath) ? round(filesize($shmPath) / 1024, 1) : 0;
 
-        // 4. Traffic & Connected Client Logs
-        $recentClients = [];
-        try {
-            $recentClients = ActivityLog::select('ip_address', 'user_name', 'action', 'created_at')
-                ->whereNotNull('ip_address')
-                ->latest()
-                ->take(8)
-                ->get()
-                ->map(function ($item) {
-                    return [
-                        'ip' => $item->ip_address,
-                        'user' => $item->user_name,
-                        'action' => $item->action,
-                        'time' => $item->created_at ? $item->created_at->format('H:i:s d/m/Y') : '-',
-                    ];
-                });
-        } catch (\Throwable $e) {
-            // In case table not reachable
-        }
+        // 4. Traffic & Connected Client Logs (Cached 5 detik)
+        $recentClients = Cache::remember('telemetry_recent_clients', 5, function () {
+            try {
+                return ActivityLog::select('ip_address', 'user_name', 'action', 'created_at')
+                    ->whereNotNull('ip_address')
+                    ->latest()
+                    ->take(8)
+                    ->get()
+                    ->map(function ($item) {
+                        return [
+                            'ip' => $item->ip_address,
+                            'user' => $item->user_name,
+                            'action' => $item->action,
+                            'time' => $item->created_at ? $item->created_at->format('H:i:s d/m/Y') : '-',
+                        ];
+                    })->toArray();
+            } catch (\Throwable $e) {
+                return [];
+            }
+        });
 
         // 5. Automated AI & Engineer Diagnostic Verdict
 
@@ -180,7 +182,19 @@ class HealthController extends Controller
                 'wal_mode_active' => true,
             ],
             'recent_clients' => $recentClients,
-            'connected_users' => app(\App\Services\UserPresenceService::class)->getConnectedUsers(auth()->id()),
+            'connected_users' => (function () {
+                $data = Cache::remember('telemetry_connected_users', 4, function () {
+                    return app(\App\Services\UserPresenceService::class)->getConnectedUsers();
+                });
+                $currentId = auth()->id();
+                if (!empty($data['users']) && $currentId !== null) {
+                    foreach ($data['users'] as &$u) {
+                        $u['is_current_user'] = ($u['id'] === $currentId);
+                    }
+                    unset($u);
+                }
+                return $data;
+            })(),
             'diagnostic_key' => $diagnosticKey,
         ])->withHeaders([
             'Cache-Control' => 'no-cache, no-store, must-revalidate',
@@ -195,12 +209,23 @@ class HealthController extends Controller
      */
     public function connectedUsers(Request $request, \App\Services\UserPresenceService $presenceService): JsonResponse
     {
-        $data = $presenceService->getConnectedUsers(auth()->id());
+        $data = Cache::remember('telemetry_connected_users', 4, function () use ($presenceService) {
+            return $presenceService->getConnectedUsers();
+        });
+
+        $currentId = auth()->id();
+        if (!empty($data['users']) && $currentId !== null) {
+            foreach ($data['users'] as &$u) {
+                $u['is_current_user'] = ($u['id'] === $currentId);
+            }
+            unset($u);
+        }
 
         return response()->json([
             'status' => 'ok',
             'timestamp' => microtime(true),
             'summary' => $data['summary'],
+            'content_hash' => $data['content_hash'] ?? null,
             'users' => $data['users'],
         ])->withHeaders([
             'Cache-Control' => 'no-cache, no-store, must-revalidate',

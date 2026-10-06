@@ -306,7 +306,10 @@ class UserPresenceService
             ];
         }
 
-        // Sort: online first, then idle, then offline; within same status, most recently active first
+        // Deterministic Stable Sort:
+        // 1. Status: online (0) -> idle (1) -> offline (2)
+        // 2. Secondary tie-breaker: Nama alfabetis A-Z (stabil, posisi tidak lompat-lompat)
+        // 3. Tertiary tie-breaker: ID
         $statusOrder = ['online' => 0, 'idle' => 1, 'offline' => 2];
         usort($userList, function ($a, $b) use ($statusOrder) {
             $orderA = $statusOrder[$a['status']] ?? 3;
@@ -314,8 +317,24 @@ class UserPresenceService
             if ($orderA !== $orderB) {
                 return $orderA <=> $orderB;
             }
-            return $b['last_seen_timestamp'] <=> $a['last_seen_timestamp'];
+            $nameCompare = strcasecmp($a['name'] ?? '', $b['name'] ?? '');
+            if ($nameCompare !== 0) {
+                return $nameCompare;
+            }
+            return ($a['id'] ?? 0) <=> ($b['id'] ?? 0);
         });
+
+        // Fingerprint hash untuk diffing di frontend (hanya mendeteksi perubahan riil)
+        $fingerprintData = array_map(function ($u) {
+            return [
+                'id' => $u['id'],
+                'status' => $u['status'],
+                'ip' => $u['ip'],
+                'last_action' => $u['last_action'],
+                'device' => $u['device'],
+            ];
+        }, $userList);
+        $contentHash = md5(json_encode($fingerprintData));
 
         return [
             'summary' => [
@@ -325,6 +344,7 @@ class UserPresenceService
                 'offline_count' => $offlineCount,
                 'active_clients_count' => count($activeIps),
             ],
+            'content_hash' => $contentHash,
             'users' => $userList,
         ];
     }
