@@ -161,7 +161,10 @@
                     <button type="submit" 
                             :disabled="!hasApprovalFile"
                             :class="hasApprovalFile ? 'bg-rose-600 hover:bg-rose-500 text-white cursor-pointer shadow-lg shadow-rose-500/20' : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed'"
-                            onclick="return confirm('Apakah Anda yakin ingin mengesahkan pemusnahan berkas arsip ini? Tindakan ini tidak dapat dibatalkan.')" 
+                            data-confirm="Apakah Anda yakin ingin mengesahkan pemusnahan berkas arsip ini? Tindakan ini tidak dapat dibatalkan." 
+                            data-confirm-title="Pengesahan Pemusnahan Arsip (BAP)"
+                            data-confirm-type="danger"
+                            data-confirm-btn="Ya, Sahkan Pemusnahan"
                             class="px-6 py-2.5 rounded-xl font-black text-xs sm:text-sm transition flex items-center gap-2">
                         <i data-lucide="trash-2" class="w-4 h-4"></i>
                         Sah-kan Berita Acara Pemusnahan (BAP)

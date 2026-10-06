@@ -194,7 +194,12 @@
                                     <form :action="'{{ url('/master/departments') }}/' + dept.id" method="POST" class="inline" @submit="submitting = true">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" onclick="return confirm('Hapus departemen ini beserta seluruh konfigurasinya?')" class="px-2 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/30 rounded text-[11px] font-bold transition flex items-center gap-1" title="Hapus Departemen">
+                                        <button type="submit" 
+                                                :data-confirm="'Hapus departemen ' + dept.name + ' beserta seluruh konfigurasinya?'"
+                                                data-confirm-title="Hapus Departemen"
+                                                data-confirm-type="danger"
+                                                data-confirm-btn="Ya, Hapus"
+                                                class="px-2 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/30 rounded text-[11px] font-bold transition flex items-center gap-1" title="Hapus Departemen">
                                             <i data-lucide="trash-2" class="w-3 h-3 text-rose-500"></i> Hapus
                                         </button>
                                     </form>
@@ -282,7 +287,12 @@
                                                                 <form :action="'{{ url('/master/sub-departments') }}/' + sub.id" method="POST" class="inline" @submit="submitting = true">
                                                                     @csrf
                                                                     @method('DELETE')
-                                                                    <button type="submit" onclick="return confirm('Hapus sub-departemen ini?')" class="px-1.5 py-0.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/30 rounded text-[10px] font-bold transition flex items-center gap-1">
+                                                                    <button type="submit" 
+                                                                            :data-confirm="'Hapus sub-departemen ' + sub.name + '?'"
+                                                                            data-confirm-title="Hapus Sub-Departemen"
+                                                                            data-confirm-type="danger"
+                                                                            data-confirm-btn="Ya, Hapus"
+                                                                            class="px-1.5 py-0.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/30 rounded text-[10px] font-bold transition flex items-center gap-1">
                                                                         <i data-lucide="trash-2" class="w-2.5 h-2.5 text-rose-500"></i> Hapus
                                                                     </button>
                                                                 </form>
@@ -1702,8 +1712,14 @@ function masterDepartmentsManager() {
             });
         },
 
-        removePicUser(user) {
-            if (!confirm('Lepaskan penugasan PIC ' + user.name + ' dari departemen ini?')) return;
+        async removePicUser(user) {
+            const ok = await window.showConfirmModal({
+                title: 'Lepas Penugasan PIC',
+                message: 'Lepaskan penugasan PIC ' + user.name + ' dari departemen ini?',
+                type: 'warning',
+                confirmText: 'Ya, Lepaskan'
+            });
+            if (!ok) return;
             this.manageLoading = true;
             fetch('{{ url('/master/departments') }}/' + this.selectedManageDept.id + '/pic/' + user.id, {
                 method: 'DELETE',
@@ -1852,8 +1868,14 @@ function masterDepartmentsManager() {
             });
         },
 
-        deleteMasterArchive(arc) {
-            if (!confirm('Hapus master arsip "' + arc.name + '"?')) return;
+        async deleteMasterArchive(arc) {
+            const ok = await window.showConfirmModal({
+                title: 'Hapus Master Arsip',
+                message: 'Hapus master arsip "' + arc.name + '"?',
+                type: 'danger',
+                confirmText: 'Ya, Hapus'
+            });
+            if (!ok) return;
             this.manageLoading = true;
             fetch('{{ url('/master/departments') }}/' + this.selectedManageDept.id + '/master-archives/' + arc.id, {
                 method: 'DELETE',
@@ -1911,9 +1933,15 @@ function masterDepartmentsManager() {
             this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
         },
 
-        toggleDeptActive(dept) {
+        async toggleDeptActive(dept) {
             const actionText = dept.is_active !== false ? 'menonaktifkan' : 'mengaktifkan';
-            if (!confirm('Yakin ingin ' + actionText + ' departemen "' + dept.name + '"?')) return;
+            const ok = await window.showConfirmModal({
+                title: 'Ubah Status Departemen',
+                message: 'Yakin ingin ' + actionText + ' departemen "' + dept.name + '"?',
+                type: 'warning',
+                confirmText: 'Ya, Lanjutkan'
+            });
+            if (!ok) return;
             
             this.isLoading = true;
             fetch('{{ url('/master/departments') }}/' + dept.id + '/toggle-active', {
@@ -1939,9 +1967,15 @@ function masterDepartmentsManager() {
             });
         },
 
-        toggleSubDeptActive(sub, dept) {
+        async toggleSubDeptActive(sub, dept) {
             const actionText = sub.is_active !== false ? 'menonaktifkan' : 'mengaktifkan';
-            if (!confirm('Yakin ingin ' + actionText + ' sub-departemen "' + sub.name + '"?')) return;
+            const ok = await window.showConfirmModal({
+                title: 'Ubah Status Sub-Departemen',
+                message: 'Yakin ingin ' + actionText + ' sub-departemen "' + sub.name + '"?',
+                type: 'warning',
+                confirmText: 'Ya, Lanjutkan'
+            });
+            if (!ok) return;
             
             this.isLoading = true;
             fetch('{{ url('/master/sub-departments') }}/' + sub.id + '/toggle-active', {

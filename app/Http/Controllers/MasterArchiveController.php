@@ -196,23 +196,29 @@ class MasterArchiveController extends Controller
             ], 422);
         }
 
-        $createdCount = 0;
+        $now = now();
+        $batchToInsert = [];
 
         foreach ($names as $name) {
             $name = trim($name);
             if ($name === '') continue;
 
-            MasterArchive::create([
+            $batchToInsert[] = [
                 'department_id' => $department->id,
                 'sub_department_id' => $subDeptId,
                 'name' => $name,
                 'document_type' => $docType,
                 'retention_years' => $retentionYears,
-                'is_active' => true,
-            ]);
-
-            $createdCount++;
+                'is_active' => 1,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
         }
+
+        if (!empty($batchToInsert)) {
+            MasterArchive::insert($batchToInsert);
+        }
+        $createdCount = count($batchToInsert);
 
         ActivityLogger::log(
             'MASTER_ARCHIVE_BATCH_CREATE',

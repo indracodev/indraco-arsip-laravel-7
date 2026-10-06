@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Archive;
+use App\Models\ArchiveItem;
 use App\Models\Department;
 use App\Models\SubDepartment;
 use App\Models\WarehouseEntryLog;
@@ -335,9 +336,24 @@ class ArchiveController extends Controller
             'status' => $archiveStatus,
         ]);
 
-        // 6. Save items in archive_items table
-        foreach ($parsedItems as $itemData) {
-            $archive->items()->create($itemData);
+        // 6. Save items in archive_items table (Batch Insert)
+        if (!empty($parsedItems)) {
+            $now = now();
+            $itemsToInsert = array_map(function ($itemData) use ($archive, $now) {
+                return [
+                    'archive_id' => $archive->id,
+                    'item_number' => $itemData['item_number'],
+                    'document_name' => $itemData['document_name'],
+                    'period_start' => $itemData['period_start'] ?? null,
+                    'period_end' => $itemData['period_end'] ?? null,
+                    'period_text' => $itemData['period_text'] ?? null,
+                    'notes' => $itemData['notes'] ?? null,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+            }, $parsedItems);
+
+            ArchiveItem::insert($itemsToInsert);
         }
 
         if ($isDraft) {
@@ -595,10 +611,25 @@ class ArchiveController extends Controller
             'status' => $archiveStatus,
         ]);
 
-        // Sync items
+        // Sync items (Batch Insert)
         $archive->items()->delete();
-        foreach ($parsedItems as $itemData) {
-            $archive->items()->create($itemData);
+        if (!empty($parsedItems)) {
+            $now = now();
+            $itemsToInsert = array_map(function ($itemData) use ($archive, $now) {
+                return [
+                    'archive_id' => $archive->id,
+                    'item_number' => $itemData['item_number'],
+                    'document_name' => $itemData['document_name'],
+                    'period_start' => $itemData['period_start'] ?? null,
+                    'period_end' => $itemData['period_end'] ?? null,
+                    'period_text' => $itemData['period_text'] ?? null,
+                    'notes' => $itemData['notes'] ?? null,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+            }, $parsedItems);
+
+            ArchiveItem::insert($itemsToInsert);
         }
 
         if ($isDraft) {

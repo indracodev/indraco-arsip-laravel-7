@@ -4609,7 +4609,13 @@ function warehouseCanvasApp() {
 
         async unbookLocation() {
             if (!this.selectedLocation) return;
-            if (!confirm('Lepas status booking slot rak ini?')) return;
+            const ok = await window.showConfirmModal({
+                title: 'Lepas Status Booking',
+                message: 'Lepas status booking slot rak ini?',
+                type: 'warning',
+                confirmText: 'Ya, Lepaskan'
+            });
+            if (!ok) return;
             try {
                 const res = await fetch(`/api/warehouse/locations/${this.selectedLocation.id}/unbook`, {
                     method: 'POST',
@@ -4692,7 +4698,13 @@ function warehouseCanvasApp() {
                 confirmMsg = `Apakah Anda yakin ingin menghapus ${this.selectedLocations.length} object terseleksi dari canvas layout gudang?`;
             }
 
-            if (!confirm(confirmMsg)) return;
+            const ok = await window.showConfirmModal({
+                title: 'Hapus Object Canvas',
+                message: confirmMsg,
+                type: 'danger',
+                confirmText: 'Ya, Hapus'
+            });
+            if (!ok) return;
 
             const toDelete = [...this.selectedLocations];
             this.selectedLocations = [];
@@ -4987,9 +4999,13 @@ function warehouseCanvasApp() {
 
         async unassignCurrentSlot() {
             if (!this.selectedSlotDetail || !this.selectedRackForModal) return;
-            if (!confirm(`Apakah Anda yakin ingin mengosongkan slot ${this.selectedSlotDetail.slot_code}? Kardus arsip akan dilepaskan dari slot rak ini.`)) {
-                return;
-            }
+            const ok = await window.showConfirmModal({
+                title: 'Kosongkan Slot Rak',
+                message: `Apakah Anda yakin ingin mengosongkan slot ${this.selectedSlotDetail.slot_code}? Kardus arsip akan dilepaskan dari slot rak ini.`,
+                type: 'danger',
+                confirmText: 'Ya, Kosongkan'
+            });
+            if (!ok) return;
 
             this.slotAssignLoading = true;
             try {

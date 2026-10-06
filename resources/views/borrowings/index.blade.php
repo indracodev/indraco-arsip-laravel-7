@@ -206,7 +206,13 @@
                                 @elseif($bLog->status === 'dispatched')
                                     <form action="{{ route('borrowings.return', $bLog) }}" method="POST" class="inline" @submit="submitting = true">
                                         @csrf
-                                        <button type="submit" onclick="return confirm('Konfirmasi pengembalian berkas fisik ke gudang?')" :disabled="submitting" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black rounded-lg transition shadow-sm inline-flex items-center gap-1 disabled:opacity-50">
+                                        <button type="submit" 
+                                                data-confirm="Konfirmasi pengembalian berkas fisik ke gudang?" 
+                                                data-confirm-title="Pengembalian Berkas Fisik"
+                                                data-confirm-type="success"
+                                                data-confirm-btn="Ya, Konfirmasi Kembali"
+                                                :disabled="submitting" 
+                                                class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black rounded-lg transition shadow-sm inline-flex items-center gap-1 disabled:opacity-50">
                                             <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin" x-show="submitting"></i>
                                             <span>Konfirmasi Kembali</span>
                                         </button>

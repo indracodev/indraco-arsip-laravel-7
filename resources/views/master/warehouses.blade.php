@@ -122,7 +122,12 @@
                                 <form :action="'{{ url('/master/warehouses') }}/' + wh.id" method="POST" class="inline" @submit="submitting = true">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" onclick="return confirm('Hapus gudang ini?')" class="px-2 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/30 rounded text-[11px] font-bold transition flex items-center gap-1" title="Hapus Gudang">
+                                    <button type="submit" 
+                                            data-confirm="Hapus gudang ini beserta seluruh datanya?" 
+                                            data-confirm-title="Hapus Gudang"
+                                            data-confirm-type="danger"
+                                            data-confirm-btn="Ya, Hapus"
+                                            class="px-2 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/30 rounded text-[11px] font-bold transition flex items-center gap-1" title="Hapus Gudang">
                                         <i data-lucide="trash-2" class="w-3 h-3 text-rose-500"></i> Hapus
                                     </button>
                                 </form>
@@ -202,7 +207,12 @@
                                                         <form :action="'{{ url('/master/warehouses/locations') }}/' + loc.id" method="POST" class="inline" @submit="submitting = true">
                                                             @csrf
                                                             @method('DELETE')
-                                                            <button type="submit" onclick="return confirm('Hapus lokasi rak ini?')" class="p-1 text-rose-500 hover:bg-rose-500/10 rounded transition" title="Hapus Rak">
+                                                            <button type="submit" 
+                                                                    data-confirm="Hapus lokasi rak ini?" 
+                                                                    data-confirm-title="Hapus Lokasi Rak"
+                                                                    data-confirm-type="danger"
+                                                                    data-confirm-btn="Ya, Hapus"
+                                                                    class="p-1 text-rose-500 hover:bg-rose-500/10 rounded transition" title="Hapus Rak">
                                                                 <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                                                             </button>
                                                         </form>
@@ -1246,9 +1256,13 @@ function masterWarehousesManager() {
         async unassignCurrentSlot() {
             if (!this.selectedSlotDetail || !this.selectedSlotDetail.archive || !this.selectedRackForModal) return;
             const boxNum = this.selectedSlotDetail.archive.box_number || 'Box';
-            if (!confirm(`Lepas arsip [${boxNum}] dari slot ${this.selectedSlotDetail.slot_code}?`)) {
-                return;
-            }
+            const ok = await window.showConfirmModal({
+                title: 'Lepas Arsip dari Slot',
+                message: `Lepas arsip [${boxNum}] dari slot ${this.selectedSlotDetail.slot_code}?`,
+                type: 'warning',
+                confirmText: 'Ya, Lepaskan'
+            });
+            if (!ok) return;
 
             this.slotAssignLoading = true;
             try {

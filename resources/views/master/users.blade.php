@@ -122,7 +122,12 @@
                                         <div class="inline-flex items-center gap-1">
                                             <form :action="'{{ url('/master/users') }}/' + usr.id + '/impersonate'" method="POST" class="inline">
                                                 @csrf
-                                                <button type="submit" onclick="return confirm('Login sebagai user ' + usr.name + ' (' + usr.email + ')?')" class="px-2 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded text-[11px] font-bold transition inline-flex items-center gap-1 cursor-pointer" title="Login Sebagai User Ini (Impersonate)">
+                                                <button type="submit" 
+                                                        :data-confirm="'Login sebagai user ' + usr.name + ' (' + usr.email + ')?'"
+                                                        data-confirm-title="Konfirmasi Impersonasi Akun"
+                                                        data-confirm-type="warning"
+                                                        data-confirm-btn="Ya, Login As"
+                                                        class="px-2 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded text-[11px] font-bold transition inline-flex items-center gap-1 cursor-pointer" title="Login Sebagai User Ini (Impersonate)">
                                                     <i data-lucide="user-check" class="w-3 h-3"></i>
                                                     <span>Login As</span>
                                                 </button>
@@ -131,7 +136,12 @@
                                             <form :action="'{{ url('/master/users') }}/' + usr.id" method="POST" class="inline" @submit="submitting = true">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit" onclick="return confirm('Hapus user pengguna ini?')" class="px-2 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/30 rounded text-[11px] font-bold transition flex items-center gap-1 cursor-pointer" title="Hapus User">
+                                                <button type="submit" 
+                                                        :data-confirm="'Hapus user pengguna ' + usr.name + ' (' + usr.email + ')?'"
+                                                        data-confirm-title="Hapus User Pengguna"
+                                                        data-confirm-type="danger"
+                                                        data-confirm-btn="Ya, Hapus"
+                                                        class="px-2 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/30 rounded text-[11px] font-bold transition flex items-center gap-1 cursor-pointer" title="Hapus User">
                                                     <i data-lucide="trash-2" class="w-3 h-3 text-rose-500"></i> Hapus
                                                 </button>
                                             </form>

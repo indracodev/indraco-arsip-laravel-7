@@ -117,6 +117,7 @@
             lucide.createIcons();
         });
     </script>
+    @include('layouts.partials.confirm_modal')
     @stack('scripts')
 </body>
 </html>
@@ -1451,8 +1452,14 @@
                     });
                 },
 
-                resetLogo() {
-                    if (!confirm('Kembalikan logo sistem ke default PT Indraco?')) return;
+                async resetLogo() {
+                    const ok = await window.showConfirmModal({
+                        title: 'Reset Logo Sistem',
+                        message: 'Kembalikan logo sistem ke default PT Indraco?',
+                        type: 'warning',
+                        confirmText: 'Ya, Reset Logo'
+                    });
+                    if (!ok) return;
                     this.settingsSaving = true;
                     fetch('{{ route("master.settings.reset_logo") }}', {
                         method: 'POST',
@@ -1476,8 +1483,14 @@
                     });
                 },
 
-                clearLogsAction() {
-                    if (!confirm('PERINGATAN: Apakah Anda yakin ingin MENGOSONGKAN SELURUH LOG HISTORY (aktivitas sistem dan riwayat gudang)? Tindakan ini tidak dapat dibatalkan.')) return;
+                async clearLogsAction() {
+                    const ok = await window.showConfirmModal({
+                        title: 'Kosongkan Log History',
+                        message: 'PERINGATAN: Apakah Anda yakin ingin MENGOSONGKAN SELURUH LOG HISTORY (aktivitas sistem dan riwayat gudang)? Tindakan ini tidak dapat dibatalkan.',
+                        type: 'danger',
+                        confirmText: 'Ya, Kosongkan Log'
+                    });
+                    if (!ok) return;
                     this.maintenanceLoading = true;
                     fetch('{{ route("master.settings.clear_logs") }}', {
                         method: 'POST',
@@ -1499,8 +1512,14 @@
                     });
                 },
 
-                clearBoxAllocationsAction() {
-                    if (!confirm('PERINGATAN: Apakah Anda yakin ingin MENGOSONGKAN SEMUA PENEMPATAN BOX DI RAK GUDANG? Seluruh slot rak gudang akan direset menjadi kosong.')) return;
+                async clearBoxAllocationsAction() {
+                    const ok = await window.showConfirmModal({
+                        title: 'Kosongkan Penempatan Box di Rak',
+                        message: 'PERINGATAN: Apakah Anda yakin ingin MENGOSONGKAN SEMUA PENEMPATAN BOX DI RAK GUDANG? Seluruh slot rak gudang akan direset menjadi kosong.',
+                        type: 'danger',
+                        confirmText: 'Ya, Kosongkan Rak'
+                    });
+                    if (!ok) return;
                     this.maintenanceLoading = true;
                     fetch('{{ route("master.settings.clear_box_allocations") }}', {
                         method: 'POST',
@@ -1522,8 +1541,14 @@
                     });
                 },
 
-                clearArchivesAction() {
-                    if (!confirm('PERINGATAN KRUSIAL: Apakah Anda yakin ingin MENGOSONGKAN SELURUH DATA PENGAJUAN BOX ARSIP? Seluruh arsip, butir dokumen, dan riwayat transaksi peminjaman/pemusnahan akan DIHAPUS PERMANEN!')) return;
+                async clearArchivesAction() {
+                    const ok = await window.showConfirmModal({
+                        title: 'Hapus Seluruh Data Pengajuan Arsip',
+                        message: 'PERINGATAN KRUSIAL: Apakah Anda yakin ingin MENGOSONGKAN SELURUH DATA PENGAJUAN BOX ARSIP? Seluruh arsip, butir dokumen, dan riwayat transaksi peminjaman/pemusnahan akan DIHAPUS PERMANEN!',
+                        type: 'danger',
+                        confirmText: 'Lanjutkan Verifikasi'
+                    });
+                    if (!ok) return;
                     const confirmText = prompt('Ketik "RESET" dengan huruf besar untuk mengonfirmasi penghapusan seluruh data pengajuan arsip:');
                     if (confirmText !== 'RESET') {
                         alert('Penghapusan dibatalkan karena konfirmasi teks tidak sesuai.');
@@ -2140,6 +2165,7 @@
             });
         });
     </script>
+    @include('layouts.partials.confirm_modal')
     @stack('scripts')
 </body>
 </html>

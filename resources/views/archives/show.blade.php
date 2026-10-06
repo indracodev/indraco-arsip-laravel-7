@@ -113,7 +113,12 @@
             <form action="{{ route('archives.verify', $archive) }}" method="POST" class="inline">
                 @csrf
                 <input type="hidden" name="action" value="approve">
-                <button type="submit" onclick="return confirm('Setujui pengajuan arsip dan generate nomor box otomatis?')" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl shadow-lg transition flex items-center gap-2">
+                <button type="submit" 
+                        data-confirm="Setujui pengajuan arsip dan generate nomor box otomatis?" 
+                        data-confirm-title="Persetujuan Arsip"
+                        data-confirm-type="success"
+                        data-confirm-btn="Ya, Setujui"
+                        class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl shadow-lg transition flex items-center gap-2">
                     <i data-lucide="check-circle" class="w-4 h-4"></i> Setujui & Generate Box Code
                 </button>
             </form>

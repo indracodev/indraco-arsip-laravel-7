@@ -60,4 +60,60 @@ class ActivityLogger
             return null;
         }
     }
+
+    /**
+     * Record multiple activity log entries safely in a single batch insert.
+     * Prevents multiple sequential database writes and lock contention in SQLite.
+     *
+     * @param array $entries Array of items, each containing:
+     *                       ['action' => string, 'description' => string, 'module' => string,
+     *                        'properties' => array, 'reference_id' => string|null, 'user' => User|null]
+     * @return int Number of successfully recorded entries
+     */
+    public static function logBatch(array $entries): int
+    {
+        if (empty($entries)) {
+            return 0;
+        }
+
+        try {
+            $currentUser = Auth::user();
+            $ipAddress = request() ? request()->ip() : null;
+            $userAgent = request() ? request()->userAgent() : null;
+            $now = now();
+
+            $rows = [];
+            foreach ($entries as $e) {
+                $user = $e['user'] ?? $currentUser;
+                $props = $e['properties'] ?? [];
+                $encodedProps = !empty($props) ? (is_string($props) ? $props : json_encode($props)) : null;
+
+                $rows[] = [
+                    'user_id' => $user ? $user->id : null,
+                    'user_name' => $user ? $user->name : ($props['attempted_email'] ?? 'System / Anonymous'),
+                    'user_role' => $user ? $user->role : 'guest',
+                    'department_id' => $user ? $user->department_id : null,
+                    'action' => strtoupper($e['action'] ?? 'GENERAL'),
+                    'module' => strtoupper($e['module'] ?? 'GENERAL'),
+                    'description' => $e['description'] ?? '',
+                    'reference_id' => $e['reference_id'] ?? null,
+                    'ip_address' => $e['ip_address'] ?? $ipAddress,
+                    'user_agent' => $e['user_agent'] ?? $userAgent,
+                    'properties' => $encodedProps,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+            }
+
+            foreach (array_chunk($rows, 200) as $chunk) {
+                ActivityLog::insert($chunk);
+            }
+
+            return count($rows);
+        } catch (\Throwable $e) {
+            Log::error('Failed to write batch activity log: ' . $e->getMessage());
+            return 0;
+        }
+    }
 }
+

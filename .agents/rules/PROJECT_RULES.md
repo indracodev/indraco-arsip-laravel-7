@@ -108,6 +108,18 @@ Event::listen(ConnectionEstablished::class, function ($event) {
 - **Paging / Chunking**: Dilarang memanggil `->get()` tanpa batas pada tabel transaksi. Gunakan `paginate(20)` atau `chunk(100)` untuk background processing.
 - **Global View Composer Caching**: Jika sebuah data dibagikan ke banyak Blade view (seperti `AppSetting`), data **WAJIB di-cache di in-memory static variable** (lihat implementasi di [`AppServiceProvider.php`](file:///c:/laragon/www/indraco-arsip-laravel-7/app/Providers/AppServiceProvider.php#L48-L75)) agar tidak query ke database setiap kali Blade me-render partial view.
 
+### 3.4. Standar Batch Insert & Chunking (SQLite Limit Safety)
+SQLite versi 3.32+ memiliki limit bind parameter sebesar 32.766 (`SQLITE_LIMIT_VARIABLE_NUMBER`).
+1. **Wajib Batch Insert**: Setiap operasi yang menyimpan banyak baris relasional (seperti butir berkas arsip `ArchiveItem`, master arsip batch `MasterArchive`, atau slot rak gudang `WarehouseRackSlot`) **WAJIB** menggunakan `Model::insert($array)` — **DILARANG** melakukan loop `create()` berulang.
+2. **Aturan Chunking**: Jika data berpotensi lebih dari 200 baris, bagi ke dalam chunk 200-300 baris sebelum insert:
+   ```php
+   foreach (array_chunk($rowsToInsert, 250) as $chunk) {
+       Model::insert($chunk);
+   }
+   ```
+3. **High-Performance Batch Logger**:
+   Untuk pencatatan log aktivitas dalam jumlah banyak, gunakan `ActivityLogger::logBatch($entries)` yang otomatis mengeksekusi chunk insert dan json serialization tanpa membebani disk sync.
+
 ---
 
 ## 4. Layer 3: Network & LAN Access Latency
@@ -198,6 +210,29 @@ Seluruh library frontend disimpan secara lokal di `public/`:
 4. **Document Root Server**:
    - Server `php artisan serve` secara otomatis menetapkan direktori `public/` sebagai document root.
    - **DILARANG** menjalankan manual `php -S` dari root project tanpa parameter `-t public`, karena akan menyebabkan seluruh CSS dan JS menghasilkan HTTP 404.
+
+### 6.3. Standar Modal Konfirmasi UI (Zero Native Browser Popups)
+Untuk menjaga konsistensi tema (Tailwind Dark Mode / Slate / Amber / Rose) dan mencegah tampilan primitif browser OS:
+- **DILARANG KERAS** menggunakan `confirm(...)` atau `window.confirm(...)` bawaan browser.
+- **Gunakan Centralized Modal**: [`layouts/partials/confirm_modal.blade.php`](file:///c:/laragon/www/indraco-arsip-laravel-7/resources/views/layouts/partials/confirm_modal.blade.php).
+- **Form HTML Declarative**:
+  ```html
+  <button type="submit" 
+          data-confirm="Pesan konfirmasi..." 
+          data-confirm-title="Judul Modal" 
+          data-confirm-type="danger|warning|success|info" 
+          data-confirm-btn="Label Tombol">
+  ```
+- **JavaScript / Alpine.js (Promise-based)**:
+  ```javascript
+  const ok = await window.showConfirmModal({
+      title: 'Judul Konfirmasi',
+      message: 'Pesan penjelasan...',
+      type: 'danger', // danger | warning | success | info
+      confirmText: 'Ya, Lanjutkan'
+  });
+  if (!ok) return;
+  ```
 
 ---
 
