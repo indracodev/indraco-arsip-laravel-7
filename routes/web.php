@@ -8,6 +8,9 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
+// LAN Latency & System Diagnostics Endpoint (<2ms response)
+Route::get('/api/health/ping', 'HealthController@ping')->name('api.health.ping');
+
 // Guest Routes
 Route::middleware('guest')->group(function () {
     Route::get('/login', 'AuthController@showLogin')->name('login');

@@ -403,6 +403,9 @@
                 </template>
             </button>
 
+            <!-- LAN Latency & Diagnostics Monitor -->
+            @include('layouts.partials.lan_monitor')
+
             @auth
             <div class="flex items-center gap-2 border-l border-slate-800 pl-3">
                 <div class="text-right">

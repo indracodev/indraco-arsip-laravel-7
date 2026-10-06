@@ -672,6 +672,9 @@
                 </template>
             </button>
 
+            <!-- LAN Latency & Diagnostics Monitor -->
+            @include('layouts.partials.lan_monitor')
+
             @auth
             <div class="flex items-center gap-2 ml-1">
                 <span class="text-slate-300 font-bold text-[11px] hidden sm:inline">{{ auth()->user()->name }}</span>

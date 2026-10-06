@@ -139,6 +139,9 @@
             >
                 <i :data-lucide="soundEnabled ? 'volume-2' : 'volume-x'" class="w-3.5 h-3.5"></i>
             </button>
+
+            <!-- LAN Latency & Diagnostics Monitor -->
+            @include('layouts.partials.lan_monitor')
         </div>
     </header>
 
