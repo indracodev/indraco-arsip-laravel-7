@@ -226,45 +226,17 @@ php artisan route:cache >nul 2>&1
 php artisan view:cache >nul 2>&1
 
 :: ===============================================================================
-:: DETEKSI IP NETWORK LOKAL (WIFI / LAN)
+:: JALANKAN REALTIME SERVER RUNNER & STATIONARY DASHBOARD (ZERO-SCROLL TUI)
 :: ===============================================================================
-set "LOCAL_IP="
-for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /i "IPv4"') do (
-    if "!LOCAL_IP!"=="" (
-        set "temp_ip=%%a"
-        set "temp_ip=!temp_ip: =!"
-        if not "!temp_ip!"=="" set "LOCAL_IP=!temp_ip!"
-    )
+echo [*] Meluncurkan Realtime Server Runner & Stationary TUI...
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\server_runner.ps1" -PhpExe "!FOUND_PHP!\php.exe" -ProjectRoot "%~dp0" -Port 8000
+
+if %ERRORLEVEL% NEQ 0 (
+    echo [PERHATIAN] Fallback ke artisan serve standar...
+    php artisan serve --host=0.0.0.0 --port=8000
 )
-if "!LOCAL_IP!"=="" set "LOCAL_IP=127.0.0.1"
 
 echo.
-echo ===============================================================================
-echo   SELURUH REQUIREMENT LENGKAP - MEMULAI SERVER DMS PT INDRACO
-echo ===============================================================================
-echo.
-echo   * Direktori Project : %CD%
-echo   * IP Jaringan Lokal : !LOCAL_IP!
-echo.
-echo   * URL Akses Komputer Ini (Localhost) :
-echo     --^> http://127.0.0.1:8000  atau  http://localhost:8000
-echo.
-echo   * URL Akses Jaringan Komputer Lain / HP (WiFi/LAN Kantor) :
-echo     --^> http://!LOCAL_IP!:8000
-echo.
-echo ===============================================================================
-echo   PETUNJUK:
-echo   - Web browser akan otomatis terbuka dalam 2 detik.
-echo   - JIKA JENDELA INI DITUTUP [X] ATAU TEKAN Ctrl+C, SERVER OTOMATIS MATI TOTAL.
-echo ===============================================================================
-echo.
-
-:: Trigger pembukaan web browser otomatis
-start /b "" cmd /c "ping 127.0.0.1 -n 3 >nul & start http://127.0.0.1:8000"
-
-:: Jalankan artisan serve secara foreground
-php artisan serve --host=0.0.0.0 --port=8000
-
-echo.
-echo [OK] Server DMS PT Indraco telah dimatikan.
+echo [OK] Server DMS PT Indraco telah dimatikan secara bersih.
 pause
+
