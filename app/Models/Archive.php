@@ -57,6 +57,38 @@ class Archive extends Model
         'is_custom_doc_name' => 'boolean',
     ];
 
+    protected static function booted()
+    {
+        static::created(function ($archive) {
+            \App\Services\SystemEventStream::emit(
+                'archive_created',
+                'Archive',
+                $archive->id,
+                $archive->department_id,
+                ['box_number' => $archive->box_number, 'status' => $archive->status, 'title' => $archive->title]
+            );
+        });
+
+        static::updated(function ($archive) {
+            \App\Services\SystemEventStream::emit(
+                'archive_updated',
+                'Archive',
+                $archive->id,
+                $archive->department_id,
+                ['box_number' => $archive->box_number, 'status' => $archive->status, 'changes' => array_keys($archive->getChanges())]
+            );
+        });
+
+        static::deleted(function ($archive) {
+            \App\Services\SystemEventStream::emit(
+                'archive_deleted',
+                'Archive',
+                $archive->id,
+                $archive->department_id
+            );
+        });
+    }
+
     public function department(): BelongsTo
     {
         return $this->belongsTo(Department::class);

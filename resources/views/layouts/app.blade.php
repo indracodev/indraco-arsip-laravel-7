@@ -1298,6 +1298,7 @@
                 // Real-time Notification & Audio State
                 soundEnabled: localStorage.getItem('sound_enabled') !== 'false',
                 lastArchiveId: 0,
+                lastEventSeq: 0,
                 realtimeNotifications: [],
                 activeToasts: [],
                 unreadNotificationsCount: 0,
@@ -1620,12 +1621,13 @@
                 },
 
                 async initRealtimePoller() {
-                    // Initial baseline fetch to get latest ID without sounding alert
+                    // Initial baseline fetch to get latest ID and sequence without sounding alert
                     try {
                         const res = await fetch('{{ route("api.realtime.check") }}?initial=1');
                         if (res.ok) {
                             const data = await res.json();
                             this.lastArchiveId = data.latest_id || 0;
+                            this.lastEventSeq = data.latest_seq || 0;
                         }
                     } catch (e) {
                         console.warn('Realtime init poller error:', e);
@@ -1648,9 +1650,17 @@
                 async pollNewArchives() {
                     if (this.lastArchiveId === undefined || this.lastArchiveId === null) return;
                     try {
-                        const res = await fetch(`{{ route("api.realtime.check") }}?last_id=${this.lastArchiveId}`);
+                        const res = await fetch(`{{ route("api.realtime.check") }}?last_id=${this.lastArchiveId}&since_seq=${this.lastEventSeq || 0}`);
                         if (!res.ok) return;
                         const data = await res.json();
+
+                        if (data.latest_seq) {
+                            this.lastEventSeq = data.latest_seq;
+                        }
+
+                        if (data.has_changes) {
+                            window.dispatchEvent(new CustomEvent('dms:realtime-sync', { detail: data }));
+                        }
 
                         if (data.has_new && data.new_archives && data.new_archives.length > 0) {
                             this.lastArchiveId = data.latest_id;

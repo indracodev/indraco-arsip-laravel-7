@@ -36,6 +36,29 @@ class BorrowingLog extends Model
         'is_approval_uploaded' => 'boolean',
     ];
 
+    protected static function booted()
+    {
+        static::created(function ($log) {
+            \App\Services\SystemEventStream::emit(
+                'borrowing_created',
+                'BorrowingLog',
+                $log->id,
+                $log->archive ? $log->archive->department_id : null,
+                ['status' => $log->status]
+            );
+        });
+
+        static::updated(function ($log) {
+            \App\Services\SystemEventStream::emit(
+                'borrowing_updated',
+                'BorrowingLog',
+                $log->id,
+                $log->archive ? $log->archive->department_id : null,
+                ['status' => $log->status]
+            );
+        });
+    }
+
     public function archive(): BelongsTo
     {
         return $this->belongsTo(Archive::class);

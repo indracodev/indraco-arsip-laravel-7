@@ -6,8 +6,10 @@ use App\Models\Archive;
 use App\Models\BorrowingLog;
 use App\Models\Department;
 use App\Models\WarehouseLocation;
+use App\Services\SystemEventStream;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -357,10 +359,26 @@ class DashboardController extends Controller
     {
         $user = auth()->user();
         $lastId = (int) $request->get('last_id', 0);
+        $sinceSeq = (int) $request->get('since_seq', 0);
         $initial = (bool) $request->get('initial', false);
 
         $latestArchive = Archive::latest('id')->first();
-        $maxId = $latestArchive ? $latestArchive->id : 0;
+        $maxId = $latestArchive ? (int) $latestArchive->id : 0;
+        $maxSeq = SystemEventStream::getLatestSeq();
+
+        // 1. Ultra-fast idle check: if client has latest sequence and not initial load, return sub-ms response
+        if (!$initial && $sinceSeq > 0 && $sinceSeq >= $maxSeq) {
+            return response()->json([
+                'has_new' => false,
+                'has_changes' => false,
+                'latest_id' => max($maxId, $lastId),
+                'latest_seq' => $maxSeq,
+                'events' => [],
+                'new_archives' => [],
+                'count' => 0,
+                'stats' => null, // Omit stats on idle to eliminate 4 count queries
+            ]);
+        }
 
         // Base query for current user permissions
         $baseQuery = Archive::query();
@@ -378,18 +396,35 @@ class DashboardController extends Controller
             'borrowed' => (clone $baseQuery)->where('status', 'borrowed')->count(),
         ];
 
-        // If initial load or lastId is 0 or not provided, return the baseline without triggering alert
-        if ($initial || $lastId <= 0) {
+        // 2. Initial load baseline
+        if ($initial || ($lastId <= 0 && $sinceSeq <= 0)) {
             return response()->json([
                 'has_new' => false,
+                'has_changes' => false,
                 'latest_id' => $maxId,
+                'latest_seq' => $maxSeq,
+                'events' => [],
                 'new_archives' => [],
                 'count' => 0,
                 'stats' => $stats,
             ]);
         }
 
-        // Query new archives created after lastId
+        // 3. Query events since last seen sequence
+        $eventsQuery = DB::table('system_events')
+            ->where('id', '>', $sinceSeq);
+
+        if ($user && $user->isPicDept()) {
+            $eventsQuery->where(function ($q) use ($user) {
+                $q->whereNull('department_id')
+                  ->orWhere('department_id', $user->department_id);
+            });
+        }
+
+        $recentEvents = $eventsQuery->orderBy('id', 'asc')->limit(50)->get();
+        $hasChanges = $recentEvents->isNotEmpty();
+
+        // Query new archives created after lastId for backward compatibility
         $newArchivesQuery = Archive::with(['department', 'creator', 'location', 'subDepartment'])
             ->where('id', '>', $lastId);
 
@@ -421,7 +456,10 @@ class DashboardController extends Controller
 
         return response()->json([
             'has_new' => $hasNew,
+            'has_changes' => $hasChanges || $hasNew,
             'latest_id' => max($maxId, $lastId),
+            'latest_seq' => $maxSeq,
+            'events' => $recentEvents,
             'new_archives' => $items,
             'count' => $newArchives->count(),
             'stats' => $stats,

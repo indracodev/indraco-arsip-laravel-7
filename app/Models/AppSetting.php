@@ -15,6 +15,19 @@ class AppSetting extends Model
         'description',
     ];
 
+    protected static function booted()
+    {
+        static::saved(function ($setting) {
+            \App\Services\SystemEventStream::emit(
+                'setting_updated',
+                'AppSetting',
+                $setting->id,
+                null,
+                ['key' => $setting->key]
+            );
+        });
+    }
+
     /**
      * Get a setting value by key with optional default fallback.
      */
