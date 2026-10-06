@@ -1846,7 +1846,7 @@
                                         >
                                             <option value="">-- Pilih Departemen --</option>
                                             <template x-for="dept in departments" :key="dept.id">
-                                                <option :value="dept.id" x-text="dept.code + ' - ' + dept.name" :disabled="selectedRackForModal?.is_fat_locked && (dept.code || '').toUpperCase() !== 'FIN'"></option>
+                                                <option :value="dept.id" x-text="dept.code + ' - ' + dept.name" :disabled="isCurrentRackFatLocked() && !isFatDepartment(dept)"></option>
                                             </template>
                                         </select>
                                     </div>
@@ -1942,6 +1942,13 @@
 
                                 <!-- Mode 2: Form Pilih Dari Antrean Arsip -->
                                 <div x-show="slotAssignMode === 'existing_archive'" class="space-y-2">
+                                    <template x-if="isCurrentRackFatLocked()">
+                                        <div class="p-1.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/70 rounded flex items-center gap-1.5 text-[10px] text-rose-700 dark:text-rose-300 font-bold">
+                                            <i data-lucide="lock" class="w-3 h-3 text-rose-600 shrink-0"></i>
+                                            <span>Ruang <strong x-text="selectedRackForModal?.room_sector || 'R1/R2'"></strong> khusus Dept FAT (Hanya antrean FAT yang ditampilkan).</span>
+                                        </div>
+                                    </template>
+
                                     <div class="space-y-0.5">
                                         <label class="text-[10px] font-mono font-bold uppercase text-slate-700 dark:text-slate-300 block">Pilih Dokumen Arsip Terdaftar:</label>
                                         <select 
@@ -1949,14 +1956,12 @@
                                             class="w-full px-2 py-1 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 font-medium"
                                         >
                                             <option value="">-- Pilih Dari Antrean Arsip --</option>
-                                            <template x-for="arc in unassignedArchivesList" :key="arc.id">
-                                                <option :value="arc.id" x-text="'[' + arc.department_code + '] ' + (arc.box_number ? arc.box_number + ' - ' : '') + arc.title"></option>
+                                            <template x-for="arc in getFilteredUnassignedArchives()" :key="arc.id">
+                                                <option :value="arc.id" x-text="'[' + (arc.department_code || 'Dept') + '] ' + (arc.box_number ? arc.box_number + ' - ' : '') + arc.title"></option>
                                             </template>
                                         </select>
-                                        <template x-if="unassignedArchivesList.length === 0">
-                                            <p class="text-[10px] text-slate-500 italic pt-0.5 font-sans">
-                                                Tidak ada antrean arsip yang belum memiliki rak. Gunakan tab 'Input Dokumen Baru'.
-                                            </p>
+                                        <template x-if="getFilteredUnassignedArchives().length === 0">
+                                            <p class="text-[10px] text-slate-500 italic pt-0.5 font-sans" x-text="isCurrentRackFatLocked() ? 'Tidak ada antrean arsip dari Departemen FAT yang belum memiliki rak. Gunakan tab \'Input Dokumen Baru\'.' : 'Tidak ada antrean arsip yang belum memiliki rak. Gunakan tab \'Input Dokumen Baru\'.'"></p>
                                         </template>
                                     </div>
 
@@ -4881,14 +4886,46 @@ function warehouseCanvasApp() {
             return dept && dept.sub_departments ? dept.sub_departments : [];
         },
 
+        isCurrentRackFatLocked() {
+            if (!this.selectedRackForModal) return false;
+            const roomSector = String(this.selectedRackForModal.room_sector || '').trim().toUpperCase();
+            const rackCode = String(this.selectedRackForModal.rack_code || '').trim().toUpperCase();
+            return !!this.selectedRackForModal.is_fat_locked || 
+                   ['R1', 'R2', 'RUANG 1', 'RUANG 2', 'SEKTOR R1', 'SEKTOR R2'].includes(roomSector) ||
+                   /^R[12]$/i.test(roomSector) ||
+                   rackCode.startsWith('RAK-R1-') ||
+                   rackCode.startsWith('RAK-R2-');
+        },
+
+        isFatDepartment(deptOrArc) {
+            if (!deptOrArc) return false;
+            const code = String(deptOrArc.code || deptOrArc.department_code || '').trim().toUpperCase();
+            const name = String(deptOrArc.name || deptOrArc.department_name || '').trim().toUpperCase();
+            const fatCodes = ['FAT', 'FIN', 'ACC', 'TAX', 'FATCLM', 'FATCLAIM'];
+            return fatCodes.includes(code) || 
+                   name.includes('FAT') || 
+                   name.includes('KEUANGAN') || 
+                   name.includes('AKUNTANSI') || 
+                   name.includes('PAJAK') ||
+                   name.includes('FIN, ACC');
+        },
+
+        getFilteredUnassignedArchives() {
+            if (!this.unassignedArchivesList) return [];
+            if (!this.isCurrentRackFatLocked()) {
+                return this.unassignedArchivesList;
+            }
+            return this.unassignedArchivesList.filter(arc => this.isFatDepartment(arc));
+        },
+
         selectSlotForDetail(slot) {
             this.selectedSlotDetail = slot;
             if (!slot.archive) {
                 let defaultDeptId = '';
                 if (this.selectedRackForModal?.assigned_department_id) {
                     defaultDeptId = this.selectedRackForModal.assigned_department_id;
-                } else if (this.selectedRackForModal?.is_fat_locked) {
-                    const fin = this.departments.find(d => (d.code || '').toUpperCase() === 'FIN');
+                } else if (this.isCurrentRackFatLocked()) {
+                    const fin = this.departments.find(d => this.isFatDepartment(d));
                     if (fin) defaultDeptId = fin.id;
                 }
 
@@ -4919,6 +4956,22 @@ function warehouseCanvasApp() {
 
         async submitAssignSlot() {
             if (!this.selectedSlotDetail || !this.selectedRackForModal) return;
+
+            if (this.isCurrentRackFatLocked()) {
+                if (this.slotAssignMode === 'create_new') {
+                    const selectedDept = this.departments.find(d => d.id == this.slotAssignForm.department_id);
+                    if (selectedDept && !this.isFatDepartment(selectedDept)) {
+                        alert(`Akses Ditolak: Ruang ${this.selectedRackForModal.room_sector || 'R1/R2'} hanya diperuntukkan untuk Departemen FAT (FIN, ACC & TAX / FATCLAIM).`);
+                        return;
+                    }
+                } else {
+                    const selectedArc = this.unassignedArchivesList.find(a => a.id == this.slotAssignForm.archive_id);
+                    if (selectedArc && !this.isFatDepartment(selectedArc)) {
+                        alert(`Akses Ditolak: Ruang ${this.selectedRackForModal.room_sector || 'R1/R2'} hanya diperuntukkan untuk Departemen FAT. Dokumen dari departemen lain tidak dapat dialokasikan ke ruangan ini.`);
+                        return;
+                    }
+                }
+            }
 
             if (this.slotAssignMode === 'create_new') {
                 if (!this.slotAssignForm.department_id) {

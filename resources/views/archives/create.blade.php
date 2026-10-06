@@ -444,18 +444,18 @@
                     <thead>
                         <tr class="bg-slate-100 dark:bg-slate-900 border-b border-slate-300 dark:border-slate-700 font-mono text-[11px] text-slate-700 dark:text-slate-300">
                             <th class="py-2 px-2.5 w-10 text-center">NO</th>
-                            <th class="py-2 px-3">NAMA DOKUMEN / BERKAS ARSIP <span class="text-rose-500">*</span></th>
-                            <th class="py-2 px-2.5 w-44">PERIODE MULAI (BLN/THN) <span class="text-rose-500">*</span></th>
-                            <th class="py-2 px-2.5 w-44">PERIODE SELESAI (BLN/THN) <span class="text-rose-500">*</span></th>
-                            <th class="py-2 px-3 w-48">KETERANGAN (OPSIONAL)</th>
+                            <th class="py-2 px-3 min-w-[180px]">NAMA DOKUMEN / BERKAS ARSIP <span class="text-rose-500">*</span></th>
+                            <th class="py-2 px-2.5 w-40">PERIODE MULAI (BLN/THN) <span class="text-rose-500">*</span></th>
+                            <th class="py-2 px-2.5 w-40">PERIODE SELESAI (BLN/THN) <span class="text-rose-500">*</span></th>
+                            <th class="py-2 px-3 min-w-[200px]">KETERANGAN (OPSIONAL)</th>
                             <th class="py-2 px-2.5 w-12 text-center">AKSI</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
                         <template x-for="(item, index) in items" :key="item.id">
                             <tr class="hover:bg-emerald-500/5 transition">
-                                <td class="py-2 px-2.5 text-center font-mono font-bold text-slate-600 dark:text-slate-400" x-text="index + 1"></td>
-                                <td class="py-2 px-3">
+                                <td class="py-2 px-2.5 text-center font-mono font-bold text-slate-600 dark:text-slate-400 align-top pt-3" x-text="index + 1"></td>
+                                <td class="py-2 px-3 align-top">
                                     <!-- Searchable Dropdown from Master Archives or Custom Input -->
                                     <div class="space-y-1">
                                         <template x-if="!item.is_custom && masterArchives.length > 0">
@@ -557,7 +557,7 @@
                                         </template>
                                     </div>
                                 </td>
-                                <td class="py-2 px-2.5">
+                                <td class="py-2 px-2.5 align-top">
                                     <div class="relative flex items-center">
                                         <input 
                                             type="month" 
@@ -569,7 +569,7 @@
                                         >
                                     </div>
                                 </td>
-                                <td class="py-2 px-2.5">
+                                <td class="py-2 px-2.5 align-top">
                                     <div class="relative flex items-center">
                                         <input 
                                             type="month" 
@@ -581,16 +581,19 @@
                                         >
                                     </div>
                                 </td>
-                                <td class="py-2 px-3">
-                                    <input 
-                                        type="text" 
+                                <td class="py-2 px-3 align-top">
+                                    <textarea 
                                         :name="'items[' + index + '][notes]'" 
                                         x-model="item.notes" 
+                                        rows="1"
                                         placeholder="No. berkas fisik / catatan" 
-                                        class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-700 dark:text-slate-300 placeholder-slate-400 focus:outline-none focus:border-emerald-500"
-                                    >
+                                        @input="$el.style.height = 'auto'; $el.style.height = Math.max(34, $el.scrollHeight) + 'px'"
+                                        x-init="$nextTick(() => { $el.style.height = 'auto'; $el.style.height = Math.max(34, $el.scrollHeight) + 'px'; })"
+                                        class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-700 dark:text-slate-300 placeholder-slate-400 focus:outline-none focus:border-emerald-500 transition resize-none overflow-hidden leading-relaxed block shadow-2xs"
+                                        style="min-height: 34px;"
+                                    ></textarea>
                                 </td>
-                                <td class="py-2 px-2.5 text-center">
+                                <td class="py-2 px-2.5 text-center align-top pt-2">
                                     <button 
                                         @click="removeItem(index)" 
                                         type="button" 

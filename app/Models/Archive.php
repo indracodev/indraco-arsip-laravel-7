@@ -46,6 +46,7 @@ class Archive extends Model
     protected $appends = [
         'full_slot_location',
         'short_location',
+        'display_location',
     ];
 
     protected $casts = [
@@ -221,6 +222,27 @@ class Archive extends Model
         }
 
         return "{$sector} - {$rackLetter}{$slotNumStr}";
+    }
+
+    public function getDisplayLocationAttribute(): string
+    {
+        if (!$this->location) {
+            return 'Belum Ditentukan';
+        }
+
+        $whRaw = $this->location->warehouse ? trim($this->location->warehouse->name) : ($this->location->room_sector ?? 'Gudang');
+        $cleanWh = preg_replace('/^(Gudang\s+)+/i', '', $whRaw);
+        $whName = 'Gudang ' . trim($cleanWh);
+
+        if ($this->rackSlot && !empty($this->rackSlot->slot_code)) {
+            return "{$whName} - {$this->rackSlot->slot_code}";
+        }
+
+        if ($this->rackSlot) {
+            return "{$whName} - S{$this->rackSlot->slot_number}";
+        }
+
+        return "{$whName} - {$this->location->rack_code}";
     }
 
     public function getStatusLabelAttribute(): string

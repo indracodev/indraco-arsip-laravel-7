@@ -51,7 +51,11 @@ class WarehouseLayoutController extends Controller
                 $loc->load(['slots.archive.department', 'slots.archive.subDepartment', 'slots.archive.items']);
             }
 
-            $isFatLocked = (bool) ($loc->is_fat_locked || ($loc->warehouse && $loc->warehouse->is_fat_locked));
+            $roomSector = strtoupper(trim($loc->room_sector ?? ''));
+            $isFatLocked = (bool) ($loc->is_fat_locked 
+                || ($loc->warehouse && $loc->warehouse->is_fat_locked)
+                || in_array($roomSector, ['R1', 'R2', 'RUANG 1', 'RUANG 2', 'SEKTOR R1', 'SEKTOR R2'])
+                || preg_match('/^R[12]$/i', $roomSector));
 
             return [
                 'id' => $loc->id,
@@ -183,6 +187,7 @@ class WarehouseLayoutController extends Controller
                     'title' => $arc->title,
                     'department_id' => $arc->department_id,
                     'department_code' => $arc->department ? $arc->department->code : 'Dept',
+                    'department_name' => $arc->department ? $arc->department->name : '',
                     'periode_doc' => $arc->periode_doc ?? $arc->period_text,
                 ];
             });
@@ -274,16 +279,21 @@ class WarehouseLayoutController extends Controller
             'booking_notes' => 'required|string|max:500',
         ]);
 
-        // Business Rule: Room Locking for FAT
-        $isLocationFat = $location->is_fat_locked || ($location->warehouse && $location->warehouse->is_fat_locked);
+        // Business Rule: Room Locking for FAT (R1 & R2)
+        $roomSector = strtoupper(trim($location->room_sector ?? ''));
+        $isLocationFat = $location->is_fat_locked 
+            || ($location->warehouse && $location->warehouse->is_fat_locked)
+            || in_array($roomSector, ['R1', 'R2', 'RUANG 1', 'RUANG 2', 'SEKTOR R1', 'SEKTOR R2'])
+            || preg_match('/^R[12]$/i', $roomSector);
         $department = Department::find($validated['department_id']);
-        $isDeptFat = ($department && strtoupper($department->code) === 'FIN');
+        $deptCode = strtoupper(trim($department->code ?? ''));
+        $isDeptFat = ($department && (in_array($deptCode, ['FIN', 'FAT', 'FATCLM']) || stripos($department->name ?? '', 'FAT') !== false));
 
         if ($isLocationFat && !$isDeptFat) {
             $deptName = $department ? $department->name : 'Departemen';
             return response()->json([
                 'success' => false,
-                'message' => "Akses Ditolak: Lokasi rak '{$location->rack_code}' berada di Ruangan Khusus FAT (Finance, Accounting & Tax). Departemen {$deptName} tidak diizinkan mem-booking lokasi ini.",
+                'message' => "Akses Ditolak: Ruang {$location->room_sector} (Rak '{$location->rack_code}') hanya diperuntukkan untuk Departemen FAT (FIN, ACC & TAX / FATCLAIM). Departemen {$deptName} tidak diizinkan mem-booking lokasi ini.",
             ], 403);
         }
 
@@ -452,8 +462,12 @@ class WarehouseLayoutController extends Controller
             'archive_id' => 'required_if:mode,existing_archive|nullable|exists:archives,id',
         ]);
 
-        // Room Locking for FAT validation
-        $isLocationFat = $location->is_fat_locked || ($location->warehouse && $location->warehouse->is_fat_locked);
+        // Room Locking for FAT validation (R1 & R2)
+        $roomSector = strtoupper(trim($location->room_sector ?? ''));
+        $isLocationFat = $location->is_fat_locked 
+            || ($location->warehouse && $location->warehouse->is_fat_locked)
+            || in_array($roomSector, ['R1', 'R2', 'RUANG 1', 'RUANG 2', 'SEKTOR R1', 'SEKTOR R2'])
+            || preg_match('/^R[12]$/i', $roomSector);
 
         $departmentId = $validated['department_id'] ?? null;
         if ($validated['mode'] === 'existing_archive') {
@@ -463,12 +477,13 @@ class WarehouseLayoutController extends Controller
 
         if ($departmentId) {
             $department = Department::find($departmentId);
-            $isDeptFat = ($department && strtoupper($department->code) === 'FIN');
+            $deptCode = strtoupper(trim($department->code ?? ''));
+            $isDeptFat = ($department && (in_array($deptCode, ['FIN', 'FAT', 'FATCLM']) || stripos($department->name ?? '', 'FAT') !== false));
             if ($isLocationFat && !$isDeptFat) {
                 $deptName = $department ? $department->name : 'Departemen';
                 return response()->json([
                     'success' => false,
-                    'message' => "Akses Ditolak: Rak '{$location->rack_code}' berada di Ruangan Khusus FAT (Finance, Accounting & Tax). Departemen {$deptName} tidak diizinkan menempatkan arsip di rak ini.",
+                    'message' => "Akses Ditolak: Ruang {$location->room_sector} (Rak '{$location->rack_code}') hanya diperuntukkan untuk Departemen FAT (FIN, ACC & TAX / FATCLAIM). Dokumen Departemen {$deptName} tidak diizinkan dialokasikan ke ruangan ini.",
                 ], 403);
             }
         }
