@@ -1,10 +1,18 @@
+@php
+    $canOpenDiagnosticsModal = auth()->check() && auth()->user()->isSuperAdmin();
+@endphp
+
 {{-- PT INDRACO DMS - Realtime LAN Latency Monitor & Diagnostics Component --}}
 <div x-data="lanLatencyEngine()" x-init="startMonitoring()" class="inline-flex items-center">
-    <!-- LAN Latency Pill Button (Click to open Diagnostics Modal) -->
+    <!-- LAN Latency Pill Button (Click to open Diagnostics Modal only for Super Admin) -->
     <button type="button" 
+            @if($canOpenDiagnosticsModal)
             @click="isModalOpen = true"
             title="Klik untuk membuka Diagnostik Jaringan LAN"
-            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono font-medium border transition-all duration-200 select-none cursor-pointer focus:outline-none"
+            @else
+            title="Status Koneksi Jaringan LAN"
+            @endif
+            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono font-medium border transition-all duration-200 select-none {{ $canOpenDiagnosticsModal ? 'cursor-pointer' : 'cursor-default' }} focus:outline-none"
             :class="{
                 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800/60': status === 'good',
                 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800/60': status === 'medium',
@@ -57,19 +65,22 @@
                 : 'Respon server melambat. Transaksi data mungkin mengalami jeda.'">
             </p>
             <div class="flex items-center gap-2">
+                @if($canOpenDiagnosticsModal)
                 <button type="button" @click="isModalOpen = true; isSlowWarningVisible = false" 
-                        class="px-2.5 py-1 bg-white text-rose-900 font-bold rounded text-[11px] hover:bg-rose-50 transition">
+                        class="px-2.5 py-1 bg-white text-rose-900 font-bold rounded text-[11px] hover:bg-rose-50 transition cursor-pointer">
                     Diagnosa Jaringan
                 </button>
+                @endif
                 <button type="button" @click="isSlowWarningVisible = false" 
-                        class="px-2 py-1 bg-rose-700 hover:bg-rose-800 rounded text-[11px] text-rose-200 transition">
+                        class="px-2.5 py-1 bg-rose-700 hover:bg-rose-800 rounded text-[11px] text-rose-200 transition cursor-pointer">
                     Tutup
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- LAN Diagnostics Modal -->
+    @if($canOpenDiagnosticsModal)
+    <!-- LAN Diagnostics Modal (Super Admin Only) -->
     <div x-show="isModalOpen" 
          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs"
          style="display: none;"
@@ -199,6 +210,7 @@
             </div>
         </div>
     </div>
+    @endif
 </div>
 
 <script>
