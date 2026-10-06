@@ -314,7 +314,7 @@
                                 <span class="w-32 font-bold text-slate-600 shrink-0">Periode Dokumen</span>
                                 <span class="w-3 font-bold text-slate-600">:</span>
                                 <span class="font-black text-amber-700 bg-amber-50 px-1 rounded border border-amber-300">
-                                    {{ $item->periode_doc ?? ($item->period_start_date ? \Carbon\Carbon::parse($item->period_start_date)->format('Y/m') : ($item->period_text ?? '-')) }}
+                                    {{ $item->effective_periode }}
                                 </span>
                             </div>
 

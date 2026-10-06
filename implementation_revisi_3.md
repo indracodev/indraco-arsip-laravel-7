@@ -1,42 +1,44 @@
 # DOKUMEN REVISI FITUR SISTEM ARSIP DIGITAL (REVISI 3)
 **Project:** Indraco Arsip (Laravel 7)  
 **Path:** `C:\laragon\www\#Project2026\indraco-arsip-laravel-7`  
-**Tanggal:** 05 Oktober 2026  
-**Status Dokumen:** Rencana Kerja & Spesifikasi Implementasi Fitur (Penambahan Field Masa Berlaku dalam Bulan & Kalkulasi Otomatis Dokumen Expired Berdasarkan Tanggal Penyerahan)
+**Tanggal:** 06 Oktober 2026  
+**Status Dokumen:** Rencana Kerja & Spesifikasi Implementasi Fitur (Penyederhanaan Skema: Penambahan 1 Field Periode Dokumen Tanpa Perubahan Makro Database)
 
 ---
 
 ## 1. LATAR BELAKANG & TUJUAN FITUR
 
-Pada alur manajemen arsip fisik di PT Indraco, penentuan masa simpan aktif (*retention period*) dan tanggal jatuh tempo pemusnahan/kadaluarsa (*retention expiry date*) sangat bergantung pada waktu penyerahan fisik berkas ke Gudang Arsip.
+Pada operasional manajemen arsip fisik di PT Indraco, pencatatan waktu dan rentang dokumen pada setiap kardus/box arsip membutuhkan standarisasi yang jelas dan mudah dioperasikan oleh PIC Departemen maupun PIC Gudang.
 
-Sebelumnya, penentuan masa simpan diatur dalam satuan tahun baku (misal 5 tahun) atau inherit dari departemen. Namun pada kebutuhan operasional lapangan:
-1. Beberapa dokumen operasional memiliki masa berlaku yang lebih spesifik dalam hitungan **bulan** (misal: *6 bulan*, *12 bulan / 1 tahun*, *18 bulan*, *24 bulan / 2 tahun*, *36 bulan / 3 tahun*, *60 bulan / 5 tahun*).
-2. Acuan perhitungan tanggal kadaluarsa (*expiry date*) harus dihitung secara presisi dari:
-   $$\text{Tanggal Expired} = \text{Tanggal Penyerahan Dokumen} + \text{Masa Berlaku (Bulan)}$$
-3. Pengguna/PIC Pengaju membutuhkan **real-time visual feedback** di form pengajuan box arsip yang langsung menampilkan kalkulasi tanggal jatuh tempo kadaluarsa saat menginput tanggal penyerahan dan durasi masa berlaku.
+### Prinsip Utama Revisi 3:
+1. **Tidak Ada Perubahan Database Secara Makro:**
+   - Menghindari perombakan skema tabel secara masif, konversi kolom yang rumit, ataupun pembuatan relasi multi-tabel baru yang berisiko merusak data yang telah berjalan.
+   - Database tetap stabil, bersih (*lean*), dan mempertahankan kompatibilitas penuh dengan data arsip lama.
+2. **Penambahan Hanya 1 Field Periode:**
+   - Fokus utama perubahan skema database adalah penambahan **1 field tunggal `periode`** (bertipe `VARCHAR`/`STRING`, *nullable*) pada tabel arsip untuk mencatat identitas periode dokumen secara fleksibel, ringkas, dan seragam (contoh format: `YYYY/MM`, `YYYY/MM - YYYY/MM`, atau teks periode deskriptif).
+3. **Efisiensi Pengisian & Tampilan Terpadu:**
+   - PIC Pengaju dapat menginputkan periode dokumen kardus secara langsung dan jelas di Form Pengajuan Box (`create.blade.php` & `edit.blade.php`).
+   - Field `periode` ditampilkan secara seragam pada seluruh modul: Tabel Katalog Arsip (`index`), Detail Berkas (`show`), dan Cetak Stiker/Label Box 10x10 & Form A5 (`print_sticker`).
 
 ---
 
-## 2. ARSITEKTUR & ALUR LOGIKA KALKULASI
+## 2. ARSITEKTUR & ALUR DATA (MINIMALIS & NON-MAKRO)
 
 ```mermaid
 graph TD
-    A["Input Form Pengajuan Box (create / edit)"] --> B["Section 3: Tanggal Penyerahan & Wadah Fisik"]
+    A["Form Pengajuan & Edit Box (create / edit.blade.php)"] --> B["Section 3: Tanggal Penyerahan, Periode & Wadah Fisik"]
     B --> C["Field 1: Tgl. Penyerahan Dokumen (tgl_penyerahan)"]
-    B --> D["Field 2: Masa Berlaku / Retensi (retention_months)"]
+    B --> D["Field 2: PERIODE ARSIP (periode) ⚡ (1 Field Utama)"]
+    B --> E["Field 3: Kondisi Wadah Fisik (physical_condition)"]
     
-    C & D --> E["⚡ Realtime JS/Alpine.js Calculation Engine"]
-    E --> F["Preview Visual: Tanggal Expired (DD/MM/YYYY) & Sisa Durasi"]
+    B -->|Submit Form| F["ArchiveController (store / update)"]
+    F -->|Validasi & Sanitasi Data| G["Simpan ke DB: Field 'periode'"]
     
-    A -->|Submit Form| G["ArchiveController (store / update)"]
-    G --> H["Kalkulasi Backend: Carbon::parse(tgl_penyerahan)->addMonths(retention_months)"]
-    H --> I["Simpan ke DB: retention_months, retention_years, retention_expiry_date"]
+    G --> H[(Tabel archives - 1 Field Tambahan: 'periode')]
     
-    I --> J["Tabel DBGrid Arsip (Index)"]
-    I --> K["Detail Berkas Arsip (Show)"]
-    I --> L["Cetak Stiker Label Box 10x10 & Form A5 (Print Label)"]
-    I --> M["Audit & Monitoring Pemusnahan (Destruction Queue)"]
+    H --> I["Tabel DBGrid Arsip (Index View)"]
+    H --> J["Modal / Halaman Detail Berkas (Show View)"]
+    H --> K["Cetak Stiker Label Box 10x10 & Form A5 (Print View)"]
 ```
 
 ---
@@ -44,52 +46,45 @@ graph TD
 ## 3. SPESIFIKASI PERUBAHAN & DETAIL TEKNIS
 
 ### A. Perubahan Skema Database (Database Migration)
-1. **Migration Baru:** `database/migrations/2026_10_05_000001_add_retention_months_to_archives_table.php`
-   - Menambahkan kolom `retention_months` (integer, unsigned, default: 60) pada tabel `archives`.
-   - Melakukan migrasi data lama: mengisi `retention_months = retention_years * 12` untuk data arsip yang telah ada sebelumnya.
+Sesuai arahan agar tidak melakukan perubahan makro, migrasi hanya menambahkan **1 field `periode`** pada tabel `archives`:
 
-```php
-Schema::table('archives', function (Blueprint $table) {
-    $table->unsignedInteger('retention_months')->default(60)->after('retention_years')->comment('Masa simpan dalam satuan bulan');
-});
-```
+1. **File Migration:** `database/migrations/2026_10_06_000001_add_periode_to_archives_table.php`
+2. **Definisi Kolom:**
+   ```php
+   Schema::table('archives', function (Blueprint $table) {
+       // Menambahkan 1 field periode tunggal (string, nullable)
+       $table->string('periode', 100)->nullable()->after('title')->comment('Periode dokumen/arsip box');
+   });
+   ```
+3. **Rollback Migration (Down):**
+   ```php
+   Schema::table('archives', function (Blueprint $table) {
+       $table->dropColumn('periode');
+   });
+   ```
 
 ---
 
 ### B. Perubahan Model `Archive.php`
-1. **Fillable & Casts:**
-   - Menambahkan `'retention_months'` ke dalam array `$fillable`.
-   - Menambahkan `'retention_months' => 'integer'` ke dalam array `$casts`.
-2. **Accessors & Helper Methods:**
-   - `getFormattedRetentionPeriodAttribute()`: Menghasilkan label format masa berlaku (contoh: `"12 Bulan (1 Tahun)"` atau `"18 Bulan (1.5 Tahun)"` atau `"6 Bulan"`).
-   - `getEffectiveRetentionMonthsAttribute()`: Mengambil `retention_months` atau default konversi dari `retention_years * 12` atau fallback `60`.
-   - `getCalculatedExpiryDateAttribute()`: Helper getter `tgl_penyerahan + retention_months`.
+1. **Fillable Array:**
+   - Menambahkan `'periode'` ke dalam `$fillable`.
+2. **Accessor / Helper Display:**
+   - Memastikan pemanggilan `$archive->periode` menghasilkan string periode yang rapi.
+   - Helper fallback: Jika `periode` belum terisi pada data lama, otomatis mengambil fallback dari `periode_doc`, `period_text`, atau tanggal penyerahan.
 
 ---
 
-### C. Antarmuka Form Pengajuan & Edit Box Arsip (`create.blade.php` & `edit.blade.php`)
+### C. Antarmuka Form Pengajuan & Edit Box (`create.blade.php` & `edit.blade.php`)
 
-Pada **SECTION 3: TANGGAL PENYERAHAN & WADAH FISIK BOX**:
-1. **Layout Grid 3 Kolom:**
+Pada **SECTION 3: TANGGAL PENYERAHAN, PERIODE & WADAH FISIK BOX**:
+1. **Layout Input Rapi & Terstruktur (3 Kolom):**
    - **Kolom 1: TGL. PENYERAHAN DOKUMEN** (`tgl_penyerahan`)
-     - Input date (maksimal hari ini / tanggal serah terima fisik).
-     - Reaktif mentrigger update tanggal kadaluarsa.
-   - **Kolom 2: MASA BERLAKU / RETENSI ARSIP (BULAN)** (`retention_months`)
-     - Input number (dalam bulan, minimal 1 bulan, default: 60 bulan / 5 tahun).
-     - **Preset Quick-Click Buttons:**
-       - `6 Bln` (0.5 Thn)
-       - `12 Bln` (1 Thn)
-       - `24 Bln` (2 Thn)
-       - `36 Bln` (3 Thn)
-       - `60 Bln` (5 Thn)
-       - `120 Bln` (10 Thn)
-     - **Live Calculated Preview Banner (Alpine.js):**
-       - Menampilkan kartu/badge kalkulasi otomatis:
-         - **Tanggal Expired:** `DD/MM/YYYY` (contoh: *05/10/2027*)
-         - **Estimasi:** *1 Tahun (12 Bulan)*
-         - **Status:** *Aktif / Berlaku*
+     - Input date (maksimal hari ini).
+   - **Kolom 2: PERIODE DOKUMEN (BULAN)** (`periode_bulan` / `periode`)
+     - Input angka bulan dengan suffix *Bulan* (contoh: `1 Bulan`, `3 Bulan`, `4 Bulan`, `15 Bulan`, dll.).
+     - Dilengkapi deretan tombol cepat (*quick preset chips*): `1 Bln`, `3 Bln`, `4 Bln`, `6 Bln`, `12 Bln`, `15 Bln`, `24 Bln`, `60 Bln`.
    - **Kolom 3: KONDISI / WADAH FISIK BERKAS** (`physical_condition`)
-     - Input teks spesifikasi wadah fisik (default: `Baik / Box Karton Standar TB 30g`).
+     - Input spesifikasi wadah fisik (default: `Baik / Box Karton Standar TB 30g`).
 
 ---
 
@@ -98,46 +93,45 @@ Pada **SECTION 3: TANGGAL PENYERAHAN & WADAH FISIK BOX**:
 1. **Method `store(Request $request)` & `update(Request $request, Archive $archive)`:**
    - **Validasi Input:**
      ```php
-     'retention_months' => 'required|integer|min:1|max:600',
-     ```
-   - **Kalkulasi Tanggal Expired:**
-     ```php
-     $tglPenyerahan = Carbon::parse($validated['tgl_penyerahan']);
-     $retentionMonths = (int) $validated['retention_months'];
-     $retentionYears = (int) ceil($retentionMonths / 12);
-     
-     // Tanggal Expired dihitung dari tgl_penyerahan + masa berlaku dalam bulan
-     $retentionExpiryDate = $tglPenyerahan->copy()->addMonths($retentionMonths)->format('Y-m-d');
+     'periode' => 'nullable|string|max:100',
+     'tgl_penyerahan' => 'required|date|before_or_equal:today',
+     'physical_condition' => 'required|string|max:100',
      ```
    - **Penyimpanan:**
-     - Simpan `retention_months`, `retention_years`, dan `retention_expiry_date`.
+     - Simpan langsung value field `periode` ke model `Archive` tanpa transformasi kompleks yang memberatkan sistem.
 
 ---
 
-### E. Integrasi View Lainnya (Index, Show, Print Label, & Destructions)
+### E. Integrasi View Tampilan (Index, Detail Show, & Print Label)
 
 1. **`resources/views/archives/index.blade.php` (DBGrid Table):**
-   - Kolom **MASA SIMPAN (EXPIRY)** menampilkan info durasi bulan/tahun dan tanggal expired hasil kalkulasi, dengan highlight badge jika status *Expiring Soon* (<= 90 hari) atau *Expired*.
+   - Menampilkan kolom **PERIODE** dengan format teks yang jelas pada baris daftar arsip.
 2. **`resources/views/archives/show.blade.php` (Detail View):**
-   - Panel **Masa Simpan & Expiry** menampilkan:
-     - Durasi Retensi: `X Bulan (Y Tahun)`
-     - Tanggal Penyerahan: `DD/MM/YYYY`
-     - Tanggal Jatuh Tempo / Pemusnahan: `DD/MM/YYYY`
-     - Sisa Waktu / Status Kadaluarsa.
-3. **`resources/views/archives/print_sticker.blade.php` (Cetak Label A5 & Stiker 10x10):**
-   - Menampilkan informasi Masa Berlaku (Bulan/Tahun) dan Tanggal Kadaluarsa secara proporsional.
+   - Menampilkan informasi **Periode Berkas / Dokumen** pada panel ringkasan identitas box.
+3. **`resources/views/archives/print_sticker.blade.php` (Cetak Label Stiker 10x10 & Form A5):**
+   - Menampilkan data `periode` pada template cetak label box kardus secara proporsional dan mudah dibaca oleh staf gudang.
 
 ---
 
 ## 4. CHECKLIST RENCANA IMPLEMENTASI
 
-- [ ] **Langkah 1:** Buat file migrasi `2026_10_05_000001_add_retention_months_to_archives_table.php` dan jalankan `php artisan migrate`.
-- [ ] **Langkah 2:** Perbarui model `App\Models\Archive` (fillable, casts, helper accessors).
-- [ ] **Langkah 3:** Perbarui `ArchiveController.php` pada method `store` dan `update` untuk memvalidasi dan mengkalkulasi `retention_expiry_date` dari `tgl_penyerahan + retention_months`.
-- [ ] **Langkah 4:** Perbarui antarmuka Form Input `resources/views/archives/create.blade.php` (Section 3: field input bulan, preset buttons, live calculation preview Alpine.js).
-- [ ] **Langkah 5:** Perbarui antarmuka Form Edit `resources/views/archives/edit.blade.php` (Section 3: sync data bulan & live calculation preview).
-- [ ] **Langkah 6:** Perbarui tampilan detail `resources/views/archives/show.blade.php`, index `resources/views/archives/index.blade.php`, dan cetak label `resources/views/archives/print_sticker.blade.php`.
-- [ ] **Langkah 7:** Uji coba end-to-end (pengisian form pengajuan baru, edit data, cek hasil kalkulasi tanggal expired, dan filter dokumen kadaluarsa).
+- [x] **Langkah 1: Database Migration**  
+  Buat migration `2026_10_06_000001_add_periode_to_archives_table.php` (hanya menambahkan 1 field `periode`) dan jalankan `php artisan migrate`.
+
+- [x] **Langkah 2: Update Model `Archive.php`**  
+  Tambahkan `'periode'` ke `$fillable` dan siapkan helper accessor yang backward-compatible.
+
+- [x] **Langkah 3: Update Controller `ArchiveController.php`**  
+  Sesuaikan validasi dan mapping field `periode` pada method `store()` dan `update()`.
+
+- [x] **Langkah 4: Update Form Pengajuan & Edit (`create.blade.php` & `edit.blade.php`)**  
+  Terapkan input field `periode` pada Section 3 dengan layout responsif dan bersih.
+
+- [x] **Langkah 5: Update Tampilan Data (`index.blade.php`, `show.blade.php`, & `print_sticker.blade.php`)**  
+  Tampilkan field `periode` secara seragam pada tabel daftar, modal detail, dan cetak label stiker.
+
+- [x] **Langkah 6: Validasi & Pengujian**  
+  Uji coba penginputan arsip baru, edit arsip, verifikasi kelengkapan data di database, dan pastikan tidak ada efek samping pada fitur yang sudah ada.
 
 ---
-*Dokumen ini dibuat sebagai panduan teknis implementasi Revisi 3 Sistem DMS Indraco Arsip (Laravel 7).*
+*Dokumen ini telah diperbarui sesuai arahan: struktur database dipertahankan tetap stabil dan ramping (hanya menambahkan 1 field periode).*

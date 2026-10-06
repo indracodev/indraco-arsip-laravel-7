@@ -264,7 +264,7 @@
                         </td>
 
                         <td class="py-2.5 px-3 font-mono text-[11px] text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800 whitespace-nowrap">
-                            {{ $archive->period_text ?? ($archive->period_start_date ? $archive->period_start_date->format('M Y') : '-') }}
+                            {{ $archive->effective_periode }}
                         </td>
 
                         <td class="py-2.5 px-3 font-mono text-[11px] text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800 whitespace-nowrap">

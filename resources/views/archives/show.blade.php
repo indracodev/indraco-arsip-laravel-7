@@ -225,9 +225,9 @@
                     <div class="p-3 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-800">
                         <span class="text-slate-500 dark:text-slate-400 block mb-1">Tgl. Penyerahan & Periode:</span>
                         <span class="font-bold text-amber-600 dark:text-amber-400 text-sm">
-                            {{ $archive->tgl_penyerahan ? $archive->tgl_penyerahan->format('d/m/Y') : ($archive->period_text ?? '-') }}
-                            @if($archive->periode_doc)
-                                <span class="font-mono text-xs bg-amber-500/20 px-1.5 py-0.5 rounded ml-1">({{ $archive->periode_doc }})</span>
+                            {{ $archive->tgl_penyerahan ? $archive->tgl_penyerahan->format('d/m/Y') : '-' }}
+                            @if($archive->effective_periode && $archive->effective_periode !== '-')
+                                <span class="font-mono text-xs bg-amber-500/20 px-1.5 py-0.5 rounded ml-1">({{ $archive->effective_periode }})</span>
                             @endif
                         </span>
                     </div>

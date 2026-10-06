@@ -20,6 +20,7 @@ class Archive extends Model
         'title',
         'is_custom_doc_name',
         'custom_doc_name',
+        'periode',
         'period_start_date',
         'period_end_date',
         'period_text',
@@ -116,6 +117,25 @@ class Archive extends Model
             $p = $item->period_text ? " ({$item->period_text})" : "";
             return ($idx + 1) . ". {$item->document_name}{$p}";
         })->implode("\n");
+    }
+
+    public function getEffectivePeriodeAttribute(): string
+    {
+        if (!empty($this->periode)) {
+            return (string) $this->periode;
+        }
+        if (!empty($this->periode_doc)) {
+            return (string) $this->periode_doc;
+        }
+        if (!empty($this->period_text)) {
+            return (string) $this->period_text;
+        }
+        if ($this->period_start_date && $this->period_end_date) {
+            $s = Carbon::parse($this->period_start_date)->format('Y/m');
+            $e = Carbon::parse($this->period_end_date)->format('Y/m');
+            return $s === $e ? $s : "{$s} - {$e}";
+        }
+        return '-';
     }
 
     public function getEffectiveTitleAttribute(): string

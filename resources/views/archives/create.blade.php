@@ -338,14 +338,14 @@
             </div>
         </fieldset>
 
-        <!-- SECTION 3: TANGGAL PENYERAHAN & SPESIFIKASI WADAH -->
+        <!-- SECTION 3: TANGGAL PENYERAHAN, PERIODE & SPESIFIKASI WADAH -->
         <fieldset class="border border-amber-500/40 p-3.5 rounded bg-amber-500/5 dark:bg-amber-950/20 shadow-sm space-y-3">
             <legend class="px-2 font-mono text-[11px] font-bold text-amber-800 dark:text-amber-400 bg-amber-100 dark:bg-slate-800 border border-amber-400 dark:border-amber-700 rounded shadow-sm flex items-center gap-1.5">
                 <i data-lucide="calendar" class="w-3.5 h-3.5 text-amber-600"></i>
-                3. Tanggal Penyerahan & Wadah Fisik Box
+                3. Tanggal Penyerahan, Periode & Wadah Fisik Box
             </legend>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <!-- Tgl Penyerahan (Disatukan sebagai tanggal serah terima & periode pengajuan, max hari ini) -->
                 <div>
                     <label for="tgl_penyerahan" class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
@@ -360,7 +360,43 @@
                         required 
                         class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition"
                     >
-                    <span class="text-[10px] text-slate-500 dark:text-slate-400 font-mono block mt-0.5">Tanggal serah terima fisik ke Gudang Arsip (maksimal hari ini)</span>
+                    <span class="text-[10px] text-slate-500 dark:text-slate-400 font-mono block mt-0.5">Tanggal serah terima fisik ke Gudang (maks. hari ini)</span>
+                </div>
+
+                <!-- Periode Dokumen / Arsip (Angka Bulan: 1 bulan, 3 bulan, 4 bulan, 15 bulan, dll.) -->
+                <div>
+                    <label for="periode_bulan" class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        PERIODE DOKUMEN (BULAN) <span class="text-slate-400 font-normal">(Opsional)</span>
+                    </label>
+                    <div class="relative flex items-center">
+                        <input 
+                            type="number" 
+                            id="periode_bulan" 
+                            x-model="periodeBulan"
+                            min="1" 
+                            max="600"
+                            placeholder="Misal: 1, 3, 4, 15..." 
+                            class="w-full pl-2.5 pr-14 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 transition"
+                        >
+                        <span class="absolute right-2.5 text-xs font-mono font-bold text-slate-400 pointer-events-none select-none">Bulan</span>
+                    </div>
+                    <input type="hidden" name="periode" :value="periodeBulan ? (periodeBulan + ' Bulan') : ''">
+
+                    <!-- Quick Preset Buttons -->
+                    <div class="flex flex-wrap items-center gap-1 mt-1 font-mono text-[10px]">
+                        <span class="text-slate-400 text-[9px] mr-0.5">Preset:</span>
+                        <template x-for="preset in [1, 3, 4, 6, 12, 15, 24, 60]" :key="preset">
+                            <button 
+                                type="button" 
+                                @click="periodeBulan = preset" 
+                                class="px-1.5 py-0.2 rounded border transition cursor-pointer"
+                                :class="periodeBulan == preset 
+                                    ? 'bg-amber-500 text-slate-950 border-amber-600 font-black' 
+                                    : 'bg-slate-100 dark:bg-slate-900 hover:bg-amber-500/20 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 font-medium'"
+                                x-text="preset + ' Bln'"
+                            ></button>
+                        </template>
+                    </div>
                 </div>
 
                 <!-- Kondisi Fisik -->
@@ -671,6 +707,7 @@ function archiveCreateApp() {
         customDocName: @json(old('custom_doc_name', '')),
         title: @json(old('title', '')),
         tglPenyerahan: '{{ old('tgl_penyerahan', date('Y-m-d')) }}',
+        periodeBulan: '{{ old('periode_bulan', preg_match('/(\d+)/', old('periode', ''), $m) ? $m[1] : '') }}',
 
         // Dynamic items repeater (1 Box = Banyak Berkas Arsip)
         items: [
