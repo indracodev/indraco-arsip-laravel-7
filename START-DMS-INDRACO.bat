@@ -252,28 +252,19 @@ echo.
 echo   * URL Akses Jaringan Komputer Lain / HP (WiFi/LAN Kantor) :
 echo     --^> http://!LOCAL_IP!:8000
 echo.
-echo   * Panel Metrik & Diagnostik Server (Super Admin) :
-echo     --^> http://!LOCAL_IP!:8000/diagnostics
-echo.
 echo ===============================================================================
-echo   STATUS: [ SERVER AKTIF ^& SIAP MENERIMA KONEKSI ]
-echo.
-echo   Catatan: Layar ini sengaja dikunci agar alamat IP di atas selalu terlihat.
-echo            Log akses HTTP dialihkan ke: storage\logs\http-access.log
-echo            JIKA JENDELA INI DITUTUP [X] ATAU TEKAN Ctrl+C, SERVER OTOMATIS MATI.
+echo   PETUNJUK:
+echo   - Web browser akan otomatis terbuka dalam 2 detik.
+echo   - JIKA JENDELA INI DITUTUP [X] ATAU TEKAN Ctrl+C, SERVER OTOMATIS MATI TOTAL.
 echo ===============================================================================
 echo.
 
 :: Trigger pembukaan web browser otomatis
 start /b "" cmd /c "ping 127.0.0.1 -n 3 >nul & start http://127.0.0.1:8000"
 
-:: Pastikan folder storage\logs tersedia
-if not exist "storage\logs" mkdir "storage\logs"
-
-:: Jalankan artisan serve resmi Laravel (output dialihkan agar layar tidak scroll terus menerus)
-php artisan serve --host=0.0.0.0 --port=8000 > "storage\logs\http-access.log" 2>&1
+:: Jalankan artisan serve secara foreground
+php artisan serve --host=0.0.0.0 --port=8000
 
 echo.
 echo [OK] Server DMS PT Indraco telah dimatikan.
 pause
-
