@@ -397,50 +397,6 @@
                         </form>
                     </fieldset>
 
-                    <!-- 4. DEMO QUICK LOGIN TOOLBAR PANEL (TSpeedButton Delphi Desktop Toolbar) -->
-                    @if(config('app.demo', env('APP_DEMO', true)))
-                    <div class="mt-3 pt-3 border-t border-slate-300 dark:border-slate-800">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="font-mono text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                                <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-500"></i> Pintasan Akses Cepat (TSpeedButton)
-                            </span>
-                            <span class="text-[10px] font-mono text-slate-500">Alt+1 / Alt+2 / Alt+3</span>
-                        </div>
-
-                        <div class="grid grid-cols-3 gap-2">
-                            <button 
-                                @click="fillLogin('admin@indraco.com')" 
-                                type="button" 
-                                title="Autofill Super Admin (Alt+1)"
-                                class="px-2 py-1.5 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/40 rounded text-purple-700 dark:text-purple-300 font-mono text-[11px] font-bold text-center transition active:scale-95 flex items-center justify-center gap-1 shadow-sm"
-                            >
-                                <i data-lucide="shield" class="w-3 h-3 text-purple-500"></i>
-                                <span>Super Admin <span class="text-xs opacity-75">(Alt+1)</span></span>
-                            </button>
-
-                            <button 
-                                @click="fillLogin('gudang@indraco.com')" 
-                                type="button" 
-                                title="Autofill PIC Gudang (Alt+2)"
-                                class="px-2 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/40 rounded text-amber-700 dark:text-amber-300 font-mono text-[11px] font-bold text-center transition active:scale-95 flex items-center justify-center gap-1 shadow-sm"
-                            >
-                                <i data-lucide="archive" class="w-3 h-3 text-amber-500"></i>
-                                <span>PIC Gudang <span class="text-xs opacity-75">(Alt+2)</span></span>
-                            </button>
-
-                            <button 
-                                @click="fillLogin('fin@indraco.com')" 
-                                type="button" 
-                                title="Autofill PIC Keuangan (Alt+3)"
-                                class="px-2 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/40 rounded text-blue-700 dark:text-blue-300 font-mono text-[11px] font-bold text-center transition active:scale-95 flex items-center justify-center gap-1 shadow-sm"
-                            >
-                                <i data-lucide="briefcase" class="w-3 h-3 text-blue-500"></i>
-                                <span>PIC Keuangan <span class="text-xs opacity-75">(Alt+3)</span></span>
-                            </button>
-                        </div>
-                    </div>
-                    @endif
-
                 </div>
             </div>
 
@@ -543,17 +499,6 @@
                     <li class="flex justify-between p-1.5 bg-slate-200 dark:bg-slate-800 rounded">
                         <span>[F1]</span> <strong class="text-slate-900 dark:text-slate-100">Buka Panduan Bantuan Ini</strong>
                     </li>
-                    @if(config('app.demo', env('APP_DEMO', true)))
-                    <li class="flex justify-between p-1.5 bg-slate-200 dark:bg-slate-800 rounded">
-                        <span>[Alt + 1]</span> <strong class="text-purple-600 dark:text-purple-400">Autofill Super Admin</strong>
-                    </li>
-                    <li class="flex justify-between p-1.5 bg-slate-200 dark:bg-slate-800 rounded">
-                        <span>[Alt + 2]</span> <strong class="text-amber-600 dark:text-amber-400">Autofill PIC Gudang</strong>
-                    </li>
-                    <li class="flex justify-between p-1.5 bg-slate-200 dark:bg-slate-800 rounded">
-                        <span>[Alt + 3]</span> <strong class="text-blue-600 dark:text-blue-400">Autofill PIC Keuangan</strong>
-                    </li>
-                    @endif
                     <li class="flex justify-between p-1.5 bg-slate-200 dark:bg-slate-800 rounded">
                         <span>[Alt + T]</span> <strong class="text-slate-900 dark:text-slate-100">Ganti Theme (Dark / Light)</strong>
                     </li>
@@ -851,18 +796,6 @@
                     }
                 },
 
-                fillLogin(email) {
-                    this.playClickSound();
-                    const emailInput = document.getElementById('email');
-                    const passwordInput = document.getElementById('password');
-                    
-                    if (emailInput && passwordInput) {
-                        emailInput.value = email;
-                        passwordInput.value = 'password';
-                        passwordInput.focus();
-                    }
-                },
-
                 resetForm() {
                     const form = document.getElementById('loginForm');
                     if (form) {
@@ -902,23 +835,6 @@
                         }
                         this.playClickSound();
                     }
-                    @if(config('app.demo', env('APP_DEMO', true)))
-                    // Alt+1: Quick Login Admin
-                    else if (e.altKey && (e.key === '1' || e.code === 'Digit1')) {
-                        e.preventDefault();
-                        this.fillLogin('admin@indraco.com');
-                    }
-                    // Alt+2: Quick Login Gudang
-                    else if (e.altKey && (e.key === '2' || e.code === 'Digit2')) {
-                        e.preventDefault();
-                        this.fillLogin('gudang@indraco.com');
-                    }
-                    // Alt+3: Quick Login Keuangan
-                    else if (e.altKey && (e.key === '3' || e.code === 'Digit3')) {
-                        e.preventDefault();
-                        this.fillLogin('fin@indraco.com');
-                    }
-                    @endif
                     // Alt+T: Toggle Theme
                     else if (e.altKey && (e.key === 't' || e.key === 'T')) {
                         e.preventDefault();
