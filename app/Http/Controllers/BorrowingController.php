@@ -96,7 +96,7 @@ class BorrowingController extends Controller
         $isPermanent = $request->boolean('is_permanent') || empty($request->expected_return_date);
         $expectedReturnDate = $isPermanent ? null : ($validated['expected_return_date'] ?? null);
 
-        BorrowingLog::create([
+        $borrowing = BorrowingLog::create([
             'archive_id' => $archive->id,
             'borrower_user_id' => $user->id,
             'request_date' => now(),
@@ -131,7 +131,7 @@ class BorrowingController extends Controller
     {
         $user = auth()->user();
 
-        if (!$user->isSuperAdmin() && (!$user->isPicDept() || $user->department_id !== $borrowing->archive->department_id)) {
+        if (!$user->isSuperAdmin() && (!$user->isPicDept() || (int)$user->department_id !== (int)$borrowing->archive->department_id)) {
             abort(403, 'Hanya PIC Departemen pemilik berkas atau Admin yang dapat menyetujui peminjaman ini.');
         }
 

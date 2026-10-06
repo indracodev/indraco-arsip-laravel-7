@@ -388,7 +388,7 @@ class ArchiveController extends Controller
         $user = auth()->user();
 
         // Ensure PIC Dept can only edit archives from their own department
-        if ($user->isPicDept() && $archive->department_id !== $user->department_id) {
+        if ($user->isPicDept() && (int)$archive->department_id !== (int)$user->department_id) {
             abort(403, 'Anda tidak memiliki hak akses untuk mengedit arsip departemen ini.');
         }
 
@@ -407,7 +407,7 @@ class ArchiveController extends Controller
     {
         $user = auth()->user();
 
-        if ($user->isPicDept() && $archive->department_id !== $user->department_id) {
+        if ($user->isPicDept() && (int)$archive->department_id !== (int)$user->department_id) {
             abort(403, 'Anda tidak memiliki hak akses untuk mengedit arsip departemen ini.');
         }
 
@@ -670,7 +670,7 @@ class ArchiveController extends Controller
     public function printSticker(Archive $archive)
     {
         $user = auth()->user();
-        if ($user->isPicDept() && $archive->department_id !== $user->department_id) {
+        if ($user->isPicDept() && (int)$archive->department_id !== (int)$user->department_id) {
             abort(403, 'Anda tidak memiliki akses ke label arsip departemen lain.');
         }
 
