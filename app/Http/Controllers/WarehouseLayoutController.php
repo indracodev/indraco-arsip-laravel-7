@@ -448,7 +448,7 @@ class WarehouseLayoutController extends Controller
             'layer' => 'required|string|in:top,bottom',
             'slot_number' => 'required|integer|min:1|max:100',
             'slot_code' => 'nullable|string|max:50',
-            'mode' => 'required|string|in:create_new,existing_archive',
+            'mode' => 'required|string|in:create_new,existing_archive,assign_existing',
             // fields for create_new
             'department_id' => 'required_if:mode,create_new|nullable|exists:departments,id',
             'sub_department_id' => 'nullable|exists:sub_departments,id',
@@ -459,7 +459,7 @@ class WarehouseLayoutController extends Controller
             'retention_years' => 'nullable|integer|min:1|max:50',
             'content_description' => 'nullable|string',
             // field for existing_archive
-            'archive_id' => 'required_if:mode,existing_archive|nullable|exists:archives,id',
+            'archive_id' => 'required_if:mode,existing_archive,assign_existing|nullable|exists:archives,id',
         ]);
 
         // Room Locking for FAT validation (R1 & R2)
@@ -470,7 +470,7 @@ class WarehouseLayoutController extends Controller
             || preg_match('/^R[12]$/i', $roomSector);
 
         $departmentId = $validated['department_id'] ?? null;
-        if ($validated['mode'] === 'existing_archive') {
+        if (in_array($validated['mode'], ['existing_archive', 'assign_existing'])) {
             $existingArc = Archive::findOrFail($validated['archive_id']);
             $departmentId = $existingArc->department_id;
         }
@@ -607,7 +607,8 @@ class WarehouseLayoutController extends Controller
         return response()->json([
             'success' => true,
             'message' => "Kardus arsip '{$archive->box_number}' berhasil ditempatkan di slot {$slot->slot_code}.",
-            'location_full' => $location->full_location,
+            'display_location' => $archive->display_location,
+            'location_full' => $archive->display_location,
             'slot' => [
                 'id' => $slot->id,
                 'slot_code' => $slot->slot_code,

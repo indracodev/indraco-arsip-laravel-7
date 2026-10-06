@@ -13,8 +13,9 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(?Request $request = null)
     {
+        $request = $request ?: request();
         $user = auth()->user();
 
         // Base Query
@@ -58,11 +59,17 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
+        // Pagination and per_page (5, 10, 15, 20)
+        $perPage = (int) $request->get('per_page', 10);
+        if (!in_array($perPage, [5, 10, 15, 20])) {
+            $perPage = 10;
+        }
+
         $recentArchives = (clone $archivesQuery)
             ->with(['department', 'location.warehouse', 'rackSlot', 'creator'])
             ->latest()
-            ->take(10)
-            ->get();
+            ->paginate($perPage)
+            ->appends($request->query());
 
         // Warehouse capacity stats (for admin & pic gudang)
         $capacityStats = WarehouseLocation::where('is_active', true)
@@ -99,6 +106,7 @@ class DashboardController extends Controller
             'pendingBookings',
             'pendingBorrowings',
             'recentArchives',
+            'perPage',
             'warehouses',
             'warehouseLocations',
             'totalCapacity',

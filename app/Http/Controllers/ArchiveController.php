@@ -166,12 +166,15 @@ class ArchiveController extends Controller
         $tglPenyerahan = Carbon::parse($validated['tgl_penyerahan']);
         $rawPeriod = !empty($validated['periode']) ? trim($validated['periode']) : (!empty($validated['periode_doc']) ? trim($validated['periode_doc']) : $tglPenyerahan->format('Y/m'));
         
+        $isMonthsPeriod = false;
+        $periodMonthsCount = 0;
         if (preg_match('/^(\d+)\s*(?:bulan|bln|m)?$/i', $rawPeriod, $matches)) {
-            $months = (int) $matches[1];
-            $startDate = $tglPenyerahan->copy()->startOfMonth();
-            $endDate = $tglPenyerahan->copy()->addMonths($months)->endOfMonth();
-            $formattedPeriodDoc = "{$months} Bulan";
-            $periodText = !empty($validated['period_text']) ? $validated['period_text'] : "{$months} Bulan (s/d " . $endDate->isoFormat('MMMM Y') . ")";
+            $isMonthsPeriod = true;
+            $periodMonthsCount = (int) $matches[1];
+            $startDate = $tglPenyerahan->copy();
+            $endDate = $tglPenyerahan->copy()->addMonths($periodMonthsCount);
+            $formattedPeriodDoc = "{$periodMonthsCount} Bulan";
+            $periodText = !empty($validated['period_text']) ? $validated['period_text'] : "{$periodMonthsCount} Bulan (s/d " . $endDate->isoFormat('DD MMMM Y') . ")";
         } elseif (preg_match('/^(\d{4}\/(?:0[1-9]|1[0-2]))\s*(?:-|s\/d|hingga|to)\s*(\d{4}\/(?:0[1-9]|1[0-2]))$/i', $rawPeriod, $matches)) {
             $startPeriodStr = $matches[1];
             $endPeriodStr = $matches[2];
@@ -285,18 +288,27 @@ class ArchiveController extends Controller
         $department = Department::find($validated['department_id']);
         $subDepartment = !empty($validated['sub_department_id']) ? SubDepartment::find($validated['sub_department_id']) : null;
 
-        $effectiveRetentionYears = 5;
-        if (!empty($validated['masa_simpan_custom']) && (int)$validated['masa_simpan_custom'] > 0) {
-            $effectiveRetentionYears = (int)$validated['masa_simpan_custom'];
-        } elseif ($subDepartment && $subDepartment->retention_years > 0) {
-            $effectiveRetentionYears = (int)$subDepartment->retention_years;
-        } elseif ($department && $department->retention_years > 0) {
-            $effectiveRetentionYears = (int)$department->retention_years;
-        } elseif (!empty($validated['retention_years']) && (int)$validated['retention_years'] > 0) {
-            $effectiveRetentionYears = (int)$validated['retention_years'];
-        }
+        $hasExplicitCustomRetention = (!empty($validated['masa_simpan_custom']) && (int)$validated['masa_simpan_custom'] > 0);
+        $hasExplicitRetentionYears = (!empty($validated['retention_years']) && (int)$validated['retention_years'] > 0);
 
-        $retentionExpiryDate = $endDate->copy()->addYears($effectiveRetentionYears)->format('Y-m-d');
+        if ($hasExplicitCustomRetention) {
+            $effectiveRetentionYears = (int)$validated['masa_simpan_custom'];
+            $retentionExpiryDate = $endDate->copy()->addYears($effectiveRetentionYears)->format('Y-m-d');
+        } elseif ($hasExplicitRetentionYears) {
+            $effectiveRetentionYears = (int)$validated['retention_years'];
+            $retentionExpiryDate = $endDate->copy()->addYears($effectiveRetentionYears)->format('Y-m-d');
+        } elseif ($isMonthsPeriod) {
+            $effectiveRetentionYears = $periodMonthsCount >= 12 ? (int)round($periodMonthsCount / 12) : 1;
+            $retentionExpiryDate = $tglPenyerahan->copy()->addMonths($periodMonthsCount)->format('Y-m-d');
+        } else {
+            $effectiveRetentionYears = 5;
+            if ($subDepartment && $subDepartment->retention_years > 0) {
+                $effectiveRetentionYears = (int)$subDepartment->retention_years;
+            } elseif ($department && $department->retention_years > 0) {
+                $effectiveRetentionYears = (int)$department->retention_years;
+            }
+            $retentionExpiryDate = $endDate->copy()->addYears($effectiveRetentionYears)->format('Y-m-d');
+        }
 
         // 5. File uploads
         $filePath = null;
@@ -470,12 +482,15 @@ class ArchiveController extends Controller
         $tglPenyerahan = Carbon::parse($validated['tgl_penyerahan']);
         $rawPeriod = !empty($validated['periode']) ? trim($validated['periode']) : (!empty($validated['periode_doc']) ? trim($validated['periode_doc']) : $tglPenyerahan->format('Y/m'));
         
+        $isMonthsPeriod = false;
+        $periodMonthsCount = 0;
         if (preg_match('/^(\d+)\s*(?:bulan|bln|m)?$/i', $rawPeriod, $matches)) {
-            $months = (int) $matches[1];
-            $startDate = $tglPenyerahan->copy()->startOfMonth();
-            $endDate = $tglPenyerahan->copy()->addMonths($months)->endOfMonth();
-            $formattedPeriodDoc = "{$months} Bulan";
-            $periodText = !empty($validated['period_text']) ? $validated['period_text'] : "{$months} Bulan (s/d " . $endDate->isoFormat('MMMM Y') . ")";
+            $isMonthsPeriod = true;
+            $periodMonthsCount = (int) $matches[1];
+            $startDate = $tglPenyerahan->copy();
+            $endDate = $tglPenyerahan->copy()->addMonths($periodMonthsCount);
+            $formattedPeriodDoc = "{$periodMonthsCount} Bulan";
+            $periodText = !empty($validated['period_text']) ? $validated['period_text'] : "{$periodMonthsCount} Bulan (s/d " . $endDate->isoFormat('DD MMMM Y') . ")";
         } elseif (preg_match('/^(\d{4}\/(?:0[1-9]|1[0-2]))\s*(?:-|s\/d|hingga|to)\s*(\d{4}\/(?:0[1-9]|1[0-2]))$/i', $rawPeriod, $matches)) {
             $startPeriodStr = $matches[1];
             $endPeriodStr = $matches[2];
@@ -569,18 +584,27 @@ class ArchiveController extends Controller
         $department = Department::find($validated['department_id']);
         $subDepartment = !empty($validated['sub_department_id']) ? SubDepartment::find($validated['sub_department_id']) : null;
 
-        $effectiveRetentionYears = 5;
-        if (!empty($validated['masa_simpan_custom']) && (int)$validated['masa_simpan_custom'] > 0) {
-            $effectiveRetentionYears = (int)$validated['masa_simpan_custom'];
-        } elseif ($subDepartment && $subDepartment->retention_years > 0) {
-            $effectiveRetentionYears = (int)$subDepartment->retention_years;
-        } elseif ($department && $department->retention_years > 0) {
-            $effectiveRetentionYears = (int)$department->retention_years;
-        } elseif (!empty($validated['retention_years']) && (int)$validated['retention_years'] > 0) {
-            $effectiveRetentionYears = (int)$validated['retention_years'];
-        }
+        $hasExplicitCustomRetention = (!empty($validated['masa_simpan_custom']) && (int)$validated['masa_simpan_custom'] > 0);
+        $hasExplicitRetentionYears = (!empty($validated['retention_years']) && (int)$validated['retention_years'] > 0);
 
-        $retentionExpiryDate = $endDate->copy()->addYears($effectiveRetentionYears)->format('Y-m-d');
+        if ($hasExplicitCustomRetention) {
+            $effectiveRetentionYears = (int)$validated['masa_simpan_custom'];
+            $retentionExpiryDate = $endDate->copy()->addYears($effectiveRetentionYears)->format('Y-m-d');
+        } elseif ($hasExplicitRetentionYears) {
+            $effectiveRetentionYears = (int)$validated['retention_years'];
+            $retentionExpiryDate = $endDate->copy()->addYears($effectiveRetentionYears)->format('Y-m-d');
+        } elseif ($isMonthsPeriod) {
+            $effectiveRetentionYears = $periodMonthsCount >= 12 ? (int)round($periodMonthsCount / 12) : 1;
+            $retentionExpiryDate = $tglPenyerahan->copy()->addMonths($periodMonthsCount)->format('Y-m-d');
+        } else {
+            $effectiveRetentionYears = 5;
+            if ($subDepartment && $subDepartment->retention_years > 0) {
+                $effectiveRetentionYears = (int)$subDepartment->retention_years;
+            } elseif ($department && $department->retention_years > 0) {
+                $effectiveRetentionYears = (int)$department->retention_years;
+            }
+            $retentionExpiryDate = $endDate->copy()->addYears($effectiveRetentionYears)->format('Y-m-d');
+        }
 
         // 5. File uploads (only update if new files provided)
         $filePath = $archive->file_path;
