@@ -226,10 +226,14 @@ php artisan route:cache >nul 2>&1
 php artisan view:cache >nul 2>&1
 
 :: ===============================================================================
-:: JALANKAN REALTIME SERVER RUNNER & STATIONARY DASHBOARD (ZERO-SCROLL TUI)
+:: JALANKAN REALTIME SERVER RUNNER (ZERO-SCROLL TUI DASHBOARD)
 :: ===============================================================================
-echo [*] Meluncurkan Realtime Server Runner & Stationary TUI...
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\server_runner.ps1" -PhpExe "!FOUND_PHP!\php.exe" -ProjectRoot "%~dp0" -Port 8000
+echo [*] Meluncurkan Realtime Server Runner (Stationary TUI Dashboard)...
+
+set "ROOT_PATH=%CD%"
+if "%ROOT_PATH:~-1%"=="\" set "ROOT_PATH=%ROOT_PATH:~0,-1%"
+
+powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT_PATH%\scripts\server_runner.ps1" -PhpExe "!FOUND_PHP!\php.exe" -ProjectRoot "%ROOT_PATH%" -Port 8000
 
 if %ERRORLEVEL% NEQ 0 (
     echo [PERHATIAN] Fallback ke artisan serve standar...

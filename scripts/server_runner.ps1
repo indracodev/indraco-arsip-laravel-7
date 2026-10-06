@@ -5,12 +5,18 @@ param (
 )
 
 # 1. Resolve Project Root
-if (-not $ProjectRoot) {
+if ($ProjectRoot) {
+    $ProjectRoot = $ProjectRoot.Trim('"', "'", " ")
+}
+if (-not $ProjectRoot -or -not (Test-Path $ProjectRoot)) {
     $ProjectRoot = (Get-Item -Path "$PSScriptRoot\..").FullName
 }
 Set-Location -Path $ProjectRoot
 
 # 2. Resolve PHP Executable
+if ($PhpExe) {
+    $PhpExe = $PhpExe.Trim('"', "'", " ")
+}
 if (-not $PhpExe -or -not (Test-Path $PhpExe)) {
     if (Test-Path "$ProjectRoot\evironment\php-8.2.29-Win32-vs16-x64\php.exe") {
         $PhpExe = "$ProjectRoot\evironment\php-8.2.29-Win32-vs16-x64\php.exe"
@@ -24,6 +30,7 @@ if (-not $PhpExe -or -not (Test-Path $PhpExe)) {
         exit 1
     }
 }
+
 
 # 3. Detect LAN IP Address
 $lanIp = "127.0.0.1"
@@ -78,14 +85,20 @@ $startTime = [System.DateTime]::Now
 $host.UI.RawUI.WindowTitle = "DMS PT INDRACO - Server Aktif (Port: $Port)"
 
 # Setup clean console
-Clear-Host
-[Console]::CursorVisible = $false
+try {
+    Clear-Host
+    [Console]::CursorVisible = $false
+} catch {}
 
 function Draw-Stationary-Dashboard {
     param($uptimeStr, $nowStr, $lastReq)
 
     # Move cursor to top-left corner (0,0) - ZERO SCROLLING
-    [Console]::SetCursorPosition(0, 0)
+    try {
+        [Console]::SetCursorPosition(0, 0)
+    } catch {
+        Clear-Host
+    }
 
     Write-Host "===============================================================================" -ForegroundColor Cyan
     Write-Host "            PT INDRACO - DOCUMENT MANAGEMENT SYSTEM (DMS)" -ForegroundColor White
@@ -146,16 +159,19 @@ try {
         Draw-Stationary-Dashboard -uptimeStr $uptime -nowStr $currentTime -lastReq $lastLogLine
 
         # Check for keyboard input (non-blocking)
-        if ([Console]::KeyAvailable) {
-            $key = [Console]::ReadKey($true)
-            if ($key.Key -eq [ConsoleKey]::Q) {
-                break
-            } elseif ($key.Key -eq [ConsoleKey]::B) {
-                Start-Process "http://127.0.0.1:$Port"
-            } elseif ($key.Key -eq [ConsoleKey]::D) {
-                Start-Process "http://${lanIp}:${Port}/diagnostics"
+        try {
+            if ([Console]::KeyAvailable) {
+                $key = [Console]::ReadKey($true)
+                if ($key.Key -eq [ConsoleKey]::Q) {
+                    break
+                } elseif ($key.Key -eq [ConsoleKey]::B) {
+                    Start-Process "http://127.0.0.1:$Port"
+                } elseif ($key.Key -eq [ConsoleKey]::D) {
+                    Start-Process "http://${lanIp}:${Port}/diagnostics"
+                }
             }
-        }
+        } catch {}
+
 
         Start-Sleep -Milliseconds 800
     }
