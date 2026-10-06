@@ -164,6 +164,204 @@ class DashboardController extends Controller
 
         $hasFilter = !empty($search) || !empty($deptId && !$user->isPicDept()) || !empty($subDeptId) || !empty($periodFilter);
 
+        // KHUSUS PIC GUDANG: Fokus hanya pada pencarian Rak Gudang dan Box/Kardus Arsip (Judul Utama & Label Box, bukan isi item)
+        if ($user->isPicGudang()) {
+            if (!$hasFilter && empty($search)) {
+                // 1. Suggestions: Racks
+                $racks = \App\Models\WarehouseLocation::with('warehouse')
+                    ->where('location_type', 'rack')
+                    ->take(10)
+                    ->get();
+
+                $recent = [];
+                foreach ($racks as $rack) {
+                    $recent[] = [
+                        'result_type' => 'rack',
+                        'id' => 'rack_' . $rack->id,
+                        'rack_id' => $rack->id,
+                        'rack_code' => $rack->rack_code,
+                        'room_sector' => $rack->room_sector ?: 'Umum',
+                        'warehouse_name' => $rack->warehouse ? $rack->warehouse->name : 'Gudang Utama',
+                        'title' => 'Rak ' . $rack->rack_code . ' [' . ($rack->room_sector ?: 'Umum') . ']',
+                        'document_name' => 'Rak ' . $rack->rack_code,
+                        'archive_title' => 'Rak ' . $rack->rack_code,
+                        'box_number' => $rack->rack_code,
+                        'periode_doc' => '5 Sap × 20 Slot',
+                        'dept_code' => $rack->room_sector ?: 'RAK',
+                        'dept_name' => $rack->warehouse ? $rack->warehouse->name : 'Gudang',
+                        'sub_dept' => null,
+                        'location' => ($rack->warehouse ? $rack->warehouse->name : 'Gudang') . ' - ' . $rack->rack_code,
+                        'rack_code' => $rack->rack_code,
+                        'slot_code' => '-',
+                        'content_description' => 'Kapasitas: ' . ($rack->current_box_count ?: 0) . '/' . ($rack->box_capacity ?: 100) . ' Box (' . max(0, ($rack->box_capacity ?: 100) - ($rack->current_box_count ?: 0)) . ' Slot Kosong)',
+                        'status' => 'in_warehouse',
+                        'is_expired' => false,
+                        'status_label' => ($rack->current_box_count ?: 0) . '/' . ($rack->box_capacity ?: 100) . ' Box',
+                        'url' => route('master.warehouses.layout') . '?rack_id=' . $rack->id . '&rack_code=' . urlencode($rack->rack_code),
+                    ];
+                }
+
+                // 2. Suggestions: Recent Box Archives (Judul Utama / Label Box)
+                $recentBoxes = Archive::with(['department', 'subDepartment', 'location.warehouse', 'rackSlot'])
+                    ->latest()
+                    ->take(8)
+                    ->get();
+
+                foreach ($recentBoxes as $archive) {
+                    $recent[] = [
+                        'result_type' => 'box',
+                        'id' => 'box_' . $archive->id,
+                        'archive_id' => $archive->id,
+                        'item_id' => null,
+                        'item_number' => 1,
+                        'title' => $archive->effective_title ?? $archive->title,
+                        'document_name' => $archive->effective_title ?? $archive->title,
+                        'archive_title' => $archive->effective_title ?? $archive->title,
+                        'box_number' => $archive->box_number ?? 'Penomoran Pending',
+                        'periode_doc' => $archive->periode_doc ?? '-',
+                        'dept_code' => $archive->department->code ?? 'GEN',
+                        'dept_name' => $archive->department->name ?? '',
+                        'sub_dept' => $archive->subDepartment ? $archive->subDepartment->name : null,
+                        'location' => $archive->display_location,
+                        'rack_code' => $archive->location ? $archive->location->rack_code : '-',
+                        'slot_code' => $archive->rackSlot ? $archive->rackSlot->slot_code : '-',
+                        'content_description' => null, // Catatan/isi box disembunyikan untuk PIC Gudang
+                        'status' => $archive->status ?? 'in_warehouse',
+                        'is_expired' => $archive->is_expired ?? false,
+                        'status_label' => $this->getStatusLabel($archive->status ?? 'in_warehouse'),
+                        'url' => route('master.warehouses.layout') . '?archive_id=' . $archive->id,
+                        'detail_url' => route('archives.show', $archive->id),
+                    ];
+                }
+
+                // Suggested Keywords for PIC Gudang
+                $rooms = \App\Models\WarehouseLocation::where('location_type', 'room')->pluck('rack_code')->take(5)->toArray();
+                $rackCodes = \App\Models\WarehouseLocation::where('location_type', 'rack')->pluck('rack_code')->take(5)->toArray();
+                $boxNumbers = Archive::whereNotNull('box_number')->latest()->take(5)->pluck('box_number')->toArray();
+
+                $suggestedKeywords = array_values(array_unique(array_filter(array_merge(
+                    ['Gudang GA', 'Gudang R7', 'Gudang R1', 'Gudang IT'],
+                    $rooms,
+                    $rackCodes,
+                    $boxNumbers,
+                    ['Rak R7-BW1', 'BOX-01', 'BOX-02', 'BOX-03']
+                ))));
+
+                return response()->json([
+                    'type' => 'suggestions',
+                    'keywords' => array_slice($suggestedKeywords, 0, 10),
+                    'recent' => $recent,
+                    'departments' => $filterDepartments,
+                    'periods' => $availablePeriods
+                ]);
+            }
+
+            // Search query for PIC Gudang:
+            // 1. Search Racks
+            $matchingRacks = \App\Models\WarehouseLocation::with('warehouse')
+                ->where('location_type', 'rack')
+                ->when(!empty($search), function ($q) use ($search) {
+                    $q->where(function ($sq) use ($search) {
+                        $sq->where('rack_code', 'like', "%{$search}%")
+                           ->orWhere('room_sector', 'like', "%{$search}%")
+                           ->orWhereHas('warehouse', function ($wq) use ($search) {
+                               $wq->where('name', 'like', "%{$search}%");
+                           });
+                    });
+                })
+                ->take(15)
+                ->get();
+
+            $results = [];
+            foreach ($matchingRacks as $rack) {
+                $results[] = [
+                    'result_type' => 'rack',
+                    'id' => 'rack_' . $rack->id,
+                    'rack_id' => $rack->id,
+                    'rack_code' => $rack->rack_code,
+                    'room_sector' => $rack->room_sector ?: 'Umum',
+                    'warehouse_name' => $rack->warehouse ? $rack->warehouse->name : 'Gudang Utama',
+                    'title' => 'Rak ' . $rack->rack_code . ' [' . ($rack->room_sector ?: 'Umum') . ']',
+                    'document_name' => 'Rak ' . $rack->rack_code,
+                    'archive_title' => 'Rak ' . $rack->rack_code,
+                    'box_number' => $rack->rack_code,
+                    'periode_doc' => '5 Sap × 20 Slot',
+                    'dept_code' => $rack->room_sector ?: 'RAK',
+                    'dept_name' => $rack->warehouse ? $rack->warehouse->name : 'Gudang',
+                    'sub_dept' => null,
+                    'location' => ($rack->warehouse ? $rack->warehouse->name : 'Gudang') . ' - ' . $rack->rack_code,
+                    'rack_code' => $rack->rack_code,
+                    'slot_code' => '-',
+                    'content_description' => 'Kapasitas: ' . ($rack->current_box_count ?: 0) . '/' . ($rack->box_capacity ?: 100) . ' Box (' . max(0, ($rack->box_capacity ?: 100) - ($rack->current_box_count ?: 0)) . ' Slot Kosong)',
+                    'status' => 'in_warehouse',
+                    'is_expired' => false,
+                    'status_label' => ($rack->current_box_count ?: 0) . '/' . ($rack->box_capacity ?: 100) . ' Box',
+                    'url' => route('master.warehouses.layout') . '?rack_id=' . $rack->id . '&rack_code=' . urlencode($rack->rack_code),
+                ];
+            }
+
+            // 2. Search Box Archives (ONLY by title / box_number / custom_doc_name / periode_doc - NOT child items)
+            $matchingArchives = Archive::with(['department', 'subDepartment', 'location.warehouse', 'rackSlot'])
+                ->when($deptId, function ($q) use ($deptId) {
+                    $q->where('department_id', $deptId);
+                })
+                ->when($subDeptId, function ($q) use ($subDeptId) {
+                    $q->where('sub_department_id', $subDeptId);
+                })
+                ->when($periodFilter, function ($q) use ($periodFilter) {
+                    $q->where('periode_doc', 'like', "%{$periodFilter}%");
+                })
+                ->when(!empty($search), function ($q) use ($search) {
+                    $q->where(function ($sq) use ($search) {
+                        $sq->where('title', 'like', "%{$search}%")
+                           ->orWhere('box_number', 'like', "%{$search}%")
+                           ->orWhere('custom_doc_name', 'like', "%{$search}%")
+                           ->orWhere('periode_doc', 'like', "%{$search}%")
+                           ->orWhereHas('location', function ($lq) use ($search) {
+                               $lq->where('rack_code', 'like', "%{$search}%")
+                                  ->orWhere('room_sector', 'like', "%{$search}%");
+                           });
+                    });
+                })
+                ->latest()
+                ->take(20)
+                ->get();
+
+            foreach ($matchingArchives as $archive) {
+                $results[] = [
+                    'result_type' => 'box',
+                    'id' => 'box_' . $archive->id,
+                    'archive_id' => $archive->id,
+                    'item_id' => null,
+                    'item_number' => 1,
+                    'title' => $archive->effective_title ?? $archive->title,
+                    'document_name' => $archive->effective_title ?? $archive->title,
+                    'archive_title' => $archive->effective_title ?? $archive->title,
+                    'box_number' => $archive->box_number ?? 'Penomoran Pending',
+                    'periode_doc' => $archive->periode_doc ?? '-',
+                    'dept_code' => $archive->department->code ?? 'GEN',
+                    'dept_name' => $archive->department->name ?? '',
+                    'sub_dept' => $archive->subDepartment ? $archive->subDepartment->name : null,
+                    'location' => $archive->display_location,
+                    'rack_code' => $archive->location ? $archive->location->rack_code : '-',
+                    'slot_code' => $archive->rackSlot ? $archive->rackSlot->slot_code : '-',
+                    'content_description' => null, // Catatan/isi box disembunyikan untuk PIC Gudang
+                    'status' => $archive->status ?? 'in_warehouse',
+                    'is_expired' => $archive->is_expired ?? false,
+                    'status_label' => $this->getStatusLabel($archive->status ?? 'in_warehouse'),
+                    'url' => route('master.warehouses.layout') . '?archive_id=' . $archive->id,
+                    'detail_url' => route('archives.show', $archive->id),
+                ];
+            }
+
+            return response()->json([
+                'type' => 'results',
+                'items' => $results,
+                'departments' => $filterDepartments,
+                'periods' => $availablePeriods
+            ]);
+        }
+
         if (!$hasFilter && empty($search)) {
             // Get recent archives with items or standalone as default suggestions
             $recentArchives = Archive::with(['department', 'subDepartment', 'location.warehouse', 'rackSlot', 'items'])

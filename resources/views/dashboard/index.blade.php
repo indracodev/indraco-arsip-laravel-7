@@ -100,7 +100,7 @@
                         x-model="searchQuery" 
                         @input="fetchResults()"
                         @focus="fetchResults(); showDropdown = true"
-                        placeholder="Ketik kata kunci dokumen (contoh: BOX-FIN-2024, Pajak, HRD)... (Ctrl+F)" 
+                        placeholder="{{ auth()->check() && auth()->user()->isPicGudang() ? 'Cari rak gudang, sektor & label/judul box arsip... (Ctrl+F)' : 'Ketik kata kunci dokumen (contoh: BOX-FIN-2024, Pajak, HRD)... (Ctrl+F)' }}" 
                         class="w-full pl-9 pr-28 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 font-semibold transition"
                     >
                     <div class="absolute right-1.5 flex items-center gap-1">
