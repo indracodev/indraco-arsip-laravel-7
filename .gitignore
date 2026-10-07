@@ -24,6 +24,10 @@ public/images/images.zip
 # Grafana k6 Local Benchmarks (Local only, do not push to GitHub)
 /tests/k6/
 /RUN-K6-BENCHMARK.bat
+/run-k6-benchmark.sh
+/K6-CLIENT-PACKAGE/
+K6-CLIENT-PACKAGE.zip
 benchmark_summary.html
 benchmark_results.json
+
 
