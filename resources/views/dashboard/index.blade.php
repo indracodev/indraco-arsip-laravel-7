@@ -2184,7 +2184,15 @@ function dashboardOverviewApp() {
                     alert('Mohon isi nomor Berita Acara Pemusnahan (BAP).');
                     return;
                 }
-                if (!confirm(`Apakah Anda yakin ingin mengesahkan pemusnahan berkas "${this.superAdminStatusData.title}" dengan No. BAP ${this.superAdminBapNumber}? Status akan dimusnahkan secara permanen.`)) {
+                if (typeof window.showConfirmModal === 'function') {
+                    const ok = await window.showConfirmModal({
+                        title: 'Konfirmasi Pemusnahan Berkas',
+                        message: `Apakah Anda yakin ingin mengesahkan pemusnahan berkas "${this.superAdminStatusData.title}" dengan No. BAP ${this.superAdminBapNumber}? Status akan dimusnahkan secara permanen.`,
+                        type: 'danger',
+                        confirmText: 'Ya, Musnahkan Permanen'
+                    });
+                    if (!ok) return;
+                } else if (!confirm(`Apakah Anda yakin ingin mengesahkan pemusnahan berkas "${this.superAdminStatusData.title}" dengan No. BAP ${this.superAdminBapNumber}? Status akan dimusnahkan secara permanen.`)) {
                     return;
                 }
             }
@@ -2360,7 +2368,15 @@ function dashboardOverviewApp() {
                     alert('Mohon isi nomor Berita Acara Pemusnahan (BAP).');
                     return;
                 }
-                if (!confirm(`Apakah Anda yakin ingin mengesahkan pemusnahan berkas "${this.checkoutModalData.title}" dengan No. BAP ${this.destroyBapNumber}? Tindakan ini permanen.`)) {
+                if (typeof window.showConfirmModal === 'function') {
+                    const ok = await window.showConfirmModal({
+                        title: 'Konfirmasi Pemusnahan Berkas',
+                        message: `Apakah Anda yakin ingin mengesahkan pemusnahan berkas "${this.checkoutModalData.title}" dengan No. BAP ${this.destroyBapNumber}? Tindakan ini permanen.`,
+                        type: 'danger',
+                        confirmText: 'Ya, Musnahkan Permanen'
+                    });
+                    if (!ok) return;
+                } else if (!confirm(`Apakah Anda yakin ingin mengesahkan pemusnahan berkas "${this.checkoutModalData.title}" dengan No. BAP ${this.destroyBapNumber}? Tindakan ini permanen.`)) {
                     return;
                 }
             }

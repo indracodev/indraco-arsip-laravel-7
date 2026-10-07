@@ -80,15 +80,16 @@ class DashboardController extends Controller
         $capacityPercent = $totalCapacity > 0 ? round(($usedCapacity / $totalCapacity) * 100, 1) : 0;
 
         $warehouses = \App\Models\Warehouse::select('id', 'name', 'code')->with(['locations' => function ($q) {
-            $q->select('id', 'warehouse_id', 'rack_code', 'total_sap', 'boxes_per_sap')
+            $q->select('id', 'warehouse_id', 'rack_code', 'total_sap', 'boxes_per_sap', 'room_sector', 'shelf_code')
               ->where('is_active', true)
-              ->with(['slots' => function ($sq) {
+              ->with(['warehouse', 'slots' => function ($sq) {
                   $sq->select('id', 'warehouse_location_id', 'sap_level', 'layer', 'slot_number', 'status', 'archive_id')
                      ->where('status', '!=', 'empty');
               }]);
         }])->where('is_active', true)->get();
 
-        $warehouseLocations = WarehouseLocation::select('id', 'warehouse_id', 'rack_code', 'total_sap', 'boxes_per_sap')
+        $warehouseLocations = WarehouseLocation::with('warehouse')
+            ->select('id', 'warehouse_id', 'rack_code', 'total_sap', 'boxes_per_sap', 'room_sector', 'shelf_code')
             ->where('is_active', true)
             ->get();
 
