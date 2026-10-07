@@ -485,6 +485,7 @@
                                         <span>{{ $archive->display_location }}</span>
                                     </div>
                                 @else
+                                    @if(auth()->user()->isPicGudang() || auth()->user()->isSuperAdmin())
                                     <button 
                                         type="button" 
                                         @click="openQuickSlotModal({
@@ -502,6 +503,13 @@
                                         <span class="underline decoration-dotted underline-offset-2">Belum Ditentukan</span>
                                         <i data-lucide="map-pin" class="w-3 h-3 text-rose-500 group-hover:scale-110 transition"></i>
                                     </button>
+                                    @else
+                                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-semibold bg-rose-500/10 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border border-rose-500/30 select-none" title="Lokasi rak gudang belum ditentukan">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+                                        <span>Belum Ditentukan</span>
+                                        <i data-lucide="map-pin" class="w-3 h-3 text-rose-400"></i>
+                                    </span>
+                                    @endif
                                 @endif
                             </td>
                             <td class="py-2 px-3 whitespace-nowrap font-mono">

@@ -443,6 +443,14 @@ class WarehouseLayoutController extends Controller
 
     public function assignSlotArchive(Request $request, WarehouseLocation $location)
     {
+        $user = auth()->user();
+        if (!$user || (!$user->isPicGudang() && !$user->isSuperAdmin())) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akses ditolak: Hanya Super Admin dan PIC Gudang yang berhak mengalokasikan slot rak gudang.',
+            ], 403);
+        }
+
         $validated = $request->validate([
             'sap_level' => 'required|integer|min:1|max:10',
             'layer' => 'required|string|in:top,bottom',
@@ -635,6 +643,14 @@ class WarehouseLayoutController extends Controller
 
     public function unassignSlotArchive(Request $request, WarehouseLocation $location)
     {
+        $user = auth()->user();
+        if (!$user || (!$user->isPicGudang() && !$user->isSuperAdmin())) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akses ditolak: Hanya Super Admin dan PIC Gudang yang berhak menghapus penempatan slot rak gudang.',
+            ], 403);
+        }
+
         $validated = $request->validate([
             'sap_level' => 'required|integer|min:1|max:10',
             'layer' => 'required|string|in:top,bottom',

@@ -302,6 +302,7 @@
 
                         <td class="py-2.5 px-3 font-mono text-[11px] border-r border-slate-200 dark:border-slate-800 whitespace-nowrap">
                             @if($archive->location)
+                                @if(auth()->user()->isPicGudang() || auth()->user()->isSuperAdmin())
                                 <button 
                                     type="button"
                                     @click="openQuickSlotModal({
@@ -318,7 +319,14 @@
                                     <i data-lucide="map-pin" class="w-3.5 h-3.5 text-emerald-500 shrink-0"></i>
                                     <span>{{ $archive->display_location }}</span>
                                 </button>
+                                @else
+                                <div class="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 font-bold text-left">
+                                    <i data-lucide="map-pin" class="w-3.5 h-3.5 text-emerald-500 shrink-0"></i>
+                                    <span>{{ $archive->display_location }}</span>
+                                </div>
+                                @endif
                             @else
+                                @if(auth()->user()->isPicGudang() || auth()->user()->isSuperAdmin())
                                 <button 
                                     type="button" 
                                     @click="openQuickSlotModal({
@@ -336,6 +344,13 @@
                                     <span class="underline decoration-dotted underline-offset-2">Belum Ditentukan</span>
                                     <i data-lucide="map-pin" class="w-3 h-3 text-rose-500"></i>
                                 </button>
+                                @else
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30 select-none" title="Lokasi rak gudang belum ditentukan">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+                                    <span>Belum Ditentukan</span>
+                                    <i data-lucide="map-pin" class="w-3 h-3 text-rose-400"></i>
+                                </span>
+                                @endif
                             @endif
                         </td>
 
