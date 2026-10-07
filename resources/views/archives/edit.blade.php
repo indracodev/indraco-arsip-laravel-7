@@ -1,6 +1,6 @@
 @extends(auth()->check() && auth()->user()->isPicDept() ? 'layouts.desktop_pic' : 'layouts.app')
 
-@section('title', 'Edit Draft Pengajuan Box Arsip - ' . $archive->title)
+@section('title', ($archive->status === 'draft' ? 'Edit Draft Pengajuan Box Arsip - ' : 'Edit Berkas Arsip - ') . $archive->title)
 
 @section('content')
 <div class="max-w-5xl mx-auto space-y-3 font-sans pb-10" x-data="archiveEditApp()">
@@ -13,7 +13,9 @@
             </span>
             <div>
                 <div class="flex items-center gap-2">
-                    <h1 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Edit Draft Pengajuan Box Arsip (TB 30g)</h1>
+                    <h1 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                        {{ $archive->status === 'draft' ? 'Edit Draft Pengajuan Box Arsip (TB 30g)' : 'Edit Data Berkas Arsip (' . ($archive->box_number ?: 'Standar Box TB 30g') . ')' }}
+                    </h1>
                     <span class="px-1.5 py-0.5 bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-300 text-xs font-bold rounded uppercase border border-slate-300 dark:border-slate-700">Status: {{ $archive->status_label }}</span>
                 </div>
                 <p class="text-[11px] text-slate-500 dark:text-slate-400">Pencatatan Master Kardus & Multi-Item Butir Dokumen Arsip • Standar Box TB 30g</p>
@@ -698,28 +700,42 @@
             <a href="{{ route('archives.index', request()->has('embed') ? ['embed' => 1] : []) }}" class="px-3.5 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded text-xs font-bold border border-slate-300 dark:border-slate-700 transition">
                 Batal
             </a>
-            <!-- Simpan Sebagai Draft (Simpan Sementara) - Selalu Aktif -->
-            <button 
-                type="submit" 
-                name="submit_action" 
-                value="draft" 
-                class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs rounded border border-slate-400 dark:border-slate-600 shadow-xs transition flex items-center gap-1.5 cursor-pointer"
-                title="Perbarui data dan tetap simpan sementara sebagai draft"
-            >
-                <i data-lucide="file-clock" class="w-3.5 h-3.5 text-amber-500"></i>
-                <span>Simpan Sementara (Draft)</span>
-            </button>
-            <!-- Simpan & Ajukan Box Arsip Permanen -->
-            <button 
-                type="button" 
-                @click="submitFinal('submit')"
-                :class="hasScanForm ? 'bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:from-amber-400 hover:to-amber-300 text-slate-950 border-amber-600 shadow-md cursor-pointer' : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-300 dark:border-slate-700 cursor-pointer'"
-                class="px-5 py-2 font-black text-xs rounded border transition flex items-center gap-1.5"
-                title="Simpan permanen dan teruskan pengajuan ke PIC Gudang untuk diverifikasi"
-            >
-                <i data-lucide="send" class="w-3.5 h-3.5" :class="hasScanForm ? 'text-slate-950' : 'text-slate-400 dark:text-slate-500'"></i>
-                <span>Simpan & Ajukan Permanen ke Gudang</span>
-            </button>
+            @if($archive->status === 'draft')
+                <!-- Simpan Sebagai Draft (Simpan Sementara) - Selalu Aktif -->
+                <button 
+                    type="submit" 
+                    name="submit_action" 
+                    value="draft" 
+                    class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs rounded border border-slate-400 dark:border-slate-600 shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+                    title="Perbarui data dan tetap simpan sementara sebagai draft"
+                >
+                    <i data-lucide="file-clock" class="w-3.5 h-3.5 text-amber-500"></i>
+                    <span>Simpan Sementara (Draft)</span>
+                </button>
+                <!-- Simpan & Ajukan Box Arsip Permanen -->
+                <button 
+                    type="button" 
+                    @click="submitFinal('submit')"
+                    :class="hasScanForm ? 'bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:from-amber-400 hover:to-amber-300 text-slate-950 border-amber-600 shadow-md cursor-pointer' : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-300 dark:border-slate-700 cursor-pointer'"
+                    class="px-5 py-2 font-black text-xs rounded border transition flex items-center gap-1.5"
+                    title="Simpan permanen dan teruskan pengajuan ke PIC Gudang untuk diverifikasi"
+                >
+                    <i data-lucide="send" class="w-3.5 h-3.5" :class="hasScanForm ? 'text-slate-950' : 'text-slate-400 dark:text-slate-500'"></i>
+                    <span>Simpan & Ajukan Permanen ke Gudang</span>
+                </button>
+            @else
+                <!-- Simpan Perubahan Berkas Arsip (Non-Draft) -->
+                <button 
+                    type="submit" 
+                    name="submit_action" 
+                    value="update" 
+                    class="px-5 py-2 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black text-xs rounded border border-amber-600 shadow-md transition flex items-center gap-1.5 cursor-pointer"
+                    title="Simpan perubahan rincian data berkas arsip"
+                >
+                    <i data-lucide="save" class="w-3.5 h-3.5 text-slate-950"></i>
+                    <span>Simpan Perubahan Berkas</span>
+                </button>
+            @endif
         </div>
     </form>
 </div>

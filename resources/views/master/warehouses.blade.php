@@ -115,6 +115,7 @@
                                     <i data-lucide="map-pin" class="w-3 h-3 text-slate-400 shrink-0"></i> <span class="truncate" x-text="wh.address || 'Alamat lokasi belum diisi'"></span>
                                 </p>
                             </div>
+                            @if(!auth()->user()->isPicGudang())
                             <div class="flex items-center gap-1 shrink-0">
                                 <button @click="editWarehouseItem = Object.assign({}, wh)" class="px-2 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-400 dark:border-slate-600 rounded text-[11px] font-bold transition flex items-center gap-1" title="Edit Gudang">
                                     <i data-lucide="edit-3" class="w-3 h-3 text-amber-500"></i> Edit
@@ -132,6 +133,7 @@
                                     </button>
                                 </form>
                             </div>
+                            @endif
                         </div>
 
                         <!-- Locations Table inside Warehouse -->
@@ -183,6 +185,7 @@
                                                 <!-- Action Buttons -->
                                                 <td class="py-1.5 px-2 text-right font-mono whitespace-nowrap">
                                                     <div class="flex items-center justify-end gap-1">
+                                                        @if(!auth()->user()->isPicGudang())
                                                         <!-- Tombol Edit Lokasi Rak -->
                                                         <button 
                                                             type="button" 
@@ -192,6 +195,7 @@
                                                         >
                                                             <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
                                                         </button>
+                                                        @endif
 
                                                         <!-- Tombol Buka Visualisasi Denah 100 Slot Rak -->
                                                         <button 
@@ -203,6 +207,7 @@
                                                             <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>
                                                         </button>
 
+                                                        @if(!auth()->user()->isPicGudang())
                                                         <!-- Tombol Hapus Lokasi Rak -->
                                                         <form :action="'{{ url('/master/warehouses/locations') }}/' + loc.id" method="POST" class="inline" @submit="submitting = true">
                                                             @csrf
@@ -216,6 +221,7 @@
                                                                 <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                                                             </button>
                                                         </form>
+                                                        @endif
                                                     </div>
                                                 </td>
                                             </tr>

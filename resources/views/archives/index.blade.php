@@ -105,12 +105,11 @@
                 <label class="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 block">STATUS WORKFLOW</label>
                 <select name="status" class="w-full py-1 px-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition">
                     <option value="">-- Semua Status Workflow --</option>
-                    <option value="borrow_requested" {{ request('status') == 'borrow_requested' ? 'selected' : '' }}>📌 Ajuan Peminjaman (PIC Dept)</option>
                     <option value="draft" {{ request('status') == 'draft' ? 'selected' : '' }}>Draft (Simpan Sementara / Revisi)</option>
                     <option value="pending_verification" {{ request('status') == 'pending_verification' ? 'selected' : '' }}>Antrean Verifikasi</option>
                     <option value="approved_booked" {{ request('status') == 'approved_booked' ? 'selected' : '' }}>Approved / Booked</option>
                     <option value="in_warehouse" {{ request('status') == 'in_warehouse' ? 'selected' : '' }}>Di Gudang</option>
-                    <option value="borrowed" {{ request('status') == 'borrowed' ? 'selected' : '' }}>Sedang Dipinjam</option>
+                    <option value="out" {{ request('status') == 'out' || request('status') == 'borrowed' || request('status') == 'taken' ? 'selected' : '' }}>Keluar (Out)</option>
                     <option value="destroyed" {{ request('status') == 'destroyed' ? 'selected' : '' }}>Dimusnahkan</option>
                 </select>
             </div>
@@ -214,6 +213,9 @@
                                 @endif
                             </a>
                         </th>
+                        <th class="py-2.5 px-3 border-r border-slate-300 dark:border-slate-700 text-center">
+                            <span>BERKAS</span>
+                        </th>
                         <th class="py-2.5 px-3 text-right">AKSI</th>
                     </tr>
                 </thead>
@@ -221,6 +223,44 @@
                     @forelse($archives as $archive)
                     @php
                         $activeBorrowing = $archive->borrowingLogs ? $archive->borrowingLogs->whereIn('status', ['requested', 'dept_approved', 'approved'])->first() : null;
+                        $archiveFiles = [];
+                        if ($archive->scan_input_form) {
+                            $archiveFiles[] = [
+                                'name' => 'Scan Formulir Input',
+                                'category' => 'Formulir Pendaftaran Fisik',
+                                'url' => asset('storage/' . $archive->scan_input_form),
+                                'filename' => basename($archive->scan_input_form),
+                                'ext' => strtolower(pathinfo($archive->scan_input_form, PATHINFO_EXTENSION)),
+                            ];
+                        }
+                        if ($archive->file_path) {
+                            $archiveFiles[] = [
+                                'name' => 'Lampiran Digital Dokumen',
+                                'category' => 'Softcopy Dokumen',
+                                'url' => asset('storage/' . $archive->file_path),
+                                'filename' => basename($archive->file_path),
+                                'ext' => strtolower(pathinfo($archive->file_path, PATHINFO_EXTENSION)),
+                            ];
+                        }
+                        if ($archive->scan_approval_input) {
+                            $archiveFiles[] = [
+                                'name' => 'Scan Approval Input',
+                                'category' => 'Bukti Persetujuan PIC',
+                                'url' => asset('storage/' . $archive->scan_approval_input),
+                                'filename' => basename($archive->scan_approval_input),
+                                'ext' => strtolower(pathinfo($archive->scan_approval_input, PATHINFO_EXTENSION)),
+                            ];
+                        }
+                        if ($archive->scan_extension_form) {
+                            $archiveFiles[] = [
+                                'name' => 'Scan Form Perpanjangan',
+                                'category' => 'Perpanjangan Masa Simpan',
+                                'url' => asset('storage/' . $archive->scan_extension_form),
+                                'filename' => basename($archive->scan_extension_form),
+                                'ext' => strtolower(pathinfo($archive->scan_extension_form, PATHINFO_EXTENSION)),
+                            ];
+                        }
+                        $hasFiles = count($archiveFiles) > 0;
                     @endphp
                     <tr class="hover:bg-amber-500/5 dark:hover:bg-amber-500/10 transition {{ $activeBorrowing ? 'bg-purple-500/5 dark:bg-purple-500/10' : '' }}">
                         <td class="py-2.5 px-3 text-center border-r border-slate-200 dark:border-slate-800">
@@ -315,25 +355,140 @@
                         </td>
 
                         <td class="py-2.5 px-3 font-mono border-r border-slate-200 dark:border-slate-800 whitespace-nowrap">
-                            @if($activeBorrowing)
-                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-900 dark:text-purple-200 border border-purple-500/40 inline-flex items-center gap-1 animate-pulse" title="Peminjam: {{ $activeBorrowing->borrower->name ?? 'User' }}">
-                                    <i data-lucide="file-symlink" class="w-3 h-3 text-purple-500"></i>
-                                    Ajuan Pinjam ({{ $activeBorrowing->borrower->department->code ?? 'DEPT' }})
+                            @if(auth()->user()->isSuperAdmin())
+                                <button 
+                                    type="button" 
+                                    @click="openSuperAdminStatusModal({
+                                        id: {{ $archive->id }},
+                                        box_number: {{ json_encode($archive->box_number ?: 'Pending') }},
+                                        raw_box_number: {{ json_encode($archive->box_number) }},
+                                        title: {{ json_encode($archive->title) }},
+                                        department: {{ json_encode($archive->department->name ?? 'Dept') }},
+                                        department_code: {{ json_encode($archive->department->code ?? 'GEN') }},
+                                        status: {{ json_encode($archive->status) }},
+                                        status_label: {{ json_encode($archive->status_label ?? $archive->status) }},
+                                        location: {{ json_encode($archive->display_location) }},
+                                        has_scan_input: {{ !empty($archive->scan_input_form) ? 'true' : 'false' }},
+                                        has_file_path: {{ !empty($archive->file_path) ? 'true' : 'false' }},
+                                        has_approval: {{ !empty($archive->scan_approval_input) ? 'true' : 'false' }}
+                                    })"
+                                    class="px-2 py-0.5 rounded text-[10px] font-bold inline-flex items-center gap-1 transition shadow-xs cursor-pointer hover:scale-105 group border"
+                                    :class="{
+                                        'bg-slate-200 hover:bg-slate-300 text-slate-800 dark:bg-slate-800 dark:text-slate-300 border-slate-300 dark:border-slate-700': '{{ $archive->status }}' === 'draft',
+                                        'bg-amber-500/20 hover:bg-amber-500/35 text-amber-800 dark:text-amber-300 border-amber-500/50': '{{ $archive->status }}' === 'pending_verification',
+                                        'bg-blue-500/20 hover:bg-blue-500/35 text-blue-800 dark:text-blue-300 border-blue-500/50': '{{ $archive->status }}' === 'approved_booked',
+                                        'bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-800 dark:text-emerald-300 border-emerald-500/50': '{{ $archive->status }}' === 'in_warehouse',
+                                        'bg-purple-500/20 hover:bg-purple-500/35 text-purple-800 dark:text-purple-300 border-purple-500/50': '{{ $archive->status }}' === 'borrowed' || '{{ $archive->status }}' === 'taken',
+                                        'bg-rose-500/20 hover:bg-rose-500/35 text-rose-800 dark:text-rose-300 border-rose-500/50': '{{ $archive->status }}' === 'destroyed'
+                                    }"
+                                    title="Super Admin: Klik untuk ubah status workflow bebas"
+                                >
+                                    @if($archive->status === 'draft')
+                                        <i data-lucide="edit-3" class="w-3 h-3 text-slate-600 dark:text-slate-400 group-hover:scale-110 transition-transform"></i>
+                                        <span class="underline decoration-dotted underline-offset-2">Draft</span>
+                                    @elseif($archive->status === 'pending_verification')
+                                        <i data-lucide="shield-check" class="w-3 h-3 text-amber-600 dark:text-amber-400 group-hover:scale-110 transition-transform"></i>
+                                        <span class="underline decoration-dotted underline-offset-2">Antrean Verifikasi</span>
+                                    @elseif($archive->status === 'approved_booked')
+                                        <i data-lucide="check" class="w-3 h-3 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform"></i>
+                                        <span class="underline decoration-dotted underline-offset-2">Approved / Booked</span>
+                                    @elseif($archive->status === 'in_warehouse')
+                                        <i data-lucide="archive" class="w-3 h-3 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform"></i>
+                                        <span class="underline decoration-dotted underline-offset-2">Di Gudang</span>
+                                    @elseif($archive->status === 'borrowed' || $archive->status === 'taken')
+                                        <i data-lucide="log-out" class="w-3 h-3 text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform"></i>
+                                        <span class="underline decoration-dotted underline-offset-2">Keluar (Out)</span>
+                                    @elseif($archive->status === 'destroyed')
+                                        <i data-lucide="trash-2" class="w-3 h-3 text-rose-600 dark:text-rose-400 group-hover:scale-110 transition-transform"></i>
+                                        <span class="underline decoration-dotted underline-offset-2">Dimusnahkan</span>
+                                    @endif
+                                    <i data-lucide="sliders" class="w-2.5 h-2.5 opacity-60 ml-0.5 text-amber-500"></i>
+                                </button>
+                            @else
+                                @if($archive->status === 'draft')
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-300 border border-slate-300 dark:border-slate-700">Draft</span>
+                                @elseif($archive->status === 'pending_verification')
+                                    @if(auth()->user()->isPicGudang())
+                                        <button 
+                                            type="button" 
+                                            @click="openVerifyModal({
+                                                id: {{ $archive->id }},
+                                                title: {{ json_encode($archive->title) }},
+                                                department: {{ json_encode($archive->department->name ?? 'Dept') }},
+                                                department_code: {{ json_encode($archive->department->code ?? 'GEN') }},
+                                                creator: {{ json_encode($archive->creator->name ?? 'User') }},
+                                                periode: {{ json_encode($archive->effective_periode) }},
+                                                condition: {{ json_encode($archive->physical_condition) }},
+                                                files: {{ json_encode($archiveFiles) }},
+                                                has_files: {{ $hasFiles ? 'true' : 'false' }},
+                                                edit_url: {{ json_encode(route('archives.edit', ['archive' => $archive->id])) }}
+                                            })"
+                                            class="px-2.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 hover:bg-amber-500/35 text-amber-800 dark:text-amber-300 border border-amber-500/50 inline-flex items-center gap-1 transition shadow-xs cursor-pointer hover:scale-105 group"
+                                            title="Klik untuk verifikasi pengajuan & generate Nomor Box Arsip"
+                                        >
+                                            <i data-lucide="shield-check" class="w-3 h-3 text-amber-600 dark:text-amber-400 group-hover:scale-110 transition-transform"></i>
+                                            <span class="underline decoration-dotted underline-offset-2">Antrean Verifikasi</span>
+                                        </button>
+                                    @else
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 border border-amber-500/40">Antrean Verifikasi</span>
+                                    @endif
+                                @elseif($archive->status === 'approved_booked')
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/10 text-blue-800 dark:bg-blue-500/20 dark:text-blue-300 border border-blue-500/40">Approved / Booked</span>
+                                @elseif($archive->status === 'in_warehouse')
+                                    @if(auth()->user()->isPicGudang())
+                                        <button 
+                                            type="button" 
+                                            @click="openCheckoutModal({
+                                                id: {{ $archive->id }},
+                                                box_number: {{ json_encode($archive->box_number ?: 'Pending') }},
+                                                title: {{ json_encode($archive->title) }},
+                                                department: {{ json_encode($archive->department->name ?? 'Dept') }},
+                                                department_code: {{ json_encode($archive->department->code ?? 'GEN') }},
+                                                location: {{ json_encode($archive->display_location) }}
+                                            })"
+                                            class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-800 dark:text-emerald-300 border border-emerald-500/50 inline-flex items-center gap-1 transition shadow-xs cursor-pointer hover:scale-105 group"
+                                            title="Klik untuk proses pengeluaran berkas (Out / Keluar)"
+                                        >
+                                            <i data-lucide="log-out" class="w-3 h-3 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform"></i>
+                                            <span class="underline decoration-dotted underline-offset-2">Di Gudang</span>
+                                        </button>
+                                    @else
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 border border-emerald-500/40">Di Gudang</span>
+                                    @endif
+                                @elseif($archive->status === 'borrowed' || $archive->status === 'taken')
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/10 text-purple-800 dark:bg-purple-500/20 dark:text-purple-300 border border-purple-500/40 inline-flex items-center gap-1">
+                                        <i data-lucide="log-out" class="w-3 h-3 text-purple-500"></i>
+                                        <span>Keluar (Out)</span>
+                                    </span>
+                                @elseif($archive->status === 'destroyed')
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/10 text-rose-800 dark:bg-rose-500/20 dark:text-rose-300 border border-rose-500/40">Dimusnahkan</span>
+                                @endif
+                            @endif
+                        </td>
+
+                        <!-- BERKAS DIGITAL & SCAN PREVIEW COLUMN -->
+                        <td class="py-2.5 px-3 font-mono text-center border-r border-slate-200 dark:border-slate-800 whitespace-nowrap">
+                            @if($hasFiles)
+                                <button 
+                                    type="button" 
+                                    @click="openFilePreviewModal({
+                                        box_number: {{ json_encode($archive->box_number ?: 'DRAFT-BOX') }},
+                                        title: {{ json_encode($archive->title) }},
+                                        department: {{ json_encode($archive->department->code ?? 'GEN') }},
+                                        files: {{ json_encode($archiveFiles) }}
+                                    })"
+                                    class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[11px] font-bold bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40 transition shadow-xs cursor-pointer group"
+                                    title="Klik untuk preview berkas digital & scan formulir ({{ count($archiveFiles) }} berkas)"
+                                >
+                                    <i data-lucide="paperclip" class="w-3 h-3 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform"></i>
+                                    <span class="underline decoration-dotted underline-offset-2">Ada</span>
+                                    <span class="text-[9px] px-1 py-0.2 rounded-full bg-emerald-600 text-white font-black leading-none ml-0.5">{{ count($archiveFiles) }}</span>
+                                </button>
+                            @else
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-slate-900 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-800 select-none">
+                                    <i data-lucide="minus-circle" class="w-3 h-3 text-slate-400 dark:text-slate-600"></i>
+                                    <span>Tidak Ada</span>
                                 </span>
-                            @elseif($archive->status === 'draft')
-                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-300 border border-slate-300 dark:border-slate-700">Draft</span>
-                            @elseif($archive->status === 'pending_verification')
-                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 border border-amber-500/40">Antrean Verifikasi</span>
-                            @elseif($archive->status === 'approved_booked')
-                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/10 text-blue-800 dark:bg-blue-500/20 dark:text-blue-300 border border-blue-500/40">Approved / Booked</span>
-                            @elseif($archive->status === 'in_warehouse')
-                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 border border-emerald-500/40">Di Gudang</span>
-                            @elseif($archive->status === 'borrowed')
-                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/10 text-purple-800 dark:bg-purple-500/20 dark:text-purple-300 border border-purple-500/40">Dipinjam</span>
-                            @elseif($archive->status === 'taken')
-                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/10 text-indigo-800 dark:bg-indigo-500/20 dark:text-indigo-300 border border-indigo-500/40">Diambil (Permanen)</span>
-                            @elseif($archive->status === 'destroyed')
-                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/10 text-rose-800 dark:bg-rose-500/20 dark:text-rose-300 border border-rose-500/40">Dimusnahkan</span>
                             @endif
                         </td>
 
@@ -359,7 +514,7 @@
                                     </button>
                                 @endif
 
-                                @if(auth()->user()->isSuperAdmin() || auth()->user()->isAdmin() || (auth()->user()->isPicDept() && $archive->department_id === auth()->user()->department_id) || in_array($archive->status, ['draft', 'pending_verification', 'approved_booked']))
+                                @if(!auth()->user()->isPicGudang() && (auth()->user()->isSuperAdmin() || auth()->user()->isAdmin() || (auth()->user()->isPicDept() && (int)$archive->department_id === (int)auth()->user()->department_id && $archive->status === 'draft')))
                                 <a href="{{ route('archives.edit', array_merge(['archive' => $archive->id], request()->has('embed') ? ['embed' => 1] : [])) }}" class="px-2 py-0.5 rounded bg-amber-500 hover:bg-amber-400 text-slate-950 border border-amber-600 font-bold text-[11px] transition inline-flex items-center gap-1 shadow-xs" title="Edit Data Berkas Arsip">
                                     <i data-lucide="edit-3" class="w-3 h-3 text-slate-950"></i>
                                     <span>Edit</span>
@@ -367,10 +522,26 @@
                                 @endif
 
                                 @if(!auth()->user()->isPicDept())
-                                <a href="{{ route('archives.print_sticker', $archive) }}" target="_blank" title="Cetak Label Box Container" class="px-2 py-0.5 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40 text-[11px] font-bold transition inline-flex items-center gap-1 shadow-xs">
-                                    <i data-lucide="printer" class="w-3 h-3 text-amber-500"></i>
-                                    <span>Label</span>
-                                </a>
+                                    @if($hasFiles)
+                                        <a href="{{ route('archives.print_sticker', $archive) }}" target="_blank" title="Cetak Label Box Container" class="px-2 py-0.5 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40 text-[11px] font-bold transition inline-flex items-center gap-1 shadow-xs">
+                                            <i data-lucide="printer" class="w-3 h-3 text-amber-500"></i>
+                                            <span>Label</span>
+                                        </a>
+                                    @else
+                                        <button 
+                                            type="button" 
+                                            @click="openIncompleteFileAlert({
+                                                title: {{ json_encode($archive->title) }},
+                                                box_number: {{ json_encode($archive->box_number ?: 'Draft Pengajuan') }},
+                                                edit_url: {{ json_encode(route('archives.edit', ['archive' => $archive->id])) }}
+                                            })" 
+                                            title="Label Tidak Dapat Dicetak: Berkas belum lengkap!" 
+                                            class="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-300 dark:border-slate-700 text-[11px] font-bold transition inline-flex items-center gap-1 shadow-xs cursor-pointer hover:bg-rose-500/10 hover:text-rose-600 hover:border-rose-500/30 opacity-70"
+                                        >
+                                            <i data-lucide="printer" class="w-3 h-3 text-slate-400 dark:text-slate-500"></i>
+                                            <span>Label</span>
+                                        </button>
+                                    @endif
                                 @endif
                                 <a href="{{ route('archives.show', array_merge(['archive' => $archive->id], request()->has('embed') ? ['embed' => 1] : [])) }}" class="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-amber-500 text-[11px] font-bold transition inline-flex items-center gap-1 shadow-xs">
                                     <span>Detail</span>
@@ -381,7 +552,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="9" class="py-10 text-center font-mono text-slate-500 dark:text-slate-400 space-y-2">
+                        <td colspan="10" class="py-10 text-center font-mono text-slate-500 dark:text-slate-400 space-y-2">
                             <i data-lucide="folder-search" class="w-10 h-10 mx-auto text-slate-400 dark:text-slate-600"></i>
                             <p class="text-xs font-bold">Tidak ada berkas arsip yang ditemukan berdasarkan kriteria pencarian ini.</p>
                         </td>
@@ -979,6 +1150,976 @@
             </div>
         </div>
     </div>
+
+    <!-- MODAL PREVIEW BERKAS DIGITAL & SCAN FORMULIR -->
+    <div x-show="filePreviewModalOpen" 
+         x-transition.opacity 
+         class="fixed inset-0 flex items-center justify-center p-2 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto"
+         style="display: none; z-index: 9995 !important;"
+         @keydown.escape.window="closeFilePreviewModal()">
+        
+        <div class="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-2xl max-w-4xl w-full p-4 sm:p-6 shadow-2xl space-y-4 font-mono text-xs max-h-[92vh] flex flex-col my-auto"
+             @click.away="closeFilePreviewModal()">
+            
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 shrink-0">
+                <div class="flex items-center gap-2.5 min-w-0">
+                    <div class="p-2 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-xl shrink-0">
+                        <i data-lucide="file-search" class="w-5 h-5"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                                Preview Berkas Digital & Scan Formulir
+                            </h3>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40">
+                                <span x-text="previewArchiveData ? previewArchiveData.files.length : 0"></span> Berkas
+                            </span>
+                        </div>
+                        <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                            <span class="font-bold text-amber-600 dark:text-amber-400" x-text="previewArchiveData ? previewArchiveData.box_number : ''"></span> &mdash; 
+                            <span x-text="previewArchiveData ? previewArchiveData.title : ''"></span> 
+                            (<span x-text="previewArchiveData ? previewArchiveData.department : ''"></span>)
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 shrink-0">
+                    <template x-if="currentPreviewFile">
+                        <a :href="currentPreviewFile.url" target="_blank" download class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-bold border border-slate-300 dark:border-slate-700 transition flex items-center gap-1" title="Buka / Unduh di Tab Baru">
+                            <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                            <span class="hidden sm:inline">Buka Tab Baru</span>
+                        </a>
+                    </template>
+                    <button type="button" @click="closeFilePreviewModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tab / File Selection Ribbon (if multiple files) -->
+            <template x-if="previewArchiveData && previewArchiveData.files.length > 1">
+                <div class="flex items-center gap-2 overflow-x-auto pb-1 shrink-0 border-b border-slate-200 dark:border-slate-800">
+                    <template x-for="(file, idx) in previewArchiveData.files" :key="idx">
+                        <button 
+                            type="button" 
+                            @click="selectedFileIndex = idx" 
+                            :class="selectedFileIndex === idx ? 'bg-amber-500 text-slate-950 font-black shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 font-bold'"
+                            class="px-3 py-1.5 rounded-lg text-xs transition flex items-center gap-1.5 shrink-0"
+                        >
+                            <i data-lucide="file-check" class="w-3.5 h-3.5" x-show="file.name.toLowerCase().includes('formulir')"></i>
+                            <i data-lucide="paperclip" class="w-3.5 h-3.5" x-show="!file.name.toLowerCase().includes('formulir')"></i>
+                            <span x-text="file.name"></span>
+                            <span class="text-[10px] uppercase opacity-75 font-mono" x-text="'(' + file.ext + ')'"></span>
+                        </button>
+                    </template>
+                </div>
+            </template>
+
+            <!-- Modal Body / File Preview Content -->
+            <div class="flex-1 overflow-y-auto min-h-[360px] max-h-[62vh] bg-slate-50 dark:bg-slate-950 rounded-xl p-3 border border-slate-200 dark:border-slate-800 flex flex-col justify-center items-center">
+                <template x-if="currentPreviewFile">
+                    <div class="w-full h-full flex flex-col items-center justify-center">
+                        <!-- Preview PDF -->
+                        <template x-if="currentPreviewFile.ext === 'pdf'">
+                            <div class="w-full h-full min-h-[480px] flex flex-col">
+                                <iframe :src="currentPreviewFile.url" class="w-full flex-1 min-h-[480px] rounded-lg border border-slate-300 dark:border-slate-700 bg-white" frameborder="0"></iframe>
+                            </div>
+                        </template>
+
+                        <!-- Preview Images (JPG, JPEG, PNG, GIF, WEBP) -->
+                        <template x-if="['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(currentPreviewFile.ext)">
+                            <div class="w-full h-full flex flex-col items-center justify-center p-2">
+                                <img :src="currentPreviewFile.url" :alt="currentPreviewFile.name" class="max-h-[500px] max-w-full object-contain rounded-lg shadow-lg border border-slate-300 dark:border-slate-700" />
+                            </div>
+                        </template>
+
+                        <!-- Non-previewable Files (DOCX, ZIP, etc) -->
+                        <template x-if="!['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp'].includes(currentPreviewFile.ext)">
+                            <div class="text-center py-12 space-y-4 font-mono">
+                                <div class="w-16 h-16 mx-auto bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded-2xl flex items-center justify-center border border-amber-500/30">
+                                    <i data-lucide="file" class="w-8 h-8"></i>
+                                </div>
+                                <div class="space-y-1">
+                                    <h4 class="text-sm font-bold text-slate-900 dark:text-white" x-text="currentPreviewFile.name"></h4>
+                                    <p class="text-xs text-slate-500" x-text="currentPreviewFile.filename"></p>
+                                    <p class="text-[11px] text-slate-400">Tipe file ini (<span class="uppercase font-bold" x-text="currentPreviewFile.ext"></span>) tidak mendukung preview langsung pada browser.</p>
+                                </div>
+                                <div>
+                                    <a :href="currentPreviewFile.url" target="_blank" download class="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs shadow-md transition">
+                                        <i data-lucide="download" class="w-4 h-4"></i>
+                                        <span>Unduh / Buka Berkas</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-2 pt-1 border-t border-slate-200 dark:border-slate-800 text-[11px] text-slate-500 shrink-0">
+                <template x-if="currentPreviewFile">
+                    <div class="flex items-center gap-2">
+                        <span class="px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold" x-text="currentPreviewFile.category"></span>
+                        <span class="truncate max-w-xs" x-text="currentPreviewFile.filename"></span>
+                    </div>
+                </template>
+                <div class="flex items-center gap-2 self-end sm:self-auto">
+                    <button type="button" @click="closeFilePreviewModal()" class="px-4 py-1.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs transition">
+                        Tutup
+                    </button>
+                    <template x-if="currentPreviewFile">
+                        <a :href="currentPreviewFile.url" target="_blank" class="px-4 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl font-black text-xs shadow-md transition inline-flex items-center gap-1.5">
+                            <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                            <span>Buka di Tab Baru</span>
+                        </a>
+                    </template>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL POPUP LENGKAPI BERKAS TERLEBIH DAHULU -->
+    <div x-show="incompleteFileModalOpen" 
+         x-transition.opacity 
+         class="fixed inset-0 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm"
+         style="display: none; z-index: 9996 !important;"
+         @keydown.escape.window="incompleteFileModalOpen = false">
+        
+        <div class="bg-white dark:bg-slate-900 border border-amber-500/40 dark:border-amber-500/30 rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-4 font-mono text-xs"
+             @click.away="incompleteFileModalOpen = false">
+            
+            <div class="flex items-start gap-3">
+                <div class="p-2.5 bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded-xl shrink-0">
+                    <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+                </div>
+                <div class="space-y-1">
+                    <h3 class="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                        Lengkapi Berkas Terlebih Dahulu
+                    </h3>
+                    <p class="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed font-sans">
+                        Berkas digital & scan formulir untuk box arsip ini belum diunggah. Silakan lengkapi berkas digital & scan formulir terlebih dahulu pada form pengajuan (Bagian 5) sebelum mencetak label box.
+                    </p>
+                </div>
+            </div>
+
+            <template x-if="incompleteFileArchive">
+                <div class="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-1 text-[11px]">
+                    <div class="flex items-center justify-between text-slate-500">
+                        <span>No. Box / Kode:</span>
+                        <strong class="text-amber-600 dark:text-amber-400 font-mono" x-text="incompleteFileArchive.box_number"></strong>
+                    </div>
+                    <div class="flex items-center justify-between text-slate-700 dark:text-slate-200">
+                        <span>Judul Berkas:</span>
+                        <strong class="truncate max-w-[200px]" x-text="incompleteFileArchive.title"></strong>
+                    </div>
+                </div>
+            </template>
+
+            <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+                <button type="button" @click="incompleteFileModalOpen = false" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs transition">
+                    Tutup
+                </button>
+                <template x-if="incompleteFileArchive && incompleteFileArchive.edit_url">
+                    <a :href="incompleteFileArchive.edit_url" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl font-black text-xs shadow-md transition inline-flex items-center gap-1.5">
+                        <i data-lucide="edit-3" class="w-3.5 h-3.5 text-slate-950"></i>
+                        <span>Lengkapi Berkas Sekarang</span>
+                    </a>
+                </template>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL VERIFIKASI PENGAJUAN ARSIP & GENERATE NOMOR BOX (PIC GUDANG) -->
+    <div x-show="verifyModalOpen" 
+         x-transition.opacity 
+         class="fixed inset-0 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm overflow-y-auto"
+         style="display: none; z-index: 9996 !important;"
+         @keydown.escape.window="if(!verifyingArchive) closeVerifyModal()">
+        
+        <div class="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-4 font-mono text-xs my-auto"
+             @click.away="if(!verifyingArchive) closeVerifyModal()">
+            
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                <div class="flex items-center gap-2.5">
+                    <div class="p-2 bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded-xl">
+                        <i data-lucide="shield-check" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                            Verifikasi Pengajuan Box Arsip
+                        </h3>
+                        <p class="text-[11px] text-slate-500">Persetujuan PIC Gudang & generate Nomor Box resmi.</p>
+                    </div>
+                </div>
+                <button type="button" @click="closeVerifyModal()" :disabled="verifyingArchive" class="text-slate-400 hover:text-slate-600 dark:hover:text-white">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <template x-if="verifyModalData">
+                <div class="space-y-3">
+                    <div class="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl space-y-1.5">
+                        <div class="flex items-center justify-between text-[11px]">
+                            <span class="text-slate-500 uppercase font-bold">Departemen:</span>
+                            <span class="px-2 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30 font-bold" x-text="verifyModalData.department_code + ' - ' + verifyModalData.department"></span>
+                        </div>
+                        <div class="flex items-center justify-between text-[11px]">
+                            <span class="text-slate-500 uppercase font-bold">Pengaju:</span>
+                            <span class="font-bold text-slate-900 dark:text-white" x-text="verifyModalData.creator"></span>
+                        </div>
+                        <div class="flex items-center justify-between text-[11px]">
+                            <span class="text-slate-500 uppercase font-bold">Periode Arsip:</span>
+                            <span class="font-bold text-amber-600 dark:text-amber-400" x-text="verifyModalData.periode || '-'"></span>
+                        </div>
+                        <div class="pt-1 border-t border-slate-200 dark:border-slate-800">
+                            <span class="text-[10px] text-slate-400 uppercase font-bold block mb-0.5">Judul Berkas:</span>
+                            <h4 class="font-bold text-slate-900 dark:text-white text-xs" x-text="verifyModalData.title"></h4>
+                        </div>
+                    </div>
+
+                    <!-- Status Berkas Lampiran / Scan -->
+                    <div class="p-3 rounded-xl border" :class="verifyModalData.has_files ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-900 dark:text-emerald-200' : 'bg-rose-500/10 border-rose-500/30 text-rose-900 dark:text-rose-200'">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-[11px] flex items-center gap-1.5">
+                                <i data-lucide="paperclip" class="w-3.5 h-3.5"></i>
+                                <span>Kelengkapan Berkas Scan:</span>
+                            </span>
+                            <template x-if="verifyModalData.has_files">
+                                <span class="px-2 py-0.5 rounded bg-emerald-600 text-white font-black text-[10px]" x-text="verifyModalData.files.length + ' Berkas Terlampir'"></span>
+                            </template>
+                            <template x-if="!verifyModalData.has_files">
+                                <span class="px-2 py-0.5 rounded bg-rose-600 text-white font-black text-[10px]">Belum Ada Berkas</span>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Rejection Form Input (If rejecting) -->
+                    <div x-show="showRejectInput" x-transition class="space-y-1.5 p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl">
+                        <label class="block text-[11px] font-bold text-rose-700 dark:text-rose-300 uppercase">Alasan / Catatan Penolakan <span class="text-rose-500">*</span></label>
+                        <textarea x-model="rejectionNote" rows="2" placeholder="Tuliskan alasan penolakan untuk PIC Departemen..." class="w-full p-2 bg-white dark:bg-slate-900 border border-rose-400 rounded-lg text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-rose-600"></textarea>
+                    </div>
+
+                    <!-- Notice -->
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed font-sans">
+                        Persetujuan verifikasi akan secara otomatis men-generate <strong>Nomor Box Arsip</strong> resmi dan mengubah status menjadi <strong>Approved / Booked</strong>.
+                    </p>
+
+                    <!-- Actions -->
+                    <div class="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+                        <button type="button" @click="closeVerifyModal()" :disabled="verifyingArchive" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs transition">
+                            Batal
+                        </button>
+
+                        <template x-if="!showRejectInput">
+                            <button type="button" @click="showRejectInput = true" :disabled="verifyingArchive" class="px-3.5 py-2 bg-rose-500/20 hover:bg-rose-500/30 text-rose-700 dark:text-rose-300 border border-rose-500/30 rounded-xl font-bold text-xs transition flex items-center gap-1.5">
+                                <i data-lucide="x-circle" class="w-3.5 h-3.5"></i>
+                                <span>Tolak & Revisi</span>
+                            </button>
+                        </template>
+
+                        <template x-if="showRejectInput">
+                            <button type="button" @click="submitVerification('reject')" :disabled="verifyingArchive || !rejectionNote.trim()" class="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-bold text-xs shadow-md transition flex items-center gap-1.5 disabled:opacity-50">
+                                <i data-lucide="send" class="w-3.5 h-3.5"></i>
+                                <span>Kirim Penolakan</span>
+                            </button>
+                        </template>
+
+                        <button type="button" 
+                                @click="submitVerification('approve')" 
+                                :disabled="verifyingArchive"
+                                class="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl font-black text-xs shadow-lg shadow-emerald-500/20 transition flex items-center gap-1.5 disabled:opacity-50">
+                            <template x-if="verifyingArchive">
+                                <span class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                            </template>
+                            <template x-if="!verifyingArchive">
+                                <i data-lucide="check-circle" class="w-4 h-4"></i>
+                            </template>
+                            <span x-text="verifyingArchive ? 'Memverifikasi...' : 'Setujui & Generate Box Code'"></span>
+                        </button>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <!-- MODAL PENGELUARAN & PEMUSNAHAN BERKAS (OUT / DESTROY) -->
+    <div x-show="checkoutModalOpen" 
+         x-transition.opacity 
+         class="fixed inset-0 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm overflow-y-auto"
+         style="display: none; z-index: 9997 !important;"
+         @keydown.escape.window="if(!checkingOut) closeCheckoutModal()">
+        
+        <div class="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-2xl max-w-xl w-full p-5 sm:p-6 shadow-2xl space-y-4 font-mono text-xs my-auto"
+             @click.away="if(!checkingOut) closeCheckoutModal()">
+            
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                <div class="flex items-center gap-2.5">
+                    <div class="p-2 rounded-xl" :class="checkoutActionType === 'destroy' ? 'bg-rose-500/20 text-rose-600 dark:text-rose-400' : 'bg-purple-500/20 text-purple-600 dark:text-purple-400'">
+                        <i :data-lucide="checkoutActionType === 'destroy' ? 'trash-2' : 'log-out'" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                            Proses Status Berkas Gudang
+                        </h3>
+                        <p class="text-[11px] text-slate-500">Pilih opsi Pengeluaran Berkas (Out) atau Pemusnahan Berkas (BAP).</p>
+                    </div>
+                </div>
+                <button type="button" @click="closeCheckoutModal()" :disabled="checkingOut" class="text-slate-400 hover:text-slate-600 dark:hover:text-white">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <template x-if="checkoutModalData">
+                <div class="space-y-3.5">
+                    <!-- Detail Berkas Header Card -->
+                    <div class="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl space-y-1.5">
+                        <div class="flex items-center justify-between text-[11px]">
+                            <span class="text-slate-500 uppercase font-bold">No. Box Arsip:</span>
+                            <span class="font-black text-amber-600 dark:text-amber-400" x-text="checkoutModalData.box_number"></span>
+                        </div>
+                        <div class="flex items-center justify-between text-[11px]">
+                            <span class="text-slate-500 uppercase font-bold">Departemen:</span>
+                            <span class="px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold" x-text="checkoutModalData.department"></span>
+                        </div>
+                        <div class="flex items-center justify-between text-[11px]">
+                            <span class="text-slate-500 uppercase font-bold">Posisi Rak Fisik:</span>
+                            <span class="text-emerald-600 dark:text-emerald-400 font-bold" x-text="checkoutModalData.location || 'Gudang'"></span>
+                        </div>
+                        <div class="pt-1 border-t border-slate-200 dark:border-slate-800">
+                            <span class="text-[10px] text-slate-400 uppercase font-bold block mb-0.5">Judul Dokumen:</span>
+                            <h4 class="font-bold text-slate-900 dark:text-white text-xs truncate" x-text="checkoutModalData.title"></h4>
+                        </div>
+                    </div>
+
+                    <!-- Pilihan Opsi Aksi: Pengeluaran vs Pemusnahan -->
+                    <div class="space-y-1.5">
+                        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                            Pilih Tindakan Status <span class="text-rose-500">*</span>
+                        </label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button type="button" 
+                                    @click="checkoutActionType = 'out'"
+                                    :class="checkoutActionType === 'out' ? 'bg-purple-500/20 border-purple-500 text-purple-900 dark:text-purple-200 ring-2 ring-purple-500/30 font-black' : 'bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold'"
+                                    class="p-2.5 rounded-xl border text-left transition flex flex-col justify-between cursor-pointer">
+                                <div class="flex items-center justify-between mb-1">
+                                    <span class="text-xs flex items-center gap-1.5">
+                                        <i data-lucide="log-out" class="w-3.5 h-3.5 text-purple-500"></i>
+                                        Pengeluaran Berkas (Out)
+                                    </span>
+                                    <input type="radio" name="cat_action_choice" value="out" :checked="checkoutActionType === 'out'" class="text-purple-600 pointer-events-none">
+                                </div>
+                                <p class="text-[10px] text-slate-500 leading-tight">Otorisasi fisik berkas keluar dari gudang.</p>
+                            </button>
+
+                            <button type="button" 
+                                    @click="checkoutActionType = 'destroy'"
+                                    :class="checkoutActionType === 'destroy' ? 'bg-rose-500/20 border-rose-500 text-rose-900 dark:text-rose-200 ring-2 ring-rose-500/30 font-black' : 'bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold'"
+                                    class="p-2.5 rounded-xl border text-left transition flex flex-col justify-between cursor-pointer">
+                                <div class="flex items-center justify-between mb-1">
+                                    <span class="text-xs flex items-center gap-1.5">
+                                        <i data-lucide="trash-2" class="w-3.5 h-3.5 text-rose-500"></i>
+                                        Pemusnahan Berkas (BAP)
+                                    </span>
+                                    <input type="radio" name="cat_action_choice" value="destroy" :checked="checkoutActionType === 'destroy'" class="text-rose-600 pointer-events-none">
+                                </div>
+                                <p class="text-[10px] text-slate-500 leading-tight">Eksekusi pemusnahan resmi & catat No. BAP.</p>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- FORM MODE 1: PENGELUARAN BERKAS (OUT) -->
+                    <template x-if="checkoutActionType === 'out'">
+                        <div class="space-y-2.5 pt-1">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                <div class="space-y-1">
+                                    <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase">
+                                        Nama Penerima / Pengambil <span class="text-rose-500">*</span>
+                                    </label>
+                                    <input type="text" x-model="checkoutBorrowerName" placeholder="Contoh: Surya Atmojo" class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-purple-500">
+                                </div>
+
+                                <div class="space-y-1">
+                                    <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase">
+                                        Departemen Tujuan
+                                    </label>
+                                    <div class="relative" x-data="{
+                                        open: false,
+                                        search: '',
+                                        get filteredDepts() {
+                                            if (!this.search) return departments;
+                                            const q = this.search.toLowerCase();
+                                            return departments.filter(d => (d.code && d.code.toLowerCase().includes(q)) || (d.name && d.name.toLowerCase().includes(q)));
+                                        },
+                                        select(d) {
+                                            checkoutDepartmentName = d ? (d.code ? d.code + ' - ' + d.name : d.name) : '';
+                                            this.open = false;
+                                            this.search = '';
+                                        }
+                                    }" @click.outside="open = false">
+                                        <!-- Trigger Button -->
+                                        <button 
+                                            type="button" 
+                                            @click="open = !open" 
+                                            class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-mono text-left text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 transition flex items-center justify-between shadow-2xs cursor-pointer h-[32px]"
+                                        >
+                                            <span class="truncate font-semibold" x-text="checkoutDepartmentName || '-- Pilih Departemen --'"></span>
+                                            <i data-lucide="chevrons-up-down" class="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1"></i>
+                                        </button>
+
+                                        <!-- Dropdown Menu -->
+                                        <div 
+                                            x-show="open" 
+                                            x-cloak 
+                                            x-transition
+                                            class="absolute z-50 left-0 right-0 mt-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg shadow-xl overflow-hidden font-mono text-xs"
+                                        >
+                                            <div class="p-1.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
+                                                <div class="relative">
+                                                    <i data-lucide="search" class="w-3 h-3 absolute left-2 top-2 text-slate-400"></i>
+                                                    <input 
+                                                        type="text" 
+                                                        x-model="search" 
+                                                        @keydown.escape="open = false" 
+                                                        placeholder="Cari kode / nama departemen..." 
+                                                        class="w-full pl-7 pr-2 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-[11px] text-slate-900 dark:text-white focus:outline-none focus:border-purple-500"
+                                                        x-ref="searchDeptInput"
+                                                        x-init="$watch('open', value => { if(value) { setTimeout(() => $refs.searchDeptInput?.focus(), 50); if(window.lucide) lucide.createIcons(); } })"
+                                                    >
+                                                </div>
+                                            </div>
+                                            <ul class="max-h-40 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/50">
+                                                <template x-for="d in filteredDepts" :key="d.id">
+                                                    <li 
+                                                        @click="select(d)" 
+                                                        class="px-2.5 py-1.5 hover:bg-purple-500/15 dark:hover:bg-purple-500/20 cursor-pointer flex items-center justify-between transition"
+                                                        :class="checkoutDepartmentName === (d.name) || checkoutDepartmentName === (d.code + ' - ' + d.name) ? 'bg-purple-500/20 font-bold text-purple-700 dark:text-purple-400' : 'text-slate-800 dark:text-slate-200'"
+                                                    >
+                                                        <span x-text="(d.code ? d.code + ' - ' : '') + d.name"></span>
+                                                        <i data-lucide="check" class="w-3.5 h-3.5 text-purple-600" x-show="checkoutDepartmentName === (d.name) || checkoutDepartmentName === (d.code + ' - ' + d.name)"></i>
+                                                    </li>
+                                                </template>
+                                                <li x-show="filteredDepts.length === 0" class="p-2 text-center text-slate-400 text-[11px]">
+                                                    Tidak ada departemen yang cocok
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="space-y-1">
+                                <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase">
+                                    Keperluan / Alasan Pengeluaran <span class="text-rose-500">*</span>
+                                </label>
+                                <textarea x-model="checkoutPurpose" rows="2" placeholder="Contoh: Audit Eksternal Pajak, Pengambilan Berkas Resmi Departemen..." class="w-full p-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-purple-500"></textarea>
+                            </div>
+
+                            <div class="space-y-1">
+                                <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase flex items-center justify-between">
+                                    <span>Upload Bukti / Form Serah Terima (Opsional)</span>
+                                    <span class="text-[10px] text-slate-400 font-normal">PDF/JPG Max 10MB</span>
+                                </label>
+                                <input type="file" id="cat_checkout_approval_file" accept=".pdf,.jpg,.jpeg,.png" class="w-full px-2 py-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-[11px] font-mono text-slate-700 dark:text-slate-300">
+                            </div>
+
+                            <div class="p-2.5 bg-purple-500/10 border border-purple-500/30 rounded-xl text-[11px] text-purple-900 dark:text-purple-200 flex items-start gap-2">
+                                <i data-lucide="info" class="w-4 h-4 text-purple-600 shrink-0 mt-0.5"></i>
+                                <span>Pengeluaran berkas akan secara otomatis mengubah status arsip menjadi <strong>Keluar (Out)</strong> dan mengosongkan slot rak di gudang.</span>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- FORM MODE 2: PEMUSNAHAN BERKAS (DESTROY / BAP) -->
+                    <template x-if="checkoutActionType === 'destroy'">
+                        <div class="space-y-2.5 pt-1">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                <div class="space-y-1">
+                                    <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase">
+                                        Nomor BAP Pemusnahan <span class="text-rose-500">*</span>
+                                    </label>
+                                    <input type="text" x-model="destroyBapNumber" placeholder="BAP/IND/2026/00001" class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-rose-500">
+                                </div>
+
+                                <div class="space-y-1">
+                                    <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase">
+                                        Tanggal Pemusnahan <span class="text-rose-500">*</span>
+                                    </label>
+                                    <input type="date" x-model="destroyDate" class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-rose-500">
+                                </div>
+                            </div>
+
+                            <div class="space-y-1">
+                                <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase">
+                                    Metode Pemusnahan <span class="text-rose-500">*</span>
+                                </label>
+                                <select x-model="destroyMethod" class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-rose-500">
+                                    <option value="Shredding (Pencacahan Fisik)">Shredding (Pencacahan Fisik Mesin Penghancur)</option>
+                                    <option value="Incineration (Pembakaran Bersertifikat)">Incineration (Pembakaran Suhu Tinggi Bersertifikat)</option>
+                                    <option value="Chemical Recycling (Peleburan Kimia)">Chemical Recycling (Peleburan Kimia & Daur Ulang Industri)</option>
+                                    <option value="Digital Purge & Shred">Digital Purge & Shred (Pemusnahan Total Fisik & Digital)</option>
+                                </select>
+                            </div>
+
+                            <div class="space-y-1">
+                                <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase">
+                                    Catatan / Keterangan Berita Acara (BAP)
+                                </label>
+                                <textarea x-model="destroyNotes" rows="2" placeholder="Keterangan saksi, kondisi berkas yang dimusnahkan..." class="w-full p-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-rose-500"></textarea>
+                            </div>
+
+                            <div class="space-y-1">
+                                <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase flex items-center justify-between">
+                                    <span>Upload Scan Form Persetujuan / Bukti BAP (Opsional)</span>
+                                    <span class="text-[10px] text-slate-400 font-normal">PDF/JPG Max 10MB</span>
+                                </label>
+                                <input type="file" id="cat_destroy_approval_file" accept=".pdf,.jpg,.jpeg,.png" class="w-full px-2 py-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-[11px] font-mono text-slate-700 dark:text-slate-300">
+                            </div>
+
+                            <div class="p-2.5 bg-rose-500/10 border border-rose-500/30 rounded-xl text-[11px] text-rose-900 dark:text-rose-200 flex items-start gap-2">
+                                <i data-lucide="alert-triangle" class="w-4 h-4 text-rose-600 shrink-0 mt-0.5"></i>
+                                <span>Pemusnahan berkas bersifat permanen. Status arsip akan diubah menjadi <strong>Dimusnahkan</strong> dan slot rak gudang akan dibebaskan.</span>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- Actions -->
+                    <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+                        <button type="button" @click="closeCheckoutModal()" :disabled="checkingOut" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs transition">
+                            Batal
+                        </button>
+                        
+                        <template x-if="checkoutActionType === 'out'">
+                            <button type="button" 
+                                    @click="submitCheckout()" 
+                                    :disabled="checkingOut || !checkoutPurpose.trim()" 
+                                    class="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl font-black text-xs shadow-lg shadow-purple-500/20 transition flex items-center gap-1.5 disabled:opacity-50">
+                                <template x-if="checkingOut">
+                                    <span class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                                </template>
+                                <template x-if="!checkingOut">
+                                    <i data-lucide="check-circle" class="w-4 h-4"></i>
+                                </template>
+                                <span x-text="checkingOut ? 'Memproses...' : 'Konfirmasi Pengeluaran Berkas (Out)'"></span>
+                            </button>
+                        </template>
+
+                        <template x-if="checkoutActionType === 'destroy'">
+                            <button type="button" 
+                                    @click="submitCheckout()" 
+                                    :disabled="checkingOut || !destroyBapNumber.trim()" 
+                                    class="px-4 py-2 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white rounded-xl font-black text-xs shadow-lg shadow-rose-500/20 transition flex items-center gap-1.5 disabled:opacity-50">
+                                <template x-if="checkingOut">
+                                    <span class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                                </template>
+                                <template x-if="!checkingOut">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </template>
+                                <span x-text="checkingOut ? 'Memproses...' : 'Sahkan Pemusnahan Berkas (BAP)'"></span>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <!-- MODAL SUPER ADMIN UBAH STATUS WORKFLOW BEBAS -->
+    <div x-show="superAdminStatusModalOpen" 
+         x-transition.opacity 
+         class="fixed inset-0 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm overflow-y-auto"
+         style="display: none; z-index: 9998 !important;"
+         @keydown.escape.window="if(!updatingStatus) closeSuperAdminStatusModal()">
+        
+        <div class="bg-white dark:bg-slate-900 border-2 border-amber-500/60 dark:border-amber-500/40 rounded-2xl max-w-xl w-full p-5 sm:p-6 shadow-2xl space-y-4 font-mono text-xs my-auto"
+             @click.away="if(!updatingStatus) closeSuperAdminStatusModal()">
+            
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                <div class="flex items-center gap-2.5">
+                    <div class="p-2 bg-gradient-to-br from-amber-500 to-amber-600 text-slate-950 rounded-xl font-bold shadow">
+                        <i data-lucide="shield-alert" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                                Super Admin: Ubah Status Workflow
+                            </h3>
+                            <span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-700 dark:text-amber-400 text-[10px] font-black border border-amber-500/30">
+                                Global Override
+                            </span>
+                        </div>
+                        <p class="text-[11px] text-slate-500">Pilih status tujuan untuk memindahkan alur berkas secara bebas.</p>
+                    </div>
+                </div>
+                <button type="button" @click="closeSuperAdminStatusModal()" :disabled="updatingStatus" class="text-slate-400 hover:text-slate-600 dark:hover:text-white">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <template x-if="superAdminStatusData">
+                <div class="space-y-4">
+                    <!-- Detail Berkas Info Card -->
+                    <div class="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl space-y-1.5">
+                        <div class="flex items-center justify-between text-[11px]">
+                            <span class="text-slate-500 uppercase font-bold">No. Box Arsip:</span>
+                            <span class="font-black text-amber-600 dark:text-amber-400" x-text="superAdminStatusData.box_number || 'Pending'"></span>
+                        </div>
+                        <div class="flex items-center justify-between text-[11px]">
+                            <span class="text-slate-500 uppercase font-bold">Departemen:</span>
+                            <span class="px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold" x-text="superAdminStatusData.department"></span>
+                        </div>
+                        <div class="flex items-center justify-between text-[11px]">
+                            <span class="text-slate-500 uppercase font-bold">Status Saat Ini:</span>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-black border" 
+                                  :class="{
+                                      'bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-300 border-slate-300': superAdminStatusData.status === 'draft',
+                                      'bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-500/40': superAdminStatusData.status === 'pending_verification',
+                                      'bg-blue-500/20 text-blue-800 dark:text-blue-300 border-blue-500/40': superAdminStatusData.status === 'approved_booked',
+                                      'bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border-emerald-500/40': superAdminStatusData.status === 'in_warehouse',
+                                      'bg-purple-500/20 text-purple-800 dark:text-purple-300 border-purple-500/40': superAdminStatusData.status === 'borrowed' || superAdminStatusData.status === 'taken',
+                                      'bg-rose-500/20 text-rose-800 dark:text-rose-300 border-rose-500/40': superAdminStatusData.status === 'destroyed'
+                                  }"
+                                  x-text="superAdminStatusData.status_label || superAdminStatusData.status">
+                            </span>
+                        </div>
+                        <div class="pt-1 border-t border-slate-200 dark:border-slate-800">
+                            <span class="text-[10px] text-slate-400 uppercase font-bold block mb-0.5">Judul Dokumen:</span>
+                            <h4 class="font-bold text-slate-900 dark:text-white text-xs truncate" x-text="superAdminStatusData.title"></h4>
+                        </div>
+                    </div>
+
+                    <!-- Target Status Selection (List of Options) -->
+                    <div class="space-y-2">
+                        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                            Pilih Status Baru <span class="text-rose-500">*</span>
+                        </label>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <!-- Draft -->
+                            <label class="p-2.5 rounded-xl border cursor-pointer transition flex items-start gap-2.5"
+                                   :class="targetStatusChoice === 'draft' ? 'bg-slate-200/80 dark:bg-slate-800 border-slate-500 ring-2 ring-slate-400/40 font-bold' : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 hover:border-slate-400'">
+                                <input type="radio" name="cat_super_status_opt" value="draft" x-model="targetStatusChoice" class="mt-0.5 text-slate-700">
+                                <div class="min-w-0">
+                                    <div class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                                        <i data-lucide="file-edit" class="w-3.5 h-3.5 text-slate-500"></i>
+                                        <span>Draft (Kembalikan ke Draft)</span>
+                                    </div>
+                                    <p class="text-[10px] text-slate-500 leading-tight mt-0.5">Wajib isi alasan. PIC Dept dapat merevisi. Slot rak dibebaskan.</p>
+                                </div>
+                            </label>
+
+                            <!-- Antrean Verifikasi -->
+                            <label class="p-2.5 rounded-xl border cursor-pointer transition flex items-start gap-2.5"
+                                   :class="targetStatusChoice === 'pending_verification' ? 'bg-amber-500/20 border-amber-500 ring-2 ring-amber-500/40 font-bold' : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 hover:border-amber-400'">
+                                <input type="radio" name="cat_super_status_opt" value="pending_verification" x-model="targetStatusChoice" class="mt-0.5 text-amber-600">
+                                <div class="min-w-0">
+                                    <div class="text-xs font-bold text-amber-700 dark:text-amber-300 flex items-center gap-1.5">
+                                        <i data-lucide="shield-check" class="w-3.5 h-3.5 text-amber-500"></i>
+                                        <span>Antrean Verifikasi</span>
+                                    </div>
+                                    <p class="text-[10px] text-slate-500 leading-tight mt-0.5">Menunggu verifikasi PIC Gudang. Lengkapi berkas persyaratan.</p>
+                                </div>
+                            </label>
+
+                            <!-- Tersimpan di Gudang -->
+                            <label class="p-2.5 rounded-xl border cursor-pointer transition flex items-start gap-2.5"
+                                   :class="targetStatusChoice === 'in_warehouse' ? 'bg-emerald-500/20 border-emerald-500 ring-2 ring-emerald-500/40 font-bold' : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 hover:border-emerald-400'">
+                                <input type="radio" name="cat_super_status_opt" value="in_warehouse" x-model="targetStatusChoice" class="mt-0.5 text-emerald-600">
+                                <div class="min-w-0">
+                                    <div class="text-xs font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
+                                        <i data-lucide="archive" class="w-3.5 h-3.5 text-emerald-500"></i>
+                                        <span>Tersimpan di Gudang</span>
+                                    </div>
+                                    <p class="text-[10px] text-slate-500 leading-tight mt-0.5">Status aktif di gudang. No. Box & berkas serah terima.</p>
+                                </div>
+                            </label>
+
+                            <!-- Out / Keluar -->
+                            <label class="p-2.5 rounded-xl border cursor-pointer transition flex items-start gap-2.5"
+                                   :class="targetStatusChoice === 'taken' ? 'bg-purple-500/20 border-purple-500 ring-2 ring-purple-500/40 font-bold' : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 hover:border-purple-400'">
+                                <input type="radio" name="cat_super_status_opt" value="taken" x-model="targetStatusChoice" class="mt-0.5 text-purple-600">
+                                <div class="min-w-0">
+                                    <div class="text-xs font-bold text-purple-700 dark:text-purple-300 flex items-center gap-1.5">
+                                        <i data-lucide="log-out" class="w-3.5 h-3.5 text-purple-500"></i>
+                                        <span>Keluar (Out)</span>
+                                    </div>
+                                    <p class="text-[10px] text-slate-500 leading-tight mt-0.5">Berkas keluar dari gudang fisik. Slot rak dibebaskan.</p>
+                                </div>
+                            </label>
+
+                            <!-- Dimusnahkan -->
+                            <label class="p-2.5 rounded-xl border cursor-pointer transition flex items-start gap-2.5 sm:col-span-2"
+                                   :class="targetStatusChoice === 'destroyed' ? 'bg-rose-500/20 border-rose-500 ring-2 ring-rose-500/40 font-bold' : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 hover:border-rose-400'">
+                                <input type="radio" name="cat_super_status_opt" value="destroyed" x-model="targetStatusChoice" class="mt-0.5 text-rose-600">
+                                <div class="min-w-0">
+                                    <div class="text-xs font-bold text-rose-700 dark:text-rose-300 flex items-center gap-1.5">
+                                        <i data-lucide="trash-2" class="w-3.5 h-3.5 text-rose-500"></i>
+                                        <span>Dimusnahkan (BAP)</span>
+                                    </div>
+                                    <p class="text-[10px] text-slate-500 leading-tight mt-0.5">Pemusnahan permanen dengan Berita Acara (BAP). Slot rak dibebaskan.</p>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- DYNAMIC SUB-FORMS BERDASARKAN STATUS YANG DIPILIH -->
+
+                    <!-- 1. FORM MODE: DRAFT -->
+                    <template x-if="targetStatusChoice === 'draft'">
+                        <div class="space-y-2 p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-xl">
+                            <div class="flex items-start gap-2">
+                                <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600 shrink-0 mt-0.5"></i>
+                                <div class="text-[11px] text-amber-900 dark:text-amber-200 leading-tight">
+                                    <strong class="font-bold">Pengembalian ke Status Draft:</strong>
+                                    <p class="mt-0.5 text-slate-600 dark:text-slate-400">Berkas akan dikembalikan statusnya ke Draft Usulan sehingga PIC Departemen terkait dapat melakukan revisi judul, butir berkas, maupun dokumen. Alokasi slot rak gudang (jika ada) akan otomatis dibebaskan.</p>
+                                </div>
+                            </div>
+                            <div class="space-y-1 pt-1">
+                                <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase">
+                                    Alasan / Keterangan Pengembalian ke Draft <span class="text-rose-500">* (Wajib Diisi)</span>
+                                </label>
+                                <textarea x-model="superAdminStatusReason" rows="2" placeholder="Tuliskan alasan mengapa berkas dikembalikan ke draft (misal: dokumen perlu revisi rincian butir arsip)..." class="w-full p-2 bg-white dark:bg-slate-900 border border-amber-400 rounded-lg text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-600"></textarea>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- 2. FORM MODE: ANTREAN VERIFIKASI -->
+                    <template x-if="targetStatusChoice === 'pending_verification'">
+                        <div class="space-y-2.5 p-3.5 bg-amber-500/5 border border-amber-500/20 rounded-xl">
+                            <div class="flex items-center justify-between border-b border-amber-500/20 pb-1.5">
+                                <span class="text-[11px] font-bold text-amber-800 dark:text-amber-300 uppercase flex items-center gap-1.5">
+                                    <i data-lucide="files" class="w-3.5 h-3.5"></i> Kelengkapan Berkas Antrean Verifikasi (2 Berkas)
+                                </span>
+                                <span class="text-[10px] text-slate-500">Upload berkas baru jika diperlukan</span>
+                            </div>
+                            <div class="space-y-2">
+                                <!-- File 1: Scan Formulir Input Fisik -->
+                                <div class="p-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg space-y-1.5">
+                                    <div class="flex items-center justify-between text-[11px]">
+                                        <span class="font-bold text-slate-800 dark:text-slate-200">1. Scan Formulir Input Fisik</span>
+                                        <span class="px-2 py-0.2 rounded text-[10px] font-bold" :class="superAdminStatusData.has_scan_input ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300' : 'bg-rose-500/20 text-rose-700 dark:text-rose-300'" x-text="superAdminStatusData.has_scan_input ? 'Sudah Ada' : 'Belum Ada'"></span>
+                                    </div>
+                                    <input type="file" id="sa_cat_scan_input_form" accept=".pdf,.jpg,.jpeg,.png" class="w-full text-[10px] font-mono text-slate-600 dark:text-slate-400 file:mr-2 file:py-0.5 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-bold file:bg-amber-500/20 file:text-amber-800 dark:file:text-amber-200 hover:file:bg-amber-500/30">
+                                </div>
+
+                                <!-- File 2: Lampiran Softcopy Dokumen -->
+                                <div class="p-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg space-y-1.5">
+                                    <div class="flex items-center justify-between text-[11px]">
+                                        <span class="font-bold text-slate-800 dark:text-slate-200">2. Lampiran Digital Dokumen</span>
+                                        <span class="px-2 py-0.2 rounded text-[10px] font-bold" :class="superAdminStatusData.has_file_path ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300' : 'bg-rose-500/20 text-rose-700 dark:text-rose-300'" x-text="superAdminStatusData.has_file_path ? 'Sudah Ada' : 'Belum Ada'"></span>
+                                    </div>
+                                    <input type="file" id="sa_cat_file_path" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.zip" class="w-full text-[10px] font-mono text-slate-600 dark:text-slate-400 file:mr-2 file:py-0.5 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-bold file:bg-amber-500/20 file:text-amber-800 dark:file:text-amber-200 hover:file:bg-amber-500/30">
+                                </div>
+                            </div>
+                            <div class="space-y-1 pt-1">
+                                <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase">
+                                    Catatan / Keterangan (Opsional)
+                                </label>
+                                <textarea x-model="superAdminStatusReason" rows="2" placeholder="Catatan kelengkapan berkas untuk PIC Gudang..." class="w-full p-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"></textarea>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- 3. FORM MODE: TERSIMPAN DI GUDANG -->
+                    <template x-if="targetStatusChoice === 'in_warehouse'">
+                        <div class="space-y-2.5 p-3.5 bg-emerald-500/5 border border-emerald-500/20 rounded-xl">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <div class="space-y-1">
+                                    <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase">
+                                        No. Box Arsip
+                                    </label>
+                                    <input type="text" x-model="superAdminBoxNumber" placeholder="Auto Generate Box Code" class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-mono font-bold text-emerald-700 dark:text-emerald-300 focus:outline-none focus:border-emerald-500">
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase">
+                                        Lokasi Fisik
+                                    </label>
+                                    <div class="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-mono text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                                        <i data-lucide="map-pin" class="w-3.5 h-3.5 text-emerald-500"></i>
+                                        <span x-text="superAdminStatusData.location || 'Belum Ditentukan'"></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="space-y-1">
+                                <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase flex items-center justify-between">
+                                    <span>Upload Berkas Serah Terima Masuk Gudang (Opsional)</span>
+                                    <span class="text-[10px] text-slate-400 font-normal">PDF/JPG Max 10MB</span>
+                                </label>
+                                <input type="file" id="sa_cat_warehouse_approval_file" accept=".pdf,.jpg,.jpeg,.png" class="w-full px-2 py-1 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-[11px] font-mono text-slate-700 dark:text-slate-300">
+                            </div>
+                            <div class="space-y-1">
+                                <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase">
+                                    Catatan / Keterangan (Opsional)
+                                </label>
+                                <textarea x-model="superAdminStatusReason" rows="2" placeholder="Catatan penempatan box gudang..." class="w-full p-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"></textarea>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- 4. FORM MODE: KELUAR (OUT) -->
+                    <template x-if="targetStatusChoice === 'taken'">
+                        <div class="space-y-2.5 p-3.5 bg-purple-500/5 border border-purple-500/20 rounded-xl">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <div class="space-y-1">
+                                    <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase">
+                                        Nama Penerima / Pengambil
+                                    </label>
+                                    <input type="text" x-model="superAdminBorrowerName" placeholder="Nama PIC..." class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-purple-500">
+                                </div>
+                                
+                                <!-- Searchable Dropdown Departemen Tujuan -->
+                                <div class="space-y-1" x-data="{
+                                    open: false,
+                                    search: '',
+                                    departments: {{ json_encode($departments->map(fn($d) => ['id' => $d->id, 'code' => $d->code, 'name' => $d->name])) }},
+                                    get filteredDepts() {
+                                        if (!this.search.trim()) return this.departments;
+                                        return this.departments.filter(d => 
+                                            (d.name && d.name.toLowerCase().includes(this.search.toLowerCase())) ||
+                                            (d.code && d.code.toLowerCase().includes(this.search.toLowerCase()))
+                                        );
+                                    },
+                                    select(dept) {
+                                        $data.superAdminDeptName = (dept.code ? dept.code + ' - ' : '') + dept.name;
+                                        this.open = false;
+                                        this.search = '';
+                                    }
+                                }" @click.outside="open = false">
+                                    <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase flex items-center justify-between">
+                                        <span>Departemen Tujuan</span>
+                                        <span class="text-[9px] text-purple-600 dark:text-purple-400 font-normal">Pilih Departemen</span>
+                                    </label>
+                                    <div class="relative">
+                                        <button 
+                                            type="button" 
+                                            @click="open = !open" 
+                                            class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-mono text-left flex items-center justify-between focus:outline-none focus:border-purple-500"
+                                        >
+                                            <span class="truncate" :class="superAdminDeptName ? 'text-slate-900 dark:text-white font-bold' : 'text-slate-400'" x-text="superAdminDeptName || '-- Pilih Departemen Tujuan --'"></span>
+                                            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1"></i>
+                                        </button>
+                                        <div 
+                                            x-show="open" 
+                                            x-cloak 
+                                            x-transition
+                                            class="absolute z-50 left-0 right-0 mt-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg shadow-xl overflow-hidden font-mono text-xs"
+                                        >
+                                            <div class="p-1.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
+                                                <div class="relative">
+                                                    <i data-lucide="search" class="w-3 h-3 absolute left-2 top-2 text-slate-400"></i>
+                                                    <input 
+                                                        type="text" 
+                                                        x-model="search" 
+                                                        placeholder="Cari kode / nama departemen..." 
+                                                        class="w-full pl-7 pr-2 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-[11px] text-slate-900 dark:text-white focus:outline-none focus:border-purple-500"
+                                                    >
+                                                </div>
+                                            </div>
+                                            <ul class="max-h-40 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/50">
+                                                <template x-for="d in filteredDepts" :key="d.id">
+                                                    <li 
+                                                        @click="select(d)" 
+                                                        class="px-2.5 py-1.5 hover:bg-purple-500/15 cursor-pointer flex items-center justify-between transition"
+                                                        :class="superAdminDeptName === (d.code ? d.code + ' - ' : '') + d.name ? 'bg-purple-500/20 font-bold text-purple-700 dark:text-purple-400' : 'text-slate-800 dark:text-slate-200'"
+                                                    >
+                                                        <span x-text="(d.code ? d.code + ' - ' : '') + d.name"></span>
+                                                        <i data-lucide="check" class="w-3.5 h-3.5 text-purple-600" x-show="superAdminDeptName === (d.code ? d.code + ' - ' : '') + d.name"></i>
+                                                    </li>
+                                                </template>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="space-y-1">
+                                <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase">
+                                    Keperluan / Alasan Pengeluaran <span class="text-rose-500">* (Wajib Diisi)</span>
+                                </label>
+                                <textarea x-model="superAdminPurpose" rows="2" placeholder="Contoh: Audit Eksternal Pajak, Pengambilan Berkas Resmi Departemen..." class="w-full p-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-purple-500"></textarea>
+                            </div>
+                            <div class="space-y-1">
+                                <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase flex items-center justify-between">
+                                    <span>Upload Bukti / Form Serah Terima Keluar (Opsional)</span>
+                                    <span class="text-[10px] text-slate-400 font-normal">PDF/JPG Max 10MB</span>
+                                </label>
+                                <input type="file" id="sa_cat_taken_approval_file" accept=".pdf,.jpg,.jpeg,.png" class="w-full px-2 py-1 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-[11px] font-mono text-slate-700 dark:text-slate-300">
+                            </div>
+                            <div class="p-2 bg-purple-500/10 border border-purple-500/20 rounded-lg text-[10px] text-purple-800 dark:text-purple-300">
+                                <span>Status berkas akan diubah ke <strong>Keluar (Out)</strong> dan slot rak gudang akan dibebaskan.</span>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- 5. FORM MODE: DIMUSNAHKAN -->
+                    <template x-if="targetStatusChoice === 'destroyed'">
+                        <div class="space-y-2.5 p-3.5 bg-rose-500/5 border border-rose-500/20 rounded-xl">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <div class="space-y-1">
+                                    <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase">
+                                        Nomor BAP Pemusnahan <span class="text-rose-500">*</span>
+                                    </label>
+                                    <input type="text" x-model="superAdminBapNumber" placeholder="BAP/IND/2026/00001" class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-rose-500">
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase">
+                                        Tanggal Pemusnahan <span class="text-rose-500">*</span>
+                                    </label>
+                                    <input type="date" x-model="superAdminDestroyDate" class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-rose-500">
+                                </div>
+                            </div>
+                            <div class="space-y-1">
+                                <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase">
+                                    Metode Pemusnahan <span class="text-rose-500">*</span>
+                                </label>
+                                <select x-model="superAdminDestroyMethod" class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-rose-500">
+                                    <option value="Shredding (Pencacahan Fisik)">Shredding (Pencacahan Fisik Mesin Penghancur)</option>
+                                    <option value="Incineration (Pembakaran Bersertifikat)">Incineration (Pembakaran Suhu Tinggi Bersertifikat)</option>
+                                    <option value="Chemical Recycling (Peleburan Kimia)">Chemical Recycling (Peleburan Kimia & Daur Ulang)</option>
+                                    <option value="Digital Purge & Shred">Digital Purge & Shred (Pemusnahan Total Fisik & Digital)</option>
+                                </select>
+                            </div>
+                            <div class="space-y-1">
+                                <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase">
+                                    Keterangan Berita Acara (BAP) / Saksi
+                                </label>
+                                <textarea x-model="superAdminDestroyNotes" rows="2" placeholder="Keterangan saksi, kondisi berkas yang dimusnahkan..." class="w-full p-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-rose-500"></textarea>
+                            </div>
+                            <div class="space-y-1">
+                                <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase flex items-center justify-between">
+                                    <span>Upload Scan Form / Dokumen BAP Pemusnahan (Opsional)</span>
+                                    <span class="text-[10px] text-slate-400 font-normal">PDF/JPG Max 10MB</span>
+                                </label>
+                                <input type="file" id="sa_cat_destroy_approval_file" accept=".pdf,.jpg,.jpeg,.png" class="w-full px-2 py-1 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-[11px] font-mono text-slate-700 dark:text-slate-300">
+                            </div>
+                            <div class="p-2 bg-rose-500/10 border border-rose-500/20 rounded-lg text-[10px] text-rose-800 dark:text-rose-300">
+                                <span>Pemusnahan bersifat permanen. Status arsip akan diubah ke <strong>Dimusnahkan</strong> dan slot rak dibebaskan.</span>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- Actions -->
+                    <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+                        <button type="button" @click="closeSuperAdminStatusModal()" :disabled="updatingStatus" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs transition">
+                            Batal
+                        </button>
+                        <button type="button" 
+                                @click="submitSuperAdminStatusChange()" 
+                                :disabled="updatingStatus || !targetStatusChoice || (targetStatusChoice === 'draft' && !superAdminStatusReason.trim()) || (targetStatusChoice === 'taken' && !superAdminPurpose.trim()) || (targetStatusChoice === 'destroyed' && !superAdminBapNumber.trim())" 
+                                class="px-5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-amber-500/20 transition flex items-center gap-1.5 disabled:opacity-50">
+                            <template x-if="updatingStatus">
+                                <span class="w-3.5 h-3.5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin"></span>
+                            </template>
+                            <template x-if="!updatingStatus">
+                                <i data-lucide="check-circle-2" class="w-4 h-4 text-slate-950"></i>
+                            </template>
+                            <span x-text="updatingStatus ? 'Menyimpan...' : (targetStatusChoice === 'draft' ? 'Kembalikan ke Draft' : (targetStatusChoice === 'pending_verification' ? 'Ubah ke Antrean Verifikasi' : (targetStatusChoice === 'in_warehouse' ? 'Simpan di Gudang' : (targetStatusChoice === 'taken' ? 'Keluarkan Berkas (Out)' : (targetStatusChoice === 'destroyed' ? 'Sahkan Pemusnahan (BAP)' : 'Terapkan Perubahan Status')))))"></span>
+                        </button>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
 </div>
 @endsection
 
@@ -986,9 +2127,367 @@
 <script>
 function archiveCatalog() {
     return {
+        departments: @json($departments ?? []),
         selected: [],
         selectAll: false,
         dispatchModalLog: null,
+
+        // Super Admin Status Override State
+        superAdminStatusModalOpen: false,
+        superAdminStatusData: null,
+        targetStatusChoice: 'draft',
+        superAdminStatusReason: '',
+        superAdminBorrowerName: '{{ auth()->user()->name }}',
+        superAdminDeptName: '',
+        superAdminPurpose: '',
+        superAdminBapNumber: '',
+        superAdminDestroyDate: new Date().toISOString().split('T')[0],
+        superAdminDestroyMethod: 'Shredding (Pencacahan Fisik)',
+        superAdminDestroyNotes: '',
+        superAdminBoxNumber: '',
+        updatingStatus: false,
+
+        openSuperAdminStatusModal(archiveData) {
+            this.superAdminStatusData = archiveData;
+            this.targetStatusChoice = (archiveData.status === 'borrowed' ? 'taken' : archiveData.status) || 'draft';
+            this.superAdminStatusReason = '';
+            this.superAdminBorrowerName = '{{ auth()->user()->name }}';
+            this.superAdminDeptName = archiveData.department || '';
+            this.superAdminPurpose = '';
+            this.superAdminBapNumber = 'BAP/IND/' + new Date().getFullYear() + '/' + String(archiveData.id || 1).padStart(5, '0');
+            this.superAdminDestroyDate = new Date().toISOString().split('T')[0];
+            this.superAdminDestroyMethod = 'Shredding (Pencacahan Fisik)';
+            this.superAdminDestroyNotes = '';
+            this.superAdminBoxNumber = archiveData.raw_box_number || (archiveData.box_number !== 'Pending' ? archiveData.box_number : '') || '';
+            this.superAdminStatusModalOpen = true;
+            this.$nextTick(() => {
+                if (window.lucide) window.lucide.createIcons();
+            });
+        },
+
+        closeSuperAdminStatusModal() {
+            this.superAdminStatusModalOpen = false;
+            this.superAdminStatusData = null;
+            this.updatingStatus = false;
+        },
+
+        async submitSuperAdminStatusChange() {
+            if (!this.superAdminStatusData || !this.targetStatusChoice) return;
+
+            // Validations
+            if (this.targetStatusChoice === 'draft' && this.superAdminStatusData.status !== 'draft') {
+                if (!this.superAdminStatusReason.trim()) {
+                    alert('Mohon isi alasan / keterangan pengembalian status ke Draft.');
+                    return;
+                }
+            } else if (this.targetStatusChoice === 'taken') {
+                if (!this.superAdminPurpose.trim()) {
+                    alert('Mohon isi keperluan / alasan pengeluaran berkas.');
+                    return;
+                }
+            } else if (this.targetStatusChoice === 'destroyed') {
+                if (!this.superAdminBapNumber.trim()) {
+                    alert('Mohon isi nomor Berita Acara Pemusnahan (BAP).');
+                    return;
+                }
+                if (!confirm(`Apakah Anda yakin ingin mengesahkan pemusnahan berkas "${this.superAdminStatusData.title}" dengan No. BAP ${this.superAdminBapNumber}? Status akan dimusnahkan secara permanen.`)) {
+                    return;
+                }
+            }
+
+            this.updatingStatus = true;
+            try {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
+                const formData = new FormData();
+                formData.append('target_status', this.targetStatusChoice);
+                formData.append('reason', this.superAdminStatusReason);
+
+                if (this.targetStatusChoice === 'pending_verification') {
+                    const f1 = document.getElementById('sa_cat_scan_input_form');
+                    if (f1 && f1.files && f1.files[0]) formData.append('scan_input_form', f1.files[0]);
+                    const f2 = document.getElementById('sa_cat_file_path');
+                    if (f2 && f2.files && f2.files[0]) formData.append('file_path', f2.files[0]);
+                } else if (this.targetStatusChoice === 'in_warehouse') {
+                    if (this.superAdminBoxNumber.trim()) {
+                        formData.append('box_number', this.superAdminBoxNumber.trim());
+                    }
+                    const fWh = document.getElementById('sa_cat_warehouse_approval_file');
+                    if (fWh && fWh.files && fWh.files[0]) formData.append('scan_approval_input', fWh.files[0]);
+                } else if (this.targetStatusChoice === 'taken') {
+                    formData.append('borrower_name', this.superAdminBorrowerName);
+                    formData.append('department_name', this.superAdminDeptName);
+                    formData.append('purpose', this.superAdminPurpose);
+                    const fOut = document.getElementById('sa_cat_taken_approval_file');
+                    if (fOut && fOut.files && fOut.files[0]) formData.append('approval_file', fOut.files[0]);
+                } else if (this.targetStatusChoice === 'destroyed') {
+                    formData.append('bap_number', this.superAdminBapNumber);
+                    formData.append('destruction_date', this.superAdminDestroyDate);
+                    formData.append('method', this.superAdminDestroyMethod);
+                    formData.append('notes', this.superAdminDestroyNotes);
+                    const fDes = document.getElementById('sa_cat_destroy_approval_file');
+                    if (fDes && fDes.files && fDes.files[0]) formData.append('approval_file', fDes.files[0]);
+                }
+
+                const response = await fetch(`/archives/${this.superAdminStatusData.id}/superadmin-status`, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: formData
+                });
+
+                const result = await response.json();
+                if (response.ok && result.success) {
+                    this.superAdminStatusModalOpen = false;
+                    if (window.showToast) {
+                        window.showToast(result.message, 'success');
+                    } else {
+                        alert(result.message);
+                    }
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 500);
+                } else {
+                    let errMsg = result.message || 'Gagal mengubah status arsip.';
+                    if (result.errors) {
+                        const firstKey = Object.keys(result.errors)[0];
+                        if (firstKey && result.errors[firstKey][0]) {
+                            errMsg = result.errors[firstKey][0];
+                        }
+                    }
+                    alert(errMsg);
+                }
+            } catch (e) {
+                console.error('SuperAdmin Status Change Error:', e);
+                alert('Terjadi kesalahan saat mengubah status arsip.');
+            } finally {
+                this.updatingStatus = false;
+            }
+        },
+        
+        // Incomplete File Modal State
+        incompleteFileModalOpen: false,
+        incompleteFileArchive: null,
+
+        openIncompleteFileAlert(archiveData) {
+            this.incompleteFileArchive = archiveData;
+            this.incompleteFileModalOpen = true;
+            this.$nextTick(() => {
+                if (window.lucide) window.lucide.createIcons();
+            });
+        },
+
+        // Checkout / Pengeluaran & Pemusnahan Berkas Modal State
+        checkoutModalOpen: false,
+        checkoutModalData: null,
+        checkoutActionType: 'out', // 'out' or 'destroy'
+        checkoutBorrowerName: '{{ auth()->user()->name }}',
+        checkoutDepartmentName: '',
+        checkoutPurpose: '',
+        checkoutNotes: '',
+        destroyBapNumber: '',
+        destroyDate: new Date().toISOString().split('T')[0],
+        destroyMethod: 'Shredding (Pencacahan Fisik)',
+        destroyNotes: '',
+        checkingOut: false,
+
+        openCheckoutModal(archiveData) {
+            this.checkoutModalData = archiveData;
+            this.checkoutActionType = 'out';
+            this.checkoutBorrowerName = '{{ auth()->user()->name }}';
+            this.checkoutDepartmentName = archiveData.department || '';
+            this.checkoutPurpose = '';
+            this.checkoutNotes = '';
+            this.destroyBapNumber = 'BAP/IND/' + new Date().getFullYear() + '/' + String(archiveData.id || 1).padStart(5, '0');
+            this.destroyDate = new Date().toISOString().split('T')[0];
+            this.destroyMethod = 'Shredding (Pencacahan Fisik)';
+            this.destroyNotes = '';
+            this.checkoutModalOpen = true;
+            this.$nextTick(() => {
+                if (window.lucide) window.lucide.createIcons();
+            });
+        },
+
+        closeCheckoutModal() {
+            this.checkoutModalOpen = false;
+            this.checkoutModalData = null;
+            this.checkingOut = false;
+        },
+
+        async submitCheckout() {
+            if (!this.checkoutModalData) return;
+
+            if (this.checkoutActionType === 'out') {
+                if (!this.checkoutPurpose.trim()) {
+                    alert('Mohon isi keperluan / alasan pengeluaran berkas.');
+                    return;
+                }
+            } else if (this.checkoutActionType === 'destroy') {
+                if (!this.destroyBapNumber.trim()) {
+                    alert('Mohon isi nomor Berita Acara Pemusnahan (BAP).');
+                    return;
+                }
+                if (!confirm(`Apakah Anda yakin ingin mengesahkan pemusnahan berkas "${this.checkoutModalData.title}" dengan No. BAP ${this.destroyBapNumber}? Tindakan ini permanen.`)) {
+                    return;
+                }
+            }
+
+            this.checkingOut = true;
+            try {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
+                const formData = new FormData();
+                formData.append('action_type', this.checkoutActionType);
+
+                if (this.checkoutActionType === 'out') {
+                    formData.append('borrower_name', this.checkoutBorrowerName);
+                    formData.append('department_name', this.checkoutDepartmentName);
+                    formData.append('purpose', this.checkoutPurpose);
+                    formData.append('notes', this.checkoutNotes);
+
+                    const fileInput = document.getElementById('cat_checkout_approval_file');
+                    if (fileInput && fileInput.files && fileInput.files[0]) {
+                        formData.append('approval_file', fileInput.files[0]);
+                    }
+                } else if (this.checkoutActionType === 'destroy') {
+                    formData.append('bap_number', this.destroyBapNumber);
+                    formData.append('destruction_date', this.destroyDate);
+                    formData.append('method', this.destroyMethod);
+                    formData.append('notes', this.destroyNotes);
+
+                    const fileInput = document.getElementById('cat_destroy_approval_file');
+                    if (fileInput && fileInput.files && fileInput.files[0]) {
+                        formData.append('approval_file', fileInput.files[0]);
+                    }
+                }
+
+                const response = await fetch(`/archives/${this.checkoutModalData.id}/checkout`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: formData
+                });
+
+                const result = await response.json();
+                if (response.ok && result.success) {
+                    this.checkoutModalOpen = false;
+                    if (window.showToast) {
+                        window.showToast(result.message, 'success');
+                    } else {
+                        alert(result.message);
+                    }
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 500);
+                } else {
+                    alert(result.message || 'Gagal memproses tindakan arsip.');
+                }
+            } catch (e) {
+                console.error('Action error:', e);
+                alert('Terjadi kesalahan saat memproses status arsip.');
+            } finally {
+                this.checkingOut = false;
+            }
+        },
+
+        // Verification Modal State
+        verifyModalOpen: false,
+        verifyModalData: null,
+        verifyingArchive: false,
+        showRejectInput: false,
+        rejectionNote: '',
+
+        openVerifyModal(archiveData) {
+            this.verifyModalData = archiveData;
+            this.showRejectInput = false;
+            this.rejectionNote = '';
+            this.verifyModalOpen = true;
+            this.$nextTick(() => {
+                if (window.lucide) window.lucide.createIcons();
+            });
+        },
+
+        closeVerifyModal() {
+            this.verifyModalOpen = false;
+            this.verifyModalData = null;
+            this.showRejectInput = false;
+            this.rejectionNote = '';
+        },
+
+        async submitVerification(action) {
+            if (!this.verifyModalData) return;
+            if (action === 'reject' && !this.rejectionNote.trim()) {
+                alert('Mohon masukkan alasan penolakan.');
+                return;
+            }
+
+            this.verifyingArchive = true;
+            try {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
+                const response = await fetch(`/archives/${this.verifyModalData.id}/verify`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({
+                        action: action,
+                        rejection_note: this.rejectionNote
+                    })
+                });
+
+                const result = await response.json();
+                if (response.ok && result.success) {
+                    this.verifyModalOpen = false;
+                    if (window.showToast) {
+                        window.showToast(result.message, 'success');
+                    } else {
+                        alert(result.message);
+                    }
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 500);
+                } else {
+                    alert(result.message || 'Gagal memproses verifikasi.');
+                }
+            } catch (e) {
+                console.error('Verification error:', e);
+                alert('Terjadi kesalahan saat memproses verifikasi arsip.');
+            } finally {
+                this.verifyingArchive = false;
+            }
+        },
+
+        // File Preview Modal State
+        filePreviewModalOpen: false,
+        previewArchiveData: null,
+        selectedFileIndex: 0,
+
+        openFilePreviewModal(archiveData) {
+            this.previewArchiveData = archiveData;
+            this.selectedFileIndex = 0;
+            this.filePreviewModalOpen = true;
+            this.$nextTick(() => {
+                if (window.lucide) window.lucide.createIcons();
+            });
+        },
+
+        closeFilePreviewModal() {
+            this.filePreviewModalOpen = false;
+            this.previewArchiveData = null;
+            this.selectedFileIndex = 0;
+        },
+
+        get currentPreviewFile() {
+            if (!this.previewArchiveData || !this.previewArchiveData.files || !this.previewArchiveData.files.length) return null;
+            return this.previewArchiveData.files[this.selectedFileIndex] || this.previewArchiveData.files[0];
+        },
         
         // 2D Quick Slot Allocation State
         quickSlotModalOpen: false,

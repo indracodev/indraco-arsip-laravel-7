@@ -95,6 +95,9 @@ class DashboardController extends Controller
         // Department Breakdown chart data
         $deptBreakdown = Department::withCount('archives')->get();
 
+        // Active Departments list for select & search
+        $departments = Department::where('is_active', true)->orderBy('name')->get(['id', 'code', 'name']);
+
         return view('dashboard.index', compact(
             'user',
             'totalArchives',
@@ -112,7 +115,8 @@ class DashboardController extends Controller
             'totalCapacity',
             'usedCapacity',
             'capacityPercent',
-            'deptBreakdown'
+            'deptBreakdown',
+            'departments'
         ));
     }
 

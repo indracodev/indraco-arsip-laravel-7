@@ -25,16 +25,22 @@
         </div>
 
         <div class="flex items-center gap-2">
-            @if($archive->status === 'draft' && (auth()->user()->isPicDept() || auth()->user()->isSuperAdmin()))
+            @if(!auth()->user()->isPicGudang() && (auth()->user()->isSuperAdmin() || auth()->user()->isAdmin() || ($archive->status === 'draft' && auth()->user()->isPicDept() && (int)$archive->department_id === (int)auth()->user()->department_id)))
             <a href="{{ route('archives.edit', array_merge(['archive' => $archive->id], request()->has('embed') ? ['embed' => 1] : [])) }}" class="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-md transition flex items-center gap-2">
-                <i data-lucide="edit-3" class="w-4 h-4"></i> Edit & Ajukan Permanen
+                <i data-lucide="edit-3" class="w-4 h-4"></i> {{ $archive->status === 'draft' ? 'Edit & Ajukan Permanen' : 'Edit Data Berkas' }}
             </a>
             @endif
 
             @if(!auth()->user()->isPicDept())
-            <a href="{{ route('archives.print_sticker', $archive) }}" target="_blank" class="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-md transition flex items-center gap-2">
-                <i data-lucide="printer" class="w-4 h-4"></i> Cetak Stiker Box Label
-            </a>
+                @if($archive->status === 'in_warehouse')
+                <a href="{{ route('archives.print_sticker', $archive) }}" target="_blank" class="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-md transition flex items-center gap-2">
+                    <i data-lucide="printer" class="w-4 h-4"></i> Cetak Stiker Box Label
+                </a>
+                @else
+                <button type="button" disabled class="px-4 py-2.5 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-300 dark:border-slate-700 font-bold text-xs cursor-not-allowed flex items-center gap-2 select-none opacity-60" title="Stiker label box hanya dapat dicetak setelah berkas tersimpan di gudang">
+                    <i data-lucide="printer" class="w-4 h-4 text-slate-400 dark:text-slate-500"></i> Cetak Stiker Box Label
+                </button>
+                @endif
             @endif
 
             @if($archive->status === 'in_warehouse')
@@ -250,6 +256,7 @@
                     </div>
                 </div>
 
+                @if(!auth()->user()->isPicGudang() && (auth()->user()->isSuperAdmin() || auth()->user()->isAdmin() || (auth()->user()->isPicDept() && (int)$archive->department_id === (int)auth()->user()->department_id)))
                 <!-- Structured Items Table (1 Box -> Banyak Dokumen Arsip) -->
                 <div>
                     <div class="flex items-center justify-between mb-2">
@@ -289,6 +296,7 @@
                     </div>
                     @endif
                 </div>
+                @endif
 
                 <!-- Digital Attachments & Scans -->
                 <div class="space-y-3 pt-2">

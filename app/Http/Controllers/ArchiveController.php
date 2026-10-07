@@ -63,6 +63,8 @@ class ArchiveController extends Controller
                 $query->whereHas('borrowingLogs', function ($q) {
                     $q->whereIn('status', ['requested', 'dept_approved', 'approved']);
                 });
+            } elseif ($request->status === 'borrowed' || $request->status === 'out') {
+                $query->whereIn('status', ['borrowed', 'taken']);
             } else {
                 $query->where('status', $request->status);
             }
@@ -620,7 +622,21 @@ class ArchiveController extends Controller
             $scanInputFormPath = $request->file('scan_input_form')->store('archive_scans', 'public');
         }
 
-        $archiveStatus = $isDraft ? 'draft' : 'pending_verification';
+        $submitAction = $request->input('submit_action');
+        $isDraft = ($submitAction === 'draft');
+
+        if ($archive->status === 'draft') {
+            $archiveStatus = $isDraft ? 'draft' : 'pending_verification';
+        } else {
+            // If already beyond draft (pending_verification, approved_booked, in_warehouse, taken, destroyed), retain status unless explicit
+            if ($submitAction === 'draft') {
+                $archiveStatus = 'draft';
+            } elseif ($submitAction === 'submit' && $archive->status === 'draft') {
+                $archiveStatus = 'pending_verification';
+            } else {
+                $archiveStatus = $archive->status;
+            }
+        }
 
         $archive->update([
             'department_id' => $validated['department_id'],
@@ -668,7 +684,7 @@ class ArchiveController extends Controller
             ArchiveItem::insert($itemsToInsert);
         }
 
-        if ($isDraft) {
+        if ($archiveStatus === 'draft') {
             ActivityLogger::log(
                 'ARCHIVE_DRAFT_UPDATE',
                 "Memperbarui draft sementara pengajuan arsip '{$archive->title}' (" . count($parsedItems) . " butir berkas) oleh {$user->name}.",
@@ -682,7 +698,7 @@ class ArchiveController extends Controller
             );
 
             $successMessage = 'Draft usulan box arsip (' . count($parsedItems) . ' butir dokumen) berhasil diperbarui dan tersimpan sementara.';
-        } else {
+        } elseif ($archiveStatus === 'pending_verification' && $isDraft === false && $archive->wasChanged('status')) {
             ActivityLogger::log(
                 'ARCHIVE_SUBMIT',
                 "Mengajukan pengajuan box arsip '{$archive->title}' (" . count($parsedItems) . " butir berkas) ke PIC Gudang oleh {$user->name}.",
@@ -696,6 +712,20 @@ class ArchiveController extends Controller
             );
 
             $successMessage = 'Pengajuan booking box arsip (' . count($parsedItems) . ' butir dokumen) berhasil diajukan dan diteruskan ke PIC Gudang untuk diverifikasi.';
+        } else {
+            ActivityLogger::log(
+                'ARCHIVE_UPDATE',
+                "Memperbarui data rincian berkas arsip '{$archive->title}' (" . count($parsedItems) . " butir berkas) [Status: {$archive->status_label}] oleh {$user->name}.",
+                'DOKUMEN_ARSIP',
+                [
+                    'archive_id' => $archive->id,
+                    'title' => $archive->title,
+                    'status' => $archive->status,
+                ],
+                $archive->box_number ?: "ID: {$archive->id}"
+            );
+
+            $successMessage = 'Data rincian berkas arsip (' . count($parsedItems) . ' butir dokumen) berhasil diperbarui.';
         }
 
         $redirectParams = $this->getEmbedParams($request);
@@ -739,6 +769,11 @@ class ArchiveController extends Controller
         $user = auth()->user();
         if ($user->isPicDept() && (int)$archive->department_id !== (int)$user->department_id) {
             abort(403, 'Anda tidak memiliki akses ke label arsip departemen lain.');
+        }
+
+        if ($archive->status !== 'in_warehouse') {
+            return redirect()->route('archives.show', $archive)
+                ->with('error', 'Stiker label box hanya dapat dicetak setelah berkas resmi berstatus tersimpan di gudang.');
         }
 
         ActivityLogger::log(
@@ -847,6 +882,20 @@ class ArchiveController extends Controller
                 $archive->box_number
             );
 
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => "Pengajuan arsip disetujui! Nomor Box Generated: {$archive->box_number}",
+                    'box_number' => $archive->box_number,
+                    'status' => $archive->status,
+                ]);
+            }
+
+            if ($request->get('redirect_to') === 'index') {
+                return redirect()->route('archives.index')
+                    ->with('success', "Pengajuan arsip disetujui! Nomor Box Generated: {$archive->box_number}");
+            }
+
             return redirect()->route('archives.show', $archive)
                 ->with('success', "Pengajuan arsip disetujui! Nomor Box Generated: {$archive->box_number}");
         } else {
@@ -864,6 +913,19 @@ class ArchiveController extends Controller
                 ],
                 $archive->box_number ?: "ID: {$archive->id}"
             );
+
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Pengajuan arsip ditolak dan dikembalikan ke PIC Departemen.',
+                    'status' => $archive->status,
+                ]);
+            }
+
+            if ($request->get('redirect_to') === 'index') {
+                return redirect()->route('archives.index')
+                    ->with('warning', 'Pengajuan arsip ditolak dan dikembalikan ke PIC Departemen.');
+            }
 
             return redirect()->route('archives.show', $archive)
                 ->with('warning', 'Pengajuan arsip ditolak dan dikembalikan ke PIC Departemen.');
@@ -937,6 +999,513 @@ class ArchiveController extends Controller
 
         return redirect()->route('archives.show', $archive)
             ->with('success', "Berkas fisik berhasil di-checkin ke lokasi {$location->full_location} & Log Masuk Gudang telah dicatat.");
+    }
+
+    public function checkout(Request $request, Archive $archive)
+    {
+        $user = auth()->user();
+        if (!$user->isPicGudang() && !$user->isSuperAdmin()) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Hanya PIC Gudang dan Admin yang dapat memproses perubahan status fisik arsip.'], 403);
+            }
+            abort(403);
+        }
+
+        if ($archive->status !== 'in_warehouse') {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Hanya berkas dengan status "Tersimpan di Gudang" yang dapat diproses keluar atau dimusnahkan.'
+                ], 422);
+            }
+            return back()->with('error', 'Hanya berkas dengan status "Tersimpan di Gudang" yang dapat diproses keluar atau dimusnahkan.');
+        }
+
+        $actionType = $request->input('action_type', 'out'); // 'out' or 'destroy'
+
+        if ($actionType === 'destroy') {
+            $validated = $request->validate([
+                'bap_number' => 'required|string|max:100',
+                'destruction_date' => 'required|date',
+                'method' => 'required|string|max:100',
+                'notes' => 'nullable|string|max:500',
+                'approval_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
+            ]);
+
+            $scanApprovalPath = null;
+            if ($request->hasFile('approval_file')) {
+                $scanApprovalPath = $request->file('approval_file')->store('destruction_approvals', 'public');
+            }
+
+            // Release slot if mapped
+            if ($archive->rackSlot) {
+                $archive->rackSlot->update([
+                    'archive_id' => null,
+                    'status' => 'empty',
+                ]);
+            }
+            \App\Models\WarehouseRackSlot::where('archive_id', $archive->id)->update([
+                'status' => 'empty',
+                'archive_id' => null,
+            ]);
+
+            // Decrement location box count
+            if ($archive->location && $archive->location->current_box_count > 0) {
+                $archive->location->decrement('current_box_count');
+            }
+
+            $archive->update([
+                'status' => 'destroyed',
+                'warehouse_location_id' => null,
+                'warehouse_rack_slot_id' => null,
+            ]);
+
+            $dLog = \App\Models\DestructionLog::create([
+                'archive_id' => $archive->id,
+                'proposed_by_user_id' => $user->id,
+                'department_approval_by' => $user->id,
+                'department_approved_at' => now(),
+                'approved_by_dept_pic_id' => $user->id,
+                'bap_number' => $validated['bap_number'],
+                'destruction_date' => $validated['destruction_date'],
+                'method' => $validated['method'],
+                'approval_file' => $scanApprovalPath,
+                'scan_approval_destruction' => $scanApprovalPath,
+                'is_approval_uploaded' => !empty($scanApprovalPath),
+                'approval_status' => 'approved',
+                'notes' => $validated['notes'] ?? 'Pemusnahan berkas arsip via modul status gudang',
+            ]);
+
+            ActivityLogger::log(
+                'DESTRUCTION_PROPOSE',
+                "Pemusnahan berkas '{$archive->title}' (Box: {$archive->box_number}) disahkan dengan No. BAP {$validated['bap_number']} via metode {$validated['method']}",
+                'PEMUSNAHAN_RETENSI',
+                [
+                    'archive_id' => $archive->id,
+                    'bap_number' => $validated['bap_number'],
+                    'method' => $validated['method'],
+                    'destruction_date' => $validated['destruction_date'],
+                ],
+                $validated['bap_number']
+            );
+
+            $msg = "Proses pemusnahan berkas ({$archive->title}) telah disahkan dengan No. BAP {$validated['bap_number']} & slot rak telah dikosongkan.";
+
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $msg,
+                    'archive_id' => $archive->id,
+                    'status' => 'destroyed',
+                    'status_label' => 'Dimusnahkan',
+                ]);
+            }
+
+            return redirect()->back()->with('success', $msg);
+        } else {
+            // Action Out (Pengeluaran Berkas)
+            $validated = $request->validate([
+                'borrower_name' => 'nullable|string|max:255',
+                'department_name' => 'nullable|string|max:255',
+                'purpose' => 'required|string|max:500',
+                'approval_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
+                'notes' => 'nullable|string|max:500',
+            ]);
+
+            $targetStatus = 'taken'; // Berkas keluar permanen
+
+            $approvalPath = null;
+            if ($request->hasFile('approval_file')) {
+                $approvalPath = $request->file('approval_file')->store('borrowing_approvals', 'public');
+            }
+
+            // Catat di BorrowingLog / Pengeluaran Log
+            $borrowerUserId = $user->id;
+            $borrowing = \App\Models\BorrowingLog::create([
+                'archive_id' => $archive->id,
+                'borrower_user_id' => $borrowerUserId,
+                'department_approval_by' => $user->id,
+                'department_approved_at' => now(),
+                'pic_gudang_id' => $user->id,
+                'request_date' => now(),
+                'borrow_date' => now(),
+                'expected_return_date' => null,
+                'purpose' => $validated['purpose'] . (!empty($validated['borrower_name']) ? " (Penerima: {$validated['borrower_name']})" : ''),
+                'status' => 'dispatched',
+                'notes' => $validated['notes'] ?? 'Pengeluaran berkas fisik dari gudang (Status: Keluar / Out)',
+                'approval_file' => $approvalPath,
+                'scan_approval_borrow' => $approvalPath,
+                'is_approval_uploaded' => !empty($approvalPath),
+                'approval_status' => 'approved',
+            ]);
+
+            // Update status arsip menjadi taken (Keluar / Out)
+            $archive->update([
+                'status' => $targetStatus,
+            ]);
+
+            // Kosongkan alokasi slot rak jika sebelumnya terisi
+            if ($archive->rackSlot) {
+                $archive->rackSlot->update([
+                    'status' => 'empty',
+                    'archive_id' => null,
+                ]);
+            }
+            \App\Models\WarehouseRackSlot::where('archive_id', $archive->id)->update([
+                'status' => 'empty',
+                'archive_id' => null,
+            ]);
+
+            if ($archive->location && $archive->location->current_box_count > 0) {
+                $archive->location->decrement('current_box_count');
+            }
+
+            $statusLabel = 'Keluar (Out)';
+            ActivityLogger::log(
+                'ARCHIVE_CHECKOUT',
+                "Pengeluaran fisik arsip '{$archive->title}' (Box: {$archive->box_number}) diubah ke status '{$statusLabel}' oleh {$user->name}",
+                'PENGELUARAN',
+                [
+                    'archive_id' => $archive->id,
+                    'box_number' => $archive->box_number,
+                    'status' => $targetStatus,
+                    'purpose' => $validated['purpose'],
+                    'borrower_name' => $validated['borrower_name'] ?? $user->name,
+                ],
+                $archive->box_number
+            );
+
+            $msg = "Pengeluaran berkas disahkan! Status box {$archive->box_number} berhasil diubah menjadi '{$statusLabel}' dan slot rak telah dikosongkan.";
+
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $msg,
+                    'archive_id' => $archive->id,
+                    'status' => $targetStatus,
+                    'status_label' => $statusLabel,
+                ]);
+            }
+
+            return redirect()->back()->with('success', $msg);
+        }
+    }
+
+    public function superAdminUpdateStatus(Request $request, Archive $archive, NumberingService $numberingService)
+    {
+        $user = auth()->user();
+        if (!$user || !$user->isSuperAdmin()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akses ditolak. Fitur ini khusus untuk Super Admin.'
+            ], 403);
+        }
+
+        $oldStatus = $archive->status;
+        $targetStatus = $request->input('target_status');
+        if ($targetStatus === 'out') {
+            $targetStatus = 'taken';
+        }
+
+        // Rules validation based on target status
+        $rules = [
+            'target_status' => 'required|in:draft,pending_verification,approved_booked,in_warehouse,taken,out,destroyed',
+            'reason' => ($targetStatus === 'draft' && $oldStatus !== 'draft') ? 'required|string|min:3|max:1000' : 'nullable|string|max:1000',
+        ];
+
+        if ($targetStatus === 'pending_verification') {
+            $rules['scan_input_form'] = 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240';
+            $rules['file_path'] = 'nullable|file|mimes:pdf,jpg,jpeg,png,doc,docx,xls,xlsx,zip|max:20480';
+        } elseif ($targetStatus === 'in_warehouse') {
+            $rules['box_number'] = 'nullable|string|max:100';
+            $rules['scan_input_form'] = 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240';
+            $rules['scan_approval_input'] = 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240';
+            $rules['warehouse_location_id'] = 'nullable|exists:warehouse_locations,id';
+        } elseif ($targetStatus === 'taken') {
+            $rules['borrower_name'] = 'nullable|string|max:255';
+            $rules['department_name'] = 'nullable|string|max:255';
+            $rules['purpose'] = 'required|string|max:500';
+            $rules['approval_file'] = 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240';
+        } elseif ($targetStatus === 'destroyed') {
+            $rules['bap_number'] = 'required|string|max:100';
+            $rules['destruction_date'] = 'required|date';
+            $rules['method'] = 'required|string|max:100';
+            $rules['approval_file'] = 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240';
+            $rules['notes'] = 'nullable|string|max:500';
+        }
+
+        $validated = $request->validate($rules);
+
+        $uploadedFilesLog = [];
+
+        // Handle File Uploads
+        if ($request->hasFile('scan_input_form')) {
+            $path = $request->file('scan_input_form')->store('archive_scan_inputs', 'public');
+            $archive->scan_input_form = $path;
+            $uploadedFilesLog[] = 'Scan Formulir Input';
+        }
+        if ($request->hasFile('file_path')) {
+            $path = $request->file('file_path')->store('archive_files', 'public');
+            $archive->file_path = $path;
+            $uploadedFilesLog[] = 'Lampiran Digital Dokumen';
+        }
+        if ($request->hasFile('scan_approval_input')) {
+            $path = $request->file('scan_approval_input')->store('archive_approvals', 'public');
+            $archive->scan_approval_input = $path;
+            $uploadedFilesLog[] = 'Scan Form Persetujuan';
+        }
+
+        // Handle Status Specific Operations
+        if ($targetStatus === 'draft') {
+            // Free rack slot & location box count
+            if ($archive->rackSlot) {
+                $archive->rackSlot->update([
+                    'status' => 'empty',
+                    'archive_id' => null,
+                ]);
+            }
+            \App\Models\WarehouseRackSlot::where('archive_id', $archive->id)->update([
+                'status' => 'empty',
+                'archive_id' => null,
+            ]);
+            if ($archive->location && $archive->location->current_box_count > 0 && in_array($oldStatus, ['in_warehouse', 'approved_booked'])) {
+                $archive->location->decrement('current_box_count');
+            }
+
+            $archive->warehouse_location_id = null;
+            $archive->warehouse_rack_slot_id = null;
+            $archive->status = 'draft';
+
+            $noteEntry = "[" . now()->format('d/m/Y H:i') . "] SuperAdmin Kembalikan ke DRAFT oleh {$user->name}: {$validated['reason']}";
+            $archive->content_description = ($archive->content_description ? $archive->content_description . "\n" : '') . $noteEntry;
+            $archive->rejection_note = $validated['reason'];
+            $archive->save();
+
+            ActivityLogger::log(
+                'SUPERADMIN_STATUS_DRAFT',
+                "Super Admin {$user->name} mengembalikan status arsip '{$archive->title}' (No. Box: {$archive->box_number}) dari '{$oldStatus}' menjadi DRAFT. Alasan: {$validated['reason']}",
+                'OVERRIDE',
+                [
+                    'archive_id' => $archive->id,
+                    'box_number' => $archive->box_number,
+                    'old_status' => $oldStatus,
+                    'new_status' => 'draft',
+                    'reason' => $validated['reason'],
+                    'superadmin_id' => $user->id,
+                ],
+                $archive->box_number ?: "ID: {$archive->id}"
+            );
+
+        } elseif ($targetStatus === 'pending_verification') {
+            $archive->status = 'pending_verification';
+            if ($request->filled('reason')) {
+                $noteEntry = "[" . now()->format('d/m/Y H:i') . "] SuperAdmin Override ke Antrean Verifikasi oleh {$user->name}: {$validated['reason']}";
+                $archive->content_description = ($archive->content_description ? $archive->content_description . "\n" : '') . $noteEntry;
+            }
+            $archive->save();
+
+            ActivityLogger::log(
+                'SUPERADMIN_STATUS_VERIFY',
+                "Super Admin {$user->name} mengubah status arsip '{$archive->title}' (No. Box: {$archive->box_number}) menjadi Antrean Verifikasi" . (!empty($uploadedFilesLog) ? " dengan berkas: " . implode(', ', $uploadedFilesLog) : "") . ($request->filled('reason') ? ". Catatan: {$validated['reason']}" : ''),
+                'OVERRIDE',
+                [
+                    'archive_id' => $archive->id,
+                    'box_number' => $archive->box_number,
+                    'old_status' => $oldStatus,
+                    'new_status' => 'pending_verification',
+                    'files_uploaded' => $uploadedFilesLog,
+                    'reason' => $validated['reason'] ?? null,
+                    'superadmin_id' => $user->id,
+                ],
+                $archive->box_number ?: "ID: {$archive->id}"
+            );
+
+        } elseif ($targetStatus === 'in_warehouse' || $targetStatus === 'approved_booked') {
+            if ($request->filled('box_number')) {
+                $archive->box_number = trim($request->input('box_number'));
+            } elseif (empty($archive->box_number)) {
+                $archive->box_number = $numberingService->generateBoxCode($archive);
+            }
+
+            if ($request->filled('warehouse_location_id')) {
+                $archive->warehouse_location_id = $request->input('warehouse_location_id');
+            }
+
+            $archive->status = $targetStatus;
+            if ($request->filled('reason')) {
+                $noteEntry = "[" . now()->format('d/m/Y H:i') . "] SuperAdmin Override ke {$targetStatus} oleh {$user->name}: {$validated['reason']}";
+                $archive->content_description = ($archive->content_description ? $archive->content_description . "\n" : '') . $noteEntry;
+            }
+            $archive->save();
+
+            ActivityLogger::log(
+                'SUPERADMIN_STATUS_WAREHOUSE',
+                "Super Admin {$user->name} mengubah status arsip '{$archive->title}' menjadi Tersimpan di Gudang (No. Box: {$archive->box_number})" . ($request->filled('reason') ? ". Catatan: {$validated['reason']}" : ''),
+                'OVERRIDE',
+                [
+                    'archive_id' => $archive->id,
+                    'box_number' => $archive->box_number,
+                    'old_status' => $oldStatus,
+                    'new_status' => $targetStatus,
+                    'reason' => $validated['reason'] ?? null,
+                    'superadmin_id' => $user->id,
+                ],
+                $archive->box_number
+            );
+
+        } elseif ($targetStatus === 'taken') {
+            $approvalPath = null;
+            if ($request->hasFile('approval_file')) {
+                $approvalPath = $request->file('approval_file')->store('borrowing_approvals', 'public');
+            }
+
+            // Create BorrowingLog entry
+            \App\Models\BorrowingLog::create([
+                'archive_id' => $archive->id,
+                'borrower_user_id' => $user->id,
+                'department_approval_by' => $user->id,
+                'department_approved_at' => now(),
+                'pic_gudang_id' => $user->id,
+                'request_date' => now(),
+                'borrow_date' => now(),
+                'expected_return_date' => null,
+                'purpose' => $validated['purpose'] . (!empty($validated['borrower_name']) ? " (Penerima: {$validated['borrower_name']})" : '') . (!empty($validated['department_name']) ? " (Dept: {$validated['department_name']})" : ''),
+                'status' => 'dispatched',
+                'notes' => $validated['reason'] ?? 'Pengeluaran berkas fisik dari gudang oleh Super Admin (Keluar / Out)',
+                'approval_file' => $approvalPath,
+                'scan_approval_borrow' => $approvalPath,
+                'is_approval_uploaded' => !empty($approvalPath),
+                'approval_status' => 'approved',
+            ]);
+
+            // Free rack slot & location
+            if ($archive->rackSlot) {
+                $archive->rackSlot->update([
+                    'status' => 'empty',
+                    'archive_id' => null,
+                ]);
+            }
+            \App\Models\WarehouseRackSlot::where('archive_id', $archive->id)->update([
+                'status' => 'empty',
+                'archive_id' => null,
+            ]);
+            if ($archive->location && $archive->location->current_box_count > 0) {
+                $archive->location->decrement('current_box_count');
+            }
+
+            $archive->status = 'taken';
+            if ($request->filled('reason')) {
+                $noteEntry = "[" . now()->format('d/m/Y H:i') . "] SuperAdmin Pengeluaran Berkas (Out) oleh {$user->name}: {$validated['reason']}";
+                $archive->content_description = ($archive->content_description ? $archive->content_description . "\n" : '') . $noteEntry;
+            }
+            $archive->save();
+
+            ActivityLogger::log(
+                'SUPERADMIN_STATUS_OUT',
+                "Super Admin {$user->name} mengubah status arsip '{$archive->title}' (Box: {$archive->box_number}) menjadi Keluar (Out). Keperluan: {$validated['purpose']}",
+                'PENGELUARAN',
+                [
+                    'archive_id' => $archive->id,
+                    'box_number' => $archive->box_number,
+                    'old_status' => $oldStatus,
+                    'new_status' => 'taken',
+                    'borrower_name' => $validated['borrower_name'] ?? $user->name,
+                    'department' => $validated['department_name'] ?? null,
+                    'purpose' => $validated['purpose'],
+                    'has_approval_file' => !empty($approvalPath),
+                    'superadmin_id' => $user->id,
+                ],
+                $archive->box_number
+            );
+
+        } elseif ($targetStatus === 'destroyed') {
+            $scanApprovalPath = null;
+            if ($request->hasFile('approval_file')) {
+                $scanApprovalPath = $request->file('approval_file')->store('destruction_approvals', 'public');
+            }
+
+            \App\Models\DestructionLog::create([
+                'archive_id' => $archive->id,
+                'proposed_by_user_id' => $user->id,
+                'department_approval_by' => $user->id,
+                'department_approved_at' => now(),
+                'approved_by_dept_pic_id' => $user->id,
+                'bap_number' => $validated['bap_number'],
+                'destruction_date' => $validated['destruction_date'],
+                'method' => $validated['method'],
+                'approval_file' => $scanApprovalPath,
+                'scan_approval_destruction' => $scanApprovalPath,
+                'is_approval_uploaded' => !empty($scanApprovalPath),
+                'approval_status' => 'approved',
+                'notes' => $validated['notes'] ?? ($validated['reason'] ?? 'Pemusnahan berkas arsip via Super Admin Override'),
+            ]);
+
+            // Free rack slot & location
+            if ($archive->rackSlot) {
+                $archive->rackSlot->update([
+                    'status' => 'empty',
+                    'archive_id' => null,
+                ]);
+            }
+            \App\Models\WarehouseRackSlot::where('archive_id', $archive->id)->update([
+                'status' => 'empty',
+                'archive_id' => null,
+            ]);
+            if ($archive->location && $archive->location->current_box_count > 0) {
+                $archive->location->decrement('current_box_count');
+            }
+
+            $archive->status = 'destroyed';
+            $archive->warehouse_location_id = null;
+            $archive->warehouse_rack_slot_id = null;
+            if ($request->filled('reason')) {
+                $noteEntry = "[" . now()->format('d/m/Y H:i') . "] SuperAdmin Pemusnahan (BAP: {$validated['bap_number']}) oleh {$user->name}: {$validated['reason']}";
+                $archive->content_description = ($archive->content_description ? $archive->content_description . "\n" : '') . $noteEntry;
+            }
+            $archive->save();
+
+            ActivityLogger::log(
+                'SUPERADMIN_STATUS_DESTROYED',
+                "Super Admin {$user->name} mengesahkan status Pemusnahan berkas '{$archive->title}' (Box: {$archive->box_number}) dengan No. BAP {$validated['bap_number']} via metode {$validated['method']}",
+                'PEMUSNAHAN_RETENSI',
+                [
+                    'archive_id' => $archive->id,
+                    'box_number' => $archive->box_number,
+                    'old_status' => $oldStatus,
+                    'new_status' => 'destroyed',
+                    'bap_number' => $validated['bap_number'],
+                    'method' => $validated['method'],
+                    'destruction_date' => $validated['destruction_date'],
+                    'has_approval_file' => !empty($scanApprovalPath),
+                    'superadmin_id' => $user->id,
+                ],
+                $validated['bap_number']
+            );
+        }
+
+        $statusLabels = [
+            'draft' => 'Draft',
+            'pending_verification' => 'Antrean Verifikasi',
+            'approved_booked' => 'Approved / Booked',
+            'in_warehouse' => 'Tersimpan di Gudang',
+            'taken' => 'Keluar (Out)',
+            'destroyed' => 'Dimusnahkan',
+        ];
+
+        $label = $statusLabels[$targetStatus] ?? $targetStatus;
+        $msg = "Status arsip box {$archive->box_number} berhasil diubah menjadi '{$label}' oleh Super Admin.";
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => $msg,
+                'archive_id' => $archive->id,
+                'new_status' => $targetStatus,
+                'new_status_label' => $label,
+            ]);
+        }
+
+        return redirect()->back()->with('success', $msg);
     }
 
     public function apiGetSubDepartments(Department $department)

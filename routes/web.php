@@ -54,7 +54,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/archives/{archive}', 'ArchiveController@show')->name('archives.show');
     Route::get('/archives/{archive}/print-sticker', 'ArchiveController@printSticker')->name('archives.print_sticker');
     Route::post('/archives/{archive}/verify', 'ArchiveController@verify')->name('archives.verify');
+    Route::post('/archives/{archive}/checkout', 'ArchiveController@checkout')->name('archives.checkout');
     Route::post('/archives/{archive}/checkin', 'ArchiveController@checkin')->name('archives.checkin');
+    Route::post('/archives/{archive}/superadmin-status', 'ArchiveController@superAdminUpdateStatus')->name('archives.superadmin_status');
 
     // Borrowing Workflow
     Route::get('/borrowings', 'BorrowingController@index')->name('borrowings.index');
@@ -74,8 +76,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/destructions/extend/{archive}', 'DestructionController@extendStore')->name('destructions.extend_store');
     Route::get('/destructions/extend-print/{archive}', 'DestructionController@extendPrint')->name('destructions.extend_print');
 
-    // Global Audit Trail Logs
-    Route::get('/logs', 'AuditLogController@index')->name('logs.index');
+    // Global Audit Trail Logs (Super Admin Only)
+    Route::get('/logs', 'AuditLogController@index')->name('logs.index')->middleware('role:admin');
 
     // Pusat Laporan & Dokumen PDF
     Route::get('/reports', 'ReportController@index')->name('reports.index');

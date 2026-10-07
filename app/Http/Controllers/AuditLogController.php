@@ -15,6 +15,10 @@ class AuditLogController extends Controller
 {
     public function index(Request $request)
     {
+        if (!auth()->check() || !auth()->user()->isSuperAdmin()) {
+            abort(403, 'Akses ditolak. Menu Log History hanya dapat diakses oleh Super Admin.');
+        }
+
         $tab = $request->query('tab', 'activity'); // 'activity', 'entry', 'borrowing', 'destruction'
         $search = $request->query('search');
         $deptId = $request->query('department_id');

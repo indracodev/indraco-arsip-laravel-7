@@ -677,7 +677,14 @@
                         </template>
 
                         <template x-for="item in realtimeNotifications" :key="item.id">
-                            <div @click="openArchiveFromNotification(item)" class="p-2.5 hover:bg-amber-500/10 dark:hover:bg-slate-800/80 cursor-pointer transition flex flex-col gap-1 border-b border-slate-100 dark:border-slate-800">
+                            <div 
+                                @if(!auth()->check() || !auth()->user()->isPicGudang())
+                                    @click="openArchiveFromNotification(item)" 
+                                    class="p-2.5 hover:bg-amber-500/10 dark:hover:bg-slate-800/80 cursor-pointer transition flex flex-col gap-1 border-b border-slate-100 dark:border-slate-800"
+                                @else
+                                    class="p-2.5 bg-slate-50/50 dark:bg-slate-900/40 flex flex-col gap-1 border-b border-slate-100 dark:border-slate-800"
+                                @endif
+                            >
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center gap-1.5">
                                         <span class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-blue-500/20 text-blue-700 dark:text-blue-300" x-text="item.deptCode"></span>
@@ -688,9 +695,15 @@
                                 <div class="text-xs font-bold text-slate-900 dark:text-white truncate" x-text="item.title"></div>
                                 <div class="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 pt-0.5">
                                     <span>Oleh: <strong class="text-slate-700 dark:text-slate-300" x-text="item.creatorName"></strong></span>
-                                    <span class="text-amber-500 font-bold hover:underline flex items-center gap-0.5">
-                                        Buka Form <i data-lucide="chevron-right" class="w-3 h-3"></i>
-                                    </span>
+                                    @if(auth()->check() && auth()->user()->isPicGudang())
+                                        <span class="text-[9px] px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold">
+                                            Incoming Alert
+                                        </span>
+                                    @else
+                                        <span class="text-amber-500 font-bold hover:underline flex items-center gap-0.5">
+                                            Buka Form <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                                        </span>
+                                    @endif
                                 </div>
                             </div>
                         </template>
@@ -949,14 +962,25 @@
                             <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span> Realtime Sync
                         </span>
                         <div class="flex items-center gap-1.5">
-                            <button 
-                                @click="openArchiveFromNotification(toast)" 
-                                type="button" 
-                                class="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded border border-amber-600 text-xs transition flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer"
-                            >
-                                <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
-                                <span>Buka Dokumen</span>
-                            </button>
+                            @if(auth()->check() && auth()->user()->isPicGudang())
+                                <button 
+                                    @click="dismissToast(toast.id)" 
+                                    type="button" 
+                                    class="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded border border-slate-300 dark:border-slate-700 text-xs transition flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer"
+                                >
+                                    <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                                    <span>Tutup</span>
+                                </button>
+                            @else
+                                <button 
+                                    @click="openArchiveFromNotification(toast)" 
+                                    type="button" 
+                                    class="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded border border-amber-600 text-xs transition flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer"
+                                >
+                                    <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                                    <span>Buka Dokumen</span>
+                                </button>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -1373,8 +1397,8 @@
                     { id: 'users', title: 'Kelola User & Hak Akses', icon: 'users', url: '{{ route("master.users") }}?embed=1' },
                     @endif
                     { id: 'archives', title: 'Katalog Arsip', icon: 'folder-archive', url: '{{ route("archives.index") }}?embed=1' },
-                    { id: 'logs', title: 'Log History', icon: 'history', url: '{{ route("logs.index") }}?embed=1' },
                     @if(auth()->check() && auth()->user()->isSuperAdmin())
+                    { id: 'logs', title: 'Log History', icon: 'history', url: '{{ route("logs.index") }}?embed=1' },
                     { id: 'reports', title: 'Report', icon: 'file-text', url: '{{ route("reports.index") }}?embed=1' },
                     { id: 'diagnostics', title: 'Live Monitor LAN & User', icon: 'activity', url: '{{ route("diagnostics.index") }}?embed=1' }
                     @endif
@@ -1388,7 +1412,7 @@
                     @elseif(request()->routeIs('master.numbering')) initialId = 'numbering';
                     @elseif(request()->routeIs('master.users') && auth()->check() && auth()->user()->isSuperAdmin()) initialId = 'users';
                     @elseif(request()->routeIs('archives.*')) initialId = 'archives';
-                    @elseif(request()->routeIs('logs.*')) initialId = 'logs';
+                    @elseif(request()->routeIs('logs.*') && auth()->check() && auth()->user()->isSuperAdmin()) initialId = 'logs';
                     @elseif(request()->routeIs('reports.*')) initialId = 'reports';
                     @elseif(request()->routeIs('diagnostics.index')) initialId = 'diagnostics';
                     @endif
@@ -1808,19 +1832,27 @@
                 },
 
                 openArchiveFromNotification(item) {
-                    const detailId = 'archive_detail_' + (item.archiveId || item.id);
-                    const boxLabel = item.boxNumber || item.box_number || ('ID #' + (item.archiveId || item.id));
-                    const title = `[Detail] ${boxLabel} - ${item.title || 'Dokumen'}`;
-                    let url = item.url || ('{{ url("/archives") }}/' + (item.archiveId || item.id));
-                    if (!url.includes('embed=1')) {
-                        url += (url.includes('?') ? '&embed=1' : '?embed=1');
-                    }
+                    @if(auth()->check() && auth()->user()->isPicGudang())
+                        if (item.id) {
+                            this.dismissToast(item.id);
+                        }
+                        this.showNotificationDropdown = false;
+                        return;
+                    @else
+                        const detailId = 'archive_detail_' + (item.archiveId || item.id);
+                        const boxLabel = item.boxNumber || item.box_number || ('ID #' + (item.archiveId || item.id));
+                        const title = `[Detail] ${boxLabel} - ${item.title || 'Dokumen'}`;
+                        let url = item.url || ('{{ url("/archives") }}/' + (item.archiveId || item.id));
+                        if (!url.includes('embed=1')) {
+                            url += (url.includes('?') ? '&embed=1' : '?embed=1');
+                        }
 
-                    this.openFormWindowWithCustom(detailId, title, 'file-text', url);
-                    if (item.id) {
-                        this.dismissToast(item.id);
-                    }
-                    this.showNotificationDropdown = false;
+                        this.openFormWindowWithCustom(detailId, title, 'file-text', url);
+                        if (item.id) {
+                            this.dismissToast(item.id);
+                        }
+                        this.showNotificationDropdown = false;
+                    @endif
                 },
 
                 toggleSound() {

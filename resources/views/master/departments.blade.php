@@ -57,6 +57,7 @@
                     <span>Refresh</span>
                 </button>
 
+                @if(!auth()->user()->isPicGudang())
                 <!-- Add Sub-Dept Button -->
                 <button @click="openCreateSubDept('')" type="button" class="px-2.5 py-1 bg-amber-600 hover:bg-amber-500 text-white font-mono font-bold text-xs rounded border border-amber-700 shadow transition flex items-center gap-1.5 shrink-0 cursor-pointer" title="Tambah Sub-Departemen Baru">
                     <i data-lucide="layers" class="w-3.5 h-3.5"></i>
@@ -68,6 +69,7 @@
                     <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
                     <span>+ Dept (F2)</span>
                 </button>
+                @endif
             </div>
         </div>
     </div>
@@ -182,6 +184,7 @@
                                         <i data-lucide="sliders" class="w-3 h-3 text-amber-300"></i>
                                         <span>Kelola</span>
                                     </button>
+                                    @if(!auth()->user()->isPicGudang())
                                     <!-- Add Sub-Dept Shortcut -->
                                     <button @click="openCreateSubDept(dept.id)" class="px-2 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 rounded text-[11px] font-bold transition flex items-center gap-1" title="Tambah Sub-Departemen untuk departemen ini">
                                         <i data-lucide="plus" class="w-3 h-3 text-amber-500"></i> +Sub
@@ -203,6 +206,7 @@
                                             <i data-lucide="trash-2" class="w-3 h-3 text-rose-500"></i> Hapus
                                         </button>
                                     </form>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
@@ -221,10 +225,12 @@
                                                 Daftar Sub-Departemen di bawah: <span class="text-purple-600 dark:text-purple-400" x-text="dept.name + ' (' + dept.code + ')'"></span>
                                             </span>
                                         </div>
+                                        @if(!auth()->user()->isPicGudang())
                                         <button @click="openCreateSubDept(dept.id)" type="button" class="px-2.5 py-0.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[11px] rounded transition flex items-center gap-1 shadow-sm">
                                             <i data-lucide="plus-circle" class="w-3 h-3"></i>
                                             <span>Tambah Sub-Departemen</span>
                                         </button>
+                                        @endif
                                     </div>
 
                                     <!-- Sub-grid Table -->
@@ -281,6 +287,7 @@
                                                                     <i data-lucide="sliders" class="w-2.5 h-2.5 text-amber-300"></i>
                                                                     <span>Kelola</span>
                                                                 </button>
+                                                                @if(!auth()->user()->isPicGudang())
                                                                 <button @click="openEditSubDept(sub, dept.id)" class="px-1.5 py-0.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded text-[10px] font-bold transition flex items-center gap-1">
                                                                     <i data-lucide="edit-2" class="w-2.5 h-2.5 text-amber-500"></i> Edit
                                                                 </button>
@@ -296,6 +303,7 @@
                                                                         <i data-lucide="trash-2" class="w-2.5 h-2.5 text-rose-500"></i> Hapus
                                                                     </button>
                                                                 </form>
+                                                                @endif
                                                             </div>
                                                         </td>
                                                     </tr>
