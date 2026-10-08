@@ -2350,7 +2350,10 @@ function dashboardOverviewApp() {
                 let targetUrl = file.stream_url;
                 if (!targetUrl) {
                     const raw = file.raw_path || file.url || '';
-                    const clean = raw.replace(/^https?:\/\/[^\/]+/, '').replace(/^\/(storage|public)\//, '').replace(/^\//, '');
+                    const clean = raw
+                        .replace(/^https?:\/\/[^\/]+/, '')
+                        .replace(/^\/(public\/storage|storage|public|files\/stream|files\/preview-stream)\//i, '')
+                        .replace(/^\//, '');
                     targetUrl = '/files/preview-stream?token=' + encodeURIComponent(btoa(unescape(encodeURIComponent(clean))));
                 }
 

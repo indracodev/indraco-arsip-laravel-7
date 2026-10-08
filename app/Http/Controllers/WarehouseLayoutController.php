@@ -128,6 +128,12 @@ class WarehouseLayoutController extends Controller
                             'sub_department' => $slot->archive->subDepartment ? $slot->archive->subDepartment->code : null,
                             'sub_department_name' => $slot->archive->subDepartment ? $slot->archive->subDepartment->name : null,
                             'is_expired' => $isExpired,
+                            'scan_input_form' => $slot->archive->scan_input_form ? app_storage_url($slot->archive->scan_input_form) : null,
+                            'scan_input_form_stream' => $slot->archive->scan_input_form ? app_preview_stream_url($slot->archive->scan_input_form) : null,
+                            'scan_input_form_raw' => $slot->archive->scan_input_form,
+                            'scan_approval_input' => $slot->archive->scan_approval_input ? app_storage_url($slot->archive->scan_approval_input) : null,
+                            'scan_approval_input_stream' => $slot->archive->scan_approval_input ? app_preview_stream_url($slot->archive->scan_approval_input) : null,
+                            'scan_approval_input_raw' => $slot->archive->scan_approval_input,
                             'items_count' => $slot->archive->items ? $slot->archive->items->count() : 0,
                             'items' => $slot->archive->items ? $slot->archive->items->map(function ($it) {
                                 return [
@@ -156,8 +162,12 @@ class WarehouseLayoutController extends Controller
                         'retention_duration_label' => $arc->retention_duration_label,
                         'retention_expiry_date' => $arc->retention_expiry_date ? $arc->retention_expiry_date->format('M Y') : '-',
                         'is_expired' => $arc->is_expired,
-                        'scan_input_form' => $arc->scan_input_form ? asset('storage/' . $arc->scan_input_form) : null,
-                        'scan_approval_input' => $arc->scan_approval_input ? asset('storage/' . $arc->scan_approval_input) : null,
+                        'scan_input_form' => $arc->scan_input_form ? app_storage_url($arc->scan_input_form) : null,
+                        'scan_input_form_stream' => $arc->scan_input_form ? app_preview_stream_url($arc->scan_input_form) : null,
+                        'scan_input_form_raw' => $arc->scan_input_form,
+                        'scan_approval_input' => $arc->scan_approval_input ? app_storage_url($arc->scan_approval_input) : null,
+                        'scan_approval_input_stream' => $arc->scan_approval_input ? app_preview_stream_url($arc->scan_approval_input) : null,
+                        'scan_approval_input_raw' => $arc->scan_approval_input,
                         'items_count' => $arc->items ? $arc->items->count() : 0,
                         'items' => $arc->items ? $arc->items->map(function ($it) {
                             return [

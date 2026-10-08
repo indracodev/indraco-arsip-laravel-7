@@ -312,9 +312,17 @@
                                     <span class="text-[10px] text-slate-500">Form pendaftaran fisik</span>
                                 </div>
                             </div>
-                            <a href="{{ app_storage_url($archive->scan_input_form) }}" target="_blank" class="px-2.5 py-1 bg-amber-500 text-slate-950 text-[11px] font-black rounded-lg hover:bg-amber-400 transition">
+                            <button type="button" 
+                                    @click="dmsPreviewFile({
+                                        url: {{ json_encode(app_storage_url($archive->scan_input_form)) }},
+                                        stream_url: {{ json_encode(app_preview_stream_url($archive->scan_input_form)) }},
+                                        name: 'Scan Formulir Input',
+                                        raw_path: {{ json_encode($archive->scan_input_form) }},
+                                        ext: {{ json_encode(strtolower(pathinfo($archive->scan_input_form, PATHINFO_EXTENSION))) }}
+                                    })"
+                                    class="px-2.5 py-1 bg-amber-500 text-slate-950 text-[11px] font-black rounded-lg hover:bg-amber-400 transition cursor-pointer">
                                 Lihat Scan
-                            </a>
+                            </button>
                         </div>
                         @endif
 
@@ -327,9 +335,17 @@
                                     <span class="text-[10px] text-slate-500">Bukti persetujuan PIC</span>
                                 </div>
                             </div>
-                            <a href="{{ app_storage_url($archive->scan_approval_input) }}" target="_blank" class="px-2.5 py-1 bg-blue-500 text-white text-[11px] font-black rounded-lg hover:bg-blue-400 transition">
+                            <button type="button" 
+                                    @click="dmsPreviewFile({
+                                        url: {{ json_encode(app_storage_url($archive->scan_approval_input)) }},
+                                        stream_url: {{ json_encode(app_preview_stream_url($archive->scan_approval_input)) }},
+                                        name: 'Scan Approval Input',
+                                        raw_path: {{ json_encode($archive->scan_approval_input) }},
+                                        ext: {{ json_encode(strtolower(pathinfo($archive->scan_approval_input, PATHINFO_EXTENSION))) }}
+                                    })"
+                                    class="px-2.5 py-1 bg-blue-500 text-white text-[11px] font-black rounded-lg hover:bg-blue-400 transition cursor-pointer">
                                 Lihat Scan
-                            </a>
+                            </button>
                         </div>
                         @endif
 
@@ -342,9 +358,17 @@
                                     <span class="text-[10px] text-slate-500">Perpanjangan masa simpan</span>
                                 </div>
                             </div>
-                            <a href="{{ app_storage_url($archive->scan_extension_form) }}" target="_blank" class="px-2.5 py-1 bg-purple-500 text-white text-[11px] font-black rounded-lg hover:bg-purple-400 transition">
+                            <button type="button" 
+                                    @click="dmsPreviewFile({
+                                        url: {{ json_encode(app_storage_url($archive->scan_extension_form)) }},
+                                        stream_url: {{ json_encode(app_preview_stream_url($archive->scan_extension_form)) }},
+                                        name: 'Scan Form Perpanjangan',
+                                        raw_path: {{ json_encode($archive->scan_extension_form) }},
+                                        ext: {{ json_encode(strtolower(pathinfo($archive->scan_extension_form, PATHINFO_EXTENSION))) }}
+                                    })"
+                                    class="px-2.5 py-1 bg-purple-500 text-white text-[11px] font-black rounded-lg hover:bg-purple-400 transition cursor-pointer">
                                 Lihat Form
-                            </a>
+                            </button>
                         </div>
                         @endif
 
@@ -357,9 +381,17 @@
                                     <span class="text-[10px] text-slate-500">File softcopy</span>
                                 </div>
                             </div>
-                            <a href="{{ app_storage_url($archive->file_path) }}" target="_blank" class="px-2.5 py-1 bg-emerald-500 text-slate-950 text-[11px] font-black rounded-lg hover:bg-emerald-400 transition">
-                                Unduh Softcopy
-                            </a>
+                            <button type="button" 
+                                    @click="dmsPreviewFile({
+                                        url: {{ json_encode(app_storage_url($archive->file_path)) }},
+                                        stream_url: {{ json_encode(app_preview_stream_url($archive->file_path)) }},
+                                        name: 'Lampiran Digital',
+                                        raw_path: {{ json_encode($archive->file_path) }},
+                                        ext: {{ json_encode(strtolower(pathinfo($archive->file_path, PATHINFO_EXTENSION))) }}
+                                    })"
+                                    class="px-2.5 py-1 bg-emerald-500 text-slate-950 text-[11px] font-black rounded-lg hover:bg-emerald-400 transition cursor-pointer">
+                                Pratinjau Berkas
+                            </button>
                         </div>
                         @endif
                     </div>

@@ -1003,10 +1003,30 @@
                 <!-- Scan Buttons -->
                 <div class="flex items-center gap-2 pt-1">
                     <template x-if="selectedDoc?.scan_input_form">
-                        <a :href="selectedDoc.scan_input_form" target="_blank" class="px-3 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded border border-amber-600 text-xs shadow-xs">Scan Form Input</a>
+                        <button type="button" 
+                                @click="dmsPreviewFile({
+                                    url: selectedDoc.scan_input_form,
+                                    stream_url: selectedDoc.scan_input_form_stream,
+                                    raw_path: selectedDoc.scan_input_form_raw,
+                                    name: 'Scan Formulir Input - ' + (selectedDoc.box_number || selectedDoc.title),
+                                    ext: (selectedDoc.scan_input_form_raw || selectedDoc.scan_input_form || '').split('.').pop().toLowerCase()
+                                })" 
+                                class="px-3 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded border border-amber-600 text-xs shadow-xs cursor-pointer">
+                            Scan Form Input
+                        </button>
                     </template>
                     <template x-if="selectedDoc?.scan_approval_input">
-                        <a :href="selectedDoc.scan_approval_input" target="_blank" class="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded border border-blue-700 text-xs shadow-xs">Scan Approval</a>
+                        <button type="button" 
+                                @click="dmsPreviewFile({
+                                    url: selectedDoc.scan_approval_input,
+                                    stream_url: selectedDoc.scan_approval_input_stream,
+                                    raw_path: selectedDoc.scan_approval_input_raw,
+                                    name: 'Scan Approval Input - ' + (selectedDoc.box_number || selectedDoc.title),
+                                    ext: (selectedDoc.scan_approval_input_raw || selectedDoc.scan_approval_input || '').split('.').pop().toLowerCase()
+                                })" 
+                                class="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded border border-blue-700 text-xs shadow-xs cursor-pointer">
+                            Scan Approval
+                        </button>
                     </template>
                 </div>
             </div>

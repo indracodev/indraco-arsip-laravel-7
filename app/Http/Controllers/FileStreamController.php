@@ -12,27 +12,20 @@ class FileStreamController extends Controller
      * Stream stored file directly to browser with inline preview header.
      * Solves Windows / Laragon symlink issues where public/storage is inaccessible.
      */
+    /**
+     * Stream stored file directly to browser with inline preview header.
+     * Solves Windows / Laragon symlink issues where public/storage is inaccessible.
+     */
     public function stream(Request $request, $path)
     {
-        // Decode and sanitize path
-        $path = ltrim(urldecode($path), '/');
-        
-        // Strip duplicate 'storage/' or 'public/' prefix if present
-        $cleanPath = preg_replace('/^(storage\/|public\/)/', '', $path);
+        $cleanPath = $this->sanitizeFilePath($path);
 
         // Security check: prevent directory traversal attacks
         if (str_contains($cleanPath, '..')) {
             abort(403, 'Akses ke direktori tidak diizinkan.');
         }
 
-        $candidates = [
-            public_path('storage/' . $cleanPath),
-            public_path($cleanPath),
-            storage_path('app/public/' . $cleanPath),
-            Storage::disk('public')->path($cleanPath),
-            Storage::disk('local')->path($cleanPath),
-            storage_path('app/' . $cleanPath),
-        ];
+        $candidates = $this->resolveCandidates($cleanPath);
 
         foreach ($candidates as $filePath) {
             if (!empty($filePath) && file_exists($filePath) && is_file($filePath)) {
@@ -76,36 +69,6 @@ class FileStreamController extends Controller
     }
 
     /**
-     * Detect MIME type with robust fallbacks.
-     */
-    protected function detectMimeType($filePath)
-    {
-        if (function_exists('mime_content_type')) {
-            $mime = @mime_content_type($filePath);
-            if ($mime) return $mime;
-        }
-
-        $extension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
-        $map = [
-            'pdf'  => 'application/pdf',
-            'jpg'  => 'image/jpeg',
-            'jpeg' => 'image/jpeg',
-            'png'  => 'image/png',
-            'gif'  => 'image/gif',
-            'webp' => 'image/webp',
-            'doc'  => 'application/msword',
-            'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'xls'  => 'application/vnd.ms-excel',
-            'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'zip'  => 'application/zip',
-            'txt'  => 'text/plain',
-            'csv'  => 'text/csv',
-        ];
-
-        return $map[$extension] ?? 'application/octet-stream';
-    }
-
-    /**
      * Anti-IDM Stream Endpoint for Live In-Browser Previews.
      * Serves file binary as application/octet-stream with generic non-pdf disposition
      * so download managers (like IDM) cannot intercept the fetch request.
@@ -117,28 +80,13 @@ class FileStreamController extends Controller
             abort(400, 'Parameter token atau path diperlukan.');
         }
 
-        // Decode base64 token if valid base64 provided
-        $cleanPath = $token;
-        $decoded = @base64_decode($token, true);
-        if ($decoded !== false && preg_match('/^[a-zA-Z0-9_\-\.\/]+$/', $decoded)) {
-            $cleanPath = $decoded;
-        }
-
-        $cleanPath = ltrim(urldecode($cleanPath), '/');
-        $cleanPath = preg_replace('/^(storage\/|public\/)/', '', $cleanPath);
+        $cleanPath = $this->sanitizeFilePath($token);
 
         if (str_contains($cleanPath, '..')) {
             abort(403, 'Akses ke direktori tidak diizinkan.');
         }
 
-        $candidates = [
-            public_path('storage/' . $cleanPath),
-            public_path($cleanPath),
-            storage_path('app/public/' . $cleanPath),
-            Storage::disk('public')->path($cleanPath),
-            Storage::disk('local')->path($cleanPath),
-            storage_path('app/' . $cleanPath),
-        ];
+        $candidates = $this->resolveCandidates($cleanPath);
 
         foreach ($candidates as $filePath) {
             if (!empty($filePath) && file_exists($filePath) && is_file($filePath)) {
@@ -167,6 +115,94 @@ class FileStreamController extends Controller
         }
 
         abort(404, 'File pratinjau fisik tidak ditemukan di server penyimpanan (' . htmlspecialchars(basename($cleanPath)) . ').');
+    }
+
+    /**
+     * Sanitize and extract clean relative file path from various inputs
+     * (URL, base64 token, prefix with storage/, files/stream/, etc.)
+     */
+    protected function sanitizeFilePath($path)
+    {
+        if (empty($path)) {
+            return '';
+        }
+
+        // Check base64
+        $decoded = @base64_decode($path, true);
+        if ($decoded !== false && preg_match('/^[a-zA-Z0-9_\-\.\/:\?=&]+$/', $decoded)) {
+            $path = $decoded;
+        }
+
+        $path = urldecode($path);
+        // Strip query string if any
+        $path = explode('?', $path)[0];
+        // Strip http/https domain prefix
+        $path = preg_replace('#^https?://[^/]+/#i', '', $path);
+        $path = ltrim($path, '/');
+
+        // Strip repeating prefixes: public/storage/, storage/, public/, files/stream/, files/preview-stream/
+        $patterns = [
+            '#^(public/storage/)#i',
+            '#^(storage/)#i',
+            '#^(public/)#i',
+            '#^(files/stream/)#i',
+            '#^(files/preview-stream/)#i',
+        ];
+        
+        do {
+            $prev = $path;
+            foreach ($patterns as $pattern) {
+                $path = preg_replace($pattern, '', $path);
+                $path = ltrim($path, '/');
+            }
+        } while ($path !== $prev);
+
+        return $path;
+    }
+
+    /**
+     * Resolve all possible physical storage candidates on disk.
+     */
+    protected function resolveCandidates($cleanPath)
+    {
+        return [
+            public_path('storage/' . $cleanPath),
+            public_path($cleanPath),
+            storage_path('app/public/' . $cleanPath),
+            Storage::disk('public')->path($cleanPath),
+            Storage::disk('local')->path($cleanPath),
+            storage_path('app/' . $cleanPath),
+        ];
+    }
+
+    /**
+     * Detect MIME type with robust fallbacks.
+     */
+    protected function detectMimeType($filePath)
+    {
+        if (function_exists('mime_content_type')) {
+            $mime = @mime_content_type($filePath);
+            if ($mime) return $mime;
+        }
+
+        $extension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+        $map = [
+            'pdf'  => 'application/pdf',
+            'jpg'  => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
+            'png'  => 'image/png',
+            'gif'  => 'image/gif',
+            'webp' => 'image/webp',
+            'doc'  => 'application/msword',
+            'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'xls'  => 'application/vnd.ms-excel',
+            'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'zip'  => 'application/zip',
+            'txt'  => 'text/plain',
+            'csv'  => 'text/csv',
+        ];
+
+        return $map[$extension] ?? 'application/octet-stream';
     }
 }
 

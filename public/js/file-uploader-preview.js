@@ -287,10 +287,12 @@ function dmsFileUploader(config) {
 
         openPreview() {
             if (!this.fileUrl) return;
+            const isPdf = this.fileCategory === 'pdf' || (this.fileName && this.fileName.toLowerCase().endsWith('.pdf'));
             const payload = {
                 url: this.fileUrl,
                 name: this.fileName,
-                type: this.fileCategory,
+                ext: isPdf ? 'pdf' : (this.fileName ? this.fileName.split('.').pop().toLowerCase() : 'jpg'),
+                type: isPdf ? 'pdf' : 'image',
                 size: this.fileSizeFormatted,
                 isOptimized: this.wasOptimized
             };
@@ -308,10 +310,13 @@ function dmsFileUploader(config) {
 
         openExistingPreview() {
             if (!this.existingUrl) return;
+            const cleanUrl = this.existingUrl.split('?')[0];
+            const isPdf = cleanUrl.toLowerCase().endsWith('.pdf');
             const payload = {
                 url: this.existingUrl,
                 name: this.existingName || 'Dokumen Tersimpan',
-                type: this.existingUrl.toLowerCase().endsWith('.pdf') ? 'pdf' : 'image'
+                ext: isPdf ? 'pdf' : cleanUrl.split('.').pop().toLowerCase(),
+                type: isPdf ? 'pdf' : 'image'
             };
 
             if (typeof window.dmsPreviewFile === 'function') {

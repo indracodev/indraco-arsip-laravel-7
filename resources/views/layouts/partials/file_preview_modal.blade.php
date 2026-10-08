@@ -194,19 +194,36 @@ function filePreviewModalHandler() {
                 this.pdfBlobUrl = null;
             }
             
-            // Determine type
-            const ext = (detail.name || detail.url || '').split('.').pop().toLowerCase();
-            if (['jpg', 'jpeg', 'png', 'webp', 'bmp', 'gif'].includes(ext)) {
+            // Robust extraction of file extension from ext, filename, raw_path, or url
+            const extractExt = (val) => {
+                if (!val || typeof val !== 'string') return '';
+                const clean = val.split('?')[0].split('#')[0];
+                const parts = clean.split('.');
+                return parts.length > 1 ? parts.pop().toLowerCase() : '';
+            };
+
+            const ext = (
+                detail.ext || 
+                extractExt(detail.filename) || 
+                extractExt(detail.raw_path) || 
+                extractExt(detail.url) || 
+                (detail.name && detail.name.includes('.') ? extractExt(detail.name) : '')
+            ).toLowerCase();
+
+            if (['jpg', 'jpeg', 'png', 'webp', 'bmp', 'gif', 'svg'].includes(ext)) {
                 this.fileType = 'image';
                 this.loadingPdf = false;
-            } else if (ext === 'pdf') {
+            } else if (ext === 'pdf' || detail.type === 'pdf') {
                 this.fileType = 'pdf';
                 this.loadingPdf = true;
 
                 let targetUrl = detail.stream_url;
                 if (!targetUrl) {
                     const raw = detail.raw_path || this.fileUrl || '';
-                    const clean = raw.replace(/^https?:\/\/[^\/]+/, '').replace(/^\/(storage|public)\//, '').replace(/^\//, '');
+                    const clean = raw
+                        .replace(/^https?:\/\/[^\/]+/, '')
+                        .replace(/^\/(public\/storage|storage|public|files\/stream|files\/preview-stream)\//i, '')
+                        .replace(/^\//, '');
                     targetUrl = '/files/preview-stream?token=' + encodeURIComponent(btoa(unescape(encodeURIComponent(clean))));
                 }
 

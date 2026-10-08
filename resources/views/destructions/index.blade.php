@@ -356,10 +356,18 @@
                             <td class="py-3.5 px-3.5 text-slate-700 dark:text-slate-300 font-medium whitespace-nowrap text-[11px]" x-text="ext.user_name"></td>
                             <td class="py-3.5 px-3.5 text-right whitespace-nowrap font-mono">
                                 <template x-if="ext.scan_file">
-                                    <a :href="ext.scan_file" target="_blank" class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-purple-600 dark:text-purple-400 border border-slate-300 dark:border-slate-700 text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer">
+                                    <button type="button" 
+                                            @click="dmsPreviewFile({
+                                                url: ext.scan_file,
+                                                stream_url: ext.scan_file_stream,
+                                                raw_path: ext.scan_file_raw,
+                                                name: 'Form Perpanjangan - ' + (ext.box_number || ext.archive_title),
+                                                ext: (ext.scan_file_raw || ext.scan_file || '').split('.').pop().toLowerCase()
+                                            })"
+                                            class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-purple-600 dark:text-purple-400 border border-slate-300 dark:border-slate-700 text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer">
                                         <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
                                         <span>Lihat Bukti</span>
-                                    </a>
+                                    </button>
                                 </template>
                                 <template x-if="!ext.scan_file && ext.archive_id">
                                     <a :href="'{{ url('/destructions/extend-print') }}/' + ext.archive_id" target="_blank" class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700 text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer">
@@ -446,10 +454,18 @@
                             <td class="py-3.5 px-3.5 text-right whitespace-nowrap font-mono">
                                 <div class="flex items-center justify-end gap-1.5">
                                     <template x-if="dLog.approval_file">
-                                        <a :href="dLog.approval_file" target="_blank" class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-rose-600 dark:text-rose-400 border border-slate-300 dark:border-slate-700 text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer">
+                                        <button type="button" 
+                                                @click="dmsPreviewFile({
+                                                    url: dLog.approval_file,
+                                                    stream_url: dLog.approval_file_stream,
+                                                    raw_path: dLog.approval_file_raw,
+                                                    name: 'Approval Pemusnahan - ' + (dLog.bap_number || dLog.archive_title),
+                                                    ext: (dLog.approval_file_raw || dLog.approval_file || '').split('.').pop().toLowerCase()
+                                                })"
+                                                class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-rose-600 dark:text-rose-400 border border-slate-300 dark:border-slate-700 text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer">
                                             <i data-lucide="file-check" class="w-3.5 h-3.5"></i>
                                             <span>Approval</span>
-                                        </a>
+                                        </button>
                                     </template>
                                     <a :href="'{{ url('/destructions/bap') }}/' + dLog.id" target="_blank" class="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-[11px] shadow-xs inline-flex items-center gap-1 cursor-pointer">
                                         <i data-lucide="printer" class="w-3.5 h-3.5"></i>

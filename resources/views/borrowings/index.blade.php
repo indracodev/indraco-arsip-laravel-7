@@ -143,9 +143,18 @@
                             @endif
 
                             @if($bLog->effective_approval_file)
-                                <a href="{{ app_storage_url($bLog->effective_approval_file) }}" target="_blank" class="block text-[10px] text-amber-600 dark:text-amber-400 font-bold hover:underline mt-1">
-                                    <i data-lucide="file-check" class="w-3 h-3 inline"></i> Scan Approval
-                                </a>
+                                <button type="button" 
+                                        @click="dmsPreviewFile({
+                                            url: {{ json_encode(app_storage_url($bLog->effective_approval_file)) }},
+                                            stream_url: {{ json_encode(app_preview_stream_url($bLog->effective_approval_file)) }},
+                                            raw_path: {{ json_encode($bLog->effective_approval_file) }},
+                                            name: 'Scan Approval Peminjaman',
+                                            ext: {{ json_encode(strtolower(pathinfo($bLog->effective_approval_file, PATHINFO_EXTENSION))) }}
+                                        })"
+                                        class="text-[10px] text-amber-600 dark:text-amber-400 font-bold hover:underline mt-1 inline-flex items-center gap-1 cursor-pointer">
+                                    <i data-lucide="file-check" class="w-3 h-3"></i>
+                                    <span>Scan Approval</span>
+                                </button>
                             @endif
                         </td>
 

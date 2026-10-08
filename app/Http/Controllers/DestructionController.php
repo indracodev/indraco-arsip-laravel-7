@@ -132,6 +132,8 @@ class DestructionController extends Controller
                 'user_name' => $log->user_name ?? ($log->user ? $log->user->name : 'PIC'),
                 'date' => $log->created_at ? $log->created_at->format('d M Y H:i') : '-',
                 'scan_file' => !empty($props['scan_extension_form']) ? app_storage_url($props['scan_extension_form']) : ($archive && $archive->scan_extension_form ? app_storage_url($archive->scan_extension_form) : null),
+                'scan_file_stream' => !empty($props['scan_extension_form']) ? app_preview_stream_url($props['scan_extension_form']) : ($archive && $archive->scan_extension_form ? app_preview_stream_url($archive->scan_extension_form) : null),
+                'scan_file_raw' => !empty($props['scan_extension_form']) ? $props['scan_extension_form'] : ($archive && $archive->scan_extension_form ? $archive->scan_extension_form : null),
                 'archive_id' => $props['archive_id'] ?? null,
             ];
         });
@@ -155,7 +157,9 @@ class DestructionController extends Controller
                         'reason' => $arc->extension_reason ?: '-',
                         'user_name' => 'PIC Dept',
                         'date' => $arc->updated_at ? $arc->updated_at->format('d M Y H:i') : '-',
-                        'scan_file' => $arc->scan_extension_form_url,
+                        'scan_file' => $arc->scan_extension_form ? app_storage_url($arc->scan_extension_form) : null,
+                        'scan_file_stream' => $arc->scan_extension_form ? app_preview_stream_url($arc->scan_extension_form) : null,
+                        'scan_file_raw' => $arc->scan_extension_form,
                         'archive_id' => $arc->id,
                     ];
                 });
@@ -183,6 +187,8 @@ class DestructionController extends Controller
                 'method' => $dLog->method,
                 'executor' => $dLog->proposedBy ? $dLog->proposedBy->name : 'Gudang Specialist',
                 'approval_file' => $dLog->effective_approval_file ? app_storage_url($dLog->effective_approval_file) : null,
+                'approval_file_stream' => $dLog->effective_approval_file ? app_preview_stream_url($dLog->effective_approval_file) : null,
+                'approval_file_raw' => $dLog->effective_approval_file,
             ];
         });
 
