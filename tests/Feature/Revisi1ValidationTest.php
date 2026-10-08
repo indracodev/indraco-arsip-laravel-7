@@ -9,13 +9,15 @@ use App\Models\SubDepartment;
 use App\Models\User;
 use App\Models\WarehouseLocation;
 use App\Models\WarehouseRackSlot;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class Revisi1ValidationTest extends TestCase
 {
+    use DatabaseTransactions;
+
     protected $adminUser;
 
     protected function setUp(): void

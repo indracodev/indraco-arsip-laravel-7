@@ -5,11 +5,13 @@ namespace Tests\Feature;
 use App\Models\Archive;
 use App\Models\Department;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
 class RealtimeNotificationTest extends TestCase
 {
+    use DatabaseTransactions;
+
     public function test_guest_cannot_access_realtime_check()
     {
         $response = $this->getJson(route('api.realtime.check'));
