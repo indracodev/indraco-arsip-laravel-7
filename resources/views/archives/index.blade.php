@@ -88,7 +88,7 @@
             </div>
 
             <!-- Department Filter -->
-            <div class="space-y-1">
+            <div class="space-y-1" style="display: none !important;">
                 <label class="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 block flex items-center justify-between">
                     <span>DEPARTEMEN</span>
                     @if(auth()->user()->isPicDept())

@@ -345,7 +345,7 @@
             </button>
 
             <!-- SEARCH INPUT WITH AUTO-SUGGESTIONS & PHYSICAL LOCATION -->
-            <div class="relative z-50 flex-1 min-w-[200px] max-w-xl" x-data="picQuickSearch()" @click.outside="closeDropdown()">
+            <div class="relative z-50 flex-1 min-w-[200px] max-w-xl" x-data="picQuickSearch()" @click.outside="closeDropdown()" style="display: none !important;">
                 <div class="relative flex items-center">
                     <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
                         <svg x-show="isLoading" class="w-3.5 h-3.5 text-amber-500 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" x-cloak>
@@ -536,6 +536,7 @@
                 class="p-1.5 rounded text-xs font-mono flex items-center justify-center transition border cursor-pointer select-none"
                 :class="soundEnabled ? 'bg-slate-900 hover:bg-slate-800 text-emerald-400 border-emerald-500/40 shadow-xs' : 'bg-slate-900 hover:bg-slate-800 text-rose-400 border-rose-500/30'"
                 :title="soundEnabled ? 'Suara Notifikasi: AKTIF (Klik untuk Mute)' : 'Suara Notifikasi: MUTE (Klik untuk Aktifkan)'"
+                style="display: none !important;"
             >
                 <!-- Sound ON: Speaker Bersuara Normal -->
                 <svg x-show="soundEnabled" class="w-4 h-4 text-emerald-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -617,7 +618,7 @@
                 @click="theme = (theme === 'dark' ? 'light' : 'dark'); localStorage.setItem('theme', theme)" 
                 type="button" 
                 class="p-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded text-xs font-mono flex items-center justify-center transition cursor-pointer select-none"
-                :title="theme === 'dark' ? 'Beralih ke Mode Terang (Alt+T)' : 'Beralih ke Mode Gelap (Alt+T)'"
+                :title="theme === 'dark' ? 'Beralih ke Mode Terang (Alt+T)' : 'Beralih ke Mode Gelap (Alt+T)'" style="display: none !important;"
             >
                 <!-- Saat Dark Mode: Tampilkan Matahari untuk beralih ke Terang -->
                 <svg x-show="theme === 'dark'" class="w-4 h-4 text-amber-300 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

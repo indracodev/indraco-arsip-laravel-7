@@ -235,7 +235,7 @@
                 <div class="md:col-span-5 bg-gradient-to-br from-slate-200 via-slate-100 to-amber-500/10 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-5 flex flex-col items-center justify-between text-center shadow-inner">
                     <div class="space-y-4 w-full flex flex-col items-center pt-2">
                         <!-- Company Logo in Beveled Box -->
-                        <div class="p-4 bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 rounded-xl shadow-lg w-full flex justify-center items-center">
+                        <div class="p-4 bg-white border-2 border-slate-300 dark:border-slate-700 rounded-xl shadow-lg w-full flex justify-center items-center">
                             <img src="{{ asset('images/logo_indraco.png') }}" alt="PT Indraco Logo" class="h-12 sm:h-14 w-auto object-contain">
                         </div>
 
