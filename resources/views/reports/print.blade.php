@@ -115,7 +115,7 @@
             <!-- Left: Small Logo & Title -->
             <div class="flex items-center gap-3">
                 <!-- Logo 25% size (height ~20px) -->
-                <img src="{{ asset('images/logo-indraco.png') }}" alt="Logo Indraco" class="h-5 sm:h-6 w-auto object-contain shrink-0">
+                <img src="{{ asset('images/logo_indraco.png') }}" alt="Logo Indraco" class="h-5 sm:h-6 w-auto object-contain shrink-0">
                 <div class="border-l border-slate-300 pl-3">
                     <h1 class="text-xs sm:text-sm font-bold text-slate-900 uppercase font-mono tracking-wide leading-none">
                         {{ $report['title'] }}

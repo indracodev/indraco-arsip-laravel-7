@@ -43,71 +43,17 @@
                     <label class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
                         PERUSAHAAN ENTITAS <span class="text-rose-500">*</span>
                     </label>
-                    <div class="relative" x-data="{
-                        open: false,
-                        search: '',
-                        options: [
-                            'PT Indraco Jaya Perkasa',
-                            'PT Indraco Global',
-                            'PT Indraco Trading',
-                            'PT Indraco Enterprise',
-                            'PT Indraco International'
-                        ],
-                        get filteredOptions() {
-                            if (!this.search) return this.options;
-                            return this.options.filter(opt => opt.toLowerCase().includes(this.search.toLowerCase()));
-                        },
-                        select(opt) {
-                            selectedCompany = opt;
-                            this.open = false;
-                            this.search = '';
-                        }
-                    }" @click.outside="open = false">
+                    <div class="relative">
                         <input type="hidden" name="company_name" :value="selectedCompany" required>
                         <button 
                             type="button" 
-                            @click="open = !open" 
-                            class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-left text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition flex items-center justify-between shadow-2xs cursor-pointer"
+                            disabled
+                            class="w-full px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-left font-bold text-slate-600 dark:text-slate-300 cursor-not-allowed select-none transition flex items-center justify-between shadow-2xs opacity-90"
+                            title="Entitas perusahaan dikunci ke default PT INDRACO GLOBAL INDONESIA"
                         >
-                            <span class="truncate font-semibold" x-text="selectedCompany || '-- Pilih Perusahaan --'"></span>
+                            <span class="truncate" x-text="selectedCompany"></span>
                             <i data-lucide="chevrons-up-down" class="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1"></i>
                         </button>
-                        <div 
-                            x-show="open" 
-                            x-cloak 
-                            x-transition
-                            class="absolute z-50 left-0 right-0 mt-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded shadow-lg overflow-hidden font-mono text-xs"
-                        >
-                            <div class="p-1.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
-                                <div class="relative">
-                                    <i data-lucide="search" class="w-3 h-3 absolute left-2 top-2 text-slate-400"></i>
-                                    <input 
-                                        type="text" 
-                                        x-model="search" 
-                                        @keydown.escape="open = false" 
-                                        placeholder="Cari perusahaan..." 
-                                        class="w-full pl-7 pr-2 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-[11px] text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
-                                        x-ref="searchCompanyInput"
-                                        x-init="$watch('open', value => { if(value) { setTimeout(() => $refs.searchCompanyInput?.focus(), 50); if(window.lucide) lucide.createIcons(); } })"
-                                    >
-                                </div>
-                            </div>
-                            <ul class="max-h-48 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/50">
-                                <template x-for="opt in filteredOptions" :key="opt">
-                                    <li 
-                                        @click="select(opt)" 
-                                        class="px-2.5 py-1.5 hover:bg-amber-500/15 dark:hover:bg-amber-500/20 cursor-pointer flex items-center justify-between transition"
-                                        :class="selectedCompany === opt ? 'bg-amber-500/20 font-bold text-amber-700 dark:text-amber-400' : 'text-slate-800 dark:text-slate-200'"
-                                    >
-                                        <span x-text="opt"></span>
-                                        <i data-lucide="check" class="w-3.5 h-3.5 text-amber-600" x-show="selectedCompany === opt"></i>
-                                    </li>
-                                </template>
-                                <li x-show="filteredOptions.length === 0" class="p-2 text-center text-slate-400 text-[11px]">
-                                    Tidak ada hasil
-                                </li>
-                            </ul>
-                        </div>
                     </div>
                 </div>
 
@@ -277,14 +223,31 @@
         </fieldset>
 
         <!-- SECTION 2: KATEGORI & IDENTITAS INDUK DOKUMEN -->
+        <!-- SECTION 2: IDENTITAS UTAMA KARDUS & KATEGORI -->
         <fieldset class="border border-slate-300 dark:border-slate-800 p-3.5 rounded bg-white dark:bg-slate-950 shadow-sm space-y-3">
             <legend class="px-2 font-mono text-[11px] font-bold text-blue-700 dark:text-blue-400 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded shadow-sm flex items-center gap-1.5">
                 <i data-lucide="file-text" class="w-3.5 h-3.5 text-blue-500"></i>
-                2. Kategori & Identitas Utama Kardus
+                2. Identitas Utama Kardus & Kategori
             </legend>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3 items-start">
-                <!-- Kategori Dokumen (Input Text Opsional) -->
+                <!-- Judul Utama / Label Kardus (Wajib - Kiri) -->
+                <div class="md:col-span-2">
+                    <label for="title" class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1 leading-normal">
+                        JUDUL UTAMA / LABEL KARDUS <span class="text-rose-500">*</span>
+                    </label>
+                    <input 
+                        type="text" 
+                        name="title" 
+                        id="title" 
+                        x-model="title"
+                        required
+                        placeholder="Contoh: Laporan Maintenance & Faktur Operasional" 
+                        class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 transition"
+                    >
+                </div>
+
+                <!-- Kategori Dokumen (Input Text Opsional - Kanan) -->
                 <div>
                     <label for="document_type" class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1 leading-normal">
                         KATEGORI DOKUMEN <span class="text-slate-400 font-normal">(Opsional)</span>
@@ -297,43 +260,6 @@
                         placeholder="Contoh: Pajak, Keuangan, SDM, Logistik..." 
                         class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 transition"
                     >
-                </div>
-
-                <!-- Judul Utama / Label Kardus (Aligned with Kategori Dokumen) -->
-                <div class="md:col-span-2">
-                    <div class="flex items-center justify-between mb-1 font-mono leading-normal">
-                        <label for="title" class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 truncate">
-                            JUDUL UTAMA / LABEL KARDUS <span class="text-slate-400 font-normal">(Opsional)</span>
-                        </label>
-                        <label class="inline-flex items-center gap-1.5 cursor-pointer select-none shrink-0 ml-2">
-                            <input type="checkbox" name="is_custom_doc_name" value="1" x-model="isCustomDocName" class="rounded border-slate-300 text-amber-500 focus:ring-amber-400 h-3.5 w-3.5">
-                            <span class="text-[11px] font-bold text-amber-600 dark:text-amber-400 whitespace-nowrap">Custom Nama Dokumen</span>
-                        </label>
-                    </div>
-
-                    <!-- Standard Document Name -->
-                    <div x-show="!isCustomDocName">
-                        <input 
-                            type="text" 
-                            name="title" 
-                            id="title" 
-                            x-model="title"
-                            placeholder="Contoh: Laporan Maintenance & Faktur Operasional" 
-                            class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 transition"
-                        >
-                    </div>
-
-                    <!-- Custom Document Name -->
-                    <div x-show="isCustomDocName" x-cloak>
-                        <input 
-                            type="text" 
-                            name="custom_doc_name" 
-                            id="custom_doc_name" 
-                            x-model="customDocName"
-                            placeholder="Ketik judul khusus kardus jika diperlukan..." 
-                            class="w-full px-2.5 py-1.5 bg-amber-500/10 dark:bg-amber-950/30 border border-amber-500 rounded text-xs font-mono font-bold text-amber-950 dark:text-amber-200 placeholder-amber-600/50 focus:outline-none focus:border-amber-600 transition"
-                        >
-                    </div>
                 </div>
             </div>
         </fieldset>
@@ -434,7 +360,7 @@
                     class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded text-xs shadow transition flex items-center gap-1.5 cursor-pointer"
                 >
                     <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-                    <span>+ Tambah Baris Dokumen</span>
+                    <span>Tambah Baris Dokumen</span>
                 </button>
             </div>
 
@@ -444,10 +370,10 @@
                     <thead>
                         <tr class="bg-slate-100 dark:bg-slate-900 border-b border-slate-300 dark:border-slate-700 font-mono text-[11px] text-slate-700 dark:text-slate-300">
                             <th class="py-2 px-2.5 w-10 text-center">NO</th>
-                            <th class="py-2 px-3">NAMA DOKUMEN / BERKAS ARSIP <span class="text-rose-500">*</span></th>
+                            <th class="py-2 px-3 w-56 sm:w-64">NAMA DOKUMEN / BERKAS ARSIP <span class="text-rose-500">*</span></th>
                             <th class="py-2 px-2.5 w-44">PERIODE MULAI (BLN/THN) <span class="text-rose-500">*</span></th>
                             <th class="py-2 px-2.5 w-44">PERIODE SELESAI (BLN/THN) <span class="text-rose-500">*</span></th>
-                            <th class="py-2 px-3 w-48">KETERANGAN (OPSIONAL)</th>
+                            <th class="py-2 px-3 w-48">KETERANGAN <span class="text-rose-500">*</span></th>
                             <th class="py-2 px-2.5 w-12 text-center">AKSI</th>
                         </tr>
                     </thead>
@@ -459,7 +385,7 @@
                                     <!-- Searchable Dropdown from Master Archives or Custom Input -->
                                     <div class="space-y-1">
                                         <template x-if="!item.is_custom && masterArchives.length > 0">
-                                            <div class="relative" x-data="{
+                                            <div class="relative w-full max-w-[240px] sm:max-w-[260px]" x-data="{
                                                 open: false,
                                                 search: '',
                                                 get filteredList() {
@@ -484,6 +410,7 @@
                                                     type="button" 
                                                     @click="open = !open" 
                                                     class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-left text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 transition flex items-center justify-between shadow-2xs cursor-pointer"
+                                                    :title="item.document_name || ''"
                                                 >
                                                     <span class="truncate" :class="item.document_name ? 'text-slate-900 dark:text-white' : 'text-slate-400'" x-text="item.document_name || '-- Pilih dari Master Berkas Arsip --'"></span>
                                                     <i data-lucide="chevrons-up-down" class="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1"></i>
@@ -492,7 +419,7 @@
                                                     x-show="open" 
                                                     x-cloak 
                                                     x-transition
-                                                    class="absolute z-50 left-0 right-0 mt-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded shadow-lg overflow-hidden font-mono text-xs"
+                                                    class="absolute z-50 left-0 mt-1 w-[380px] sm:w-[460px] max-w-[85vw] bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg shadow-2xl overflow-hidden font-mono text-xs"
                                                 >
                                                     <div class="p-1.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
                                                         <div class="relative">
@@ -508,25 +435,23 @@
                                                             >
                                                         </div>
                                                     </div>
-                                                    <ul class="max-h-48 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/50">
+                                                    <ul class="max-h-56 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/50">
                                                         <template x-for="m in filteredList" :key="m.id">
                                                             <li 
                                                                 @click="select(m)" 
-                                                                class="px-2.5 py-1.5 hover:bg-emerald-500/15 dark:hover:bg-emerald-500/20 cursor-pointer flex items-center justify-between transition"
+                                                                :title="m.name"
+                                                                class="px-3 py-2 hover:bg-emerald-500/15 dark:hover:bg-emerald-500/20 cursor-pointer flex items-start justify-between gap-2 transition"
                                                                 :class="item.document_name === m.name ? 'bg-emerald-500/20 font-bold text-emerald-700 dark:text-emerald-400' : 'text-slate-800 dark:text-slate-200'"
                                                             >
-                                                                <span class="truncate" x-text="m.name + (m.code ? ' [' + m.code + ']' : '') + (!selectedSubDeptId && m.sub_department ? ' (' + (m.sub_department.code || m.sub_department.name) + ')' : '')"></span>
-                                                                <i data-lucide="check" class="w-3.5 h-3.5 text-emerald-600 shrink-0 ml-1" x-show="item.document_name === m.name"></i>
+                                                                <div class="min-w-0 flex-1">
+                                                                    <span class="block whitespace-normal break-words leading-snug" x-text="m.name"></span>
+                                                                    <span class="block text-[10px] text-slate-500 dark:text-slate-400 font-sans mt-0.5" x-show="m.code || (!selectedSubDeptId && m.sub_department)" x-text="(m.code ? '[' + m.code + '] ' : '') + (!selectedSubDeptId && m.sub_department ? '(' + (m.sub_department.code || m.sub_department.name) + ')' : '')"></span>
+                                                                </div>
+                                                                <i data-lucide="check" class="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" x-show="item.document_name === m.name"></i>
                                                             </li>
                                                         </template>
-                                                        <li x-show="filteredList.length === 0" class="p-2 text-center text-slate-400 text-[11px]">
+                                                        <li x-show="filteredList.length === 0" class="p-3 text-center text-slate-400 text-[11px]">
                                                             Tidak ada berkas yang cocok
-                                                        </li>
-                                                        <li 
-                                                            @click="switchToCustom()" 
-                                                            class="px-2.5 py-2 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-950/60 text-amber-800 dark:text-amber-300 font-bold cursor-pointer border-t border-amber-200 dark:border-amber-800 flex items-center gap-1.5 transition text-[11px]"
-                                                        >
-                                                            <span>✍️ + Tulis Nama Dokumen Kustom / Lainnya</span>
                                                         </li>
                                                     </ul>
                                                 </div>
@@ -535,7 +460,7 @@
 
                                         <!-- Custom Text Input -->
                                         <template x-if="item.is_custom || masterArchives.length === 0">
-                                            <div class="flex items-center gap-1">
+                                            <div class="flex items-center gap-1 w-full max-w-[240px] sm:max-w-[260px]">
                                                 <input 
                                                     type="text" 
                                                     :name="'items[' + index + '][document_name]'" 
@@ -563,9 +488,12 @@
                                             type="month" 
                                             :name="'items[' + index + '][period_start]'" 
                                             x-model="item.period_start" 
+                                            max="{{ date('Y-m') }}"
+                                            :max="item.period_end ? (item.period_end < '{{ date('Y-m') }}' ? item.period_end : '{{ date('Y-m') }}') : '{{ date('Y-m') }}'"
+                                            @change="validatePeriod(item)"
                                             required 
                                             class="w-full px-2 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-purple-700 dark:text-purple-300 focus:outline-none focus:border-emerald-500"
-                                            title="Pilih Bulan & Tahun Mulai"
+                                            title="Pilih Bulan & Tahun Mulai (Maksimal Bulan Sekarang)"
                                         >
                                     </div>
                                 </td>
@@ -575,9 +503,13 @@
                                             type="month" 
                                             :name="'items[' + index + '][period_end]'" 
                                             x-model="item.period_end" 
+                                            max="{{ date('Y-m') }}"
+                                            :max="'{{ date('Y-m') }}'"
+                                            :min="item.period_start || null"
+                                            @change="validatePeriod(item)"
                                             required 
                                             class="w-full px-2 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-purple-700 dark:text-purple-300 focus:outline-none focus:border-emerald-500"
-                                            title="Pilih Bulan & Tahun Selesai"
+                                            title="Pilih Bulan & Tahun Selesai (Maksimal Bulan Aktif Sekarang)"
                                         >
                                     </div>
                                 </td>
@@ -585,8 +517,9 @@
                                     <textarea 
                                         :name="'items[' + index + '][notes]'" 
                                         x-model="item.notes" 
+                                        required
                                         rows="1"
-                                        placeholder="No. berkas fisik / catatan" 
+                                        placeholder="No. berkas fisik / catatan (Wajib)" 
                                         @input="$el.style.height = 'auto'; $el.style.height = Math.max(34, $el.scrollHeight) + 'px'"
                                         x-init="$nextTick(() => { $el.style.height = 'auto'; $el.style.height = Math.max(34, $el.scrollHeight) + 'px'; })"
                                         class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-700 dark:text-slate-300 placeholder-slate-400 focus:outline-none focus:border-emerald-500 transition resize-none overflow-hidden leading-relaxed block shadow-2xs"
@@ -609,17 +542,9 @@
                 </table>
             </div>
 
-            <!-- Quick Add Button bar -->
+            <!-- Total Counter Bar -->
             <div class="flex items-center justify-between font-mono text-[11px] text-slate-500 dark:text-slate-400 pt-1">
                 <span>Total Butir Terdaftar: <strong class="text-emerald-600 dark:text-emerald-400 font-bold" x-text="items.length"></strong> Dokumen</span>
-                <button 
-                    @click="addItem()" 
-                    type="button" 
-                    class="text-emerald-600 dark:text-emerald-400 hover:underline font-bold inline-flex items-center gap-1 cursor-pointer"
-                >
-                    <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
-                    <span>+ Tambah Baris Dokumen Lainnya</span>
-                </button>
             </div>
         </fieldset>
 
@@ -630,48 +555,31 @@
                 5. Upload Berkas Digital & Scan Formulir
             </legend>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-xs">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-xs"
+                 @file-change="if($event.detail.name === 'scan_input_form') { hasScanForm = $event.detail.hasFile && !$event.detail.isOverLimit; }">
                 <!-- 1. Scan Formulir Input (Wajib untuk Pengajuan) -->
-                <div class="p-3 bg-slate-50 dark:bg-slate-900/60 rounded border border-slate-200 dark:border-slate-800 space-y-1.5">
-                    <div class="flex items-center justify-between">
-                        <label for="scan_input_form" class="text-[11px] font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1">
-                            <span>Scan Formulir Input</span>
-                            <span class="text-rose-500 font-black">*</span>
-                        </label>
-                        <span class="px-1.5 py-0.2 bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30 rounded text-[9px] font-bold">
-                            WAJIB UNTUK PENGAJUAN
-                        </span>
-                    </div>
-                    <input 
-                        type="file" 
-                        name="scan_input_form" 
-                        id="scan_input_form" 
-                        @change="hasScanForm = !!$event.target.files.length"
-                        accept=".pdf,.jpg,.jpeg,.png"
-                        class="w-full px-2 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-[11px] text-slate-700 dark:text-slate-300 file:mr-2 file:py-0.5 file:px-2 file:rounded file:border-0 file:text-[11px] file:font-bold file:bg-amber-500/20 file:text-amber-700 dark:file:text-amber-400 cursor-pointer"
-                    >
-                    <p class="text-[10px] text-slate-500">Format: PDF, JPG, PNG (Maksimal 10MB). Wajib diunggah sebelum pengajuan verifikasi box arsip.</p>
-                </div>
+                <x-file-uploader 
+                    name="scan_input_form" 
+                    id="scan_input_form" 
+                    label="Scan Formulir Input" 
+                    :required="true" 
+                    badge="WAJIB UNTUK PENGAJUAN" 
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    :maxSizeMB="2"
+                    helperText="Format: PDF, JPG, PNG (Maksimal 2MB). Foto scan besar otomatis dioptimalkan agar ringan & teks tetap tajam."
+                />
 
                 <!-- 2. Lampiran Digital Dokumen (Opsional) -->
-                <div class="p-3 bg-slate-50 dark:bg-slate-900/60 rounded border border-slate-200 dark:border-slate-800 space-y-1.5">
-                    <div class="flex items-center justify-between">
-                        <label for="file" class="text-[11px] font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1">
-                            <span>Lampiran Digital Dokumen</span>
-                        </label>
-                        <span class="px-1.5 py-0.2 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded text-[9px] font-bold">
-                            OPSIONAL
-                        </span>
-                    </div>
-                    <input 
-                        type="file" 
-                        name="file" 
-                        id="file" 
-                        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.zip"
-                        class="w-full px-2 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-[11px] text-slate-700 dark:text-slate-300 file:mr-2 file:py-0.5 file:px-2 file:rounded file:border-0 file:text-[11px] file:font-bold file:bg-slate-500/20 file:text-slate-700 dark:file:text-slate-400 cursor-pointer"
-                    >
-                    <p class="text-[10px] text-slate-500">Format: PDF, JPG, DOCX, ZIP (Maksimal 10MB). Opsional untuk kelengkapan digital.</p>
-                </div>
+                <x-file-uploader 
+                    name="file" 
+                    id="file" 
+                    label="Lampiran Digital Dokumen" 
+                    :required="false" 
+                    badge="OPSIONAL" 
+                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.zip"
+                    :maxSizeMB="2"
+                    helperText="Format: PDF, JPG, DOCX, XLSX, ZIP (Maksimal 2MB). Opsional untuk kelengkapan digital."
+                />
             </div>
         </fieldset>
 
@@ -712,7 +620,7 @@ function archiveCreateApp() {
     return {
         hasScanForm: false,
         departments: @json($departments),
-        selectedCompany: '{{ old('company_name', 'PT Indraco Jaya Perkasa') }}',
+        selectedCompany: '{{ old('company_name', 'PT INDRACO GLOBAL INDONESIA') }}',
         selectedDeptId: '{{ old('department_id', auth()->user()->isPicDept() ? auth()->user()->department_id : ($departments->first()->id ?? '')) }}',
         selectedSubDeptId: '{{ old('sub_department_id', '') }}',
         subDepartments: [],
@@ -723,12 +631,27 @@ function archiveCreateApp() {
         tglPenyerahan: '{{ old('tgl_penyerahan', date('Y-m-d')) }}',
         periodeBulan: '{{ old('periode_bulan', preg_match('/(\d+)/', old('periode', ''), $m) ? $m[1] : '') }}',
 
+        currentMonth: '{{ date('Y-m') }}',
+
         // Dynamic items repeater (1 Box = Banyak Berkas Arsip)
         items: [
-            { id: 1, document_name: '', is_custom: false, period_start: '{{ date('Y-06') }}', period_end: '{{ date('Y-08') }}', notes: '' },
-            { id: 2, document_name: '', is_custom: false, period_start: '{{ date('Y-07') }}', period_end: '{{ date('Y-07') }}', notes: '' },
-            { id: 3, document_name: '', is_custom: false, period_start: '{{ date('Y-01') }}', period_end: '{{ date('Y-12') }}', notes: '' }
+            { id: 1, document_name: '', is_custom: false, period_start: '{{ date('Y-m', strtotime('-3 months')) }}', period_end: '{{ date('Y-m') }}', notes: '' },
+            { id: 2, document_name: '', is_custom: false, period_start: '{{ date('Y-m', strtotime('-1 month')) }}', period_end: '{{ date('Y-m') }}', notes: '' },
+            { id: 3, document_name: '', is_custom: false, period_start: '{{ date('Y-m') }}', period_end: '{{ date('Y-m') }}', notes: '' }
         ],
+
+        validatePeriod(item) {
+            const maxM = '{{ date('Y-m') }}';
+            if (item.period_end && item.period_end > maxM) {
+                item.period_end = maxM;
+            }
+            if (item.period_start && item.period_start > maxM) {
+                item.period_start = maxM;
+            }
+            if (item.period_start && item.period_end && item.period_start > item.period_end) {
+                item.period_start = item.period_end;
+            }
+        },
 
         init() {
             this.updateSubDepartments();

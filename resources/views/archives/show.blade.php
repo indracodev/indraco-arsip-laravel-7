@@ -312,7 +312,7 @@
                                     <span class="text-[10px] text-slate-500">Form pendaftaran fisik</span>
                                 </div>
                             </div>
-                            <a href="{{ asset('storage/' . $archive->scan_input_form) }}" target="_blank" class="px-2.5 py-1 bg-amber-500 text-slate-950 text-[11px] font-black rounded-lg hover:bg-amber-400 transition">
+                            <a href="{{ app_storage_url($archive->scan_input_form) }}" target="_blank" class="px-2.5 py-1 bg-amber-500 text-slate-950 text-[11px] font-black rounded-lg hover:bg-amber-400 transition">
                                 Lihat Scan
                             </a>
                         </div>
@@ -327,7 +327,7 @@
                                     <span class="text-[10px] text-slate-500">Bukti persetujuan PIC</span>
                                 </div>
                             </div>
-                            <a href="{{ asset('storage/' . $archive->scan_approval_input) }}" target="_blank" class="px-2.5 py-1 bg-blue-500 text-white text-[11px] font-black rounded-lg hover:bg-blue-400 transition">
+                            <a href="{{ app_storage_url($archive->scan_approval_input) }}" target="_blank" class="px-2.5 py-1 bg-blue-500 text-white text-[11px] font-black rounded-lg hover:bg-blue-400 transition">
                                 Lihat Scan
                             </a>
                         </div>
@@ -342,7 +342,7 @@
                                     <span class="text-[10px] text-slate-500">Perpanjangan masa simpan</span>
                                 </div>
                             </div>
-                            <a href="{{ asset('storage/' . $archive->scan_extension_form) }}" target="_blank" class="px-2.5 py-1 bg-purple-500 text-white text-[11px] font-black rounded-lg hover:bg-purple-400 transition">
+                            <a href="{{ app_storage_url($archive->scan_extension_form) }}" target="_blank" class="px-2.5 py-1 bg-purple-500 text-white text-[11px] font-black rounded-lg hover:bg-purple-400 transition">
                                 Lihat Form
                             </a>
                         </div>
@@ -357,7 +357,7 @@
                                     <span class="text-[10px] text-slate-500">File softcopy</span>
                                 </div>
                             </div>
-                            <a href="{{ asset('storage/' . $archive->file_path) }}" target="_blank" class="px-2.5 py-1 bg-emerald-500 text-slate-950 text-[11px] font-black rounded-lg hover:bg-emerald-400 transition">
+                            <a href="{{ app_storage_url($archive->file_path) }}" target="_blank" class="px-2.5 py-1 bg-emerald-500 text-slate-950 text-[11px] font-black rounded-lg hover:bg-emerald-400 transition">
                                 Unduh Softcopy
                             </a>
                         </div>
@@ -403,13 +403,13 @@
                 <div class="space-y-3 text-xs">
                     <div class="flex justify-between py-1.5 border-b border-slate-200 dark:border-slate-800">
                         <span class="text-slate-500 dark:text-slate-400 font-medium">Durasi Retention:</span>
-                        <span class="font-bold text-slate-900 dark:text-white">{{ $archive->retention_years }} Tahun</span>
+                        <span class="font-bold text-slate-900 dark:text-white">{{ $archive->retention_duration_label }}</span>
                     </div>
 
                     <div class="flex justify-between py-1.5 border-b border-slate-200 dark:border-slate-800">
-                        <span class="text-slate-500 dark:text-slate-400 font-medium">Tanggal Pemusnahan:</span>
+                        <span class="text-slate-500 dark:text-slate-400 font-medium">Jatuh Tempo (Expiry):</span>
                         <span class="font-bold text-amber-600 dark:text-amber-400">
-                            {{ $archive->retention_expiry_date ? \Carbon\Carbon::parse($archive->retention_expiry_date)->format('d M Y') : '-' }}
+                            {{ $archive->retention_expiry_date ? \Carbon\Carbon::parse($archive->retention_expiry_date)->format('M Y') : '-' }}
                         </span>
                     </div>
                 </div>
