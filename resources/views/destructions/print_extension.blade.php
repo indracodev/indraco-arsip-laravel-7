@@ -32,7 +32,7 @@
         <!-- Header & Logo -->
         <div class="flex items-center justify-between border-b-2 border-slate-900 pb-6">
             <div class="flex items-center gap-4">
-                <img src="{{ asset('images/logo-indraco.png') }}" alt="PT Indraco Logo" class="h-14 w-auto object-contain">
+                <img src="{{ asset('images/logo_indraco.png') }}" alt="PT Indraco Logo" class="h-14 w-auto object-contain">
                 <div>
                     <h1 class="text-2xl font-black tracking-tight text-slate-900">PT INDRACO</h1>
                     <span class="text-xs font-semibold text-slate-600 uppercase tracking-widest block">Gudang & Depo Manajemen Arsip Perusahaan</span>
@@ -74,7 +74,7 @@
                     </tr>
                     <tr>
                         <td class="border border-slate-300 p-2.5 font-bold bg-slate-100">Masa Simpan Awal</td>
-                        <td class="border border-slate-300 p-2.5">{{ $archive->retention_years }} Tahun (Expiry: {{ $archive->retention_expiry_date ? \Carbon\Carbon::parse($archive->retention_expiry_date)->format('d M Y') : '-' }})</td>
+                        <td class="border border-slate-300 p-2.5">{{ $archive->retention_duration_label }} (Expiry: {{ $archive->retention_expiry_date ? \Carbon\Carbon::parse($archive->retention_expiry_date)->format('M Y') : '-' }})</td>
                     </tr>
                     <tr>
                         <td class="border border-slate-300 p-2.5 font-bold bg-slate-100">Lokasi Fisik Gudang</td>

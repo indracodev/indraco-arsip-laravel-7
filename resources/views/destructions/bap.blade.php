@@ -32,7 +32,7 @@
         <!-- Header Brand & Letterhead -->
         <div class="flex items-center justify-between border-b-2 border-slate-900 pb-6">
             <div class="flex items-center gap-4">
-                <img src="{{ asset('images/logo-indraco.png') }}" alt="PT Indraco Logo" class="h-14 w-auto object-contain">
+                <img src="{{ asset('images/logo_indraco.png') }}" alt="PT Indraco Logo" class="h-14 w-auto object-contain">
                 <div>
                     <h1 class="text-2xl font-black tracking-tight text-slate-900">PT INDRACO</h1>
                     <span class="text-xs font-semibold text-slate-600 uppercase tracking-widest block">Gudang & Depo Manajemen Arsip Perusahaan</span>
@@ -78,7 +78,7 @@
                         <td class="border border-slate-300 p-2.5 font-bold">{{ $destructionLog->archive->title }}</td>
                         <td class="border border-slate-300 p-2.5">{{ $destructionLog->archive->department->name }} ({{ $destructionLog->archive->department->code }})</td>
                         <td class="border border-slate-300 p-2.5">{{ $destructionLog->archive->period_text }}</td>
-                        <td class="border border-slate-300 p-2.5">{{ $destructionLog->archive->retention_years }} Tahun</td>
+                        <td class="border border-slate-300 p-2.5">{{ $destructionLog->archive->retention_duration_label }}</td>
                     </tr>
                 </tbody>
             </table>
@@ -96,13 +96,13 @@
             </div>
             @if($destructionLog->scan_approval_destruction || $destructionLog->certificate_file)
             <div class="sm:col-span-2 border-t border-slate-200 pt-2 flex flex-wrap gap-4 no-print">
-                @if($destructionLog->scan_approval_destruction)
-                <a href="{{ asset('storage/' . $destructionLog->scan_approval_destruction) }}" target="_blank" class="text-xs font-bold text-amber-700 underline">
+                @if($destructionLog->scan_approval_destruction || $destructionLog->approval_file)
+                <a href="{{ app_storage_url($destructionLog->effective_approval_file) }}" target="_blank" class="text-xs font-bold text-amber-700 underline">
                     Lihat Scan Approval Pemusnahan
                 </a>
                 @endif
                 @if($destructionLog->certificate_file)
-                <a href="{{ asset('storage/' . $destructionLog->certificate_file) }}" target="_blank" class="text-xs font-bold text-rose-700 underline">
+                <a href="{{ app_storage_url($destructionLog->certificate_file) }}" target="_blank" class="text-xs font-bold text-rose-700 underline">
                     Lihat Lampiran Scan BAP / Dokumentasi
                 </a>
                 @endif
