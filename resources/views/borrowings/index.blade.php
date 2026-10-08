@@ -1,6 +1,6 @@
 @extends(auth()->check() && auth()->user()->isPicDept() ? 'layouts.desktop_pic' : 'layouts.app')
 
-@section('title', 'Peminjaman Dokumen Arsip - DMS PT Indraco')
+@section('title', 'Penarikan Dokumen Arsip - DMS PT Indraco')
 
 @section('content')
 <div class="space-y-6" x-data="{ submitting: false }">
@@ -8,15 +8,15 @@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
             <h1 class="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-                <i data-lucide="file-check-2" class="w-7 h-7 text-emerald-600 dark:text-emerald-400"></i>
-                Manajemen Peminjaman Dokumen Arsip
+                <i data-lucide="file-symlink" class="w-7 h-7 text-emerald-600 dark:text-emerald-400"></i>
+                Manajemen Penarikan Berkas Arsip
             </h1>
-            <p class="text-slate-600 dark:text-slate-400 text-xs sm:text-sm font-medium">Pengajuan pinjam, persetujuan kurator gudang, pengeluaran berkas fisik, dan tracking pengembalian.</p>
+            <p class="text-slate-600 dark:text-slate-400 text-xs sm:text-sm font-medium">Pengajuan penarikan berkas, persetujuan kurator gudang, pengeluaran fisik, dan tracking pengembalian.</p>
         </div>
 
         <a href="{{ route('borrowings.create') }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-400 hover:to-emerald-300 text-slate-950 font-black text-xs sm:text-sm shadow-lg shadow-emerald-500/20 transition">
             <i data-lucide="plus-circle" class="w-4 h-4"></i>
-            Pengajuan Pinjam Dokumen
+            Pengajuan Penarikan Berkas
         </a>
     </div>
 
@@ -76,10 +76,10 @@
                             $nextDir = $curDir === 'asc' ? 'desc' : 'asc';
                         @endphp
                         <th class="py-3.5 px-4">No. Box & Judul Berkas</th>
-                        <th class="py-3.5 px-4">Peminjam</th>
+                        <th class="py-3.5 px-4">Pemohon Penarikan</th>
                         <th class="py-3.5 px-4">
                             <a href="{{ request()->fullUrlWithQuery(['sort' => 'borrow_date', 'direction' => $curSort === 'borrow_date' ? $nextDir : 'asc']) }}" class="flex items-center gap-1.5 hover:text-emerald-500 transition">
-                                Tgl Pinjam / Est. Kembali
+                                Tanggal Penarikan
                                 @if($curSort === 'borrow_date')
                                     <i data-lucide="{{ $curDir === 'asc' ? 'arrow-up' : 'arrow-down' }}" class="w-3.5 h-3.5 text-emerald-500"></i>
                                 @else
@@ -87,7 +87,7 @@
                                 @endif
                             </a>
                         </th>
-                        <th class="py-3.5 px-4">Tujuan Peminjaman</th>
+                        <th class="py-3.5 px-4">Tujuan Penarikan</th>
                         <th class="py-3.5 px-4">
                             <a href="{{ request()->fullUrlWithQuery(['sort' => 'status', 'direction' => $curSort === 'status' ? $nextDir : 'asc']) }}" class="flex items-center gap-1.5 hover:text-emerald-500 transition">
                                 Status
@@ -118,9 +118,11 @@
                             <span class="text-slate-500 dark:text-slate-400 font-semibold">{{ $bLog->archive->department->code ?? 'Dept' }}</span>
                         </td>
 
-                        <td class="py-4 px-4 text-xs space-y-1 font-medium">
-                            <div class="text-slate-700 dark:text-slate-300">Tgl Pinjam: {{ $bLog->borrow_date ? $bLog->borrow_date->format('d M Y') : 'Menunggu Dispatch' }}</div>
-                            <div class="text-amber-600 dark:text-amber-400 font-extrabold">Est. Kembali: {{ $bLog->expected_return_date ? \Carbon\Carbon::parse($bLog->expected_return_date)->format('d M Y') : 'Hanya Diambil (Permanen)' }}</div>
+                        <td class="py-4 px-4 text-xs space-y-0.5 font-medium">
+                            <div class="text-slate-800 dark:text-slate-200 font-extrabold">
+                                {{ $bLog->borrow_date ? $bLog->borrow_date->format('d M Y') : ($bLog->request_date ? \Carbon\Carbon::parse($bLog->request_date)->format('d M Y') : 'Menunggu Dispatch') }}
+                            </div>
+                            <span class="text-[10px] text-slate-500 dark:text-slate-400 block font-bold">Diajukan: {{ $bLog->created_at->format('d/m/Y') }}</span>
                         </td>
 
                         <td class="py-4 px-4 text-xs text-slate-600 dark:text-slate-300 max-w-xs truncate font-medium">
@@ -135,17 +137,13 @@
                             @elseif($bLog->status === 'approved')
                                 <span class="inline-flex items-center whitespace-nowrap px-2.5 py-1 rounded-full text-xs font-bold bg-blue-500/10 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300 border border-blue-500/30">Disetujui Gudang</span>
                             @elseif($bLog->status === 'dispatched')
-                                @if(empty($bLog->expected_return_date))
-                                    <span class="inline-flex items-center whitespace-nowrap px-2.5 py-1 rounded-full text-xs font-bold bg-indigo-500/10 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300 border border-indigo-500/30">Diambil (Permanen)</span>
-                                @else
-                                    <span class="inline-flex items-center whitespace-nowrap px-2.5 py-1 rounded-full text-xs font-bold bg-purple-500/10 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300 border border-purple-500/30">Sedang Dipinjam</span>
-                                @endif
+                                <span class="inline-flex items-center whitespace-nowrap px-2.5 py-1 rounded-full text-xs font-bold bg-indigo-500/10 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300 border border-indigo-500/30">Ditarik / Diserahkan</span>
                             @elseif($bLog->status === 'returned')
                                 <span class="inline-flex items-center whitespace-nowrap px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300 border border-emerald-500/30">Dikembalikan</span>
                             @endif
 
-                            @if($bLog->scan_approval_borrow)
-                                <a href="{{ asset('storage/' . $bLog->scan_approval_borrow) }}" target="_blank" class="block text-[10px] text-amber-600 dark:text-amber-400 font-bold hover:underline mt-1">
+                            @if($bLog->effective_approval_file)
+                                <a href="{{ app_storage_url($bLog->effective_approval_file) }}" target="_blank" class="block text-[10px] text-amber-600 dark:text-amber-400 font-bold hover:underline mt-1">
                                     <i data-lucide="file-check" class="w-3 h-3 inline"></i> Scan Approval
                                 </a>
                             @endif
@@ -223,7 +221,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="6" class="py-12 text-center text-slate-500">Belum ada riwayat pengajuan peminjaman dokumen.</td>
+                        <td colspan="6" class="py-12 text-center text-slate-500">Belum ada riwayat pengajuan penarikan berkas arsip.</td>
                     </tr>
                     @endforelse
                 </tbody>

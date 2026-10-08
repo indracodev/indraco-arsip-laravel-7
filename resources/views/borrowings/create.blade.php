@@ -1,6 +1,6 @@
 @extends(auth()->check() && auth()->user()->isPicDept() ? 'layouts.desktop_pic' : 'layouts.app')
 
-@section('title', 'Form Permintaan Peminjaman Arsip - DMS PT Indraco')
+@section('title', 'Form Permintaan Penarikan Arsip - DMS PT Indraco')
 
 @section('content')
 <div class="w-full space-y-6">
@@ -8,14 +8,14 @@
     <!-- Navigation & Header Section -->
     <div>
         <a href="{{ route('borrowings.index') }}" class="text-xs text-amber-600 dark:text-amber-400 font-bold hover:underline inline-flex items-center gap-1 mb-2">
-            <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> Kembali ke Log Peminjaman
+            <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> Kembali ke Log Penarikan
         </a>
         <h1 class="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
             <i data-lucide="file-symlink" class="w-7 h-7 text-emerald-600 dark:text-emerald-400"></i>
-            Formulir Permintaan Peminjaman Dokumen Arsip
+            Formulir Permintaan Penarikan Berkas Arsip
         </h1>
         <p class="text-slate-600 dark:text-slate-400 text-xs sm:text-sm font-medium">
-            Wajib mengunggah berkas persetujuan (approval) peminjaman. Tombol pengajuan akan aktif setelah berkas approval diunggah.
+            Wajib mengunggah berkas persetujuan (approval) penarikan. Tombol pengajuan akan aktif setelah berkas approval diunggah.
         </p>
     </div>
 
@@ -31,7 +31,6 @@
              selectedArchive: null,
              isOpen: false,
              hasApprovalFile: false,
-             isPermanent: false,
              archives: window.borrowingArchives || [],
              init() {
                  const initialId = {{ $selectedArchiveId ?? 'null' }};
@@ -190,81 +189,35 @@
                 </div>
             </div>
 
-            <!-- STEP 2 & 3: RETURN DATE & PURPOSE -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
-                <!-- Step 2: Expected Return Date (1 Column) -->
-                <div class="space-y-2 md:col-span-1">
-                    <div class="flex items-center justify-between">
-                        <label for="expected_return_date" class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                            2. Estimasi Pengembalian <span class="text-rose-500" x-show="!isPermanent">*</span>
-                        </label>
-                    </div>
-
-                    <!-- Checkbox Toggle for Permanent / No Return -->
-                    <label class="flex items-center gap-2 p-2 bg-amber-500/10 border border-amber-500/30 rounded-xl cursor-pointer text-xs font-bold text-amber-900 dark:text-amber-200 select-none">
-                        <input type="checkbox" name="is_permanent" value="1" x-model="isPermanent" class="rounded border-amber-400 text-amber-600 focus:ring-0">
-                        <span>Hanya Diambil (Tanpa Pengembalian / Permanen)</span>
-                    </label>
-
-                    <div x-show="!isPermanent" x-transition>
-                        <input 
-                            type="date" 
-                            name="expected_return_date" 
-                            id="expected_return_date" 
-                            value="{{ old('expected_return_date', \Carbon\Carbon::now()->addDays(7)->format('Y-m-d')) }}" 
-                            min="{{ \Carbon\Carbon::tomorrow()->format('Y-m-d') }}"
-                            :required="!isPermanent"
-                            :disabled="isPermanent"
-                            class="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-2xl text-sm text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 font-medium transition"
-                        >
-                    </div>
-
-                    <div x-show="isPermanent" x-transition class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[11px] text-amber-600 dark:text-amber-400 font-bold flex items-center gap-1.5">
-                        <i data-lucide="info" class="w-4 h-4 shrink-0"></i>
-                        <span>Dokumen hanya diambil permanen (tanpa estimasi tanggal pengembalian).</span>
-                    </div>
-
-                    @error('expected_return_date') <span class="text-rose-500 text-xs font-bold block mt-1">{{ $message }}</span> @enderror
-                </div>
-
-                <!-- Step 3: Purpose / Reason (2 Columns) -->
-                <div class="space-y-1.5 md:col-span-2">
-                    <label for="purpose" class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                        3. Maksud / Alasan Keperluan Peminjaman <span class="text-rose-500">*</span>
-                    </label>
-                    <textarea 
-                        name="purpose" 
-                        id="purpose" 
-                        rows="3" 
-                        required 
-                        placeholder="Contoh: Diperlukan untuk verifikasi audit internal perpajakan tahunan..." 
-                        class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-2xl text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-medium transition"
-                    >{{ old('purpose') }}</textarea>
-                    @error('purpose') <span class="text-rose-500 text-xs font-bold block mt-1">{{ $message }}</span> @enderror
-                </div>
+            <!-- STEP 2: PURPOSE / REASON -->
+            <div class="space-y-1.5 pt-2">
+                <input type="hidden" name="is_permanent" value="1">
+                <label for="purpose" class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                    2. Maksud / Alasan Keperluan Penarikan Berkas <span class="text-rose-500">*</span>
+                </label>
+                <textarea 
+                    name="purpose" 
+                    id="purpose" 
+                    rows="3" 
+                    required 
+                    placeholder="Contoh: Diperlukan untuk verifikasi audit internal perpajakan tahunan..." 
+                    class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-2xl text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-medium transition"
+                >{{ old('purpose') }}</textarea>
+                @error('purpose') <span class="text-rose-500 text-xs font-bold block mt-1">{{ $message }}</span> @enderror
             </div>
 
-            <!-- STEP 4: MANDATORY APPROVAL FILE UPLOAD (BUSINESS RULE) -->
-            <div class="p-5 rounded-2xl bg-amber-500/10 border-2 border-dashed border-amber-500/40 space-y-2">
-                <div class="flex items-center justify-between">
-                    <label for="approval_file" class="block text-xs font-black uppercase tracking-wider text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
-                        <i data-lucide="file-check" class="w-4 h-4 text-amber-600 dark:text-amber-400"></i>
-                        4. Upload Berkas Dokumen Persetujuan (Approval) <span class="text-rose-500">* (Wajib)</span>
-                    </label>
-                    <span class="text-[11px] font-bold text-amber-700 dark:text-amber-400 bg-amber-500/20 px-2 py-0.5 rounded">PDF, JPG, PNG (Max 10MB)</span>
-                </div>
-                <p class="text-[11px] text-amber-800 dark:text-amber-300 font-medium">
-                    Sesuai aturan bisnis, tombol pengajuan peminjaman hanya akan aktif setelah berkas approval bertandatangan diunggah.
-                </p>
-                <input 
-                    type="file" 
+            <!-- STEP 3: MANDATORY APPROVAL FILE UPLOAD (BUSINESS RULE) -->
+            <div @file-change="hasApprovalFile = $event.detail.hasFile && !$event.detail.isOverLimit">
+                <x-file-uploader 
                     name="approval_file" 
                     id="approval_file" 
+                    label="3. Upload Berkas Dokumen Persetujuan (Approval)" 
+                    :required="true" 
+                    badge="WAJIB UNTUK PENARIKAN" 
                     accept=".pdf,.jpg,.jpeg,.png"
-                    @change="onFileChange($event)"
-                    required
-                    class="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-700 rounded-xl text-xs text-slate-700 dark:text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-amber-500 file:text-slate-950 hover:file:bg-amber-400 cursor-pointer"
-                >
+                    :maxSizeMB="2"
+                    helperText="Sesuai aturan bisnis, tombol pengajuan penarikan hanya aktif setelah berkas approval diunggah. Foto scan besar otomatis dioptimalkan agar ringan & jelas."
+                />
                 @error('approval_file') <span class="text-rose-500 text-xs font-bold block mt-1">{{ $message }}</span> @enderror
             </div>
 
@@ -287,7 +240,7 @@
                             :class="(selectedArchive && hasApprovalFile) ? 'bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-400 text-slate-950 font-black shadow-lg shadow-emerald-500/20 cursor-pointer' : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed font-bold'"
                             class="px-6 py-2.5 rounded-xl text-xs sm:text-sm transition flex items-center gap-2">
                         <i data-lucide="send" class="w-4 h-4"></i>
-                        Ajukan Peminjaman Arsip
+                        Ajukan Penarikan Arsip
                     </button>
                 </div>
             </div>

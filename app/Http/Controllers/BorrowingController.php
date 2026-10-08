@@ -80,21 +80,20 @@ class BorrowingController extends Controller
         $validated = $request->validate([
             'archive_id' => 'required|exists:archives,id',
             'purpose' => 'required|string|max:500',
-            'is_permanent' => 'nullable|boolean',
-            'expected_return_date' => 'nullable|required_unless:is_permanent,1,true|date|after_or_equal:today',
+            'expected_return_date' => 'nullable|date',
             'approval_file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240',
         ]);
 
         $archive = Archive::findOrFail($validated['archive_id']);
 
         if ($archive->status !== 'in_warehouse') {
-            return back()->with('error', 'Arsip dokumen saat ini tidak tersedia di gudang untuk dipinjam.');
+            return back()->with('error', 'Arsip dokumen saat ini tidak tersedia di gudang untuk ditarik.');
         }
 
         $approvalPath = $request->file('approval_file')->store('borrowing_approvals', 'public');
 
-        $isPermanent = $request->boolean('is_permanent') || empty($request->expected_return_date);
-        $expectedReturnDate = $isPermanent ? null : ($validated['expected_return_date'] ?? null);
+        $isPermanent = $request->has('is_permanent') || empty($validated['expected_return_date']);
+        $expectedReturnDate = $isPermanent ? null : $validated['expected_return_date'];
 
         $borrowing = BorrowingLog::create([
             'archive_id' => $archive->id,
@@ -111,14 +110,14 @@ class BorrowingController extends Controller
 
         ActivityLogger::log(
             'BORROW_CREATE',
-            "Pengajuan peminjaman arsip '{$archive->title}' (Box: {$archive->box_number}) oleh {$user->name} untuk keperluan: {$validated['purpose']}",
-            'PEMINJAMAN',
+            "Pengajuan penarikan berkas '{$archive->title}' (Box: {$archive->box_number}) oleh {$user->name} untuk keperluan: {$validated['purpose']}",
+            'PENARIKAN_BERKAS',
             [
                 'borrowing_id' => $borrowing->id,
                 'archive_id' => $archive->id,
                 'box_number' => $archive->box_number,
                 'purpose' => $validated['purpose'],
-                'expected_return_date' => $validated['expected_return_date'],
+                'expected_return_date' => $expectedReturnDate,
             ],
             $archive->box_number
         );
