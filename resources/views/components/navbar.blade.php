@@ -8,7 +8,7 @@
          @if($customHeaderLogo && file_exists(public_path($customHeaderLogo)))
             <img src="{{ asset($customHeaderLogo) }}" alt="Logo INDRACO Est." class="w-100 h-auto" style="max-height: 46px; object-fit: contain;">
          @else
-            <img src="{{ asset('images/logo-indraco-est.png') }}" data-light="{{ asset('images/logo-indraco-est.png') }}" data-dark="{{ asset('images/logo-indraco-est-invert.png') }}" alt="Logo INDRACO Est." class="theme-image w-100 h-auto">
+            <img src="{{ asset('images/logo_indraco.png') }}" data-light="{{ asset('images/logo_indraco.png') }}" data-dark="{{ asset('images/logo_indraco.png') }}" alt="Logo INDRACO Est." class="theme-image w-100 h-auto">
          @endif
       </a>
 

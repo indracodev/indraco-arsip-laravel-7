@@ -11,7 +11,7 @@
                @if($customFooterLogo && file_exists(public_path($customFooterLogo)))
                   <img src="{{ asset($customFooterLogo) }}" alt="Logo INDRACO" loading="lazy" class="w-100 h-auto mb-3" style="max-height: 60px; object-fit: contain;">
                @else
-                  <img src="{{ asset('images/logo-indraco-invert.png') }}" alt="Logo INDRACO" loading="lazy" class="w-100 h-auto">
+                  <img src="{{ asset('images/logo_indraco.png') }}" alt="Logo INDRACO" loading="lazy" class="w-100 h-auto">
                @endif
                <h3 class="footer-title mb-3 mb-xl-auto">Roasting fine exquisite coffee since 1971.</h3>
                @include('components.sosmed')

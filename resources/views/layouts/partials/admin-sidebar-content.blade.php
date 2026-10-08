@@ -1,5 +1,5 @@
 <a href="{{ route('admin.dashboard') }}" class="d-flex align-items-center mb-4 px-2 text-decoration-none">
-   <img src="{{ asset('images/logo-indraco-est.png') }}" data-light="{{ asset('images/logo-indraco-est.png') }}" data-dark="{{ asset('images/logo-indraco-est-invert.png') }}" alt="INDRACO Admin" class="theme-image w-100 h-auto">
+   <img src="{{ asset('images/logo_indraco.png') }}" data-light="{{ asset('images/logo_indraco.png') }}" data-dark="{{ asset('images/logo_indraco.png') }}" alt="INDRACO Admin" class="theme-image w-100 h-auto">
 </a>
 
 <div class="small opacity-50 px-2 fw-semibold text-uppercase mb-2">Main Menu</div>

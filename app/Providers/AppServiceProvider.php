@@ -18,7 +18,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        //
+        if (file_exists(app_path('helpers.php'))) {
+            require_once app_path('helpers.php');
+        }
     }
 
     /**
@@ -49,13 +51,13 @@ class AppServiceProvider extends ServiceProvider
 
         View::composer('*', function ($view) use (&$cachedGlobalSettings) {
             if ($cachedGlobalSettings === null) {
-                $appLogo = 'logo-indraco-est.png';
+                $appLogo = 'images/logo_indraco.png';
                 $appFontSize = '14px';
                 $appName = 'DMS PT INDRACO';
 
                 if (Schema::hasTable('app_settings')) {
                     try {
-                        $appLogo = AppSetting::get('app_logo', 'logo-indraco-est.png');
+                        $appLogo = AppSetting::get('app_logo', 'images/logo_indraco.png');
                         $appFontSize = AppSetting::get('app_font_size', '14px');
                         $appName = AppSetting::get('app_name', 'DMS PT INDRACO');
                     } catch (\Exception $e) {

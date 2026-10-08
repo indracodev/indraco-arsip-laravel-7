@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Admin Panel - INDRACO')</title>
-    <link rel="shortcut icon" href="{{ asset('images/icon-indraco.ico') }}" type="image/x-icon">
+    <link rel="icon" type="image/png" href="{{ asset('images/icon_indraco.png') }}">
+    <link rel="shortcut icon" href="{{ asset('images/icon_indraco.png') }}" type="image/png">
 
     {{-- Core CSS --}}
     <link rel="stylesheet" href="{{ asset('css/bootstrap.min.css') }}">
@@ -45,7 +46,7 @@
     {{-- Desktop Sidebar --}}
     <aside class="admin-sidebar d-none d-lg-block p-3" style="width: 260px;">
         <div class="d-flex align-items-center mb-4 px-2">
-            <img src="{{ asset('images/logo-indraco-invert.png') }}" alt="INDRACO" style="max-height: 40px;">
+            <img src="{{ asset('images/logo_indraco.png') }}" alt="INDRACO" style="max-height: 40px;">
         </div>
         <nav class="nav flex-column">
             <small class="text-uppercase text-muted fw-bold px-2 mb-2" style="font-size: 0.7rem;">Main Menu</small>
@@ -71,7 +72,7 @@
     <div class="offcanvas offcanvas-start text-bg-dark" tabindex="-1" id="adminDrawer" aria-labelledby="adminDrawerLabel">
         <div class="offcanvas-header border-bottom">
             <h5 class="offcanvas-title" id="adminDrawerLabel">
-                <img src="{{ asset('images/logo-indraco-invert.png') }}" alt="INDRACO" style="max-height: 35px;">
+                <img src="{{ asset('images/logo_indraco.png') }}" alt="INDRACO" style="max-height: 35px;">
             </h5>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
         </div>

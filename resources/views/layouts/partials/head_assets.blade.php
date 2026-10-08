@@ -1,4 +1,7 @@
 <!-- PT INDRACO DMS - 100% Offline Asset Suite (Zero External Dependency) -->
+<link rel="icon" type="image/png" href="{{ asset('images/icon_indraco.png') }}">
+<link rel="shortcut icon" href="{{ asset('images/icon_indraco.png') }}" type="image/png">
+<link rel="apple-touch-icon" href="{{ asset('images/icon_indraco.png') }}">
 <link rel="stylesheet" href="{{ asset('css/fonts.css') }}">
 <script>
     // Ensure default theme is always 'light' (never fallback to OS system dark mode)
@@ -26,6 +29,7 @@
     }
 </script>
 <script src="{{ asset('js/vendor/lucide.min.js') }}"></script>
+<script src="{{ asset('js/file-uploader-preview.js') }}"></script>
 <script defer src="{{ asset('js/vendor/alpine.min.js') }}"></script>
 
 <script>
