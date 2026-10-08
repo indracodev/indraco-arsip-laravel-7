@@ -33,6 +33,23 @@ class DestructionLog extends Model
         'is_approval_uploaded' => 'boolean',
     ];
 
+    protected static function booted()
+    {
+        static::created(function ($log) {
+            \App\Services\SystemEventStream::emit(
+                'destruction_created',
+                'DestructionLog',
+                $log->id,
+                $log->archive ? $log->archive->department_id : null,
+                [
+                    'bap_number' => $log->bap_number,
+                    'archive_id' => $log->archive_id,
+                    'method' => $log->method,
+                ]
+            );
+        });
+    }
+
     public function archive(): BelongsTo
     {
         return $this->belongsTo(Archive::class);

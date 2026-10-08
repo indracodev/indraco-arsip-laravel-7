@@ -92,8 +92,21 @@
     @if (session('success'))
     <div class="mb-3 p-2.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 flex items-start gap-2.5 text-xs font-mono shadow-sm">
         <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5"></i>
-        <div class="font-bold">{{ session('success') }}</div>
+        <div class="font-bold flex-1">{{ session('success') }}</div>
     </div>
+    <script>
+        try {
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({
+                    type: 'DMS_TOAST_NOTIF',
+                    level: 'success',
+                    title: 'BERHASIL DISIMPAN!',
+                    statusLabel: 'Tersimpan',
+                    message: @json(session('success'))
+                }, '*');
+            }
+        } catch(e) {}
+    </script>
     @endif
 
     @if (session('warning'))
@@ -956,7 +969,7 @@
                             <span class="p-1 bg-amber-500/20 rounded border border-amber-500/30">
                                 <i data-lucide="bell-ring" class="w-3.5 h-3.5 text-amber-500"></i>
                             </span>
-                            <span>DOKUMEN BARU MASUK!</span>
+                            <span x-text="toast.headerTitle || 'DOKUMEN BARU MASUK!'"></span>
                         </div>
                         <div class="flex items-center gap-2">
                             <span class="text-[10px] text-slate-400 font-bold" x-text="toast.time"></span>
@@ -970,12 +983,12 @@
                     <div class="space-y-1">
                         <div class="flex items-center gap-1.5 flex-wrap">
                             <span class="px-1.5 py-0.2 rounded text-[10px] font-black bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-500/30" x-text="toast.deptCode + ' (' + toast.deptName + ')'"></span>
-                            <span class="text-xs font-bold text-amber-600 dark:text-amber-400" x-text="toast.boxNumber"></span>
-                            <span class="px-1.5 py-0.5 rounded text-xs font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/20" x-text="toast.statusLabel"></span>
+                            <span x-show="toast.boxNumber" class="text-xs font-bold text-amber-600 dark:text-amber-400" x-text="toast.boxNumber"></span>
+                            <span class="px-1.5 py-0.5 rounded text-xs font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/20" x-text="toast.statusLabel || 'Tersimpan'"></span>
                         </div>
                         <div class="text-xs font-bold text-slate-900 dark:text-white leading-tight line-clamp-2 font-sans" x-text="toast.title"></div>
-                        <div class="text-[11px] text-slate-500 dark:text-slate-400">
-                            Dibuat oleh: <strong class="text-slate-800 dark:text-slate-200" x-text="toast.creatorName"></strong>
+                        <div x-show="toast.creatorName" class="text-[11px] text-slate-500 dark:text-slate-400">
+                            Diproses oleh: <strong class="text-slate-800 dark:text-slate-200" x-text="toast.creatorName"></strong>
                         </div>
                     </div>
 
@@ -995,14 +1008,22 @@
                                     <span>Tutup</span>
                                 </button>
                             @else
-                                <button 
-                                    @click="openArchiveFromNotification(toast)" 
-                                    type="button" 
-                                    class="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded border border-amber-600 text-xs transition flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer"
-                                >
-                                    <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
-                                    <span>Buka Dokumen</span>
-                                </button>
+                                <template x-if="toast.url">
+                                    <button 
+                                        @click="openArchiveFromNotification(toast)" 
+                                        type="button" 
+                                        class="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded border border-amber-600 text-xs transition flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer"
+                                    >
+                                        <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                                        <span>Buka Dokumen</span>
+                                    </button>
+                                </template>
+                                <template x-if="!toast.url">
+                                    <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                                        <i data-lucide="check-check" class="w-3.5 h-3.5 text-emerald-500"></i>
+                                        <span>Tersimpan Sukses</span>
+                                    </span>
+                                </template>
                             @endif
                         </div>
                     </div>
@@ -1454,6 +1475,34 @@
                     window.addEventListener('open-form-window', (e) => {
                         if (e.detail) {
                             this.openFormWindowWithCustom(e.detail.id, e.detail.title, e.detail.icon, e.detail.url);
+                        }
+                    });
+
+                    // Listen to cross-frame toast notifications from forms in iframes
+                    window.addEventListener('message', (event) => {
+                        if (event.data && event.data.type === 'DMS_TOAST_NOTIF') {
+                            const d = event.data;
+                            const toastId = 'toast_msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+                            const toast = {
+                                id: toastId,
+                                headerTitle: d.title || 'BERHASIL DISIMPAN!',
+                                type: d.level || 'success',
+                                title: d.message,
+                                boxNumber: d.boxNumber || '',
+                                deptCode: '{{ auth()->user()->department->code ?? "DMS" }}',
+                                deptName: '{{ auth()->user()->department->name ?? "" }}',
+                                creatorName: '{{ auth()->user()->name }}',
+                                statusLabel: d.statusLabel || 'Tersimpan',
+                                time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+                                url: d.url || null
+                            };
+                            this.activeToasts.unshift(toast);
+                            this.realtimeNotifications.unshift(toast);
+                            this.unreadNotificationsCount++;
+                            this.unlockAudio();
+                            this.playChime();
+                            setTimeout(() => this.dismissToast(toastId), 9000);
+                            this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
                         }
                     });
 

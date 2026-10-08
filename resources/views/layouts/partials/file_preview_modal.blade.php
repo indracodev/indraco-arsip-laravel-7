@@ -290,7 +290,7 @@ function filePreviewModalHandler() {
             // Reset viewer transforms
             this.resetView();
 
-            if (this.pdfBlobUrl) {
+            if (this.pdfBlobUrl && this.pdfBlobUrl !== this.fileUrl) {
                 URL.revokeObjectURL(this.pdfBlobUrl);
                 this.pdfBlobUrl = null;
             }
@@ -318,6 +318,19 @@ function filePreviewModalHandler() {
                 this.loadingPdf = false;
             } else if (ext === 'pdf' || detail.type === 'pdf') {
                 this.fileType = 'pdf';
+
+                // Jika fileUrl adalah Blob URL in-memory (sebelum disubmit ke server), gunakan langsung!
+                if (this.fileUrl && this.fileUrl.startsWith('blob:')) {
+                    this.pdfBlobUrl = this.fileUrl;
+                    this.loadingPdf = false;
+                    this.pdfError = null;
+                    this.isOpen = true;
+                    this.$nextTick(() => {
+                        if (window.lucide) lucide.createIcons();
+                    });
+                    return;
+                }
+
                 this.loadingPdf = true;
 
                 let targetUrl = detail.stream_url;
@@ -448,10 +461,10 @@ function filePreviewModalHandler() {
         },
 
         closeModal() {
-            if (this.pdfBlobUrl) {
+            if (this.pdfBlobUrl && this.pdfBlobUrl !== this.fileUrl) {
                 URL.revokeObjectURL(this.pdfBlobUrl);
-                this.pdfBlobUrl = null;
             }
+            this.pdfBlobUrl = null;
             this.isOpen = false;
             this.fileUrl = '';
             this.loadingPdf = false;
@@ -463,6 +476,14 @@ function filePreviewModalHandler() {
 
 // Global shortcut function callable anywhere
 window.dmsPreviewFile = function(options) {
+    try {
+        if (window.parent && window.parent !== window && typeof window.parent.dmsPreviewFile === 'function') {
+            window.parent.dmsPreviewFile(options);
+            return;
+        }
+    } catch (e) {
+        // Fallback to local dispatch
+    }
     window.dispatchEvent(new CustomEvent('open-file-preview-modal', {
         detail: options
     }));

@@ -123,7 +123,7 @@ class BorrowingController extends Controller
         );
 
         return redirect()->route('borrowings.index')
-            ->with('success', 'Permintaan peminjaman berkas arsip dengan lampiran approval berhasil diajukan ke PIC Gudang.');
+            ->with('success', 'Permintaan penarikan berkas berhasil diajukan dengan lampiran form persetujuan. Menunggu verifikasi Departemen & pengeluaran fisik Gudang.');
     }
 
     public function deptApprove(BorrowingLog $borrowing, Request $request)

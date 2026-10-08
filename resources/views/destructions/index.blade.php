@@ -85,6 +85,16 @@
     }
 }">
 
+    @if (session('success'))
+    <div class="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 flex items-start gap-3 text-xs font-mono shadow-sm">
+        <i data-lucide="check-circle-2" class="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5"></i>
+        <div class="space-y-1">
+            <span class="font-bold text-sm block">BERHASIL TERSIMPAN!</span>
+            <p class="font-medium text-xs">{{ session('success') }}</p>
+        </div>
+    </div>
+    @endif
+
     <!-- Header Section with Action Buttons -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
         <div>
@@ -112,6 +122,18 @@
             </a>
         </div>
     </div>
+
+    @if (session('success'))
+    <div class="p-4 rounded-2xl bg-emerald-500/10 border-2 border-emerald-500/40 text-emerald-900 dark:text-emerald-200 flex items-start gap-3 shadow-md font-mono text-xs">
+        <div class="p-1.5 bg-emerald-500 text-slate-950 rounded-xl shadow-xs shrink-0 mt-0.5">
+            <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+        </div>
+        <div class="space-y-0.5">
+            <h4 class="font-black text-sm text-emerald-800 dark:text-emerald-300">Pemusnahan Berkas Berhasil Disahkan!</h4>
+            <p class="font-medium text-slate-700 dark:text-slate-300 leading-relaxed">{{ session('success') }}</p>
+        </div>
+    </div>
+    @endif
 
     <!-- 3 SUB-TABS NAVIGATION BAR -->
     <div class="flex items-center gap-2 p-1.5 bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl w-full sm:w-fit text-xs font-bold font-mono">
