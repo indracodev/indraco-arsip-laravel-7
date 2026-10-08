@@ -2307,7 +2307,7 @@ function dashboardOverviewApp() {
         async submitVerification(action) {
             if (!this.verifyModalData) return;
             if (action === 'reject' && !this.rejectionNote.trim()) {
-                alert('Mohon masukkan alasan penolakan.');
+                await window.showNotificationModal('Mohon masukkan alasan penolakan.', 'Alasan Penolakan Wajib Diisi', 'warning');
                 return;
             }
 
@@ -2333,18 +2333,16 @@ function dashboardOverviewApp() {
                     this.verifyModalOpen = false;
                     if (window.showToast) {
                         window.showToast(result.message, 'success');
-                    } else {
-                        alert(result.message);
                     }
                     setTimeout(() => {
                         window.location.reload();
                     }, 500);
                 } else {
-                    alert(result.message || 'Gagal memproses verifikasi.');
+                    await window.showNotificationModal(result.message || 'Gagal memproses verifikasi.', 'Gagal Verifikasi', 'danger');
                 }
             } catch (e) {
                 console.error('Verification error:', e);
-                alert('Terjadi kesalahan saat memproses verifikasi arsip.');
+                await window.showNotificationModal('Terjadi kesalahan saat memproses verifikasi arsip.', 'Kesalahan Sistem', 'danger');
             } finally {
                 this.verifyingArchive = false;
             }
