@@ -28,6 +28,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>DMS PT Indraco - Desktop Edition</title>
+    <link rel="icon" type="image/png" href="{{ asset('images/icon_indraco.png') }}">
+    <link rel="shortcut icon" href="{{ asset('images/icon_indraco.png') }}" type="image/png">
     
     <script>
         (function() {
@@ -132,10 +134,20 @@
             <button 
                 @click="soundEnabled = !soundEnabled" 
                 type="button" 
-                :title="soundEnabled ? 'Suara Tombol: Aktif' : 'Suara Tombol: Nonaktif'"
-                class="p-1 rounded text-slate-400 hover:text-white transition"
+                :title="soundEnabled ? 'Suara Tombol: Aktif (Klik untuk Mute)' : 'Suara Tombol: Nonaktif (Klik untuk Aktifkan)'"
+                class="p-1.5 rounded text-slate-400 hover:text-white transition flex items-center justify-center cursor-pointer select-none"
             >
-                <i :data-lucide="soundEnabled ? 'volume-2' : 'volume-x'" class="w-3.5 h-3.5"></i>
+                <!-- Sound ON: Speaker Bersuara Normal -->
+                <svg x-show="soundEnabled" class="w-3.5 h-3.5 text-emerald-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                </svg>
+                <!-- Sound OFF: Speaker Dicoret Tanda Silang (Mute) -->
+                <svg x-show="!soundEnabled" class="w-3.5 h-3.5 text-rose-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" x-cloak>
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                    <line x1="23" y1="9" x2="17" y2="15"></line>
+                    <line x1="17" y1="9" x2="23" y2="15"></line>
+                </svg>
             </button>
 
             <!-- LAN Latency & Diagnostics Monitor -->
@@ -224,7 +236,7 @@
                     <div class="space-y-4 w-full flex flex-col items-center pt-2">
                         <!-- Company Logo in Beveled Box -->
                         <div class="p-4 bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 rounded-xl shadow-lg w-full flex justify-center items-center">
-                            <img src="{{ asset('images/logo-indraco.png') }}" alt="PT Indraco Logo" class="h-12 sm:h-14 w-auto object-contain">
+                            <img src="{{ asset('images/logo_indraco.png') }}" alt="PT Indraco Logo" class="h-12 sm:h-14 w-auto object-contain">
                         </div>
 
                         <div>

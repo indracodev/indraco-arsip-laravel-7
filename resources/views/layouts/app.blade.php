@@ -118,6 +118,7 @@
         });
     </script>
     @include('layouts.partials.confirm_modal')
+    @include('layouts.partials.file_preview_modal')
     @stack('scripts')
 </body>
 </html>
@@ -145,6 +146,11 @@
         }
     </script>
     
+    <!-- App Icon & Favicon -->
+    <link rel="icon" type="image/png" href="{{ asset('images/icon_indraco.png') }}">
+    <link rel="shortcut icon" href="{{ asset('images/icon_indraco.png') }}" type="image/png">
+    <link rel="apple-touch-icon" href="{{ asset('images/icon_indraco.png') }}">
+
     <!-- PWA Manifest & Theme -->
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#d97706">
@@ -262,7 +268,7 @@
         <div class="flex items-center gap-3 flex-1 min-w-0 mr-3">
             <a href="{{ route('dashboard') }}" class="flex items-center gap-2 group shrink-0">
                 <div class="p-1 bg-white rounded shadow-sm">
-                    <img :src="appLogoUrl" src="{{ $globalAppLogo ?? asset('images/logo-indraco.png') }}" alt="PT Indraco Logo" class="h-5 w-auto object-contain">
+                    <img :src="appLogoUrl" src="{{ $globalAppLogo ?? asset('images/logo_indraco.png') }}" alt="PT Indraco Logo" class="h-5 w-auto object-contain">
                 </div>
                 <span class="font-extrabold tracking-tight text-white flex items-center gap-1.5 text-xs whitespace-nowrap">
                     DMS <span class="text-amber-400 font-black">PT INDRACO</span>
@@ -623,16 +629,21 @@
             <button 
                 @click="toggleSound()" 
                 type="button" 
-                class="px-2 py-0.5 rounded text-[11px] font-mono flex items-center gap-1.5 transition border cursor-pointer select-none"
-                :class="soundEnabled ? 'bg-slate-800 hover:bg-slate-700 text-emerald-300 border-emerald-500/40 shadow-xs' : 'bg-slate-800/80 hover:bg-slate-700 text-slate-400 border-slate-700'"
+                class="p-1.5 rounded text-xs font-mono flex items-center justify-center transition border cursor-pointer select-none"
+                :class="soundEnabled ? 'bg-slate-800 hover:bg-slate-700 text-emerald-300 border-emerald-500/40 shadow-xs' : 'bg-slate-800/80 hover:bg-slate-700 text-rose-400 border-rose-500/30'"
                 :title="soundEnabled ? 'Suara Notifikasi: AKTIF (Klik untuk Mute)' : 'Suara Notifikasi: MUTE (Klik untuk Aktifkan)'"
             >
-                <template x-if="soundEnabled">
-                    <span class="flex items-center gap-1"><i data-lucide="volume-2" class="w-3.5 h-3.5 text-emerald-400"></i> <span class="hidden sm:inline">Suara ON</span></span>
-                </template>
-                <template x-if="!soundEnabled">
-                    <span class="flex items-center gap-1"><i data-lucide="volume-x" class="w-3.5 h-3.5 text-rose-400"></i> <span class="hidden sm:inline">Mute</span></span>
-                </template>
+                <!-- Sound ON: Speaker Bersuara Normal -->
+                <svg x-show="soundEnabled" class="w-4 h-4 text-emerald-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                </svg>
+                <!-- Sound OFF: Speaker Dicoret Tanda Silang (Mute) -->
+                <svg x-show="!soundEnabled" class="w-4 h-4 text-rose-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" x-cloak>
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                    <line x1="23" y1="9" x2="17" y2="15"></line>
+                    <line x1="17" y1="9" x2="23" y2="15"></line>
+                </svg>
             </button>
 
             <!-- Real-Time Notification Bell & Dropdown -->
@@ -640,13 +651,12 @@
                 <button 
                     @click="showNotificationDropdown = !showNotificationDropdown; if(showNotificationDropdown) unreadNotificationsCount = 0;" 
                     type="button" 
-                    class="relative px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded text-[11px] font-mono flex items-center gap-1.5 transition cursor-pointer"
+                    class="relative p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded text-xs font-mono flex items-center justify-center transition cursor-pointer"
                     title="Aktivitas Dokumen Real-Time (Live Feed)"
                 >
-                    <i data-lucide="bell" class="w-3.5 h-3.5" :class="unreadNotificationsCount > 0 ? 'text-amber-400 animate-bounce' : 'text-slate-400'"></i>
-                    <span class="hidden md:inline">Notifikasi</span>
+                    <i data-lucide="bell" class="w-4 h-4" :class="unreadNotificationsCount > 0 ? 'text-amber-400 animate-bounce' : 'text-slate-400'"></i>
                     <template x-if="unreadNotificationsCount > 0">
-                        <span class="px-1.5 py-0.2 bg-rose-500 text-white rounded-full text-[10px] font-black animate-pulse" x-text="unreadNotificationsCount"></span>
+                        <span class="absolute -top-1 -right-1 px-1 py-0.2 bg-rose-500 text-white rounded-full text-[9px] font-black animate-pulse leading-none" x-text="unreadNotificationsCount"></span>
                     </template>
                 </button>
 
@@ -715,15 +725,25 @@
             <button 
                 @click="theme = (theme === 'dark' ? 'light' : 'dark'); localStorage.setItem('theme', theme)" 
                 type="button" 
-                class="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded text-[11px] font-mono flex items-center gap-1.5 transition cursor-pointer" 
-                title="Ganti Mode Tampilan (Alt+T)"
+                class="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded text-xs font-mono flex items-center justify-center transition cursor-pointer select-none" 
+                :title="theme === 'dark' ? 'Beralih ke Mode Terang (Alt+T)' : 'Beralih ke Mode Gelap (Alt+T)'"
             >
-                <template x-if="theme === 'dark'">
-                    <span class="flex items-center gap-1 text-amber-300"><i data-lucide="sun" class="w-3 h-3"></i> <span class="hidden xl:inline">Light Mode</span></span>
-                </template>
-                <template x-if="theme !== 'dark'">
-                    <span class="flex items-center gap-1 text-sky-300"><i data-lucide="moon" class="w-3 h-3"></i> <span class="hidden xl:inline">Dark Mode</span></span>
-                </template>
+                <!-- Saat Dark Mode: Tampilkan Matahari untuk beralih ke Mode Terang -->
+                <svg x-show="theme === 'dark'" class="w-4 h-4 text-amber-300 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <line x1="12" y1="1" x2="12" y2="3"></line>
+                    <line x1="12" y1="21" x2="12" y2="23"></line>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                    <line x1="1" y1="12" x2="3" y2="12"></line>
+                    <line x1="21" y1="12" x2="23" y2="12"></line>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                </svg>
+                <!-- Saat Light Mode: Tampilkan Bulan untuk beralih ke Mode Gelap -->
+                <svg x-show="theme !== 'dark'" class="w-4 h-4 text-sky-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" x-cloak>
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                </svg>
             </button>
 
             <!-- Fullscreen / Maximize Toggle Button -->
@@ -731,14 +751,17 @@
                 @click="toggleFullscreen()" 
                 type="button" 
                 :title="isFullscreen ? 'Keluar Full Screen (Esc / F11)' : 'Layar Penuh (Full Screen / Maximize)'"
-                class="w-6 h-6 flex items-center justify-center bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded text-amber-400 font-bold transition active:scale-95 shrink-0 cursor-pointer"
+                class="w-7 h-7 flex items-center justify-center bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded text-amber-400 font-bold transition active:scale-95 shrink-0 cursor-pointer select-none"
             >
-                <template x-if="isFullscreen">
-                    <span class="text-[13px] font-black leading-none select-none">❐</span>
-                </template>
-                <template x-if="!isFullscreen">
-                    <span class="text-[13px] font-black leading-none select-none">🗖</span>
-                </template>
+                <!-- Saat Fullscreen: Icon Restore (Dua Kotak) -->
+                <svg x-show="isFullscreen" class="w-3.5 h-3.5 text-amber-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="8" y="8" width="13" height="13" rx="1"></rect>
+                    <path d="M4 16V5a1 1 0 0 1 1-1h11"></path>
+                </svg>
+                <!-- Saat Normal: Icon Maximize (Satu Kotak) -->
+                <svg x-show="!isFullscreen" class="w-3.5 h-3.5 text-amber-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" x-cloak>
+                    <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                </svg>
             </button>
 
             <!-- LAN Latency & Diagnostics Monitor -->
@@ -1367,7 +1390,7 @@
 
                 // Settings & Appearance State
                 openSettingsModal: false,
-                appLogoUrl: @json($globalAppLogo ?? asset('images/logo-indraco.png')),
+                appLogoUrl: @json($globalAppLogo ?? asset('images/logo_indraco.png')),
                 currentFontSize: localStorage.getItem('app_font_size') || '{{ $globalAppFontSize ?? "19px" }}',
                 tempFontSize: localStorage.getItem('app_font_size') || '{{ $globalAppFontSize ?? "19px" }}',
                 newLogoFile: null,
@@ -1389,7 +1412,9 @@
 
                 availableForms: [
                     { id: 'dashboard', title: 'Dashboard Overview', icon: 'layout-dashboard', url: '{{ route("dashboard") }}?embed=1' },
+                    @if(auth()->check() && auth()->user()->isSuperAdmin())
                     { id: 'departments', title: 'Master Departemen', icon: 'building-2', url: '{{ route("master.departments") }}?embed=1' },
+                    @endif
                     { id: 'warehouses', title: 'Master Gudang & Rak', icon: 'warehouse', url: '{{ route("master.warehouses") }}?embed=1' },
                     { id: 'warehouse_layout', title: 'Layout Gudang 2D', icon: 'map', url: '{{ route("master.warehouses.layout") }}?embed=1' },
                     @if(auth()->check() && auth()->user()->isSuperAdmin())
@@ -1406,7 +1431,7 @@
 
                 initMdi() {
                     let initialId = 'dashboard';
-                    @if(request()->routeIs('master.departments')) initialId = 'departments';
+                    @if(request()->routeIs('master.departments') && auth()->check() && auth()->user()->isSuperAdmin()) initialId = 'departments';
                     @elseif(request()->routeIs('master.warehouses')) initialId = 'warehouses';
                     @elseif(request()->routeIs('master.warehouses.layout')) initialId = 'warehouse_layout';
                     @elseif(request()->routeIs('master.numbering')) initialId = 'numbering';
@@ -1552,7 +1577,7 @@
                     .then(res => res.json())
                     .then(data => {
                         this.settingsSaving = false;
-                        this.appLogoUrl = data.app_logo || '{{ asset("images/logo-indraco.png") }}';
+                        this.appLogoUrl = data.app_logo || '{{ asset("images/logo_indraco.png") }}';
                         this.newLogoFile = null;
                         this.newLogoPreview = null;
                         alert(data.message || 'Logo berhasil dikembalikan ke default.');
@@ -2300,6 +2325,7 @@
         });
     </script>
     @include('layouts.partials.confirm_modal')
+    @include('layouts.partials.file_preview_modal')
     @stack('scripts')
 </body>
 </html>

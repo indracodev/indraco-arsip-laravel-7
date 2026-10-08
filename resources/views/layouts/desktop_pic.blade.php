@@ -117,6 +117,7 @@
         });
     </script>
     @include('layouts.partials.confirm_modal')
+    @include('layouts.partials.file_preview_modal')
     @stack('scripts')
 </body>
 </html>
@@ -160,6 +161,11 @@
         }
     </script>
     
+    <!-- App Icon & Favicon -->
+    <link rel="icon" type="image/png" href="{{ asset('images/icon_indraco.png') }}">
+    <link rel="shortcut icon" href="{{ asset('images/icon_indraco.png') }}" type="image/png">
+    <link rel="apple-touch-icon" href="{{ asset('images/icon_indraco.png') }}">
+
     <!-- PWA Manifest & Theme -->
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#d97706">
@@ -272,211 +278,58 @@
     </div>
     @endif
 
-    <!-- 1. TOP WINDOW TITLE BAR & DELPHI MAIN MENU -->
-    <header class="bg-slate-950 text-white flex items-center justify-between px-3 py-1.5 border-b border-slate-800 shrink-0 shadow-sm z-30 font-mono">
-        <div class="flex items-center gap-4">
-            <!-- Brand & Desktop Logo -->
-            <a href="{{ route('archives.index') }}" class="flex items-center gap-2 font-black tracking-tight text-white group">
-                <div class="h-6 flex items-center justify-center">
-                    <img :src="appLogoUrl" alt="Logo" class="h-5 max-w-[120px] object-contain" onerror="this.onerror=null; this.src='{{ asset('images/logo-indraco.png') }}'">
+    <!-- 1. UNIFIED DESKTOP HEADER NAVBAR (BAGIAN 1: SINGLE COMPACT HEADER) -->
+    <header class="bg-slate-950 text-white flex items-center justify-between px-3 py-1.5 border-b border-slate-800 shrink-0 shadow-sm z-30 font-mono gap-2 relative">
+        <!-- Left Side: Contrasted Logo + Action Buttons + Quick Search -->
+        <div class="flex items-center gap-2 flex-1 min-w-0">
+            <!-- Brand & Desktop Logo (High-Contrast White Pill Container) -->
+            <a href="{{ route('archives.index') }}" class="flex items-center gap-2 font-black tracking-tight text-white group shrink-0" title="{{ $globalAppName ?? 'INDRACO DMS' }}">
+                <div class="px-2 py-0.5 bg-white rounded-md shadow-xs flex items-center justify-center shrink-0">
+                    <img :src="appLogoUrl" alt="INDRACO Logo" class="h-4 sm:h-5 max-w-[100px] object-contain" onerror="this.onerror=null; this.src='{{ asset('images/logo_indraco.png') }}'">
                 </div>
-                <span class="text-xs sm:text-sm font-extrabold">
-                    {{ $globalAppName ?? 'INDRACO DMS' }} <span class="text-amber-400 text-xs font-mono font-bold">[Desktop Workstation]</span>
+                <span class="text-xs font-black tracking-wider text-white hidden xl:inline">
+                    {{ $globalAppName ?? 'DMS INDRACO' }}
                 </span>
             </a>
 
-            <!-- Delphi Style Top Menu Dropdowns -->
-            <nav class="hidden md:flex items-center gap-3 text-slate-300 text-xs font-medium border-l border-slate-800 pl-4">
-                <button @click="openFormWindow('archives')" type="button" class="hover:text-amber-400 transition" :class="activeWinId === 'archives' ? 'text-amber-400 font-bold' : ''">Catalog</button>
-                <button @click="openFormWindow('borrowings')" type="button" class="hover:text-amber-400 transition" :class="activeWinId === 'borrowings' ? 'text-amber-400 font-bold' : ''">Borrowings</button>
-                <button @click="openFormWindow('destructions')" type="button" class="hover:text-amber-400 transition" :class="activeWinId === 'destructions' ? 'text-amber-400 font-bold' : ''">Retention</button>
-            </nav>
-        </div>
-
-        <!-- Right User Info & Controls -->
-        <div class="flex items-center gap-2">
-            <!-- Audio Sound Notification Toggle Button -->
-            <button 
-                @click="toggleSound()" 
-                type="button" 
-                class="px-2 py-0.5 rounded text-[11px] font-mono flex items-center gap-1.5 transition border cursor-pointer select-none"
-                :class="soundEnabled ? 'bg-slate-900 hover:bg-slate-800 text-emerald-300 border-emerald-500/40 shadow-xs' : 'bg-slate-900 hover:bg-slate-800 text-slate-400 border-slate-800'"
-                :title="soundEnabled ? 'Suara Notifikasi: AKTIF (Klik untuk Mute)' : 'Suara Notifikasi: MUTE (Klik untuk Aktifkan)'"
-            >
-                <template x-if="soundEnabled">
-                    <span class="flex items-center gap-1"><i data-lucide="volume-2" class="w-3.5 h-3.5 text-emerald-400"></i> <span class="hidden sm:inline">Suara ON</span></span>
-                </template>
-                <template x-if="!soundEnabled">
-                    <span class="flex items-center gap-1"><i data-lucide="volume-x" class="w-3.5 h-3.5 text-rose-400"></i> <span class="hidden sm:inline">Mute</span></span>
-                </template>
-            </button>
-
-            <!-- Real-Time Notification Bell & Dropdown -->
-            <div class="relative" @click.outside="showNotificationDropdown = false">
-                <button 
-                    @click="showNotificationDropdown = !showNotificationDropdown; if(showNotificationDropdown) unreadNotificationsCount = 0;" 
-                    type="button" 
-                    class="relative px-2 py-0.5 bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 rounded text-[11px] font-mono flex items-center gap-1.5 transition cursor-pointer"
-                    title="Aktivitas Dokumen Real-Time (Live Feed)"
-                >
-                    <i data-lucide="bell" class="w-3.5 h-3.5" :class="unreadNotificationsCount > 0 ? 'text-amber-400 animate-bounce' : 'text-slate-400'"></i>
-                    <span class="hidden md:inline">Notifikasi</span>
-                    <template x-if="unreadNotificationsCount > 0">
-                        <span class="px-1.5 py-0.2 bg-rose-500 text-white rounded-full text-[10px] font-black animate-pulse" x-text="unreadNotificationsCount"></span>
-                    </template>
-                </button>
-
-                <!-- Notification Dropdown History Menu -->
-                <div 
-                    x-show="showNotificationDropdown" 
-                    x-transition 
-                    x-cloak 
-                    class="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-slate-900 border-2 border-amber-500 rounded-lg shadow-2xl z-50 overflow-hidden text-xs font-mono"
-                >
-                    <div class="p-2.5 bg-slate-900 text-white flex items-center justify-between border-b border-slate-700">
-                        <div class="flex items-center gap-1.5 font-bold text-amber-400 text-[11px]">
-                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-                            <span>LIVE INCOMING DOCUMENTS</span>
-                        </div>
-                        <button @click="playChime()" type="button" class="text-[10px] px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 rounded flex items-center gap-1 transition cursor-pointer">
-                            <i data-lucide="volume-2" class="w-3 h-3 text-emerald-400"></i> Tes Suara
-                        </button>
-                    </div>
-
-                    <div class="max-h-80 overflow-y-auto divide-y divide-slate-200 dark:divide-slate-800">
-                        <template x-if="realtimeNotifications.length === 0">
-                            <div class="p-6 text-center text-slate-500 dark:text-slate-400 space-y-1">
-                                <i data-lucide="inbox" class="w-6 h-6 mx-auto text-slate-400 mb-1"></i>
-                                <p class="font-bold">Belum ada aktivitas dokumen baru</p>
-                                <p class="text-[10px]">Dokumen yang ditambahkan akan muncul otomatis di sini secara real-time.</p>
-                            </div>
-                        </template>
-
-                        <template x-for="item in realtimeNotifications" :key="item.id">
-                            <div @click="openArchiveFromNotification(item)" class="p-2.5 hover:bg-amber-500/10 dark:hover:bg-slate-800/80 cursor-pointer transition flex flex-col gap-1 border-b border-slate-100 dark:border-slate-800">
-                                <div class="flex items-center justify-between">
-                                    <div class="flex items-center gap-1.5">
-                                        <span class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-blue-500/20 text-blue-700 dark:text-blue-300" x-text="item.deptCode"></span>
-                                        <span class="text-xs font-bold text-amber-600 dark:text-amber-400" x-text="item.boxNumber"></span>
-                                    </div>
-                                    <span class="text-[10px] text-slate-400" x-text="item.time"></span>
-                                </div>
-                                <div class="text-xs font-bold text-slate-900 dark:text-white truncate" x-text="item.title"></div>
-                                <div class="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 pt-0.5">
-                                    <span>Oleh: <strong class="text-slate-700 dark:text-slate-300" x-text="item.creatorName"></strong></span>
-                                    <span class="text-amber-500 font-bold hover:underline flex items-center gap-0.5">
-                                        Buka Form <i data-lucide="chevron-right" class="w-3 h-3"></i>
-                                    </span>
-                                </div>
-                            </div>
-                        </template>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Light/Dark Mode Switcher -->
-            <button 
-                @click="theme = (theme === 'dark' ? 'light' : 'dark'); localStorage.setItem('theme', theme)" 
-                type="button" 
-                class="px-2 py-0.5 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 rounded text-[11px] font-mono flex items-center gap-1.5 transition cursor-pointer"
-                title="Ganti Mode Tampilan (Alt+T)"
-            >
-                <template x-if="theme === 'dark'">
-                    <span class="flex items-center gap-1 text-amber-300"><i data-lucide="sun" class="w-3 h-3"></i> <span class="hidden xl:inline">Light Mode</span></span>
-                </template>
-                <template x-if="theme !== 'dark'">
-                    <span class="flex items-center gap-1 text-sky-300"><i data-lucide="moon" class="w-3 h-3"></i> <span class="hidden xl:inline">Dark Mode</span></span>
-                </template>
-            </button>
-
-            <!-- Fullscreen / Maximize Toggle Button -->
-            <button 
-                @click="toggleFullscreen()" 
-                type="button" 
-                :title="isFullscreen ? 'Keluar Full Screen (Esc / F11)' : 'Layar Penuh (Full Screen / Maximize)'"
-                class="w-6 h-6 flex items-center justify-center bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded text-amber-400 font-bold transition active:scale-95 shrink-0 cursor-pointer"
-            >
-                <template x-if="isFullscreen">
-                    <span class="text-[13px] font-black leading-none select-none">❐</span>
-                </template>
-                <template x-if="!isFullscreen">
-                    <span class="text-[13px] font-black leading-none select-none">🗖</span>
-                </template>
-            </button>
-
-            <!-- LAN Latency & Diagnostics Monitor -->
-            @include('layouts.partials.lan_monitor')
-
-            @auth
-            <div class="flex items-center gap-2 border-l border-slate-800 pl-3">
-                <div class="text-right">
-                    <span class="text-xs font-bold text-white block">{{ auth()->user()->name }}</span>
-                    <span class="text-[10px] text-amber-400 font-mono block">PIC DEPT: {{ auth()->user()->department->code ?? 'UMUM' }}</span>
-                </div>
-
-                <form action="{{ route('logout') }}" method="POST" class="inline ml-1">
-                    @csrf
-                    <button type="submit" class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-900 rounded transition" title="Logout">
-                        <i data-lucide="power" class="w-4 h-4"></i>
-                    </button>
-                </form>
-            </div>
-            @endauth
-        </div>
-    </header>
-
-    <!-- 2. DELPHI ACTION RIBBON TOOLBAR -->
-    <div class="bg-white dark:bg-slate-950 border-b border-slate-300 dark:border-slate-800 px-3 py-1.5 flex flex-wrap items-center justify-between gap-2 shrink-0 shadow-xs z-40 relative font-mono">
-        <div class="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
-            <!-- F2: Draft Baru -->
+            <!-- Action Button: F2 Draft Baru -->
             <button 
                 @click="openFormWindow('archives_create')"
                 type="button" 
-                class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-white font-bold text-xs transition flex items-center gap-1.5 shadow-2xs cursor-pointer shrink-0"
+                class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer shrink-0"
                 title="Buka Form Draft Pengajuan Box Baru (F2)"
             >
-                <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400"></i>
-                <span>Baru (F2)</span>
-            </button>
-
-            <!-- F8: Pinjam Dokumen -->
-            <button 
-                @click="openFormWindow('borrowings')"
-                type="button" 
-                class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-white font-bold text-xs transition flex items-center gap-1.5 shadow-2xs cursor-pointer shrink-0"
-                title="Buka Form Peminjaman Berkas (F8)"
-            >
-                <i data-lucide="file-symlink" class="w-3.5 h-3.5 text-purple-600 dark:text-purple-400"></i>
-                <span>Pinjam (F8)</span>
+                <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+                <span class="hidden sm:inline">Baru (F2)</span>
             </button>
 
             @if(!auth()->user()->isPicDept())
-            <!-- F9: Cetak Custom Label -->
-            <a href="{{ route('archives.print_labels') }}" target="_blank" class="px-2.5 py-1 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded text-amber-700 dark:text-amber-300 font-bold text-xs transition flex items-center gap-1.5 shadow-2xs shrink-0">
-                <i data-lucide="printer" class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400"></i>
-                <span>Cetak Label (F9)</span>
+            <!-- Action Button: F9 Cetak Custom Label -->
+            <a href="{{ route('archives.print_labels') }}" target="_blank" class="px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded text-xs font-bold transition flex items-center gap-1.5 shadow-2xs shrink-0" title="Cetak Custom Label (F9)">
+                <i data-lucide="printer" class="w-3.5 h-3.5 text-amber-400"></i>
+                <span class="hidden lg:inline">Cetak (F9)</span>
             </a>
             @endif
 
-            <!-- F5: Refresh Active Form -->
+            <!-- Action Button: F5 Refresh Active Form -->
             <button 
                 @click="refreshActiveWindow()" 
                 type="button" 
-                class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-white font-bold text-xs transition flex items-center gap-1.5 shadow-2xs cursor-pointer shrink-0"
+                class="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 rounded text-xs font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer shrink-0"
                 title="Refresh Form yang Sedang Aktif (F5)"
             >
-                <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-blue-600 dark:text-blue-400"></i>
-                <span>Refresh (F5)</span>
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-blue-400"></i>
+                <span class="hidden md:inline">Refresh (F5)</span>
             </button>
 
-            <!-- SEBELAH KANAN REFRESH: SEARCH INPUT WITH AUTO-SUGGESTIONS & PHYSICAL LOCATION -->
-            <div class="relative z-50 flex-1 min-w-[320px] max-w-2xl ml-1" x-data="picQuickSearch()" @click.outside="closeDropdown()">
+            <!-- SEARCH INPUT WITH AUTO-SUGGESTIONS & PHYSICAL LOCATION -->
+            <div class="relative z-50 flex-1 min-w-[200px] max-w-xl" x-data="picQuickSearch()" @click.outside="closeDropdown()">
                 <div class="relative flex items-center">
                     <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
-                        <svg x-show="isLoading" class="w-4 h-4 text-amber-500 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" x-cloak>
+                        <svg x-show="isLoading" class="w-3.5 h-3.5 text-amber-500 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" x-cloak>
                             <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
                         </svg>
-                        <svg x-show="!isLoading" class="w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <svg x-show="!isLoading" class="w-3.5 h-3.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="11" cy="11" r="8"></circle>
                             <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                         </svg>
@@ -492,8 +345,8 @@
                         @keydown.arrow-down.prevent="navigateResults(1)"
                         @keydown.arrow-up.prevent="navigateResults(-1)"
                         @keydown.enter.prevent="selectActiveResult()"
-                        placeholder="Cari arsip Dept (nama dokumen, butir isi, no. box, rak) [Ctrl+F]..." 
-                        class="w-full pl-9 pr-8 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition shadow-inner"
+                        placeholder="Cari arsip Dept (nama dokumen, no. box, rak) [Ctrl+F]..." 
+                        class="w-full pl-8 pr-7 py-1 bg-slate-900 border border-slate-700 rounded text-xs font-mono text-slate-100 placeholder-slate-400 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition shadow-inner"
                     >
 
                     <!-- Clear Search Button -->
@@ -501,11 +354,11 @@
                         x-show="searchQuery.length > 0" 
                         @click="clearSearch()"
                         type="button" 
-                        class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-rose-500 transition cursor-pointer"
+                        class="absolute inset-y-0 right-0 pr-2 flex items-center text-slate-400 hover:text-rose-400 transition cursor-pointer"
                         title="Hapus pencarian"
                         x-cloak
                     >
-                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <line x1="18" y1="6" x2="6" y2="18"></line>
                             <line x1="6" y1="6" x2="18" y2="18"></line>
                         </svg>
@@ -555,22 +408,36 @@
                         </div>
                     </div>
 
+                    <!-- Section Title Bar -->
+                    <div class="px-3.5 py-1.5 bg-slate-50 dark:bg-slate-950/90 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between text-[11px]">
+                        <span class="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5 text-amber-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                            </svg>
+                            <span x-show="!searchQuery">Arsip Rekomendasi / Terkini Dept {{ auth()->user()->department->code ?? '' }}:</span>
+                            <span x-show="searchQuery">Hasil Pencarian: <span class="text-amber-600 dark:text-amber-400 font-bold" x-text="searchResults.length + ' item ditemukan'"></span></span>
+                        </span>
+                        <span class="text-[10px] text-slate-500 font-medium hidden sm:inline">
+                            Klik item untuk membuka form detail
+                        </span>
+                    </div>
+
                     <!-- Results List Scroll Container -->
-                    <div class="max-h-96 overflow-y-auto divide-y divide-slate-200 dark:divide-slate-800 bg-white dark:bg-slate-900">
+                    <div class="max-h-[380px] overflow-y-auto divide-y divide-slate-200 dark:divide-slate-800 bg-white dark:bg-slate-900">
                         <!-- Loading State -->
                         <div x-show="isLoading" class="p-6 text-center text-slate-500 flex items-center justify-center gap-2.5 font-bold">
                             <svg class="w-5 h-5 text-amber-500 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
                             </svg>
-                            <span>Mencari data berkas & rak gudang...</span>
+                            <span>Mencari dokumen Departemen...</span>
                         </div>
 
-                        <!-- Results Items -->
+                        <!-- Results List -->
                         <template x-for="(item, idx) in searchResults" :key="item.id">
                             <div 
-                                @click="selectArchive(item)"
-                                :class="selectedIndex === idx ? 'bg-amber-500/15 dark:bg-amber-950/40 border-l-4 border-amber-500' : 'hover:bg-slate-100 dark:hover:bg-slate-800/80'"
-                                class="p-3 cursor-pointer transition flex flex-col gap-1.5 select-none"
+                                @click="openArchive(item)"
+                                :class="selectedIndex === idx ? 'bg-amber-500/15 dark:bg-slate-800 border-l-4 border-l-amber-500' : 'hover:bg-slate-50 dark:hover:bg-slate-850'"
+                                class="p-3 cursor-pointer transition flex flex-col gap-1.5"
                             >
                                 <!-- Top Row: No Box, Status Badge, Period -->
                                 <div class="flex items-center justify-between gap-2">
@@ -638,15 +505,158 @@
             </div>
         </div>
 
-        <div class="flex items-center gap-3 text-[11px] font-mono font-bold text-slate-500 dark:text-slate-400">
-            <span>DEPARTEMEN: <strong class="text-amber-600 dark:text-amber-400">{{ auth()->user()->department->name ?? 'Global' }}</strong></span>
-            <span>WORKSTATION: WS-DESKTOP-01</span>
-        </div>
-    </div>
+        <!-- Right Side: System Controls (Icon-Only Buttons) & Single User Profile -->
+        <div class="flex items-center gap-1.5 shrink-0">
+            <!-- Audio Sound Notification Toggle Button (Icon Only, Tanpa Teks) -->
+            <button 
+                @click="toggleSound()" 
+                type="button" 
+                class="p-1.5 rounded text-xs font-mono flex items-center justify-center transition border cursor-pointer select-none"
+                :class="soundEnabled ? 'bg-slate-900 hover:bg-slate-800 text-emerald-400 border-emerald-500/40 shadow-xs' : 'bg-slate-900 hover:bg-slate-800 text-rose-400 border-rose-500/30'"
+                :title="soundEnabled ? 'Suara Notifikasi: AKTIF (Klik untuk Mute)' : 'Suara Notifikasi: MUTE (Klik untuk Aktifkan)'"
+            >
+                <!-- Sound ON: Speaker Bersuara Normal -->
+                <svg x-show="soundEnabled" class="w-4 h-4 text-emerald-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                </svg>
+                <!-- Sound OFF: Speaker Dicoret Tanda Silang (Mute) -->
+                <svg x-show="!soundEnabled" class="w-4 h-4 text-rose-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" x-cloak>
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                    <line x1="23" y1="9" x2="17" y2="15"></line>
+                    <line x1="17" y1="9" x2="23" y2="15"></line>
+                </svg>
+            </button>
 
-    <!-- 3. MDI TAB SHEET NAVIGATION MANAGER (FIXED TAB BAR) -->
+            <!-- Real-Time Notification Bell & Dropdown (Icon Only, Tanpa Teks) -->
+            <div class="relative" @click.outside="showNotificationDropdown = false">
+                <button 
+                    @click="showNotificationDropdown = !showNotificationDropdown; if(showNotificationDropdown) unreadNotificationsCount = 0;" 
+                    type="button" 
+                    class="relative p-1.5 bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 rounded text-xs font-mono flex items-center justify-center transition cursor-pointer"
+                    title="Aktivitas Dokumen Real-Time (Live Feed)"
+                >
+                    <i data-lucide="bell" class="w-4 h-4" :class="unreadNotificationsCount > 0 ? 'text-amber-400 animate-bounce' : 'text-slate-400'"></i>
+                    <template x-if="unreadNotificationsCount > 0">
+                        <span class="absolute -top-1 -right-1 px-1 py-0.2 bg-rose-500 text-white rounded-full text-[9px] font-black animate-pulse leading-none" x-text="unreadNotificationsCount"></span>
+                    </template>
+                </button>
+
+                <!-- Notification Dropdown History Menu -->
+                <div 
+                    x-show="showNotificationDropdown" 
+                    x-transition 
+                    x-cloak 
+                    class="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-slate-900 border-2 border-amber-500 rounded-lg shadow-2xl z-50 overflow-hidden text-xs font-mono"
+                >
+                    <div class="p-2.5 bg-slate-900 text-white flex items-center justify-between border-b border-slate-700">
+                        <div class="flex items-center gap-1.5 font-bold text-amber-400 text-[11px]">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                            <span>LIVE INCOMING DOCUMENTS</span>
+                        </div>
+                        <button @click="playChime()" type="button" class="text-[10px] px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 rounded flex items-center gap-1 transition cursor-pointer">
+                            <i data-lucide="volume-2" class="w-3 h-3 text-emerald-400"></i> Tes Suara
+                        </button>
+                    </div>
+
+                    <div class="max-h-80 overflow-y-auto divide-y divide-slate-200 dark:divide-slate-800">
+                        <template x-if="realtimeNotifications.length === 0">
+                            <div class="p-6 text-center text-slate-500 dark:text-slate-400 space-y-1">
+                                <i data-lucide="inbox" class="w-6 h-6 mx-auto text-slate-400 mb-1"></i>
+                                <p class="font-bold">Belum ada aktivitas dokumen baru</p>
+                                <p class="text-[10px]">Dokumen yang ditambahkan akan muncul otomatis di sini secara real-time.</p>
+                            </div>
+                        </template>
+
+                        <template x-for="item in realtimeNotifications" :key="item.id">
+                            <div @click="openArchiveFromNotification(item)" class="p-2.5 hover:bg-amber-500/10 dark:hover:bg-slate-800/80 cursor-pointer transition flex flex-col gap-1 border-b border-slate-100 dark:border-slate-800">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-blue-500/20 text-blue-700 dark:text-blue-300" x-text="item.deptCode"></span>
+                                        <span class="text-xs font-bold text-amber-600 dark:text-amber-400" x-text="item.boxNumber"></span>
+                                    </div>
+                                    <span class="text-[10px] text-slate-400" x-text="item.time"></span>
+                                </div>
+                                <div class="text-xs font-bold text-slate-900 dark:text-white truncate" x-text="item.title"></div>
+                                <div class="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 pt-0.5">
+                                    <span>Oleh: <strong class="text-slate-700 dark:text-slate-300" x-text="item.creatorName"></strong></span>
+                                    <span class="text-amber-500 font-bold hover:underline flex items-center gap-0.5">
+                                        Buka Form <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                                    </span>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Light/Dark Mode Switcher (Icon Only, Tanpa Teks) -->
+            <button 
+                @click="theme = (theme === 'dark' ? 'light' : 'dark'); localStorage.setItem('theme', theme)" 
+                type="button" 
+                class="p-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded text-xs font-mono flex items-center justify-center transition cursor-pointer select-none"
+                :title="theme === 'dark' ? 'Beralih ke Mode Terang (Alt+T)' : 'Beralih ke Mode Gelap (Alt+T)'"
+            >
+                <!-- Saat Dark Mode: Tampilkan Matahari untuk beralih ke Terang -->
+                <svg x-show="theme === 'dark'" class="w-4 h-4 text-amber-300 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <line x1="12" y1="1" x2="12" y2="3"></line>
+                    <line x1="12" y1="21" x2="12" y2="23"></line>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                    <line x1="1" y1="12" x2="3" y2="12"></line>
+                    <line x1="21" y1="12" x2="23" y2="12"></line>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                </svg>
+                <!-- Saat Light Mode: Tampilkan Bulan untuk beralih ke Gelap -->
+                <svg x-show="theme !== 'dark'" class="w-4 h-4 text-sky-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" x-cloak>
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                </svg>
+            </button>
+
+            <!-- Fullscreen / Maximize Toggle Button (Icon Only) -->
+            <button 
+                @click="toggleFullscreen()" 
+                type="button" 
+                :title="isFullscreen ? 'Keluar Full Screen (Esc / F11)' : 'Layar Penuh (Full Screen / Maximize)'"
+                class="w-7 h-7 flex items-center justify-center bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded text-amber-400 font-bold transition active:scale-95 shrink-0 cursor-pointer select-none"
+            >
+                <!-- Saat Fullscreen: Icon Restore (Dua Kotak) -->
+                <svg x-show="isFullscreen" class="w-3.5 h-3.5 text-amber-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="8" y="8" width="13" height="13" rx="1"></rect>
+                    <path d="M4 16V5a1 1 0 0 1 1-1h11"></path>
+                </svg>
+                <!-- Saat Normal: Icon Maximize (Satu Kotak) -->
+                <svg x-show="!isFullscreen" class="w-3.5 h-3.5 text-amber-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" x-cloak>
+                    <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                </svg>
+            </button>
+
+            <!-- LAN Latency & Diagnostics Monitor -->
+            @include('layouts.partials.lan_monitor')
+
+            @auth
+            <!-- Profil User & Departemen (Tunggal, Tidak Dobel) -->
+            <div class="flex items-center gap-2 border-l border-slate-800 pl-2.5 shrink-0">
+                <div class="text-right hidden sm:block">
+                    <span class="text-xs font-bold text-white block truncate max-w-[140px] leading-tight">{{ auth()->user()->name }}</span>
+                    <span class="text-[10px] text-amber-400 font-mono block leading-tight">PIC DEPT: {{ auth()->user()->department->code ?? 'UMUM' }}</span>
+                </div>
+
+                <form action="{{ route('logout') }}" method="POST" class="inline ml-0.5">
+                    @csrf
+                    <button type="submit" class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-900 rounded transition cursor-pointer" title="Keluar / Logout">
+                        <i data-lucide="power" class="w-3.5 h-3.5"></i>
+                    </button>
+                </form>
+            </div>
+            @endauth
+        </div>
+    </header>
+    <!-- 2. MDI TAB SHEET NAVIGATION MANAGER (FIXED TAB BAR) -->
     <div class="bg-slate-200/90 dark:bg-slate-950 border-b border-slate-300 dark:border-slate-800 px-2 pt-1 flex items-center justify-start gap-1 shrink-0 font-mono text-[11px] select-none z-20 relative overflow-x-auto no-scrollbar">
-        <template x-for="form in availableForms" :key="form.id">
+        <template x-for="form in availableForms.filter(f => !f.hideInTabBar)" :key="form.id">
             <button 
                 @click="openFormWindow(form.id)"
                 type="button"
@@ -1242,7 +1252,7 @@
 
                 // Settings & Appearance State
                 openSettingsModal: false,
-                appLogoUrl: @json($globalAppLogo ?? asset('images/logo-indraco.png')),
+                appLogoUrl: @json($globalAppLogo ?? asset('images/logo_indraco.png')),
                 currentFontSize: localStorage.getItem('app_font_size') || '{{ $globalAppFontSize ?? "19px" }}',
                 tempFontSize: localStorage.getItem('app_font_size') || '{{ $globalAppFontSize ?? "19px" }}',
                 newLogoFile: null,
@@ -1271,13 +1281,13 @@
                     },
                     { 
                         id: 'borrowings', 
-                        title: '[Form 2] Peminjaman Berkas', 
-                        icon: 'file-check-2', 
+                        title: '[Form 2] Penarikan Berkas', 
+                        icon: 'file-symlink', 
                         url: '{{ route("borrowings.index") }}?embed=1' 
                     },
                     { 
                         id: 'destructions', 
-                        title: '[Form Status] Expiry Retention', 
+                        title: '[Form 3] Pengajuan Perpanjangan & Pemusnahan', 
                         icon: 'shield-alert', 
                         url: '{{ route("destructions.index") }}?embed=1' 
                     },
@@ -1285,7 +1295,8 @@
                         id: 'archives_create', 
                         title: 'Draft Pengajuan Box Baru', 
                         icon: 'plus-circle', 
-                        url: '{{ route("archives.create") }}?embed=1' 
+                        url: '{{ route("archives.create") }}?embed=1',
+                        hideInTabBar: true
                     }
                 ],
 
@@ -1855,7 +1866,7 @@
                     .then(res => res.json())
                     .then(data => {
                         this.settingsSaving = false;
-                        this.appLogoUrl = data.app_logo || '{{ asset("images/logo-indraco.png") }}';
+                        this.appLogoUrl = data.app_logo || '{{ asset("images/logo_indraco.png") }}';
                         this.newLogoFile = null;
                         this.newLogoPreview = null;
                         alert(data.message || 'Logo berhasil dikembalikan ke default.');
@@ -2098,14 +2109,14 @@
                     }
                     window.location.reload();
                 }
-                // F8: Form Peminjaman Dokumen
+                // F8: Form Penarikan Berkas
                 else if (e.key === 'F8') {
                     e.preventDefault();
                     window.dispatchEvent(new CustomEvent('open-form-window', {
                         detail: {
                             id: 'borrowings',
-                            title: '[Form 2] Peminjaman Berkas',
-                            icon: 'file-check-2',
+                            title: '[Form 2] Penarikan Berkas',
+                            icon: 'file-symlink',
                             url: '{{ route("borrowings.index") }}?embed=1'
                         }
                     }));
@@ -2123,6 +2134,7 @@
         });
     </script>
     @include('layouts.partials.confirm_modal')
+    @include('layouts.partials.file_preview_modal')
     @stack('scripts')
 </body>
 </html>
