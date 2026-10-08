@@ -1241,6 +1241,12 @@
 
                 <div class="flex items-center gap-2 shrink-0">
                     <template x-if="currentPreviewFile">
+                        <button type="button" @click="dmsPreviewFile(currentPreviewFile)" class="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-xs" title="Inspeksi Lengkap (Zoom / Geser / Putar)">
+                            <i data-lucide="maximize-2" class="w-3.5 h-3.5"></i>
+                            <span class="hidden sm:inline">Inspeksi Dokumen</span>
+                        </button>
+                    </template>
+                    <template x-if="currentPreviewFile">
                         <button type="button" @click="openInNewTab()" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-bold border border-slate-300 dark:border-slate-700 transition flex items-center gap-1 cursor-pointer" title="Buka di Tab Baru">
                             <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
                             <span class="hidden sm:inline">Buka Tab Baru</span>
