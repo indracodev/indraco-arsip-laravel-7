@@ -2325,6 +2325,10 @@
                     this.closeDropdown();
                 },
 
+                openArchive(archive) {
+                    this.selectArchive(archive);
+                },
+
                 navigateResults(direction) {
                     if (!this.searchResults.length) return;
                     this.selectedIndex = (this.selectedIndex + direction + this.searchResults.length) % this.searchResults.length;

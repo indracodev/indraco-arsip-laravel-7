@@ -448,7 +448,7 @@
                         <!-- Results List -->
                         <template x-for="(item, idx) in searchResults" :key="item.id">
                             <div 
-                                @click="openArchive(item)"
+                                @click="selectArchive(item)"
                                 :class="selectedIndex === idx ? 'bg-amber-500/15 dark:bg-slate-800 border-l-4 border-l-amber-500' : 'hover:bg-slate-50 dark:hover:bg-slate-850'"
                                 class="p-3 cursor-pointer transition flex flex-col gap-1.5"
                             >
@@ -2101,6 +2101,10 @@
                             url: url
                         }
                     }));
+                },
+
+                openArchive(archive) {
+                    this.selectArchive(archive);
                 },
 
                 navigateResults(direction) {

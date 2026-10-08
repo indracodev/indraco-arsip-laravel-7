@@ -24,7 +24,18 @@ Route::middleware('diagnostics.auth')->group(function () {
 Route::get('/files/preview-stream', 'FileStreamController@previewStream')->name('files.preview_stream');
 Route::get('/files/stream/{path}', 'FileStreamController@stream')->where('path', '.*')->name('files.stream');
 Route::get('/storage/files/{path}', 'FileStreamController@stream')->where('path', '.*')->name('storage.files');
-
+Route::get('/manifest.json', function () {
+    $manifestPath = public_path('manifest.json');
+    if (file_exists($manifestPath)) {
+        return response()->file($manifestPath, ['Content-Type' => 'application/manifest+json; charset=utf-8']);
+    }
+    return response()->json([
+        'name' => 'DMS PT Indraco - Sistem Pengarsipan & Gudang',
+        'short_name' => 'Indraco DMS',
+        'start_url' => '/',
+        'display' => 'standalone',
+    ]);
+});
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', 'AuthController@showLogin')->name('login');
