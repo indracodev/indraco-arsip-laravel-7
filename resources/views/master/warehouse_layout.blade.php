@@ -883,7 +883,7 @@
                                         <h4 class="font-bold text-slate-900 dark:text-white text-xs line-clamp-1 font-sans" x-text="arc.title"></h4>
                                         <div class="flex justify-between text-[10px] text-slate-500 font-medium">
                                             <span x-text="'Dept: ' + arc.department"></span>
-                                            <span x-text="'Exp: ' + arc.retention_expiry_date"></span>
+                                            <span x-text="'Exp: ' + (arc.formatted_expiry_date || formatDate(arc.retention_expiry_date))"></span>
                                         </div>
                                     </div>
                                 </template>
@@ -997,7 +997,7 @@
 
                 <div class="p-2 bg-slate-50 dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-800">
                     <span class="text-slate-500 text-[10px] uppercase font-bold block">Masa Simpan Expiry:</span>
-                    <span class="font-bold text-rose-600 dark:text-rose-400 text-xs" x-text="selectedDoc?.retention_expiry_date + ' (' + selectedDoc?.retention_years + ' Tahun Retention)'"></span>
+                    <span class="font-bold text-rose-600 dark:text-rose-400 text-xs" x-text="(selectedDoc?.formatted_expiry_date || formatDate(selectedDoc?.retention_expiry_date)) + ' (' + (selectedDoc?.retention_display || (selectedDoc?.retention_years ? selectedDoc.retention_years + ' Thn' : '5 Thn')) + ')'"></span>
                 </div>
 
                 <!-- Scan Buttons -->
@@ -1753,7 +1753,7 @@
                                     </template>
                                     <div class="p-2 flex items-center justify-between">
                                         <span class="text-slate-500 text-[10px] font-mono uppercase font-bold">Masa Simpan:</span>
-                                        <span class="font-mono text-xs font-semibold" :class="(selectedSlotDetail.status === 'expired' || selectedSlotDetail.archive?.is_expired) ? 'text-rose-600 font-bold' : 'text-slate-800 dark:text-slate-200'" x-text="selectedSlotDetail.archive.retention_expiry_date || '-'"></span>
+                                        <span class="font-mono text-xs font-semibold" :class="(selectedSlotDetail.status === 'expired' || selectedSlotDetail.archive?.is_expired) ? 'text-rose-600 font-bold' : 'text-slate-800 dark:text-slate-200'" x-text="selectedSlotDetail.archive.formatted_expiry_date || formatDate(selectedSlotDetail.archive.retention_expiry_date) || '-'"></span>
                                     </div>
                                 </div>
 
@@ -2017,6 +2017,18 @@
 <script>
 function warehouseCanvasApp() {
     return {
+        formatDate(d) {
+            if (!d) return '-';
+            if (typeof d === 'string' && (d.includes('T') || /^\d{4}-\d{2}-\d{2}/.test(d))) {
+                try {
+                    const dt = new Date(d);
+                    if (!isNaN(dt.getTime())) {
+                        return dt.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' });
+                    }
+                } catch(e) { return d; }
+            }
+            return d;
+        },
         loading: true,
         locations: [],
         departments: [],

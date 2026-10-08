@@ -598,7 +598,7 @@
                                     </template>
                                     <div class="p-2.5 flex items-center justify-between">
                                         <span class="text-slate-500 dark:text-slate-400 text-[10px] font-mono uppercase font-bold">Masa Simpan:</span>
-                                        <span class="font-mono text-xs" :class="(selectedSlotDetail.status === 'expired' || selectedSlotDetail.archive.is_expired) ? 'text-rose-600 dark:text-rose-400 font-bold' : 'text-slate-800 dark:text-slate-200'" x-text="selectedSlotDetail.archive.retention_expiry_date || '-'"></span>
+                                        <span class="font-mono text-xs" :class="(selectedSlotDetail.status === 'expired' || selectedSlotDetail.archive.is_expired) ? 'text-rose-600 dark:text-rose-400 font-bold' : 'text-slate-800 dark:text-slate-200'" x-text="selectedSlotDetail.archive.formatted_expiry_date || formatDate(selectedSlotDetail.archive.retention_expiry_date) || '-'"></span>
                                     </div>
                                 </div>
 
@@ -931,6 +931,18 @@
 <script>
 function masterWarehousesManager() {
     return {
+        formatDate(d) {
+            if (!d) return '-';
+            if (typeof d === 'string' && (d.includes('T') || /^\d{4}-\d{2}-\d{2}/.test(d))) {
+                try {
+                    const dt = new Date(d);
+                    if (!isNaN(dt.getTime())) {
+                        return dt.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' });
+                    }
+                } catch(e) { return d; }
+            }
+            return d;
+        },
         openAddWarehouse: false,
         openAddLocation: false,
         editWarehouseItem: null,

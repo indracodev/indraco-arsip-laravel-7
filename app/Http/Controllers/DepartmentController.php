@@ -15,7 +15,10 @@ class DepartmentController extends Controller
     public function index()
     {
         $user = auth()->user();
-        $isSuperAdmin = $user && $user->isSuperAdmin();
+        if (!$user || !$user->isSuperAdmin()) {
+            abort(403, 'Akses modul Master Departemen hanya diizinkan untuk Super Admin.');
+        }
+        $isSuperAdmin = true;
 
         $query = Department::with(['subDepartments' => function ($q) use ($isSuperAdmin) {
             if (!$isSuperAdmin) {

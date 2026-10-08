@@ -15,7 +15,7 @@ class SettingController extends Controller
      */
     public function getSettings()
     {
-        $logo = AppSetting::get('app_logo', 'logo-indraco-est.png');
+        $logo = AppSetting::get('app_logo', 'images/logo_indraco.png');
         $fontSize = AppSetting::get('app_font_size', '14px');
         $appName = AppSetting::get('app_name', 'DMS PT INDRACO');
 
@@ -86,7 +86,7 @@ class SettingController extends Controller
                 'status' => 'success',
                 'message' => 'Pengaturan sistem berhasil disimpan.',
                 'settings' => [
-                    'app_logo' => asset(AppSetting::get('app_logo', 'logo-indraco-est.png')),
+                    'app_logo' => asset(AppSetting::get('app_logo', 'images/logo_indraco.png')),
                     'app_font_size' => AppSetting::get('app_font_size', '14px'),
                     'app_name' => AppSetting::get('app_name', 'DMS PT INDRACO'),
                 ],
@@ -101,7 +101,7 @@ class SettingController extends Controller
      */
     public function resetLogo(Request $request)
     {
-        $defaultLogo = 'logo-indraco-est.png';
+        $defaultLogo = 'images/logo_indraco.png';
         AppSetting::set('app_logo', $defaultLogo, 'appearance', 'image', 'Logo default PT Indraco');
 
         ActivityLogger::log(
