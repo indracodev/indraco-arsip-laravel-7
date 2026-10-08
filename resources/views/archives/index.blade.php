@@ -88,7 +88,7 @@
             </div>
 
             <!-- Department Filter -->
-            <div class="space-y-1">
+            <div class="space-y-1" style="display: none !important;">
                 <label class="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 block">DEPARTEMEN</label>
                 <select name="department_id" class="w-full py-1 px-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition">
                     <option value="">-- Semua Departemen --</option>
