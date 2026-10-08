@@ -106,16 +106,20 @@ Berikut status dan catatan poin lainnya:
   - Endpoint API dropdown/filter departemen yang dibutuhkan PIC Gudang tetap berjalan normal tanpa gangguan.
 - **Point 8:** Gudang GA dan Gudang IT disembunyikan dari canvas 2D, master lokasi, dan dropdown checkin.
 - **Point 9:** Custom kunci ruangan dua arah khusus FAT (departemen non-FAT dilarang masuk FAT, berkas FAT dilarang masuk ruangan lain).
-- **Point 10:** Status expired dibuat merah warning dan animasi berkedip (`animate-warning-blink`).
-- **Point 11:** Kustomisasi & Opsi Nonaktif Notifikasi Ping / Latensi LAN (Pengaturan Super Admin):
+- **Point 10 (SELESAI):** Standardisasi Perhitungan Masa Simpan ($N$ Bulan) & Status Expired:
+  - **Perhitungan Masa Simpan Dinamis:** Setiap berkas dengan masa simpan $N$ bulan dihitung $+N$ bulan penuh ke depan berakhir di tanggal terakhir bulan jatuh tempo (`addMonths($months)->endOfMonth()`).
+  - **Status di Bulan yang Sama:** Dokumen yang berada di bulan jatuh tempo (1 s/d akhir bulan) berstatus **`Jatuh Tempo Bulan Ini / Mendekati Expiry (H-X)`** (kuning/amber) dan belum kadaluarsa.
+  - **Status Expired (Lewat Bulan):** Dokumen baru resmi kadaluarsa setelah melewati tanggal terakhir bulan tersebut (mulai tanggal 1 bulan berikutnya) dengan indikator merah tebal dan animasi berkedip (`animate-warning-blink`).
+- **Point 11 (SELESAI):** Kustomisasi & Opsi Nonaktif Notifikasi Ping / Latensi LAN (Pengaturan Super Admin):
   - **Latar Belakang:** Popup toast "Koneksi LAN Lemot / Lambat" di pojok kanan bawah sering muncul dan dinilai mengganggu / spam dalam pemakaian operasional harian.
+  - **Status Implementasi:** Telah diimplementasikan penuh dan notifikasi dinonaktifkan secara default (`ping_alert_enabled = 0`).
   - **Fitur Baru di Menu Pengaturan (Super Admin):**
     - **Toggle Notifikasi Ping:** Switch untuk Mengaktifkan atau Menonaktifkan seluruh notifikasi popup latensi secara global.
-    - **Ambang Batas Latensi (Threshold ms):** Input angka kustom batas minimal latensi dalam satuan ms agar notifikasi muncul (misal: hanya muncul jika ping >= 500 ms, 1000 ms, atau nilai yang ditentukan Super Admin).
+    - **Ambang Batas Latensi (Threshold ms):** Input angka kustom batas minimal latensi dalam satuan ms agar notifikasi muncul (preset: 250ms, 500ms, 1000ms, 2000ms).
   - **Implementasi Komponen:**
-    - Tambahkan konfigurasi `AppSetting` (`ping_alert_enabled`, `ping_alert_threshold_ms`) melalui `SettingController.php`.
-    - Tambahkan input form di modal pengaturan Super Admin (`resources/views/layouts/app.blade.php`).
-    - Sinkronisasi nilai setting ke `resources/views/layouts/partials/lan_monitor.blade.php` via `AppServiceProvider` sehingga Alpine.js `pingServer()` menaati status aktif/nonaktif dan threshold kustom yang telah ditentukan.
+    - Model & database `AppSetting` (`ping_alert_enabled`, `ping_alert_threshold_ms`) terintegrasi dan dikelola via `SettingController.php`.
+    - Input form pengaturan interaktif ditambahkan pada modal pengaturan Super Admin di `resources/views/layouts/app.blade.php` & `resources/views/layouts/desktop_pic.blade.php`.
+    - Sinkronisasi nilai setting ke `resources/views/layouts/partials/lan_monitor.blade.php` via `AppServiceProvider` & event real-time `lan-settings-updated`, di mana status pop-up ditaati secara akurat oleh `pingServer()`.
 
 ---
 

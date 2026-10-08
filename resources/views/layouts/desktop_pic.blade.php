@@ -85,6 +85,14 @@
             transform-origin: 0% 50%;
             animation: indeterminate-progress 1.5s infinite cubic-bezier(0.65, 0.815, 0.735, 0.395);
         }
+
+        @keyframes warning-blink {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.45; transform: scale(0.98); }
+        }
+        .animate-warning-blink {
+            animation: warning-blink 1.4s ease-in-out infinite;
+        }
     </style>
 </head>
 <body class="h-full bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 p-3 sm:p-4 overflow-y-auto font-sans text-xs">
@@ -138,6 +146,7 @@
 <!DOCTYPE html>
 @php
     $configuredFontSize = config('app.font_size', env('APP_FONT_SIZE', '19px'));
+    $form3BadgeCount = \App\Models\Archive::getForm3PendingCount();
     $lowerFontSize = strtolower($configuredFontSize);
     if (in_array($lowerFontSize, ['small', 'sm'])) {
         $fontSizeScale = '90%';
@@ -653,7 +662,7 @@
             <!-- Profil User & Departemen (Tunggal, Tidak Dobel) -->
             <div class="flex items-center gap-2 border-l border-slate-800 pl-2.5 shrink-0">
                 <div class="text-right hidden sm:block">
-                    <span class="text-xs font-bold text-white block truncate max-w-[140px] leading-tight">{{ auth()->user()->name }}</span>
+                    <span class="text-[10px] font-bold text-white block truncate max-w-[150px] leading-tight">{{ auth()->user()->name }}</span>
                     <span class="text-[10px] text-amber-400 font-mono block leading-tight">PIC DEPT: {{ auth()->user()->department->code ?? 'UMUM' }}</span>
                 </div>
 
@@ -682,6 +691,12 @@
             >
                 <i :data-lucide="form.icon" class="w-3.5 h-3.5" :class="activeWinId === form.id ? 'text-amber-500' : (isWindowOpen(form.id) ? 'text-amber-500/80' : 'text-slate-400')"></i>
                 <span x-text="form.title"></span>
+                <span 
+                    x-show="form.badgeCount && form.badgeCount > 0" 
+                    x-text="form.badgeCount" 
+                    class="ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold leading-none bg-rose-500 text-white shadow-xs animate-pulse"
+                    title="Jumlah Berkas Butuh Tindakan"
+                ></span>
             </button>
         </template>
     </div>
@@ -1138,12 +1153,75 @@
                     </div>
                 </fieldset>
 
-                <!-- SECTION 3: PEMELIHARAAN & RESET DATA (MAINTENANCE) (Super Admin Only) -->
+                <!-- SECTION 3: KUSTOMISASI NOTIFIKASI PING / LATENSI LAN (Super Admin Only) -->
+                @if(auth()->check() && auth()->user()->isSuperAdmin())
+                <fieldset class="border border-sky-500/40 p-3.5 rounded bg-sky-50/40 dark:bg-sky-950/20 space-y-3 shadow-xs font-mono">
+                    <legend class="px-2 font-mono text-[11px] font-bold text-sky-800 dark:text-sky-400 bg-sky-100 dark:bg-slate-800 border border-sky-400 dark:border-sky-700 rounded shadow-sm flex items-center gap-1.5">
+                        <i data-lucide="network" class="w-3.5 h-3.5 text-sky-600"></i>
+                        3. Notifikasi Ping & Latensi LAN (Super Admin)
+                    </legend>
+
+                    <div class="space-y-3 font-sans">
+                        <!-- Toggle Switch -->
+                        <div class="p-3 bg-white dark:bg-slate-950 rounded border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 shadow-2xs">
+                            <div class="space-y-0.5">
+                                <div class="flex items-center gap-2 font-bold text-slate-800 dark:text-slate-200 text-xs">
+                                    <span>Popup Toast Peringatan Latensi</span>
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold"
+                                          :class="pingAlertEnabled ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300' : 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-400 border border-slate-300 dark:border-slate-700'"
+                                          x-text="pingAlertEnabled ? 'Aktif' : 'Nonaktif (Mute)'"></span>
+                                </div>
+                                <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-tight">
+                                    Tampilkan popup peringatan merah di pojok kanan bawah jika koneksi LAN lambat atau terputus.
+                                </p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                                <input type="checkbox" x-model="pingAlertEnabled" class="sr-only peer">
+                                <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-sky-600"></div>
+                            </label>
+                        </div>
+
+                        <!-- Threshold Setting -->
+                        <div class="p-3 bg-white dark:bg-slate-950 rounded border border-slate-200 dark:border-slate-800 space-y-2.5 shadow-2xs">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs">
+                                <div>
+                                    <span class="font-bold text-slate-800 dark:text-slate-200">Ambang Batas Latensi (Threshold ms):</span>
+                                    <p class="text-[11px] text-slate-500 dark:text-slate-400">Peringatan hanya muncul jika latensi LAN melebihi batas ini berturut-turut.</p>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <input 
+                                        type="number" 
+                                        min="50" 
+                                        max="10000" 
+                                        step="50"
+                                        x-model.number="pingAlertThresholdMs" 
+                                        class="w-24 px-2.5 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-800 dark:text-slate-100 text-right focus:outline-none focus:ring-1 focus:ring-sky-500"
+                                    >
+                                    <span class="text-xs font-mono font-bold text-slate-500">ms</span>
+                                </div>
+                            </div>
+
+                            <!-- Presets -->
+                            <div class="flex items-center gap-1.5 pt-1">
+                                <span class="text-[10px] text-slate-400 font-bold uppercase font-mono shrink-0">Preset:</span>
+                                <div class="flex flex-wrap items-center gap-1 font-mono text-[11px]">
+                                    <button type="button" @click="pingAlertThresholdMs = 250" class="px-2 py-0.5 rounded border transition cursor-pointer" :class="pingAlertThresholdMs === 250 ? 'bg-sky-600 text-white border-sky-600' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-slate-200'">250 ms</button>
+                                    <button type="button" @click="pingAlertThresholdMs = 500" class="px-2 py-0.5 rounded border transition cursor-pointer" :class="pingAlertThresholdMs === 500 ? 'bg-sky-600 text-white border-sky-600' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-slate-200'">500 ms (Standar)</button>
+                                    <button type="button" @click="pingAlertThresholdMs = 1000" class="px-2 py-0.5 rounded border transition cursor-pointer" :class="pingAlertThresholdMs === 1000 ? 'bg-sky-600 text-white border-sky-600' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-slate-200'">1000 ms (1 dtk)</button>
+                                    <button type="button" @click="pingAlertThresholdMs = 2000" class="px-2 py-0.5 rounded border transition cursor-pointer" :class="pingAlertThresholdMs === 2000 ? 'bg-sky-600 text-white border-sky-600' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-slate-200'">2000 ms (Longgar)</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </fieldset>
+                @endif
+
+                <!-- SECTION 4: PEMELIHARAAN & RESET DATA (MAINTENANCE) (Super Admin Only) -->
                 @if(auth()->check() && auth()->user()->isSuperAdmin())
                 <fieldset class="border border-rose-500/40 p-3.5 rounded bg-rose-50/30 dark:bg-rose-950/20 space-y-3 shadow-xs font-mono">
                     <legend class="px-2 font-mono text-[11px] font-bold text-rose-800 dark:text-rose-400 bg-rose-100 dark:bg-slate-800 border border-rose-400 dark:border-rose-700 rounded shadow-sm flex items-center gap-1.5">
                         <i data-lucide="shield-alert" class="w-3.5 h-3.5 text-rose-600"></i>
-                        3. Pemeliharaan & Reset Database (Super Admin)
+                        4. Pemeliharaan & Reset Database (Super Admin)
                     </legend>
 
                     <div class="space-y-2.5 text-xs">
@@ -1221,7 +1299,7 @@
                                     <span>Kosongkan Data Pengajuan Box Arsip</span>
                                 </div>
                                 <p class="text-[11px] text-slate-500 dark:text-slate-400 font-sans">
-                                    Menghapus seluruh pengajuan box berkas arsip, butir item, histori peminjaman & pemusnahan secara permanen.
+                                    Menghapus seluruh pengajuan box berkas arsip, butir item, histori penarikan & pemusnahan secara permanen.
                                 </p>
                             </div>
                             <button 
@@ -1276,6 +1354,8 @@
                 appLogoUrl: @json($globalAppLogo ?? asset('images/logo_indraco.png')),
                 currentFontSize: localStorage.getItem('app_font_size') || '{{ $globalAppFontSize ?? "19px" }}',
                 tempFontSize: localStorage.getItem('app_font_size') || '{{ $globalAppFontSize ?? "19px" }}',
+                pingAlertEnabled: @json($globalPingAlertEnabled ?? false),
+                pingAlertThresholdMs: {{ (int) ($globalPingAlertThresholdMs ?? 500) }},
                 newLogoFile: null,
                 newLogoPreview: null,
                 settingsSaving: false,
@@ -1310,6 +1390,7 @@
                         id: 'destructions', 
                         title: '[Form 3] Pengajuan Perpanjangan & Pemusnahan', 
                         icon: 'shield-alert', 
+                        badgeCount: {{ (int) $form3BadgeCount }},
                         url: '{{ route("destructions.index") }}?embed=1' 
                     },
                     { 
@@ -1344,8 +1425,15 @@
                         }
                     });
 
-                    // Listen to cross-frame toast notifications from forms in iframes
+                    // Listen to cross-frame toast notifications and badge updates from forms in iframes
                     window.addEventListener('message', (event) => {
+                        if (event.data && event.data.type === 'UPDATE_FORM_BADGE') {
+                            const target = this.availableForms.find(f => f.id === event.data.formId);
+                            if (target) {
+                                target.badgeCount = parseInt(event.data.count) || 0;
+                            }
+                            return;
+                        }
                         if (event.data && event.data.type === 'DMS_TOAST_NOTIF') {
                             const d = event.data;
                             const toastId = 'toast_msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
@@ -1868,6 +1956,8 @@
                         formData.append('logo', this.newLogoFile);
                     }
                     formData.append('font_size', this.tempFontSize);
+                    formData.append('ping_alert_enabled', this.pingAlertEnabled ? '1' : '0');
+                    formData.append('ping_alert_threshold_ms', this.pingAlertThresholdMs);
 
                     fetch('{{ route("master.settings.update") }}', {
                         method: 'POST',
@@ -1883,11 +1973,23 @@
                         if (data.settings && data.settings.app_logo) {
                             this.appLogoUrl = data.settings.app_logo;
                         }
+                        if (data.settings && typeof data.settings.ping_alert_enabled !== 'undefined') {
+                            this.pingAlertEnabled = !!data.settings.ping_alert_enabled;
+                        }
+                        if (data.settings && data.settings.ping_alert_threshold_ms) {
+                            this.pingAlertThresholdMs = parseInt(data.settings.ping_alert_threshold_ms);
+                        }
+                        window.dispatchEvent(new CustomEvent('lan-settings-updated', {
+                            detail: {
+                                pingAlertEnabled: this.pingAlertEnabled,
+                                pingAlertThresholdMs: this.pingAlertThresholdMs
+                            }
+                        }));
                         this.currentFontSize = this.tempFontSize;
                         localStorage.setItem('app_font_size', this.currentFontSize);
                         this.applyFontSizeLive(this.currentFontSize);
                         this.openSettingsModal = false;
-                        alert(data.message || 'Pengaturan tampilan berhasil disimpan.');
+                        alert(data.message || 'Pengaturan sistem berhasil disimpan.');
                     })
                     .catch(err => {
                         console.error(err);
@@ -1988,7 +2090,7 @@
                 async clearArchivesAction() {
                     const ok = await window.showConfirmModal({
                         title: 'Hapus Seluruh Data Pengajuan Arsip',
-                        message: 'PERINGATAN KRUSIAL: Apakah Anda yakin ingin MENGOSONGKAN SELURUH DATA PENGAJUAN BOX ARSIP? Seluruh arsip, butir dokumen, dan riwayat transaksi peminjaman/pemusnahan akan DIHAPUS PERMANEN!',
+                        message: 'PERINGATAN KRUSIAL: Apakah Anda yakin ingin MENGOSONGKAN SELURUH DATA PENGAJUAN BOX ARSIP? Seluruh arsip, butir dokumen, dan riwayat transaksi penarikan/pemusnahan akan DIHAPUS PERMANEN!',
                         type: 'danger',
                         confirmText: 'Lanjutkan Verifikasi'
                     });

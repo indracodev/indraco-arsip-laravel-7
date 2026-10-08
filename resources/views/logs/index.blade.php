@@ -90,7 +90,7 @@
             </a>
 
             <a href="{{ route('logs.index', ['tab' => 'borrowing']) }}" class="px-4 py-2.5 text-xs font-bold rounded-t-xl transition flex items-center gap-2 whitespace-nowrap {{ $tab === 'borrowing' ? 'bg-purple-500/10 text-purple-700 dark:text-purple-400 border-b-2 border-purple-500 font-black' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white' }}">
-                <i data-lucide="file-symlink" class="w-4 h-4 text-purple-500"></i> Log Peminjaman Dokumen
+                <i data-lucide="file-symlink" class="w-4 h-4 text-purple-500"></i> Log Penarikan Dokumen
             </a>
 
             <a href="{{ route('logs.index', ['tab' => 'destruction']) }}" class="px-4 py-2.5 text-xs font-bold rounded-t-xl transition flex items-center gap-2 whitespace-nowrap {{ $tab === 'destruction' ? 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border-b-2 border-rose-500 font-black' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white' }}">
@@ -372,10 +372,10 @@
                 <table class="w-full text-left border-collapse">
                     <thead>
                         <tr class="border-b border-slate-200 dark:border-slate-800 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                            <th class="py-3 px-4">Tgl Pinjam / Pengembalian</th>
+                            <th class="py-3 px-4">Tgl Tarik / Selesai</th>
                             <th class="py-3 px-4">No. Box & Judul Berkas</th>
-                            <th class="py-3 px-4">Peminjam</th>
-                            <th class="py-3 px-4">Tujuan Peminjaman</th>
+                            <th class="py-3 px-4">Pemohon</th>
+                            <th class="py-3 px-4">Tujuan Penarikan</th>
                             <th class="py-3 px-4">Status</th>
                             <th class="py-3 px-4">Verifikasi Gudang</th>
                         </tr>
@@ -407,7 +407,7 @@
                             </td>
                         </tr>
                         @empty
-                        <tr><td colspan="6" class="py-8 text-center text-slate-500">Belum ada data log peminjaman.</td></tr>
+                        <tr><td colspan="6" class="py-8 text-center text-slate-500">Belum ada data log penarikan.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

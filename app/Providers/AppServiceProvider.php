@@ -54,12 +54,17 @@ class AppServiceProvider extends ServiceProvider
                 $appLogo = 'images/logo_indraco.png';
                 $appFontSize = '14px';
                 $appName = 'DMS PT INDRACO';
+                $pingAlertEnabled = false;
+                $pingAlertThresholdMs = 500;
 
                 if (Schema::hasTable('app_settings')) {
                     try {
                         $appLogo = AppSetting::get('app_logo', 'images/logo_indraco.png');
                         $appFontSize = AppSetting::get('app_font_size', '14px');
                         $appName = AppSetting::get('app_name', 'DMS PT INDRACO');
+                        $rawPingAlert = AppSetting::get('ping_alert_enabled', '0');
+                        $pingAlertEnabled = in_array($rawPingAlert, [1, '1', true, 'true'], true);
+                        $pingAlertThresholdMs = (int) AppSetting::get('ping_alert_threshold_ms', 500);
                     } catch (\Exception $e) {
                         // Fallback to default
                     }
@@ -70,6 +75,8 @@ class AppServiceProvider extends ServiceProvider
                     'globalAppLogoRaw' => $appLogo,
                     'globalAppFontSize' => $appFontSize,
                     'globalAppName' => $appName,
+                    'globalPingAlertEnabled' => $pingAlertEnabled,
+                    'globalPingAlertThresholdMs' => $pingAlertThresholdMs,
                 ];
             }
 

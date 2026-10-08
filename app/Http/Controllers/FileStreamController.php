@@ -75,46 +75,58 @@ class FileStreamController extends Controller
      */
     public function previewStream(Request $request)
     {
-        $token = $request->query('token') ?: $request->query('path');
+        $token = $request->input('token') ?: $request->input('path') ?: $request->query('token') ?: $request->query('path');
         if (empty($token)) {
-            abort(400, 'Parameter token atau path diperlukan.');
+            return response()->json([
+                'success' => false,
+                'message' => 'Parameter token atau path diperlukan.'
+            ], 400);
         }
 
         $cleanPath = $this->sanitizeFilePath($token);
 
         if (str_contains($cleanPath, '..')) {
-            abort(403, 'Akses ke direktori tidak diizinkan.');
+            return response()->json([
+                'success' => false,
+                'message' => 'Akses ke direktori tidak diizinkan.'
+            ], 403);
         }
 
         $candidates = $this->resolveCandidates($cleanPath);
+        $foundPath = null;
 
         foreach ($candidates as $filePath) {
             if (!empty($filePath) && file_exists($filePath) && is_file($filePath)) {
-                return response()->file($filePath, [
-                    'Content-Type' => 'application/octet-stream',
-                    'Content-Disposition' => 'inline; filename="preview_stream.dat"',
-                    'Cache-Control' => 'no-cache, no-store, must-revalidate',
-                    'Pragma' => 'no-cache',
-                    'Expires' => '0',
-                    'X-Content-Type-Options' => 'nosniff',
-                ]);
+                $foundPath = $filePath;
+                break;
             }
         }
 
         // Fallback demo sample PDF if available
-        $samplePdf = public_path('storage/archive_scans/DROyzZvBon46BrUTLA37Gi1KPZYcWI2CxkvFbMLY.pdf');
-        if (file_exists($samplePdf)) {
-            return response()->file($samplePdf, [
-                'Content-Type' => 'application/octet-stream',
-                'Content-Disposition' => 'inline; filename="preview_stream.dat"',
-                'Cache-Control' => 'no-cache, no-store, must-revalidate',
-                'Pragma' => 'no-cache',
-                'Expires' => '0',
-                'X-Content-Type-Options' => 'nosniff',
-            ]);
+        if (!$foundPath) {
+            $samplePdf = public_path('storage/archive_scans/DROyzZvBon46BrUTLA37Gi1KPZYcWI2CxkvFbMLY.pdf');
+            if (file_exists($samplePdf)) {
+                $foundPath = $samplePdf;
+            }
         }
 
-        abort(404, 'File pratinjau fisik tidak ditemukan di server penyimpanan (' . htmlspecialchars(basename($cleanPath)) . ').');
+        if (!$foundPath) {
+            return response()->json([
+                'success' => false,
+                'message' => 'File pratinjau fisik tidak ditemukan di server (' . htmlspecialchars(basename($cleanPath)) . ').'
+            ], 404);
+        }
+
+        $fileContent = file_get_contents($foundPath);
+        $base64 = base64_encode($fileContent);
+
+        return response()->json([
+            'success' => true,
+            'filename' => basename($foundPath),
+            'mime' => $this->detectMimeType($foundPath),
+            'size' => strlen($fileContent),
+            'data' => $base64,
+        ]);
     }
 
     /**

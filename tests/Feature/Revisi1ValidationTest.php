@@ -23,11 +23,12 @@ class Revisi1ValidationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->withoutMiddleware(\App\Http\Middleware\VerifyCsrfToken::class);
 
-        $this->adminUser = User::first() ?? User::factory()->create([
-            'role' => 'admin',
-            'username' => 'admin_test'
-        ]);
+        $this->adminUser = User::firstOrCreate(
+            ['email' => 'admin_test@indraco.com'],
+            ['name' => 'Super Admin Test', 'password' => bcrypt('password'), 'role' => 'admin']
+        );
     }
 
     /** @test */
@@ -118,6 +119,7 @@ class Revisi1ValidationTest extends TestCase
         $payload = [
             'department_id' => $dept->id,
             'company_name' => 'PT INDRACO JAYA',
+            'title' => 'Box Arsip Operasional',
             'document_type' => 'Operasional',
             'tgl_penyerahan' => '2026-09-25',
             'physical_condition' => 'Baik / Box Karton Standar TB 30g',
@@ -165,13 +167,13 @@ class Revisi1ValidationTest extends TestCase
             'company_name' => 'PT INDRACO GLOBAL INDONESIA',
             'document_type' => 'KEUANGAN',
             'title' => 'Berkas Bulanan 1 Bln',
-            'tgl_penyerahan' => '2026-10-08',
+            'tgl_penyerahan' => '2026-09-08',
             'periode' => '1 Bulan',
             'physical_condition' => 'Baik',
             'submit_action' => 'draft',
             'items' => [
                 [
-                    'document_name' => 'Kwitansi Transaksi Oktober',
+                    'document_name' => 'Kwitansi Transaksi September',
                     'notes' => 'Asli'
                 ]
             ]
@@ -187,7 +189,7 @@ class Revisi1ValidationTest extends TestCase
         $this->assertEquals('1 Bulan', $archive->retention_display);
         $this->assertEquals('1 Bulan', $archive->retention_duration_label);
 
-        // 2. Expiry date harus jatuh pada tanggal terakhir di bulan expiry (2026-10-31)
+        // 2. Expiry date harus jatuh pada tanggal terakhir di bulan berikutnya (2026-10-31)
         $this->assertEquals('2026-10-31', \Carbon\Carbon::parse($archive->retention_expiry_date)->format('Y-m-d'));
 
         // 3. Formatted expiry date di UI tanpa tanggal (M Y)
@@ -198,6 +200,10 @@ class Revisi1ValidationTest extends TestCase
         $h30Threshold = $expiryEndOfMonth->copy()->subDays(30)->startOfDay();
         $this->assertEquals('2026-10-01', $h30Threshold->format('Y-m-d'));
         $this->assertTrue(\Carbon\Carbon::parse('2026-10-08')->gte($h30Threshold));
+
+        // 5. Verifikasi status expiry: di tanggal 8 Okt 2026 belum kadaluarsa, baru kadaluarsa di 1 Nov 2026
+        $this->assertFalse(\Carbon\Carbon::parse('2026-10-08')->gt($expiryEndOfMonth));
+        $this->assertTrue(\Carbon\Carbon::parse('2026-11-01')->gt($expiryEndOfMonth));
     }
 
     /** @test */
@@ -205,19 +211,26 @@ class Revisi1ValidationTest extends TestCase
     {
         $this->actingAs($this->adminUser);
 
-        // Buat dummy PDF di disk public
-        Storage::disk('public')->put('archive_scans/test_anti_idm.pdf', '%PDF-1.4 test content');
+        // Buat dummy PDF di public_path storage
+        $testFile = public_path('storage/archive_scans/test_anti_idm.pdf');
+        if (!file_exists(dirname($testFile))) {
+            @mkdir(dirname($testFile), 0777, true);
+        }
+        file_put_contents($testFile, '%PDF-1.4 test content');
 
         $token = base64_encode('archive_scans/test_anti_idm.pdf');
         $response = $this->get('/files/preview-stream?token=' . urlencode($token));
-
         $response->assertStatus(200);
-        // Header harus application/octet-stream dan generic preview filename agar IDM tidak mencegat
-        $response->assertHeader('Content-Type', 'application/octet-stream');
-        $this->assertStringContainsString('preview_stream.dat', $response->headers->get('Content-Disposition'));
+        $response->assertJson([
+            'success' => true,
+            'filename' => 'test_anti_idm.pdf',
+            'mime' => 'application/pdf',
+        ]);
 
         // Cleanup
-        Storage::disk('public')->delete('archive_scans/test_anti_idm.pdf');
+        if (file_exists($testFile)) {
+            @unlink($testFile);
+        }
     }
 }
 

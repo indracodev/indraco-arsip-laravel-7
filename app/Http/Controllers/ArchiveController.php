@@ -74,11 +74,12 @@ class ArchiveController extends Controller
             if ($request->expiry_filter === 'expiring_soon') {
                 $query->whereNotNull('retention_expiry_date')
                       ->where('status', '!=', 'destroyed')
+                      ->whereDate('retention_expiry_date', '>=', Carbon::today())
                       ->whereDate('retention_expiry_date', '<=', Carbon::now()->addDays(90));
             } elseif ($request->expiry_filter === 'expired') {
                 $query->whereNotNull('retention_expiry_date')
                       ->where('status', '!=', 'destroyed')
-                      ->whereDate('retention_expiry_date', '<', Carbon::now());
+                      ->whereDate('retention_expiry_date', '<', Carbon::today());
             }
         }
 
@@ -103,6 +104,9 @@ class ArchiveController extends Controller
         }]);
         if (!$isSuperAdmin) {
             $deptQuery->where('is_active', true);
+        }
+        if ($user && $user->isPicDept()) {
+            $deptQuery->where('id', $user->department_id);
         }
         $departments = $deptQuery->get();
 
@@ -179,7 +183,7 @@ class ArchiveController extends Controller
             $isMonthsPeriod = true;
             $periodMonthsCount = (int) $matches[1];
             $startDate = $tglPenyerahan->copy()->startOfMonth();
-            $endDate = $tglPenyerahan->copy()->startOfMonth()->addMonths($periodMonthsCount - 1)->endOfMonth();
+            $endDate = $tglPenyerahan->copy()->startOfMonth()->addMonths($periodMonthsCount)->endOfMonth();
             $formattedPeriodDoc = "{$periodMonthsCount} Bulan";
             $periodText = !empty($validated['period_text']) ? $validated['period_text'] : "{$periodMonthsCount} Bulan (s/d " . $endDate->isoFormat('MMMM Y') . ")";
         } elseif (preg_match('/^(\d{4}\/(?:0[1-9]|1[0-2]))\s*(?:-|s\/d|hingga|to)\s*(\d{4}\/(?:0[1-9]|1[0-2]))$/i', $rawPeriod, $matches)) {
@@ -514,7 +518,7 @@ class ArchiveController extends Controller
             $isMonthsPeriod = true;
             $periodMonthsCount = (int) $matches[1];
             $startDate = $tglPenyerahan->copy()->startOfMonth();
-            $endDate = $tglPenyerahan->copy()->startOfMonth()->addMonths($periodMonthsCount - 1)->endOfMonth();
+            $endDate = $tglPenyerahan->copy()->startOfMonth()->addMonths($periodMonthsCount)->endOfMonth();
             $formattedPeriodDoc = "{$periodMonthsCount} Bulan";
             $periodText = !empty($validated['period_text']) ? $validated['period_text'] : "{$periodMonthsCount} Bulan (s/d " . $endDate->isoFormat('MMMM Y') . ")";
         } elseif (preg_match('/^(\d{4}\/(?:0[1-9]|1[0-2]))\s*(?:-|s\/d|hingga|to)\s*(\d{4}\/(?:0[1-9]|1[0-2]))$/i', $rawPeriod, $matches)) {

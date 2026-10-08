@@ -707,4 +707,18 @@ class DashboardController extends Controller
                 return ucfirst($status);
         }
     }
+
+    public function manifestJson()
+    {
+        $manifestPath = public_path('manifest.json');
+        if (file_exists($manifestPath)) {
+            return response()->file($manifestPath, ['Content-Type' => 'application/manifest+json; charset=utf-8']);
+        }
+        return response()->json([
+            'name' => 'DMS PT Indraco - Sistem Pengarsipan & Gudang',
+            'short_name' => 'Indraco DMS',
+            'start_url' => '/',
+            'display' => 'standalone',
+        ]);
+    }
 }

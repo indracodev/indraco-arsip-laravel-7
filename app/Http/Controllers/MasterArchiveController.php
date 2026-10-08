@@ -216,7 +216,9 @@ class MasterArchiveController extends Controller
         }
 
         if (!empty($batchToInsert)) {
-            MasterArchive::insert($batchToInsert);
+            foreach (array_chunk($batchToInsert, 100) as $chunk) {
+                MasterArchive::insert($chunk);
+            }
         }
         $createdCount = count($batchToInsert);
 

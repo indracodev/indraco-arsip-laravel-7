@@ -18,6 +18,8 @@ class SettingController extends Controller
         $logo = AppSetting::get('app_logo', 'images/logo_indraco.png');
         $fontSize = AppSetting::get('app_font_size', '14px');
         $appName = AppSetting::get('app_name', 'DMS PT INDRACO');
+        $pingAlertEnabled = in_array(AppSetting::get('ping_alert_enabled', '0'), [1, '1', true, 'true'], true);
+        $pingAlertThresholdMs = (int) AppSetting::get('ping_alert_threshold_ms', 500);
 
         return response()->json([
             'status' => 'success',
@@ -26,12 +28,14 @@ class SettingController extends Controller
                 'app_logo_raw' => $logo,
                 'app_font_size' => $fontSize,
                 'app_name' => $appName,
+                'ping_alert_enabled' => $pingAlertEnabled,
+                'ping_alert_threshold_ms' => $pingAlertThresholdMs,
             ],
         ]);
     }
 
     /**
-     * Update application settings (Logo upload & Font size).
+     * Update application settings (Logo upload, Font size & LAN Ping alert).
      */
     public function updateSettings(Request $request)
     {
@@ -39,6 +43,8 @@ class SettingController extends Controller
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
             'font_size' => 'nullable|string|max:20',
             'app_name' => 'nullable|string|max:100',
+            'ping_alert_enabled' => 'nullable|in:0,1,true,false',
+            'ping_alert_threshold_ms' => 'nullable|integer|min:50|max:10000',
         ]);
 
         $updated = [];
@@ -74,9 +80,22 @@ class SettingController extends Controller
             $updated['app_name'] = $appName;
         }
 
+        // Handle LAN Ping Alert Notification Settings
+        if ($request->has('ping_alert_enabled')) {
+            $pingAlertVal = in_array($request->input('ping_alert_enabled'), [1, '1', true, 'true'], true) ? '1' : '0';
+            AppSetting::set('ping_alert_enabled', $pingAlertVal, 'system', 'boolean', 'Status aktifkan notifikasi peringatan latensi LAN');
+            $updated['ping_alert_enabled'] = $pingAlertVal === '1';
+        }
+
+        if ($request->filled('ping_alert_threshold_ms')) {
+            $threshold = (int) $request->input('ping_alert_threshold_ms');
+            AppSetting::set('ping_alert_threshold_ms', (string) $threshold, 'system', 'integer', 'Ambang batas latensi LAN (ms) untuk memicu peringatan');
+            $updated['ping_alert_threshold_ms'] = $threshold;
+        }
+
         ActivityLogger::log(
             'SYSTEM_SETTINGS_UPDATE',
-            "Memperbarui pengaturan sistem tampilan (Logo / Font Size).",
+            "Memperbarui pengaturan sistem tampilan dan jaringan.",
             'SETTINGS',
             $updated
         );
@@ -89,6 +108,8 @@ class SettingController extends Controller
                     'app_logo' => asset(AppSetting::get('app_logo', 'images/logo_indraco.png')),
                     'app_font_size' => AppSetting::get('app_font_size', '14px'),
                     'app_name' => AppSetting::get('app_name', 'DMS PT INDRACO'),
+                    'ping_alert_enabled' => in_array(AppSetting::get('ping_alert_enabled', '0'), [1, '1', true, 'true'], true),
+                    'ping_alert_threshold_ms' => (int) AppSetting::get('ping_alert_threshold_ms', 500),
                 ],
             ]);
         }

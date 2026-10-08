@@ -31,7 +31,7 @@ class DestructionController extends Controller
             } elseif (!empty($arc->periode_doc) && preg_match('/^(\d+)\s*(?:bulan|bln)/i', $arc->periode_doc, $m)) {
                 $months = (int)$m[1];
                 $base = $arc->tgl_penyerahan ? Carbon::parse($arc->tgl_penyerahan) : Carbon::parse($arc->created_at);
-                $periodEnd = $base->copy()->startOfMonth()->addMonths($months - 1)->endOfMonth();
+                $periodEnd = $base->copy()->startOfMonth()->addMonths($months)->endOfMonth();
             } elseif (!empty($arc->periode_doc) && preg_match('/(\d{4})[\/\-](\d{1,2})/i', $arc->periode_doc, $m)) {
                 $periodEnd = Carbon::createFromDate((int)$m[1], (int)$m[2], 1)->endOfMonth();
             } elseif ($arc->retention_expiry_date) {
@@ -67,7 +67,7 @@ class DestructionController extends Controller
             } elseif (!empty($arc->periode_doc) && preg_match('/^(\d+)\s*(?:bulan|bln)/i', $arc->periode_doc, $m)) {
                 $months = (int)$m[1];
                 $base = $arc->tgl_penyerahan ? Carbon::parse($arc->tgl_penyerahan) : Carbon::parse($arc->created_at);
-                $periodEnd = $base->copy()->startOfMonth()->addMonths($months - 1)->endOfMonth();
+                $periodEnd = $base->copy()->startOfMonth()->addMonths($months)->endOfMonth();
             } elseif (!empty($arc->periode_doc) && preg_match('/(\d{4})[\/\-](\d{1,2})/i', $arc->periode_doc, $m)) {
                 $periodEnd = Carbon::createFromDate((int)$m[1], (int)$m[2], 1)->endOfMonth();
             } elseif ($arc->retention_expiry_date) {
@@ -92,6 +92,10 @@ class DestructionController extends Controller
                 'id' => $arc->id,
                 'box_number' => $arc->box_number,
                 'title' => $arc->effective_title ?? $arc->title,
+                'file_path' => $arc->file_path ? app_storage_url($arc->file_path) : null,
+                'preview_stream_url' => $arc->file_path ? app_preview_stream_url($arc->file_path) : null,
+                'raw_file_path' => $arc->file_path,
+                'file_extension' => $arc->file_path ? strtolower(pathinfo($arc->file_path, PATHINFO_EXTENSION)) : null,
                 'department' => $arc->department,
                 'sub_department' => $arc->subDepartment,
                 'location' => $arc->location,
@@ -106,7 +110,7 @@ class DestructionController extends Controller
                 'status' => $arc->status,
                 'diff_days' => $diffDays,
                 'is_expired' => $diffDays < 0,
-                'badge_text' => $diffDays < 0 ? 'Lewat ' . abs($diffDays) . ' Hari' : ($diffDays === 0 ? 'Hari Ini Jatuh Tempo' : 'Sisa ' . $diffDays . ' Hari (H-30)'),
+                'badge_text' => $diffDays < 0 ? 'Lewat ' . abs($diffDays) . ' Hari' : ($diffDays === 0 ? 'Hari Ini Jatuh Tempo' : 'Jatuh Tempo Bulan Ini (Sisa ' . $diffDays . ' Hari)'),
             ];
         })->sortBy('diff_days')->values();
 
@@ -206,8 +210,17 @@ class DestructionController extends Controller
         }
 
         // Fetch candidate archives for search autocomplete (status tersimpan di gudang / antrean pemusnahan)
-        $archivesQuery = Archive::with(['department', 'subDepartment', 'location.warehouse', 'rackSlot'])
-            ->where('status', '!=', 'destroyed');
+        $archivesQuery = Archive::select(
+            'id', 'archive_code', 'title', 'box_number', 'department_id',
+            'sub_department_id', 'warehouse_location_id', 'warehouse_rack_slot_id',
+            'retention_expiry_date', 'status', 'periode_doc', 'retention_years'
+        )->with([
+            'department:id,name,code',
+            'subDepartment:id,name',
+            'location:id,name,warehouse_id',
+            'location.warehouse:id,name',
+            'rackSlot:id,slot_name'
+        ])->where('status', '!=', 'destroyed');
 
         if ($user->isPicDept()) {
             $archivesQuery->where('department_id', $user->department_id);
@@ -379,8 +392,17 @@ class DestructionController extends Controller
         }
 
         // Fetch candidate archives for search autocomplete (status tersimpan di gudang / antrean pemusnahan)
-        $archivesQuery = Archive::with(['department', 'subDepartment', 'location.warehouse', 'rackSlot'])
-            ->where('status', '!=', 'destroyed');
+        $archivesQuery = Archive::select(
+            'id', 'archive_code', 'title', 'box_number', 'department_id',
+            'sub_department_id', 'warehouse_location_id', 'warehouse_rack_slot_id',
+            'retention_expiry_date', 'status', 'periode_doc', 'retention_years'
+        )->with([
+            'department:id,name,code',
+            'subDepartment:id,name',
+            'location:id,name,warehouse_id',
+            'location.warehouse:id,name',
+            'rackSlot:id,slot_name'
+        ])->where('status', '!=', 'destroyed');
 
         if ($user->isPicDept()) {
             $archivesQuery->where('department_id', $user->department_id);

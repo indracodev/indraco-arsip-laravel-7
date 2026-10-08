@@ -89,6 +89,7 @@
         {{-- Action Buttons --}}
         <div class="mt-6 flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100 dark:border-slate-800">
             <button type="button" 
+                    x-show="cancelText"
                     @click="cancel()"
                     class="px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition"
                     x-text="cancelText">
@@ -125,7 +126,7 @@
                 this.message = detail.message || 'Apakah Anda yakin ingin melanjutkan tindakan ini?';
                 this.type = detail.type || 'danger';
                 this.confirmText = detail.confirmText || (this.type === 'danger' ? 'Ya, Hapus' : 'Ya, Lanjutkan');
-                this.cancelText = detail.cancelText || 'Batal';
+                this.cancelText = detail.cancelText !== undefined ? detail.cancelText : 'Batal';
                 this.resolveCallback = detail.resolve || null;
                 this.isOpen = true;
             },
@@ -156,6 +157,29 @@
             }));
         });
     };
+
+    // Global Javascript Helper for Alert/Notifications (PROJECT_RULES 6.3)
+    window.showNotificationModal = function(optionsOrMsg, title, type) {
+        var opts = {};
+        if (typeof optionsOrMsg === 'string') {
+            opts = {
+                title: title || 'Pemberitahuan Sistem',
+                message: optionsOrMsg,
+                type: type || 'warning',
+                confirmText: 'Mengerti',
+                cancelText: false
+            };
+        } else {
+            opts = Object.assign({
+                title: 'Pemberitahuan Sistem',
+                type: 'warning',
+                confirmText: 'Mengerti',
+                cancelText: false
+            }, optionsOrMsg || {});
+        }
+        return window.showConfirmModal(opts);
+    };
+    window.showAlertModal = window.showNotificationModal;
 
     // Unobtrusive Global Click Delegator for data-confirm attributes
     document.addEventListener('click', function(e) {

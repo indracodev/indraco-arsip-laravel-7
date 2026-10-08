@@ -21,21 +21,10 @@ Route::middleware('diagnostics.auth')->group(function () {
 });
 
 // File Streaming & Storage Link Fix (Point 5 - accessible by image tags and iframes)
-Route::get('/files/preview-stream', 'FileStreamController@previewStream')->name('files.preview_stream');
+Route::match(['get', 'post'], '/files/preview-stream', 'FileStreamController@previewStream')->name('files.preview_stream');
 Route::get('/files/stream/{path}', 'FileStreamController@stream')->where('path', '.*')->name('files.stream');
 Route::get('/storage/files/{path}', 'FileStreamController@stream')->where('path', '.*')->name('storage.files');
-Route::get('/manifest.json', function () {
-    $manifestPath = public_path('manifest.json');
-    if (file_exists($manifestPath)) {
-        return response()->file($manifestPath, ['Content-Type' => 'application/manifest+json; charset=utf-8']);
-    }
-    return response()->json([
-        'name' => 'DMS PT Indraco - Sistem Pengarsipan & Gudang',
-        'short_name' => 'Indraco DMS',
-        'start_url' => '/',
-        'display' => 'standalone',
-    ]);
-});
+Route::get('/manifest.json', 'DashboardController@manifestJson')->name('manifest.json');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', 'AuthController@showLogin')->name('login');
@@ -79,6 +68,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/borrowings/{borrowing}/approve', 'BorrowingController@approve')->name('borrowings.approve');
     Route::post('/borrowings/{borrowing}/dispatch', 'BorrowingController@dispatch')->name('borrowings.dispatch');
     Route::post('/borrowings/{borrowing}/return', 'BorrowingController@returnArchive')->name('borrowings.return');
+    Route::put('/borrowings/{borrowing}', 'BorrowingController@update')->name('borrowings.update');
 
     // Retention Expiry & Destruction Workflow
     Route::get('/destructions', 'DestructionController@index')->name('destructions.index');

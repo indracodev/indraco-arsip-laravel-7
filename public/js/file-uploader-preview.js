@@ -290,6 +290,7 @@ function dmsFileUploader(config) {
             const isPdf = this.fileCategory === 'pdf' || (this.fileName && this.fileName.toLowerCase().endsWith('.pdf'));
             const payload = {
                 url: this.fileUrl,
+                file: this.file,
                 name: this.fileName,
                 ext: isPdf ? 'pdf' : (this.fileName ? this.fileName.split('.').pop().toLowerCase() : 'jpg'),
                 type: isPdf ? 'pdf' : 'image',

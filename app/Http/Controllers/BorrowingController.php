@@ -13,7 +13,15 @@ class BorrowingController extends Controller
     {
         $user = auth()->user();
 
-        $query = BorrowingLog::with(['archive.department', 'borrower', 'picGudang', 'departmentApprovedBy']);
+        $query = BorrowingLog::with([
+            'archive.department',
+            'archive.subDepartment',
+            'archive.items',
+            'archive.location.warehouse',
+            'borrower',
+            'picGudang',
+            'departmentApprovedBy'
+        ]);
 
         if ($user->isPicDept()) {
             $query->where('borrower_user_id', $user->id);
@@ -61,7 +69,17 @@ class BorrowingController extends Controller
         $user = auth()->user();
 
         // Get archives available for borrowing (status in_warehouse)
-        $archivesQuery = Archive::with(['department', 'subDepartment', 'location.warehouse', 'rackSlot'])->where('status', 'in_warehouse');
+        $archivesQuery = Archive::select(
+            'id', 'archive_code', 'title', 'department_id', 'sub_department_id',
+            'warehouse_location_id', 'warehouse_rack_slot_id', 'box_number',
+            'retention_expiry_date', 'status'
+        )->with([
+            'department:id,name,code',
+            'subDepartment:id,name',
+            'location:id,name,warehouse_id',
+            'location.warehouse:id,name',
+            'rackSlot:id,slot_name'
+        ])->where('status', 'in_warehouse');
 
         if ($user->isPicDept()) {
             $archivesQuery->where('department_id', $user->department_id);
@@ -290,5 +308,53 @@ class BorrowingController extends Controller
 
         return redirect()->route('borrowings.index')
             ->with('success', 'Pengembalian berkas dikonfirmasi! Status arsip kembali "Tersimpan di Gudang".');
+    }
+
+    public function update(BorrowingLog $borrowing, Request $request)
+    {
+        $user = auth()->user();
+
+        // Check permission: superadmin/admin, or borrower / pic dept
+        if (!$user->isSuperAdmin() && !$user->isAdmin() && (int)$borrowing->borrower_user_id !== (int)$user->id) {
+            abort(403, 'Anda tidak memiliki hak akses untuk mengubah pengajuan penarikan ini.');
+        }
+
+        $validated = $request->validate([
+            'purpose' => 'required|string|max:500',
+            'expected_return_date' => 'nullable|date',
+            'approval_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
+        ]);
+
+        $isPermanent = $request->has('is_permanent') || empty($validated['expected_return_date']);
+        $expectedReturnDate = $isPermanent ? null : $validated['expected_return_date'];
+
+        $updateData = [
+            'purpose' => $validated['purpose'],
+            'expected_return_date' => $expectedReturnDate,
+        ];
+
+        if ($request->hasFile('approval_file')) {
+            $approvalPath = $request->file('approval_file')->store('borrowing_approvals', 'public');
+            $updateData['approval_file'] = $approvalPath;
+            $updateData['scan_approval_borrow'] = $approvalPath;
+            $updateData['is_approval_uploaded'] = true;
+        }
+
+        $borrowing->update($updateData);
+
+        ActivityLogger::log(
+            'BORROW_UPDATE',
+            "Pembaruan data penarikan berkas '{$borrowing->archive->title}' (Box: {$borrowing->archive->box_number}) oleh {$user->name}",
+            'PENARIKAN_BERKAS',
+            [
+                'borrowing_id' => $borrowing->id,
+                'box_number' => $borrowing->archive->box_number,
+                'purpose' => $validated['purpose'],
+            ],
+            $borrowing->archive->box_number
+        );
+
+        return redirect()->back()
+            ->with('success', 'Data pengajuan penarikan berkas dan kelengkapan dokumen berhasil diperbarui.');
     }
 }

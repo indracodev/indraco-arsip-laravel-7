@@ -613,7 +613,7 @@
                                                     location: {{ json_encode($archive->display_location) }}
                                                 })"
                                                 class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-800 dark:text-emerald-300 border border-emerald-500/50 inline-flex items-center gap-1 transition shadow-xs cursor-pointer hover:scale-105 group"
-                                                title="Klik untuk proses pengeluaran berkas / ubah status keluar (Out / Dipinjam / Diambil)"
+                                                title="Klik untuk proses pengeluaran berkas / ubah status keluar (Out / Ditarik)"
                                             >
                                                 <i data-lucide="log-out" class="w-3 h-3 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform"></i>
                                                 <span class="underline decoration-dotted underline-offset-2">Tersimpan di Gudang</span>
@@ -637,7 +637,7 @@
                                 @if($hasFiles)
                                     <button 
                                         type="button" 
-                                        @click="openFilePreviewModal({
+                                        @click="dmsPreviewFile({
                                             box_number: {{ json_encode($archive->box_number ?: 'Penomoran Pending') }},
                                             title: {{ json_encode($archive->effective_title ?? $archive->title) }},
                                             department: {{ json_encode($archive->department->code ?? 'GEN') }},
@@ -1206,161 +1206,7 @@
         </div>
     </div>
 
-    <!-- MODAL PREVIEW BERKAS DIGITAL & SCAN FORMULIR -->
-    <div x-show="filePreviewModalOpen" 
-         x-transition.opacity 
-         class="fixed inset-0 flex items-center justify-center p-2 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto"
-         style="display: none; z-index: 9995 !important;"
-         @keydown.escape.window="closeFilePreviewModal()">
-        
-        <div class="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-2xl max-w-4xl w-full p-4 sm:p-6 shadow-2xl space-y-4 font-mono text-xs max-h-[92vh] flex flex-col my-auto"
-             @click.away="closeFilePreviewModal()">
-            
-            <!-- Modal Header -->
-            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 shrink-0">
-                <div class="flex items-center gap-2.5 min-w-0">
-                    <div class="p-2 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-xl shrink-0">
-                        <i data-lucide="file-search" class="w-5 h-5"></i>
-                    </div>
-                    <div class="min-w-0">
-                        <div class="flex items-center gap-2">
-                            <h3 class="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
-                                Preview Berkas Digital & Scan Formulir
-                            </h3>
-                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40">
-                                <span x-text="previewArchiveData ? previewArchiveData.files.length : 0"></span> Berkas
-                            </span>
-                        </div>
-                        <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                            <span class="font-bold text-amber-600 dark:text-amber-400" x-text="previewArchiveData ? previewArchiveData.box_number : ''"></span> &mdash; 
-                            <span x-text="previewArchiveData ? previewArchiveData.title : ''"></span> 
-                            (<span x-text="previewArchiveData ? previewArchiveData.department : ''"></span>)
-                        </p>
-                    </div>
-                </div>
 
-                <div class="flex items-center gap-2 shrink-0">
-                    <template x-if="currentPreviewFile">
-                        <button type="button" @click="dmsPreviewFile(currentPreviewFile)" class="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-xs" title="Inspeksi Lengkap (Zoom / Geser / Putar)">
-                            <i data-lucide="maximize-2" class="w-3.5 h-3.5"></i>
-                            <span class="hidden sm:inline">Inspeksi Dokumen</span>
-                        </button>
-                    </template>
-                    <template x-if="currentPreviewFile">
-                        <button type="button" @click="openInNewTab()" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-bold border border-slate-300 dark:border-slate-700 transition flex items-center gap-1 cursor-pointer" title="Buka di Tab Baru">
-                            <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
-                            <span class="hidden sm:inline">Buka Tab Baru</span>
-                        </button>
-                    </template>
-                    <button type="button" @click="closeFilePreviewModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-                        <i data-lucide="x" class="w-5 h-5"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Tab / File Selection Ribbon (if multiple files) -->
-            <template x-if="previewArchiveData && previewArchiveData.files.length > 1">
-                <div class="flex items-center gap-2 overflow-x-auto pb-1 shrink-0 border-b border-slate-200 dark:border-slate-800">
-                    <template x-for="(file, idx) in previewArchiveData.files" :key="idx">
-                        <button 
-                            type="button" 
-                            @click="selectPreviewFile(idx)" 
-                            :class="selectedFileIndex === idx ? 'bg-amber-500 text-slate-950 font-black shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 font-bold'"
-                            class="px-3 py-1.5 rounded-lg text-xs transition flex items-center gap-1.5 shrink-0"
-                        >
-                            <i data-lucide="file-check" class="w-3.5 h-3.5" x-show="file.name.toLowerCase().includes('formulir')"></i>
-                            <i data-lucide="paperclip" class="w-3.5 h-3.5" x-show="!file.name.toLowerCase().includes('formulir')"></i>
-                            <span x-text="file.name"></span>
-                            <span class="text-[10px] uppercase opacity-75 font-mono" x-text="'(' + file.ext + ')'"></span>
-                        </button>
-                    </template>
-                </div>
-            </template>
-
-            <!-- Modal Body / File Preview Content -->
-            <div class="flex-1 overflow-y-auto min-h-[360px] max-h-[62vh] bg-slate-50 dark:bg-slate-950 rounded-xl p-3 border border-slate-200 dark:border-slate-800 flex flex-col justify-center items-center">
-                <template x-if="currentPreviewFile">
-                    <div class="w-full h-full flex flex-col items-center justify-center">
-                        <!-- Preview PDF (Anti-IDM via In-Memory Blob URL) -->
-                        <template x-if="currentPreviewFile.ext === 'pdf'">
-                            <div class="w-full h-full min-h-[480px] flex flex-col relative">
-                                <!-- Loading State -->
-                                <div x-show="loadingPdfBlob" class="w-full h-full min-h-[480px] flex flex-col items-center justify-center bg-slate-100/70 dark:bg-slate-900/70 rounded-lg space-y-3">
-                                    <div class="w-8 h-8 border-3 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
-                                    <p class="text-xs font-mono font-bold text-slate-600 dark:text-slate-300">Menyiapkan live preview dokumen PDF...</p>
-                                </div>
-
-                                <!-- Error State Fallback -->
-                                <div x-show="!loadingPdfBlob && pdfError" class="w-full h-full min-h-[480px] flex flex-col items-center justify-center p-6 text-center space-y-3 font-mono">
-                                    <div class="w-12 h-12 rounded-xl bg-amber-500/20 text-amber-500 flex items-center justify-center">
-                                        <i data-lucide="file-text" class="w-6 h-6"></i>
-                                    </div>
-                                    <p class="text-xs text-slate-600 dark:text-slate-300 max-w-sm" x-text="pdfError"></p>
-                                    <a :href="currentPreviewFile.url" target="_blank" class="px-3.5 py-1.5 bg-amber-500 text-slate-950 font-bold rounded-lg text-xs shadow hover:bg-amber-400 transition inline-flex items-center gap-1.5">
-                                        <i data-lucide="external-link" class="w-4 h-4"></i>
-                                        <span>Buka Berkas di Tab Baru</span>
-                                    </a>
-                                </div>
-
-                                <!-- Live Preview Iframe with In-Memory Blob URL -->
-                                <template x-if="!loadingPdfBlob && !pdfError && previewPdfBlobUrl">
-                                    <iframe :src="previewPdfBlobUrl + '#toolbar=1&navpanes=0&scrollbar=1'" class="w-full flex-1 min-h-[480px] rounded-lg border border-slate-300 dark:border-slate-700 bg-white shadow-sm" frameborder="0"></iframe>
-                                </template>
-                            </div>
-                        </template>
-
-                        <!-- Preview Images (JPG, JPEG, PNG, GIF, WEBP) -->
-                        <template x-if="['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(currentPreviewFile.ext)">
-                            <div class="w-full h-full flex flex-col items-center justify-center p-2">
-                                <img :src="currentPreviewFile.url" :alt="currentPreviewFile.name" class="max-h-[500px] max-w-full object-contain rounded-lg shadow-lg border border-slate-300 dark:border-slate-700" />
-                            </div>
-                        </template>
-
-                        <!-- Non-previewable Files (DOCX, ZIP, etc) -->
-                        <template x-if="!['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp'].includes(currentPreviewFile.ext)">
-                            <div class="text-center py-12 space-y-4 font-mono">
-                                <div class="w-16 h-16 mx-auto bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded-2xl flex items-center justify-center border border-amber-500/30">
-                                    <i data-lucide="file" class="w-8 h-8"></i>
-                                </div>
-                                <div class="space-y-1">
-                                    <h4 class="text-sm font-bold text-slate-900 dark:text-white" x-text="currentPreviewFile.name"></h4>
-                                    <p class="text-xs text-slate-500" x-text="currentPreviewFile.filename"></p>
-                                    <p class="text-[11px] text-slate-400">Tipe file ini (<span class="uppercase font-bold" x-text="currentPreviewFile.ext"></span>) tidak mendukung preview langsung pada browser.</p>
-                                </div>
-                                <div>
-                                    <a :href="currentPreviewFile.url" target="_blank" download class="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs shadow-md transition">
-                                        <i data-lucide="download" class="w-4 h-4"></i>
-                                        <span>Unduh Berkas</span>
-                                    </a>
-                                </div>
-                            </div>
-                        </template>
-                    </div>
-                </template>
-            </div>
-
-            <!-- Modal Footer -->
-            <div class="flex flex-col sm:flex-row items-center justify-between gap-2 pt-1 border-t border-slate-200 dark:border-slate-800 text-[11px] text-slate-500 shrink-0">
-                <template x-if="currentPreviewFile">
-                    <div class="flex items-center gap-2">
-                        <span class="px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold" x-text="currentPreviewFile.category"></span>
-                        <span class="truncate max-w-xs" x-text="currentPreviewFile.filename"></span>
-                    </div>
-                </template>
-                <div class="flex items-center gap-2 self-end sm:self-auto">
-                    <button type="button" @click="closeFilePreviewModal()" class="px-4 py-1.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs transition">
-                        Tutup
-                    </button>
-                    <template x-if="currentPreviewFile">
-                        <button type="button" @click="openInNewTab()" class="px-4 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl font-black text-xs shadow-md transition inline-flex items-center gap-1.5 cursor-pointer">
-                            <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
-                            <span>Buka di Tab Baru</span>
-                        </button>
-                    </template>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- MODAL VERIFIKASI PENGAJUAN ARSIP & GENERATE NOMOR BOX (PIC GUDANG) -->
     <div x-show="verifyModalOpen" 
@@ -2224,20 +2070,16 @@ function dashboardOverviewApp() {
                 }
             } else if (this.targetStatusChoice === 'destroyed') {
                 if (!this.superAdminBapNumber.trim()) {
-                    alert('Mohon isi nomor Berita Acara Pemusnahan (BAP).');
+                    await window.showNotificationModal('Mohon isi nomor Berita Acara Pemusnahan (BAP).', 'Validasi BAP Diperlukan', 'warning');
                     return;
                 }
-                if (typeof window.showConfirmModal === 'function') {
-                    const ok = await window.showConfirmModal({
-                        title: 'Konfirmasi Pemusnahan Berkas',
-                        message: `Apakah Anda yakin ingin mengesahkan pemusnahan berkas "${this.superAdminStatusData.title}" dengan No. BAP ${this.superAdminBapNumber}? Status akan dimusnahkan secara permanen.`,
-                        type: 'danger',
-                        confirmText: 'Ya, Musnahkan Permanen'
-                    });
-                    if (!ok) return;
-                } else if (!confirm(`Apakah Anda yakin ingin mengesahkan pemusnahan berkas "${this.superAdminStatusData.title}" dengan No. BAP ${this.superAdminBapNumber}? Status akan dimusnahkan secara permanen.`)) {
-                    return;
-                }
+                const ok = await window.showConfirmModal({
+                    title: 'Konfirmasi Pemusnahan Berkas',
+                    message: `Apakah Anda yakin ingin mengesahkan pemusnahan berkas "${this.superAdminStatusData.title}" dengan No. BAP ${this.superAdminBapNumber}? Status akan dimusnahkan secara permanen.`,
+                    type: 'danger',
+                    confirmText: 'Ya, Musnahkan Permanen'
+                });
+                if (!ok) return;
             }
 
             this.updatingStatus = true;
@@ -2312,111 +2154,11 @@ function dashboardOverviewApp() {
             }
         },
         
-        // File Preview Modal State (Anti-IDM Blob URL Renderer)
-        filePreviewModalOpen: false,
-        previewArchiveData: null,
-        selectedFileIndex: 0,
-        previewPdfBlobUrl: null,
-        loadingPdfBlob: false,
-        pdfError: null,
-
+        // File Preview Modal Delegation to Universal Component
         openFilePreviewModal(archiveData) {
-            this.previewArchiveData = archiveData;
-            this.selectedFileIndex = 0;
-            this.filePreviewModalOpen = true;
-            this.loadCurrentPreviewFile();
-            this.$nextTick(() => {
-                if (window.lucide) window.lucide.createIcons();
-            });
-        },
-
-        selectPreviewFile(idx) {
-            if (this.selectedFileIndex === idx) return;
-            this.selectedFileIndex = idx;
-            this.loadCurrentPreviewFile();
-            this.$nextTick(() => {
-                if (window.lucide) window.lucide.createIcons();
-            });
-        },
-
-        loadCurrentPreviewFile() {
-            if (this.previewPdfBlobUrl) {
-                URL.revokeObjectURL(this.previewPdfBlobUrl);
-                this.previewPdfBlobUrl = null;
+            if (typeof window.dmsPreviewFile === 'function') {
+                window.dmsPreviewFile(archiveData);
             }
-            this.pdfError = null;
-
-            const file = this.currentPreviewFile;
-            if (!file) return;
-
-            if (file.ext === 'pdf') {
-                this.loadingPdfBlob = true;
-                
-                // Anti-IDM Stream Endpoint: Prevents IDM extension from sniffing or intercepting PDF download
-                let targetUrl = file.stream_url;
-                if (!targetUrl) {
-                    const raw = file.raw_path || file.url || '';
-                    const clean = raw
-                        .replace(/^https?:\/\/[^\/]+/, '')
-                        .replace(/^\/(public\/storage|storage|public|files\/stream|files\/preview-stream)\//i, '')
-                        .replace(/^\//, '');
-                    targetUrl = '/files/preview-stream?token=' + encodeURIComponent(btoa(unescape(encodeURIComponent(clean))));
-                }
-
-                fetch(targetUrl, {
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'Accept': 'application/octet-stream, application/pdf, */*'
-                    }
-                })
-                    .then(res => {
-                        if (!res.ok) throw new Error('HTTP ' + res.status + ' (' + res.statusText + ')');
-                        return res.blob();
-                    })
-                    .then(blob => {
-                        const pdfBlob = new Blob([blob], { type: 'application/pdf' });
-                        this.previewPdfBlobUrl = URL.createObjectURL(pdfBlob);
-                        this.loadingPdfBlob = false;
-                        this.$nextTick(() => {
-                            if (window.lucide) window.lucide.createIcons();
-                        });
-                    })
-                    .catch(err => {
-                        console.warn('Gagal memuat PDF via anti-IDM blob stream:', err);
-                        this.loadingPdfBlob = false;
-                        this.pdfError = 'Gagal memuat pratinjau dokumen PDF secara live.';
-                        this.$nextTick(() => {
-                            if (window.lucide) window.lucide.createIcons();
-                        });
-                    });
-            } else {
-                this.loadingPdfBlob = false;
-            }
-        },
-
-        openInNewTab() {
-            if (this.previewPdfBlobUrl) {
-                window.open(this.previewPdfBlobUrl, '_blank');
-            } else if (this.currentPreviewFile) {
-                window.open(this.currentPreviewFile.url, '_blank');
-            }
-        },
-
-        closeFilePreviewModal() {
-            if (this.previewPdfBlobUrl) {
-                URL.revokeObjectURL(this.previewPdfBlobUrl);
-                this.previewPdfBlobUrl = null;
-            }
-            this.filePreviewModalOpen = false;
-            this.previewArchiveData = null;
-            this.selectedFileIndex = 0;
-            this.loadingPdfBlob = false;
-            this.pdfError = null;
-        },
-
-        get currentPreviewFile() {
-            if (!this.previewArchiveData || !this.previewArchiveData.files || !this.previewArchiveData.files.length) return null;
-            return this.previewArchiveData.files[this.selectedFileIndex] || this.previewArchiveData.files[0];
         },
 
         // Verification Modal State
@@ -2490,20 +2232,16 @@ function dashboardOverviewApp() {
                 }
             } else if (this.checkoutActionType === 'destroy') {
                 if (!this.destroyBapNumber.trim()) {
-                    alert('Mohon isi nomor Berita Acara Pemusnahan (BAP).');
+                    await window.showNotificationModal('Mohon isi nomor Berita Acara Pemusnahan (BAP).', 'Validasi BAP Diperlukan', 'warning');
                     return;
                 }
-                if (typeof window.showConfirmModal === 'function') {
-                    const ok = await window.showConfirmModal({
-                        title: 'Konfirmasi Pemusnahan Berkas',
-                        message: `Apakah Anda yakin ingin mengesahkan pemusnahan berkas "${this.checkoutModalData.title}" dengan No. BAP ${this.destroyBapNumber}? Tindakan ini permanen.`,
-                        type: 'danger',
-                        confirmText: 'Ya, Musnahkan Permanen'
-                    });
-                    if (!ok) return;
-                } else if (!confirm(`Apakah Anda yakin ingin mengesahkan pemusnahan berkas "${this.checkoutModalData.title}" dengan No. BAP ${this.destroyBapNumber}? Tindakan ini permanen.`)) {
-                    return;
-                }
+                const ok = await window.showConfirmModal({
+                    title: 'Konfirmasi Pemusnahan Berkas',
+                    message: `Apakah Anda yakin ingin mengesahkan pemusnahan berkas "${this.checkoutModalData.title}" dengan No. BAP ${this.destroyBapNumber}? Tindakan ini permanen.`,
+                    type: 'danger',
+                    confirmText: 'Ya, Musnahkan Permanen'
+                });
+                if (!ok) return;
             }
 
             this.checkingOut = true;

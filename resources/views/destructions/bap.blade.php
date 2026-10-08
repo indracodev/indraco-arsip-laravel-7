@@ -4,8 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Berita Acara Pemusnahan (BAP) - {{ $destructionLog->bap_number }}</title>
-    <link rel="stylesheet" href="{{ asset('css/fonts.css') }}">
-    <script src="{{ asset('js/vendor/tailwindcss.js') }}"></script>
+    @include('layouts.partials.head_assets')
     <style>
         @media print {
             .no-print { display: none !important; }
@@ -97,14 +96,32 @@
             @if($destructionLog->scan_approval_destruction || $destructionLog->certificate_file)
             <div class="sm:col-span-2 border-t border-slate-200 pt-2 flex flex-wrap gap-4 no-print">
                 @if($destructionLog->scan_approval_destruction || $destructionLog->approval_file)
-                <a href="{{ app_storage_url($destructionLog->effective_approval_file) }}" target="_blank" class="text-xs font-bold text-amber-700 underline">
-                    Lihat Scan Approval Pemusnahan
-                </a>
+                <button type="button"
+                        @click="dmsPreviewFile({
+                            url: {{ json_encode(app_storage_url($destructionLog->effective_approval_file)) }},
+                            stream_url: {{ json_encode(app_preview_stream_url($destructionLog->effective_approval_file)) }},
+                            raw_path: {{ json_encode($destructionLog->effective_approval_file) }},
+                            ext: {{ json_encode(strtolower(pathinfo($destructionLog->effective_approval_file, PATHINFO_EXTENSION))) }},
+                            name: 'Scan Approval Pemusnahan'
+                        })"
+                        class="text-xs font-bold text-amber-700 hover:text-amber-800 underline inline-flex items-center gap-1 cursor-pointer">
+                    <i data-lucide="file-check" class="w-3.5 h-3.5"></i>
+                    <span>Lihat Scan Approval Pemusnahan</span>
+                </button>
                 @endif
                 @if($destructionLog->certificate_file)
-                <a href="{{ app_storage_url($destructionLog->certificate_file) }}" target="_blank" class="text-xs font-bold text-rose-700 underline">
-                    Lihat Lampiran Scan BAP / Dokumentasi
-                </a>
+                <button type="button"
+                        @click="dmsPreviewFile({
+                            url: {{ json_encode(app_storage_url($destructionLog->certificate_file)) }},
+                            stream_url: {{ json_encode(app_preview_stream_url($destructionLog->certificate_file)) }},
+                            raw_path: {{ json_encode($destructionLog->certificate_file) }},
+                            ext: {{ json_encode(strtolower(pathinfo($destructionLog->certificate_file, PATHINFO_EXTENSION))) }},
+                            name: 'Lampiran Scan BAP / Dokumentasi'
+                        })"
+                        class="text-xs font-bold text-rose-700 hover:text-rose-800 underline inline-flex items-center gap-1 cursor-pointer">
+                    <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+                    <span>Lihat Lampiran Scan BAP / Dokumentasi</span>
+                </button>
                 @endif
             </div>
             @endif
@@ -146,5 +163,12 @@
             Dicetak otomatis dari Sistem Document Management System (DMS) PT Indraco pada {{ date('d/m/Y H:i:s') }}
         </div>
     </div>
+
+    @include('layouts.partials.file_preview_modal')
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.lucide) lucide.createIcons();
+        });
+    </script>
 </body>
 </html>

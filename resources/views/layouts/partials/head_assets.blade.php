@@ -29,6 +29,12 @@
     }
 </script>
 <script src="{{ asset('js/vendor/lucide.min.js') }}"></script>
+<script src="{{ asset('js/vendor/pdf.min.js') }}"></script>
+<script>
+    if (window.pdfjsLib) {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = "{{ asset('js/vendor/pdf.worker.min.js') }}";
+    }
+</script>
 <script src="{{ asset('js/file-uploader-preview.js') }}"></script>
 <script defer src="{{ asset('js/vendor/alpine.min.js') }}"></script>
 

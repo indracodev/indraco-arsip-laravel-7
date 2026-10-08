@@ -405,10 +405,9 @@ class Archive extends Model
             return false;
         }
 
-        $now = Carbon::now();
-        $expiry = Carbon::parse($this->retention_expiry_date);
+        $expiryEndOfMonth = Carbon::parse($this->retention_expiry_date)->endOfMonth()->endOfDay();
 
-        return $expiry->diffInDays($now, false) >= -90;
+        return Carbon::now()->lte($expiryEndOfMonth) && Carbon::today()->diffInDays($expiryEndOfMonth, false) <= 90;
     }
 
     public function getIsExpiredAttribute(): bool
@@ -417,6 +416,36 @@ class Archive extends Model
             return false;
         }
 
-        return Carbon::parse($this->retention_expiry_date)->isPast();
+        $expiryEndOfMonth = Carbon::parse($this->retention_expiry_date)->endOfMonth()->endOfDay();
+
+        return Carbon::now()->gt($expiryEndOfMonth);
+    }
+
+    /**
+     * Hitung jumlah berkas yang memerlukan tindakan perpanjangan / pemusnahan (H-30 & Expired)
+     */
+    public static function getForm3PendingCount(?User $user = null): int
+    {
+        $user = $user ?? auth()->user();
+        if (!$user) {
+            return 0;
+        }
+
+        $today = Carbon::today();
+
+        return static::query()
+            ->select('id', 'retention_expiry_date', 'status', 'department_id')
+            ->where('status', '!=', 'destroyed')
+            ->whereNotNull('retention_expiry_date')
+            ->when($user->isPicDept(), function ($q) use ($user) {
+                return $q->where('department_id', $user->department_id);
+            })
+            ->get()
+            ->filter(function ($arc) use ($today) {
+                $expiryEndOfMonth = Carbon::parse($arc->retention_expiry_date)->endOfMonth()->endOfDay();
+                $h30Threshold = $expiryEndOfMonth->copy()->subDays(30)->startOfDay();
+                return $today->gte($h30Threshold);
+            })
+            ->count();
     }
 }
