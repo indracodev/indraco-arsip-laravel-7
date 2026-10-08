@@ -2294,11 +2294,11 @@ function dashboardOverviewApp() {
                         window.location.reload();
                     }, 500);
                 } else {
-                    alert(result.message || 'Gagal memproses tindakan arsip.');
+                    await window.showNotificationModal(result.message || 'Gagal memproses tindakan arsip.', 'Gagal Proses Tindakan', 'danger');
                 }
             } catch (e) {
                 console.error('Action error:', e);
-                alert('Terjadi kesalahan saat memproses status arsip.');
+                await window.showNotificationModal('Terjadi kesalahan saat memproses status arsip.', 'Kesalahan Sistem', 'danger');
             } finally {
                 this.checkingOut = false;
             }
