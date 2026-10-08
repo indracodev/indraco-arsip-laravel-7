@@ -328,7 +328,7 @@
                     x-transition:leave="transition ease-in duration-75"
                     x-transition:leave-start="opacity-100 scale-100 translate-y-0"
                     x-transition:leave-end="opacity-0 scale-95 -translate-y-1"
-                    class="absolute left-0 mt-1.5 w-[680px] sm:w-[780px] max-w-[94vw] bg-white dark:bg-slate-900 border-2 border-amber-500 rounded-lg shadow-2xl z-[100] overflow-hidden font-mono text-xs text-slate-800 dark:text-slate-100"
+                    class="absolute left-0 mt-1.5 w-[680px] sm:w-[780px] max-w-[94vw] bg-white dark:bg-slate-900 border-2 border-amber-500 rounded-lg shadow-2xl z-[999] overflow-hidden font-mono text-xs text-slate-800 dark:text-slate-100"
                     x-cloak
                 >
                     <!-- Header Dropdown Info with Close Suggestion Button -->
@@ -805,7 +805,7 @@
     </div>
 
     <!-- 3. MAIN VIEWPORT CONTAINER (MDI Workstation Desktop Canvas) -->
-    <main class="flex-1 bg-slate-200 dark:bg-slate-950 p-2 sm:p-4 overflow-hidden relative min-w-0 desktop-bg-pattern flex items-center justify-center font-sans">
+    <main class="flex-1 bg-slate-200 dark:bg-slate-950 p-2 sm:p-4 overflow-hidden relative z-10 min-w-0 desktop-bg-pattern flex items-center justify-center font-sans">
         
         <!-- Empty Workspace Placeholder (When all windows closed) -->
         <div x-show="openWindows.length === 0" class="my-auto text-center space-y-3 font-mono">

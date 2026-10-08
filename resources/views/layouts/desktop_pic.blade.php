@@ -279,7 +279,7 @@
     @endif
 
     <!-- 1. UNIFIED DESKTOP HEADER NAVBAR (BAGIAN 1: SINGLE COMPACT HEADER) -->
-    <header class="bg-slate-950 text-white flex items-center justify-between px-3 py-1.5 border-b border-slate-800 shrink-0 shadow-sm z-30 font-mono gap-2 relative">
+    <header class="bg-slate-950 text-white flex items-center justify-between px-3 py-1.5 border-b border-slate-800 shrink-0 shadow-sm z-50 font-mono gap-2 relative">
         <!-- Left Side: Contrasted Logo + Action Buttons + Quick Search -->
         <div class="flex items-center gap-2 flex-1 min-w-0">
             <!-- Brand & Desktop Logo (High-Contrast White Pill Container) -->
@@ -374,7 +374,7 @@
                     x-transition:leave="transition ease-in duration-75"
                     x-transition:leave-start="opacity-100 scale-100 translate-y-0"
                     x-transition:leave-end="opacity-0 scale-95 -translate-y-1"
-                    class="absolute left-0 mt-1 w-[680px] sm:w-[740px] max-w-[94vw] bg-white dark:bg-slate-900 border-2 border-amber-500 rounded-lg shadow-2xl z-[100] overflow-hidden font-mono text-xs"
+                    class="absolute left-0 mt-1 w-[680px] sm:w-[740px] max-w-[94vw] bg-white dark:bg-slate-900 border-2 border-amber-500 rounded-lg shadow-2xl z-[999] overflow-hidden font-mono text-xs"
                     x-cloak
                 >
                     <!-- Header Dropdown Info -->
@@ -674,7 +674,7 @@
     </div>
 
     <!-- 4. MAIN VIEWPORT (MDI Multi-Window Workstation Desktop Canvas) -->
-    <main class="flex-1 bg-slate-200 dark:bg-slate-950 p-2 sm:p-4 overflow-hidden relative min-w-0 desktop-bg-pattern flex items-center justify-center font-sans">
+    <main class="flex-1 bg-slate-200 dark:bg-slate-950 p-2 sm:p-4 overflow-hidden relative z-10 min-w-0 desktop-bg-pattern flex items-center justify-center font-sans">
         
         <!-- Empty Workspace Placeholder (When all windows closed) -->
         <div x-show="openWindows.length === 0" class="my-auto text-center space-y-3 font-mono">
