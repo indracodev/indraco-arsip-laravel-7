@@ -84,6 +84,11 @@ class BorrowingLog extends Model
         return $this->approval_file ?: $this->scan_approval_borrow;
     }
 
+    public function getEffectiveApprovalFileUrlAttribute(): ?string
+    {
+        return app_storage_url($this->effective_approval_file);
+    }
+
     public function getStatusLabelAttribute(): string
     {
         switch ($this->status) {
@@ -122,5 +127,10 @@ class BorrowingLog extends Model
             default:
                 return 'bg-gray-100 text-gray-800';
         }
+    }
+
+    public function getApprovalFileUrlAttribute(): ?string
+    {
+        return app_storage_url($this->approval_file ?: $this->scan_approval_borrow);
     }
 }

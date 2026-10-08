@@ -47,6 +47,14 @@ class Archive extends Model
         'full_slot_location',
         'short_location',
         'display_location',
+        'formatted_expiry_date',
+        'formatted_tgl_penyerahan',
+        'retention_display',
+        'retention_duration_label',
+        'scan_input_form_url',
+        'file_path_url',
+        'scan_approval_input_url',
+        'scan_extension_form_url',
     ];
 
     protected $casts = [
@@ -235,6 +243,72 @@ class Archive extends Model
         }
 
         return "{$sector} - {$rackLetter}{$slotNumStr}";
+    }
+
+    public function getFormattedExpiryDateAttribute(): string
+    {
+        return $this->retention_expiry_date ? Carbon::parse($this->retention_expiry_date)->format('M Y') : '-';
+    }
+
+    public function getRetentionDisplayAttribute(): string
+    {
+        $periodStr = $this->periode ?? $this->periode_doc ?? '';
+        if (preg_match('/^(\d+)\s*(?:bulan|bln)/i', trim($periodStr), $matches)) {
+            return $matches[1] . ' Bulan';
+        }
+
+        if (!empty($this->masa_simpan_custom) && (int)$this->masa_simpan_custom > 0) {
+            return $this->masa_simpan_custom . ' Thn';
+        }
+
+        if (isset($this->retention_years) && (int)$this->retention_years > 0) {
+            return $this->retention_years . ' Thn';
+        }
+
+        return '-';
+    }
+
+    public function getRetentionDurationLabelAttribute(): string
+    {
+        $periodStr = $this->periode ?? $this->periode_doc ?? '';
+        if (preg_match('/^(\d+)\s*(?:bulan|bln)/i', trim($periodStr), $matches)) {
+            return $matches[1] . ' Bulan';
+        }
+
+        if (!empty($this->masa_simpan_custom) && (int)$this->masa_simpan_custom > 0) {
+            return $this->masa_simpan_custom . ' Tahun';
+        }
+
+        if (isset($this->retention_years) && (int)$this->retention_years > 0) {
+            return $this->retention_years . ' Tahun';
+        }
+
+        return '-';
+    }
+
+    public function getFormattedTglPenyerahanAttribute(): string
+    {
+        return $this->tgl_penyerahan ? Carbon::parse($this->tgl_penyerahan)->format('d M Y') : '-';
+    }
+
+    public function getScanInputFormUrlAttribute(): ?string
+    {
+        return app_storage_url($this->scan_input_form);
+    }
+
+    public function getFilePathUrlAttribute(): ?string
+    {
+        return app_storage_url($this->file_path);
+    }
+
+    public function getScanApprovalInputUrlAttribute(): ?string
+    {
+        return app_storage_url($this->scan_approval_input);
+    }
+
+    public function getScanExtensionFormUrlAttribute(): ?string
+    {
+        return app_storage_url($this->scan_extension_form);
     }
 
     public function getEffectivePeriodeAttribute(): string

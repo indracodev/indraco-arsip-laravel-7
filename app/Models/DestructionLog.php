@@ -57,4 +57,14 @@ class DestructionLog extends Model
     {
         return $this->approval_file ?: $this->scan_approval_destruction;
     }
+
+    public function getEffectiveApprovalFileUrlAttribute(): ?string
+    {
+        return app_storage_url($this->effective_approval_file);
+    }
+
+    public function getCertificateFileUrlAttribute(): ?string
+    {
+        return app_storage_url($this->certificate_file);
+    }
 }
