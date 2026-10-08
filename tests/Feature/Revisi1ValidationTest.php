@@ -147,4 +147,75 @@ class Revisi1ValidationTest extends TestCase
         $this->assertEquals('2026-01', $createdArchive->items->first()->period_start);
         $this->assertEquals('2026-03', $createdArchive->items->first()->period_end);
     }
+
+    /** @test */
+    public function test_monthly_period_retention_and_h30_calculation()
+    {
+        $this->actingAs($this->adminUser);
+
+        $dept = Department::firstOrCreate(
+            ['code' => 'ACC_FIN'],
+            ['name' => 'Accounting & Finance']
+        );
+
+        $payload = [
+            'department_id' => $dept->id,
+            'company_name' => 'PT INDRACO GLOBAL INDONESIA',
+            'document_type' => 'KEUANGAN',
+            'title' => 'Berkas Bulanan 1 Bln',
+            'tgl_penyerahan' => '2026-10-08',
+            'periode' => '1 Bulan',
+            'physical_condition' => 'Baik',
+            'submit_action' => 'draft',
+            'items' => [
+                [
+                    'document_name' => 'Kwitansi Transaksi Oktober',
+                    'notes' => 'Asli'
+                ]
+            ]
+        ];
+
+        $response = $this->post(route('archives.store'), $payload);
+        $response->assertRedirect();
+
+        $archive = Archive::where('title', 'Berkas Bulanan 1 Bln')->latest()->first();
+        $this->assertNotNull($archive);
+
+        // 1. Durasi harus menampilkan 1 Bulan (bukan 1 Thn)
+        $this->assertEquals('1 Bulan', $archive->retention_display);
+        $this->assertEquals('1 Bulan', $archive->retention_duration_label);
+
+        // 2. Expiry date harus jatuh pada tanggal terakhir di bulan expiry (2026-10-31)
+        $this->assertEquals('2026-10-31', \Carbon\Carbon::parse($archive->retention_expiry_date)->format('Y-m-d'));
+
+        // 3. Formatted expiry date di UI tanpa tanggal (M Y)
+        $this->assertEquals('Oct 2026', $archive->formatted_expiry_date);
+
+        // 4. Perhitungan H-30 dari tanggal terakhir di bulan expiry (31 Okt - 30 hari = 1 Okt)
+        $expiryEndOfMonth = \Carbon\Carbon::parse($archive->retention_expiry_date)->endOfMonth()->endOfDay();
+        $h30Threshold = $expiryEndOfMonth->copy()->subDays(30)->startOfDay();
+        $this->assertEquals('2026-10-01', $h30Threshold->format('Y-m-d'));
+        $this->assertTrue(\Carbon\Carbon::parse('2026-10-08')->gte($h30Threshold));
+    }
+
+    /** @test */
+    public function test_anti_idm_preview_stream_endpoint()
+    {
+        $this->actingAs($this->adminUser);
+
+        // Buat dummy PDF di disk public
+        Storage::disk('public')->put('archive_scans/test_anti_idm.pdf', '%PDF-1.4 test content');
+
+        $token = base64_encode('archive_scans/test_anti_idm.pdf');
+        $response = $this->get('/files/preview-stream?token=' . urlencode($token));
+
+        $response->assertStatus(200);
+        // Header harus application/octet-stream dan generic preview filename agar IDM tidak mencegat
+        $response->assertHeader('Content-Type', 'application/octet-stream');
+        $this->assertStringContainsString('preview_stream.dat', $response->headers->get('Content-Disposition'));
+
+        // Cleanup
+        Storage::disk('public')->delete('archive_scans/test_anti_idm.pdf');
+    }
 }
+

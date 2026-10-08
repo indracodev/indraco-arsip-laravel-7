@@ -20,10 +20,12 @@ Route::middleware('diagnostics.auth')->group(function () {
     Route::get('/diagnostics', 'HealthController@diagnosticsView')->name('diagnostics.index');
 });
 
+// File Streaming & Storage Link Fix (Point 5 - accessible by image tags and iframes)
+Route::get('/files/preview-stream', 'FileStreamController@previewStream')->name('files.preview_stream');
+Route::get('/files/stream/{path}', 'FileStreamController@stream')->where('path', '.*')->name('files.stream');
+Route::get('/storage/files/{path}', 'FileStreamController@stream')->where('path', '.*')->name('storage.files');
 
 
-
-// Guest Routes
 Route::middleware('guest')->group(function () {
     Route::get('/login', 'AuthController@showLogin')->name('login');
     Route::post('/login', 'AuthController@login')->name('login.post');
@@ -56,7 +58,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/archives/{archive}/verify', 'ArchiveController@verify')->name('archives.verify');
     Route::post('/archives/{archive}/checkout', 'ArchiveController@checkout')->name('archives.checkout');
     Route::post('/archives/{archive}/checkin', 'ArchiveController@checkin')->name('archives.checkin');
-    Route::post('/archives/{archive}/superadmin-status', 'ArchiveController@superAdminUpdateStatus')->name('archives.superadmin_status');
+
 
     // Borrowing Workflow
     Route::get('/borrowings', 'BorrowingController@index')->name('borrowings.index');
@@ -69,11 +71,15 @@ Route::middleware('auth')->group(function () {
 
     // Retention Expiry & Destruction Workflow
     Route::get('/destructions', 'DestructionController@index')->name('destructions.index');
-    Route::get('/destructions/propose/{archive}', 'DestructionController@proposeForm')->name('destructions.propose');
-    Route::post('/destructions/propose/{archive}', 'DestructionController@propose')->name('destructions.store');
+    Route::get('/destructions/propose', 'DestructionController@proposeForm')->name('destructions.propose');
+    Route::get('/destructions/propose/{archive}', 'DestructionController@proposeForm')->name('destructions.propose.archive');
+    Route::post('/destructions/propose/{archive?}', 'DestructionController@propose')->name('destructions.store');
+    Route::post('/destructions/propose/{archive}', 'DestructionController@propose')->name('destructions.store.archive');
     Route::get('/destructions/bap/{destructionLog}', 'DestructionController@showBap')->name('destructions.bap');
-    Route::get('/destructions/extend/{archive}', 'DestructionController@extendForm')->name('destructions.extend_form');
-    Route::post('/destructions/extend/{archive}', 'DestructionController@extendStore')->name('destructions.extend_store');
+    Route::get('/destructions/extend', 'DestructionController@extendForm')->name('destructions.extend_form');
+    Route::get('/destructions/extend/{archive}', 'DestructionController@extendForm')->name('destructions.extend_form.archive');
+    Route::post('/destructions/extend/{archive?}', 'DestructionController@extendStore')->name('destructions.extend_store');
+    Route::post('/destructions/extend/{archive}', 'DestructionController@extendStore')->name('destructions.extend_store.archive');
     Route::get('/destructions/extend-print/{archive}', 'DestructionController@extendPrint')->name('destructions.extend_print');
 
     // Global Audit Trail Logs (Super Admin Only)
@@ -109,21 +115,21 @@ Route::middleware('auth')->group(function () {
 
     // Master Data Management (Admin & PIC Gudang)
     Route::middleware('role:admin,pic_gudang')->prefix('master')->name('master.')->group(function () {
-        Route::get('/departments', 'DepartmentController@index')->name('departments');
-        Route::post('/departments', 'DepartmentController@store')->name('departments.store');
-        Route::put('/departments/{department}', 'DepartmentController@update')->name('departments.update');
-        Route::delete('/departments/{department}', 'DepartmentController@destroy')->name('departments.destroy');
+        Route::get('/departments', 'DepartmentController@index')->name('departments')->middleware('role:admin');
+        Route::post('/departments', 'DepartmentController@store')->name('departments.store')->middleware('role:admin');
+        Route::put('/departments/{department}', 'DepartmentController@update')->name('departments.update')->middleware('role:admin');
+        Route::delete('/departments/{department}', 'DepartmentController@destroy')->name('departments.destroy')->middleware('role:admin');
         Route::post('/departments/{department}/toggle-active', 'DepartmentController@toggleActive')->name('departments.toggle_active')->middleware('role:admin');
 
         // Department Manage PIC
-        Route::post('/departments/{department}/pic/assign', 'DepartmentController@assignPic')->name('departments.pic.assign');
-        Route::delete('/departments/{department}/pic/{user}', 'DepartmentController@removePic')->name('departments.pic.remove');
+        Route::post('/departments/{department}/pic/assign', 'DepartmentController@assignPic')->name('departments.pic.assign')->middleware('role:admin');
+        Route::delete('/departments/{department}/pic/{user}', 'DepartmentController@removePic')->name('departments.pic.remove')->middleware('role:admin');
 
         // Department Master Archives CRUD
-        Route::post('/departments/{department}/master-archives', 'MasterArchiveController@store')->name('departments.master_archives.store');
-        Route::post('/departments/{department}/master-archives/batch', 'MasterArchiveController@storeBatch')->name('departments.master_archives.batch');
-        Route::put('/departments/{department}/master-archives/{masterArchive}', 'MasterArchiveController@update')->name('departments.master_archives.update');
-        Route::delete('/departments/{department}/master-archives/{masterArchive}', 'MasterArchiveController@destroy')->name('departments.master_archives.destroy');
+        Route::post('/departments/{department}/master-archives', 'MasterArchiveController@store')->name('departments.master_archives.store')->middleware('role:admin');
+        Route::post('/departments/{department}/master-archives/batch', 'MasterArchiveController@storeBatch')->name('departments.master_archives.batch')->middleware('role:admin');
+        Route::put('/departments/{department}/master-archives/{masterArchive}', 'MasterArchiveController@update')->name('departments.master_archives.update')->middleware('role:admin');
+        Route::delete('/departments/{department}/master-archives/{masterArchive}', 'MasterArchiveController@destroy')->name('departments.master_archives.destroy')->middleware('role:admin');
 
         // System Settings & Appearance & Database Maintenance
         Route::post('/settings/update', 'SettingController@updateSettings')->name('settings.update');
@@ -134,9 +140,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/settings/clear-box-allocations', 'SettingController@clearBoxAllocations')->name('settings.clear_box_allocations')->middleware('role:admin');
         Route::post('/settings/clear-archives', 'SettingController@clearArchives')->name('settings.clear_archives')->middleware('role:admin');
 
-        Route::post('/sub-departments', 'DepartmentController@storeSubDepartment')->name('sub_departments.store');
-        Route::put('/sub-departments/{subDepartment}', 'DepartmentController@updateSubDepartment')->name('sub_departments.update');
-        Route::delete('/sub-departments/{subDepartment}', 'DepartmentController@destroySubDepartment')->name('sub_departments.destroy');
+        Route::post('/sub-departments', 'DepartmentController@storeSubDepartment')->name('sub_departments.store')->middleware('role:admin');
+        Route::put('/sub-departments/{subDepartment}', 'DepartmentController@updateSubDepartment')->name('sub_departments.update')->middleware('role:admin');
+        Route::delete('/sub-departments/{subDepartment}', 'DepartmentController@destroySubDepartment')->name('sub_departments.destroy')->middleware('role:admin');
         Route::post('/sub-departments/{subDepartment}/toggle-active', 'DepartmentController@toggleSubDepartmentActive')->name('sub_departments.toggle_active')->middleware('role:admin');
 
         Route::get('/warehouses', 'WarehouseController@index')->name('warehouses');

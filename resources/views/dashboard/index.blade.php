@@ -420,7 +420,9 @@
                                 $archiveFiles[] = [
                                     'name' => 'Scan Formulir Input',
                                     'category' => 'Formulir Pendaftaran Fisik',
-                                    'url' => asset('storage/' . $archive->scan_input_form),
+                                    'url' => app_storage_url($archive->scan_input_form),
+                                    'stream_url' => app_preview_stream_url($archive->scan_input_form),
+                                    'raw_path' => $archive->scan_input_form,
                                     'filename' => basename($archive->scan_input_form),
                                     'ext' => strtolower(pathinfo($archive->scan_input_form, PATHINFO_EXTENSION)),
                                 ];
@@ -429,7 +431,9 @@
                                 $archiveFiles[] = [
                                     'name' => 'Lampiran Digital Dokumen',
                                     'category' => 'Softcopy Dokumen',
-                                    'url' => asset('storage/' . $archive->file_path),
+                                    'url' => app_storage_url($archive->file_path),
+                                    'stream_url' => app_preview_stream_url($archive->file_path),
+                                    'raw_path' => $archive->file_path,
                                     'filename' => basename($archive->file_path),
                                     'ext' => strtolower(pathinfo($archive->file_path, PATHINFO_EXTENSION)),
                                 ];
@@ -438,7 +442,9 @@
                                 $archiveFiles[] = [
                                     'name' => 'Scan Approval Input',
                                     'category' => 'Bukti Persetujuan PIC',
-                                    'url' => asset('storage/' . $archive->scan_approval_input),
+                                    'url' => app_storage_url($archive->scan_approval_input),
+                                    'stream_url' => app_preview_stream_url($archive->scan_approval_input),
+                                    'raw_path' => $archive->scan_approval_input,
                                     'filename' => basename($archive->scan_approval_input),
                                     'ext' => strtolower(pathinfo($archive->scan_approval_input, PATHINFO_EXTENSION)),
                                 ];
@@ -447,7 +453,9 @@
                                 $archiveFiles[] = [
                                     'name' => 'Scan Form Perpanjangan',
                                     'category' => 'Perpanjangan Masa Simpan',
-                                    'url' => asset('storage/' . $archive->scan_extension_form),
+                                    'url' => app_storage_url($archive->scan_extension_form),
+                                    'stream_url' => app_preview_stream_url($archive->scan_extension_form),
+                                    'raw_path' => $archive->scan_extension_form,
                                     'filename' => basename($archive->scan_extension_form),
                                     'ext' => strtolower(pathinfo($archive->scan_extension_form, PATHINFO_EXTENSION)),
                                 ];
@@ -1233,10 +1241,10 @@
 
                 <div class="flex items-center gap-2 shrink-0">
                     <template x-if="currentPreviewFile">
-                        <a :href="currentPreviewFile.url" target="_blank" download class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-bold border border-slate-300 dark:border-slate-700 transition flex items-center gap-1" title="Buka / Unduh di Tab Baru">
+                        <button type="button" @click="openInNewTab()" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-bold border border-slate-300 dark:border-slate-700 transition flex items-center gap-1 cursor-pointer" title="Buka di Tab Baru">
                             <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
                             <span class="hidden sm:inline">Buka Tab Baru</span>
-                        </a>
+                        </button>
                     </template>
                     <button type="button" @click="closeFilePreviewModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition">
                         <i data-lucide="x" class="w-5 h-5"></i>
@@ -1250,7 +1258,7 @@
                     <template x-for="(file, idx) in previewArchiveData.files" :key="idx">
                         <button 
                             type="button" 
-                            @click="selectedFileIndex = idx" 
+                            @click="selectPreviewFile(idx)" 
                             :class="selectedFileIndex === idx ? 'bg-amber-500 text-slate-950 font-black shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 font-bold'"
                             class="px-3 py-1.5 rounded-lg text-xs transition flex items-center gap-1.5 shrink-0"
                         >
@@ -1267,10 +1275,31 @@
             <div class="flex-1 overflow-y-auto min-h-[360px] max-h-[62vh] bg-slate-50 dark:bg-slate-950 rounded-xl p-3 border border-slate-200 dark:border-slate-800 flex flex-col justify-center items-center">
                 <template x-if="currentPreviewFile">
                     <div class="w-full h-full flex flex-col items-center justify-center">
-                        <!-- Preview PDF -->
+                        <!-- Preview PDF (Anti-IDM via In-Memory Blob URL) -->
                         <template x-if="currentPreviewFile.ext === 'pdf'">
-                            <div class="w-full h-full min-h-[480px] flex flex-col">
-                                <iframe :src="currentPreviewFile.url" class="w-full flex-1 min-h-[480px] rounded-lg border border-slate-300 dark:border-slate-700 bg-white" frameborder="0"></iframe>
+                            <div class="w-full h-full min-h-[480px] flex flex-col relative">
+                                <!-- Loading State -->
+                                <div x-show="loadingPdfBlob" class="w-full h-full min-h-[480px] flex flex-col items-center justify-center bg-slate-100/70 dark:bg-slate-900/70 rounded-lg space-y-3">
+                                    <div class="w-8 h-8 border-3 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+                                    <p class="text-xs font-mono font-bold text-slate-600 dark:text-slate-300">Menyiapkan live preview dokumen PDF...</p>
+                                </div>
+
+                                <!-- Error State Fallback -->
+                                <div x-show="!loadingPdfBlob && pdfError" class="w-full h-full min-h-[480px] flex flex-col items-center justify-center p-6 text-center space-y-3 font-mono">
+                                    <div class="w-12 h-12 rounded-xl bg-amber-500/20 text-amber-500 flex items-center justify-center">
+                                        <i data-lucide="file-text" class="w-6 h-6"></i>
+                                    </div>
+                                    <p class="text-xs text-slate-600 dark:text-slate-300 max-w-sm" x-text="pdfError"></p>
+                                    <a :href="currentPreviewFile.url" target="_blank" class="px-3.5 py-1.5 bg-amber-500 text-slate-950 font-bold rounded-lg text-xs shadow hover:bg-amber-400 transition inline-flex items-center gap-1.5">
+                                        <i data-lucide="external-link" class="w-4 h-4"></i>
+                                        <span>Buka Berkas di Tab Baru</span>
+                                    </a>
+                                </div>
+
+                                <!-- Live Preview Iframe with In-Memory Blob URL -->
+                                <template x-if="!loadingPdfBlob && !pdfError && previewPdfBlobUrl">
+                                    <iframe :src="previewPdfBlobUrl + '#toolbar=1&navpanes=0&scrollbar=1'" class="w-full flex-1 min-h-[480px] rounded-lg border border-slate-300 dark:border-slate-700 bg-white shadow-sm" frameborder="0"></iframe>
+                                </template>
                             </div>
                         </template>
 
@@ -1295,7 +1324,7 @@
                                 <div>
                                     <a :href="currentPreviewFile.url" target="_blank" download class="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs shadow-md transition">
                                         <i data-lucide="download" class="w-4 h-4"></i>
-                                        <span>Unduh / Buka Berkas</span>
+                                        <span>Unduh Berkas</span>
                                     </a>
                                 </div>
                             </div>
@@ -1317,10 +1346,10 @@
                         Tutup
                     </button>
                     <template x-if="currentPreviewFile">
-                        <a :href="currentPreviewFile.url" target="_blank" class="px-4 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl font-black text-xs shadow-md transition inline-flex items-center gap-1.5">
+                        <button type="button" @click="openInNewTab()" class="px-4 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl font-black text-xs shadow-md transition inline-flex items-center gap-1.5 cursor-pointer">
                             <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
                             <span>Buka di Tab Baru</span>
-                        </a>
+                        </button>
                     </template>
                 </div>
             </div>
@@ -2277,24 +2306,103 @@ function dashboardOverviewApp() {
             }
         },
         
-        // File Preview Modal State
+        // File Preview Modal State (Anti-IDM Blob URL Renderer)
         filePreviewModalOpen: false,
         previewArchiveData: null,
         selectedFileIndex: 0,
+        previewPdfBlobUrl: null,
+        loadingPdfBlob: false,
+        pdfError: null,
 
         openFilePreviewModal(archiveData) {
             this.previewArchiveData = archiveData;
             this.selectedFileIndex = 0;
             this.filePreviewModalOpen = true;
+            this.loadCurrentPreviewFile();
             this.$nextTick(() => {
                 if (window.lucide) window.lucide.createIcons();
             });
         },
 
+        selectPreviewFile(idx) {
+            if (this.selectedFileIndex === idx) return;
+            this.selectedFileIndex = idx;
+            this.loadCurrentPreviewFile();
+            this.$nextTick(() => {
+                if (window.lucide) window.lucide.createIcons();
+            });
+        },
+
+        loadCurrentPreviewFile() {
+            if (this.previewPdfBlobUrl) {
+                URL.revokeObjectURL(this.previewPdfBlobUrl);
+                this.previewPdfBlobUrl = null;
+            }
+            this.pdfError = null;
+
+            const file = this.currentPreviewFile;
+            if (!file) return;
+
+            if (file.ext === 'pdf') {
+                this.loadingPdfBlob = true;
+                
+                // Anti-IDM Stream Endpoint: Prevents IDM extension from sniffing or intercepting PDF download
+                let targetUrl = file.stream_url;
+                if (!targetUrl) {
+                    const raw = file.raw_path || file.url || '';
+                    const clean = raw.replace(/^https?:\/\/[^\/]+/, '').replace(/^\/(storage|public)\//, '').replace(/^\//, '');
+                    targetUrl = '/files/preview-stream?token=' + encodeURIComponent(btoa(unescape(encodeURIComponent(clean))));
+                }
+
+                fetch(targetUrl, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/octet-stream, application/pdf, */*'
+                    }
+                })
+                    .then(res => {
+                        if (!res.ok) throw new Error('HTTP ' + res.status + ' (' + res.statusText + ')');
+                        return res.blob();
+                    })
+                    .then(blob => {
+                        const pdfBlob = new Blob([blob], { type: 'application/pdf' });
+                        this.previewPdfBlobUrl = URL.createObjectURL(pdfBlob);
+                        this.loadingPdfBlob = false;
+                        this.$nextTick(() => {
+                            if (window.lucide) window.lucide.createIcons();
+                        });
+                    })
+                    .catch(err => {
+                        console.warn('Gagal memuat PDF via anti-IDM blob stream:', err);
+                        this.loadingPdfBlob = false;
+                        this.pdfError = 'Gagal memuat pratinjau dokumen PDF secara live.';
+                        this.$nextTick(() => {
+                            if (window.lucide) window.lucide.createIcons();
+                        });
+                    });
+            } else {
+                this.loadingPdfBlob = false;
+            }
+        },
+
+        openInNewTab() {
+            if (this.previewPdfBlobUrl) {
+                window.open(this.previewPdfBlobUrl, '_blank');
+            } else if (this.currentPreviewFile) {
+                window.open(this.currentPreviewFile.url, '_blank');
+            }
+        },
+
         closeFilePreviewModal() {
+            if (this.previewPdfBlobUrl) {
+                URL.revokeObjectURL(this.previewPdfBlobUrl);
+                this.previewPdfBlobUrl = null;
+            }
             this.filePreviewModalOpen = false;
             this.previewArchiveData = null;
             this.selectedFileIndex = 0;
+            this.loadingPdfBlob = false;
+            this.pdfError = null;
         },
 
         get currentPreviewFile() {
