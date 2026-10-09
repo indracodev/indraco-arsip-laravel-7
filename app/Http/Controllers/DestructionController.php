@@ -180,6 +180,19 @@ class DestructionController extends Controller
             });
         }
         $destructionLogs = $destructionLogsQuery->latest()->get()->map(function ($dLog) {
+            $status = $dLog->approval_status ?? ($dLog->archive && $dLog->archive->status === 'destroyed' ? 'completed' : 'pending');
+            $canPrintBap = ($status === 'completed' || ($dLog->archive && $dLog->archive->status === 'destroyed')) && !empty($dLog->bap_number) && $dLog->bap_number !== '(Menunggu Penerbitan BAP)';
+            
+            $statusLabel = 'Pengajuan Pemusnahan';
+            $statusBadge = 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border-amber-300 dark:border-amber-700';
+            if ($status === 'approved') {
+                $statusLabel = 'Antrean Pemusnahan';
+                $statusBadge = 'bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-300 border-blue-300 dark:border-blue-700';
+            } elseif ($status === 'completed' || ($dLog->archive && $dLog->archive->status === 'destroyed')) {
+                $statusLabel = 'Telah Dimusnahkan';
+                $statusBadge = 'bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300 border-rose-300 dark:border-rose-700';
+            }
+
             return [
                 'id' => $dLog->id,
                 'bap_number' => $dLog->bap_number,
@@ -193,6 +206,13 @@ class DestructionController extends Controller
                 'approval_file' => $dLog->effective_approval_file ? app_storage_url($dLog->effective_approval_file) : null,
                 'approval_file_stream' => $dLog->effective_approval_file ? app_preview_stream_url($dLog->effective_approval_file) : null,
                 'approval_file_raw' => $dLog->effective_approval_file,
+                'certificate_file' => $dLog->certificate_file ? app_storage_url($dLog->certificate_file) : null,
+                'certificate_file_stream' => $dLog->certificate_file ? app_preview_stream_url($dLog->certificate_file) : null,
+                'certificate_file_raw' => $dLog->certificate_file,
+                'approval_status' => $status,
+                'status_label' => $statusLabel,
+                'status_badge' => $statusBadge,
+                'can_print_bap' => $canPrintBap,
             ];
         });
 
@@ -261,22 +281,23 @@ class DestructionController extends Controller
             abort(403, 'Anda hanya dapat mengajukan pemusnahan berkas milik departemen Anda.');
         }
 
-        if ($user->isPicDept() && !$request->filled('bap_number')) {
-            $request->merge([
-                'bap_number' => 'BAP/IND/' . date('Y') . '/' . str_pad($archive->id, 5, '0', STR_PAD_LEFT)
-            ]);
-        }
+        $isPicDept = $user->isPicDept();
 
-        $validated = $request->validate([
-            'bap_number' => 'required|string|max:100',
+        // Validasi input
+        $rules = [
             'destruction_date' => 'required|date',
             'method' => 'required|string|max:100',
             'notes' => 'nullable|string',
             'approval_file' => 'required_without:scan_approval_destruction|nullable|file|mimes:pdf,jpg,jpeg,png|max:500',
             'scan_approval_destruction' => 'required_without:approval_file|nullable|file|mimes:pdf,jpg,jpeg,png|max:500',
             'certificate_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:500',
-        ], [
-            'bap_number.required' => 'Nomor BAP wajib diisi.',
+        ];
+
+        if (!$isPicDept) {
+            $rules['bap_number'] = 'nullable|string|max:100';
+        }
+
+        $validated = $request->validate($rules, [
             'destruction_date.required' => 'Tanggal pelaksanaan pemusnahan wajib diisi.',
             'method.required' => 'Metode fisik pemusnahan wajib dipilih.',
             'approval_file.required_without' => 'Wajib mengunggah berkas surat persetujuan (approval) pemusnahan.',
@@ -284,11 +305,6 @@ class DestructionController extends Controller
             'scan_approval_destruction.max' => 'Ukuran file persetujuan maksimal 500 KB.',
             'certificate_file.max' => 'Ukuran file sertifikat BAP maksimal 500 KB.',
         ]);
-
-        $certPath = null;
-        if ($request->hasFile('certificate_file')) {
-            $certPath = $request->file('certificate_file')->store('bap_certificates', 'public');
-        }
 
         $scanApprovalPath = null;
         if ($request->hasFile('approval_file')) {
@@ -299,60 +315,84 @@ class DestructionController extends Controller
             $scanApprovalPath = $archive->scan_approval_destruction;
         }
 
-        \Illuminate\Support\Facades\DB::transaction(function () use ($archive, $user, $validated, $certPath, $scanApprovalPath) {
-            // Release slot if mapped
-            if ($archive->warehouse_rack_slot_id) {
-                $slot = $archive->rackSlot;
-                if ($slot) {
-                    $slot->update([
-                        'archive_id' => null,
-                        'status' => 'empty',
-                    ]);
-                }
-            }
+        $certPath = null;
+        if ($request->hasFile('certificate_file')) {
+            $certPath = $request->file('certificate_file')->store('bap_certificates', 'public');
+        }
 
-            // Decrement capacity count of warehouse location if assigned
-            if ($archive->warehouse_location_id) {
-                $loc = $archive->location;
-                if ($loc && $loc->current_box_count > 0) {
-                    $loc->decrement('current_box_count');
-                }
-            }
+        // Tentukan alur:
+        // Jika PIC Dept -> selalu TAHAP 1: Pengajuan Pemusnahan (Arsip 'pending_destruction', slot rak TIDAK dikosongkan)
+        // Jika Gudang/Admin dan mengisi BAP resmi + sertifikat -> bisa langsung completed, atau default pengajuan
+        $isImmediateCompletion = !$isPicDept && !empty($validated['bap_number']) && !str_starts_with($validated['bap_number'], 'DRAFT') && $validated['bap_number'] !== '(Menunggu Penerbitan BAP)';
 
-            $archive->update([
-                'status' => 'destroyed',
-                'warehouse_location_id' => null,
-                'warehouse_rack_slot_id' => null,
-            ]);
+        $bapNumber = $isImmediateCompletion 
+            ? $validated['bap_number'] 
+            : '(Menunggu Penerbitan BAP)';
+
+        $approvalStatus = $isImmediateCompletion ? 'completed' : 'pending';
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($archive, $user, $validated, $certPath, $scanApprovalPath, $isImmediateCompletion, $bapNumber, $approvalStatus) {
+            if ($isImmediateCompletion) {
+                // Release slot rak hanya jika langsung selesai
+                if ($archive->warehouse_rack_slot_id) {
+                    $slot = $archive->rackSlot;
+                    if ($slot) {
+                        $slot->update([
+                            'archive_id' => null,
+                            'status' => 'empty',
+                        ]);
+                    }
+                }
+                if ($archive->warehouse_location_id) {
+                    $loc = $archive->location;
+                    if ($loc && $loc->current_box_count > 0) {
+                        $loc->decrement('current_box_count');
+                    }
+                }
+
+                $archive->update([
+                    'status' => 'destroyed',
+                    'warehouse_location_id' => null,
+                    'warehouse_rack_slot_id' => null,
+                ]);
+            } else {
+                // Pengajuan Pemusnahan (Tahap 1) - Rak tetap terisi
+                $archive->update([
+                    'status' => 'pending_destruction',
+                ]);
+            }
 
             DestructionLog::create([
                 'archive_id' => $archive->id,
                 'proposed_by_user_id' => $user->id,
                 'department_approval_by' => $user->id,
                 'department_approved_at' => now(),
-                'approved_by_dept_pic_id' => $user->id,
-                'bap_number' => $validated['bap_number'],
+                'approved_by_dept_pic_id' => $isImmediateCompletion ? $user->id : null,
+                'bap_number' => $bapNumber,
                 'destruction_date' => $validated['destruction_date'],
                 'method' => $validated['method'],
                 'certificate_file' => $certPath,
                 'approval_file' => $scanApprovalPath,
                 'scan_approval_destruction' => $scanApprovalPath,
                 'is_approval_uploaded' => !empty($scanApprovalPath),
-                'approval_status' => 'approved',
+                'approval_status' => $approvalStatus,
                 'notes' => $validated['notes'] ?? null,
             ]);
 
             ActivityLogger::log(
-                'DESTRUCTION_PROPOSE',
-                "Pemusnahan berkas kadaluwarsa '{$archive->title}' (Box: {$archive->box_number}) dengan No. BAP {$validated['bap_number']} via metode {$validated['method']}",
+                $isImmediateCompletion ? 'DESTRUCTION_COMPLETE' : 'DESTRUCTION_PROPOSE',
+                $isImmediateCompletion 
+                    ? "Pemusnahan berkas '{$archive->title}' (Box: {$archive->box_number}) disahkan dengan No. BAP {$bapNumber}" 
+                    : "Pengajuan usulan pemusnahan berkas '{$archive->title}' (Box: {$archive->box_number}) oleh {$user->name}",
                 'PEMUSNAHAN_RETENSI',
                 [
                     'archive_id' => $archive->id,
-                    'bap_number' => $validated['bap_number'],
+                    'bap_number' => $bapNumber,
                     'method' => $validated['method'],
                     'destruction_date' => $validated['destruction_date'],
+                    'status' => $approvalStatus,
                 ],
-                $validated['bap_number']
+                $archive->box_number ?: "Arsip ID: {$archive->id}"
             );
         });
 
@@ -364,13 +404,141 @@ class DestructionController extends Controller
             $redirectParams['embed'] = 1;
         }
 
+        $successMessage = $isImmediateCompletion 
+            ? "Proses pemusnahan berkas ({$archive->title}) berhasil disahkan dengan No. BAP {$bapNumber}."
+            : "Pengajuan pemusnahan berkas ({$archive->title}) berhasil dikirim. Menunggu verifikasi dan persetujuan dari PIC Gudang.";
+
         return redirect()->route('destructions.index', $redirectParams)
             ->with('active_tab', 'destructions')
-            ->with('success', "Proses pemusnahan berkas ({$archive->title}) dengan lampiran persetujuan telah disahkan dengan No. BAP {$validated['bap_number']}.");
+            ->with('success', $successMessage);
+    }
+
+    /**
+     * TAHAP 2: Gudang / Superadmin menyetujui pengajuan pemusnahan (masuk antrean).
+     */
+    public function approve(DestructionLog $destructionLog, Request $request)
+    {
+        $user = auth()->user();
+
+        if (!$user->isPicGudang() && !$user->isSuperAdmin()) {
+            abort(403, 'Hanya PIC Gudang atau Super Admin yang berwenang menyetujui pengajuan pemusnahan.');
+        }
+
+        $destructionLog->update([
+            'approval_status' => 'approved',
+            'approved_by_dept_pic_id' => $user->id,
+        ]);
+
+        $archive = $destructionLog->archive;
+        if ($archive && $archive->status !== 'pending_destruction') {
+            $archive->update(['status' => 'pending_destruction']);
+        }
+
+        ActivityLogger::log(
+            'DESTRUCTION_APPROVE',
+            "Pengajuan pemusnahan berkas '{$archive->title}' disetujui oleh {$user->name} dan dimasukkan ke Antrean Pemusnahan.",
+            'PEMUSNAHAN_RETENSI',
+            [
+                'destruction_log_id' => $destructionLog->id,
+                'archive_id' => $destructionLog->archive_id,
+            ],
+            $archive->box_number ?: "ID: {$archive->id}"
+        );
+
+        return redirect()->back()
+            ->with('success', "Pengajuan pemusnahan berkas ({$archive->title}) disetujui dan telah masuk ke Antrean Pemusnahan Gudang.");
+    }
+
+    /**
+     * TAHAP 3: Gudang / Superadmin menyelesaikan eksekusi fisik & menerbitkan nomor BAP resmi.
+     */
+    public function complete(DestructionLog $destructionLog, Request $request)
+    {
+        $user = auth()->user();
+
+        if (!$user->isPicGudang() && !$user->isSuperAdmin()) {
+            abort(403, 'Hanya PIC Gudang atau Super Admin yang berwenang menyelesaikan pemusnahan berkas.');
+        }
+
+        $validated = $request->validate([
+            'bap_number' => 'required|string|max:100',
+            'destruction_date' => 'required|date',
+            'certificate_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:500',
+            'notes' => 'nullable|string|max:1000',
+        ], [
+            'bap_number.required' => 'Nomor BAP resmi wajib diisi oleh Gudang.',
+            'destruction_date.required' => 'Tanggal pelaksanaan fisik pemusnahan wajib diisi.',
+            'certificate_file.max' => 'Ukuran berkas sertifikat BAP maksimal 500 KB.',
+        ]);
+
+        $archive = $destructionLog->archive;
+
+        $certPath = $destructionLog->certificate_file;
+        if ($request->hasFile('certificate_file')) {
+            $certPath = $request->file('certificate_file')->store('bap_certificates', 'public');
+        }
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($destructionLog, $archive, $user, $validated, $certPath) {
+            // Kosongkan slot rak gudang arsip
+            if ($archive && $archive->warehouse_rack_slot_id) {
+                $slot = $archive->rackSlot;
+                if ($slot) {
+                    $slot->update([
+                        'archive_id' => null,
+                        'status' => 'empty',
+                    ]);
+                }
+            }
+
+            // Kurangi kuota box lokasi rak
+            if ($archive && $archive->warehouse_location_id) {
+                $loc = $archive->location;
+                if ($loc && $loc->current_box_count > 0) {
+                    $loc->decrement('current_box_count');
+                }
+            }
+
+            // Update status arsip resmi menjadi 'destroyed'
+            if ($archive) {
+                $archive->update([
+                    'status' => 'destroyed',
+                    'warehouse_location_id' => null,
+                    'warehouse_rack_slot_id' => null,
+                ]);
+            }
+
+            // Update log pemusnahan menjadi selesai
+            $destructionLog->update([
+                'bap_number' => $validated['bap_number'],
+                'destruction_date' => $validated['destruction_date'],
+                'certificate_file' => $certPath,
+                'approval_status' => 'completed',
+                'notes' => $validated['notes'] ?? $destructionLog->notes,
+            ]);
+
+            ActivityLogger::log(
+                'DESTRUCTION_EXECUTE',
+                "Pemusnahan berkas fisik '{$archive->title}' (Box: {$archive->box_number}) selesai dieksekusi dengan No. BAP {$validated['bap_number']}.",
+                'PEMUSNAHAN_RETENSI',
+                [
+                    'destruction_log_id' => $destructionLog->id,
+                    'archive_id' => $destructionLog->archive_id,
+                    'bap_number' => $validated['bap_number'],
+                ],
+                $validated['bap_number']
+            );
+        });
+
+        return redirect()->back()
+            ->with('success', "Pemusnahan berkas ({$archive->title}) telah selesai dieksekusi dengan No. BAP {$validated['bap_number']}. Slot rak telah dikosongkan dan BAP siap dicetak.");
     }
 
     public function showBap(DestructionLog $destructionLog)
     {
+        if ($destructionLog->approval_status !== 'completed' && (!$destructionLog->archive || $destructionLog->archive->status !== 'destroyed')) {
+            return redirect()->back()->with('error', 'Berita Acara Pemusnahan (BAP) belum diterbitkan oleh Gudang karena berkas masih dalam tahap pengajuan/antrean.');
+        }
+
         $destructionLog->load(['archive.department', 'proposedBy', 'approvedBy', 'departmentApprovedBy', 'archive.location']);
 
         ActivityLogger::log(

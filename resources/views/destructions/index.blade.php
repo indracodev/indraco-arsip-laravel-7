@@ -29,6 +29,27 @@
     searchDest: '',
     destructionLogs: {{ json_encode($destructionLogs) }},
 
+    // Modal Eksekusi & Penerbitan BAP (Khusus Gudang / Superadmin)
+    completeModalOpen: false,
+    selectedLogToComplete: null,
+    completeBapNumber: '',
+    completeDestructionDate: '{{ date('Y-m-d') }}',
+    completeNotes: '',
+
+    openCompleteModal(dLog) {
+        this.selectedLogToComplete = dLog;
+        this.completeBapNumber = 'BAP/IND/' + new Date().getFullYear() + '/' + String(dLog.archive_id || dLog.id).padStart(5, '0');
+        this.completeDestructionDate = new Date().toISOString().split('T')[0];
+        this.completeNotes = '';
+        this.completeModalOpen = true;
+        this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+    },
+
+    closeCompleteModal() {
+        this.completeModalOpen = false;
+        this.selectedLogToComplete = null;
+    },
+
     get filteredExpired() {
         let res = [...this.expiredArchives];
         if (this.searchExpired.trim() !== '') {
@@ -69,6 +90,7 @@
             (d.bap_number && d.bap_number.toLowerCase().includes(q)) ||
             (d.archive_title && d.archive_title.toLowerCase().includes(q)) ||
             (d.box_number && d.box_number.toLowerCase().includes(q)) ||
+            (d.status_label && d.status_label.toLowerCase().includes(q)) ||
             (d.method && d.method.toLowerCase().includes(q)) ||
             (d.executor && d.executor.toLowerCase().includes(q))
         );
@@ -472,25 +494,36 @@
                     <tr class="bg-gradient-to-b from-slate-100 to-slate-200 dark:from-slate-900 dark:to-slate-950 text-[11px] font-mono font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 select-none border-b-2 border-slate-300 dark:border-slate-700">
                         <th class="py-2.5 px-3 border-r border-slate-300 dark:border-slate-700">NOMOR BAP</th>
                         <th class="py-2.5 px-3 border-r border-slate-300 dark:border-slate-700">JUDUL BERKAS ARSIP</th>
+                        <th class="py-2.5 px-3 border-r border-slate-300 dark:border-slate-700">STATUS ALUR</th>
                         <th class="py-2.5 px-3 border-r border-slate-300 dark:border-slate-700">TANGGAL EKSEKUSI</th>
                         <th class="py-2.5 px-3 border-r border-slate-300 dark:border-slate-700">METODE PEMUSNAHAN</th>
                         <th class="py-2.5 px-3 border-r border-slate-300 dark:border-slate-700">EKSEKUTOR / PEMOHON</th>
-                        <th class="py-2.5 px-3 text-right whitespace-nowrap">DOKUMEN BAP</th>
+                        <th class="py-2.5 px-3 text-right whitespace-nowrap">DOKUMEN BAP & TINDAKAN</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-200 dark:divide-slate-800 text-xs font-mono">
                     <template x-for="dLog in filteredDestLogs" :key="dLog.id">
                         <tr class="hover:bg-amber-500/5 dark:hover:bg-slate-900/50 transition">
-                            <td class="py-2.5 px-3 border-r border-slate-200 dark:border-slate-800 font-bold text-rose-600 dark:text-rose-400 whitespace-nowrap" x-text="dLog.bap_number"></td>
+                            <td class="py-2.5 px-3 border-r border-slate-200 dark:border-slate-800 whitespace-nowrap">
+                                <span :class="dLog.approval_status === 'completed' ? 'font-bold text-rose-600 dark:text-rose-400' : 'text-slate-400 dark:text-slate-500 italic text-[11px]'" x-text="dLog.bap_number || '(Menunggu BAP)'"></span>
+                            </td>
                             <td class="py-2.5 px-3 border-r border-slate-200 dark:border-slate-800">
                                 <span class="font-sans font-bold text-slate-900 dark:text-white block truncate max-w-sm" :title="dLog.archive_title" x-text="dLog.archive_title"></span>
                                 <span class="text-[10px] text-slate-500 block mt-0.5" x-text="'Box: ' + dLog.box_number + ' • Dept: ' + dLog.department_code"></span>
+                            </td>
+                            <td class="py-2.5 px-3 border-r border-slate-200 dark:border-slate-800 whitespace-nowrap">
+                                <span 
+                                    class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border" 
+                                    :class="dLog.status_badge"
+                                    x-text="dLog.status_label">
+                                </span>
                             </td>
                             <td class="py-2.5 px-3 border-r border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 text-[11px] whitespace-nowrap" x-text="dLog.destruction_date"></td>
                             <td class="py-2.5 px-3 border-r border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-[11px]" x-text="dLog.method"></td>
                             <td class="py-2.5 px-3 border-r border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 whitespace-nowrap text-[11px]" x-text="dLog.executor"></td>
                             <td class="py-2.5 px-3 text-right whitespace-nowrap">
                                 <div class="flex items-center justify-end gap-1.5">
+                                    <!-- 1. Tombol Approval Usulan (PIC Dept) -->
                                     <template x-if="dLog.approval_file">
                                         <button type="button" 
                                                 @click="dmsPreviewFile({
@@ -500,15 +533,68 @@
                                                     name: 'Approval Pemusnahan - ' + (dLog.bap_number || dLog.archive_title),
                                                     ext: (dLog.approval_file_raw || dLog.approval_file || '').split('.').pop().toLowerCase()
                                                 })"
-                                                class="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-rose-600 dark:text-rose-400 border border-slate-300 dark:border-slate-700 text-[10px] font-bold inline-flex items-center gap-1 cursor-pointer">
-                                            <i data-lucide="file-check" class="w-3 h-3"></i>
+                                                class="px-2 py-0.5 rounded bg-white dark:bg-slate-900 hover:bg-slate-50 text-rose-600 dark:text-rose-400 border border-slate-300 dark:border-slate-700 text-[10px] font-bold inline-flex items-center gap-1 cursor-pointer shadow-2xs"
+                                                title="Lihat Dokumen Persetujuan Pemusnahan">
+                                            <i data-lucide="file-check" class="w-3 h-3 text-rose-600 dark:text-rose-400"></i>
                                             <span>Approval</span>
                                         </button>
                                     </template>
-                                    <a :href="'{{ url('/destructions/bap') }}/' + dLog.id" target="_blank" class="px-2 py-0.5 rounded bg-rose-600 hover:bg-rose-500 text-white font-bold text-[10px] border border-rose-700 shadow-sm inline-flex items-center gap-1 cursor-pointer">
-                                        <i data-lucide="printer" class="w-3 h-3"></i>
-                                        <span>Cetak BAP</span>
-                                    </a>
+
+                                    <!-- 2. Tombol Berkas / Sertifikat BAP Fisik (Upload Gudang) -->
+                                    <template x-if="dLog.certificate_file">
+                                        <button type="button" 
+                                                @click="dmsPreviewFile({
+                                                    url: dLog.certificate_file,
+                                                    stream_url: dLog.certificate_file_stream,
+                                                    raw_path: dLog.certificate_file_raw,
+                                                    name: 'Sertifikat BAP - ' + (dLog.bap_number || dLog.archive_title),
+                                                    ext: (dLog.certificate_file_raw || dLog.certificate_file || '').split('.').pop().toLowerCase()
+                                                })"
+                                                class="px-2 py-0.5 rounded bg-white dark:bg-slate-900 hover:bg-slate-50 text-blue-600 dark:text-blue-400 border border-slate-300 dark:border-slate-700 text-[10px] font-bold inline-flex items-center gap-1 cursor-pointer shadow-2xs"
+                                                title="Lihat Berkas Sertifikat BAP Fisik dari Gudang">
+                                            <i data-lucide="file-text" class="w-3 h-3 text-blue-600 dark:text-blue-400"></i>
+                                            <span>Berkas BAP</span>
+                                        </button>
+                                    </template>
+
+                                    <!-- 3. Tombol Cetak BAP (HANYA AKTIF JIKA SUDAH DIMUSNAHKAN & RESMI DITERBITKAN OLEH GUDANG) -->
+                                    <template x-if="dLog.can_print_bap">
+                                        <a :href="'{{ url('/destructions/bap') }}/' + dLog.id" target="_blank" class="px-2 py-0.5 rounded bg-rose-600 hover:bg-rose-500 text-white font-bold text-[10px] border border-rose-700 shadow-sm inline-flex items-center gap-1 cursor-pointer" title="Cetak Berita Acara Pemusnahan (BAP) Resmi">
+                                            <i data-lucide="printer" class="w-3 h-3"></i>
+                                            <span>Cetak BAP</span>
+                                        </a>
+                                    </template>
+                                    <template x-if="!dLog.can_print_bap">
+                                        <button type="button" disabled class="px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 font-bold text-[10px] border border-slate-300 dark:border-slate-700 cursor-not-allowed inline-flex items-center gap-1 opacity-70" title="BAP belum diterbitkan oleh Gudang (Masih dalam tahap pengajuan / antrean)">
+                                            <i data-lucide="printer" class="w-3 h-3 text-slate-400 dark:text-slate-500"></i>
+                                            <span>Cetak BAP</span>
+                                        </button>
+                                    </template>
+
+                                    <!-- 4. Tombol Aksi Workflow Khusus PIC Gudang / Super Admin -->
+                                    @if(auth()->check() && (auth()->user()->isPicGudang() || auth()->user()->isSuperAdmin()))
+                                        <!-- Tahap 1 -> Tahap 2: Setujui Usulan Pengajuan ke Antrean Pemusnahan -->
+                                        <template x-if="dLog.approval_status === 'pending'">
+                                            <form :action="'{{ url('/destructions') }}/' + dLog.id + '/approve'" method="POST" class="inline" @submit="return confirm('Apakah Anda yakin menyetujui usulan pengajuan pemusnahan ini untuk masuk ke Antrean Pemusnahan Gudang?')">
+                                                @csrf
+                                                <button type="submit" class="px-2 py-0.5 rounded bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] border border-blue-700 shadow-sm inline-flex items-center gap-1 cursor-pointer" title="Setujui Pengajuan Masuk Antrean Gudang">
+                                                    <i data-lucide="check" class="w-3 h-3"></i>
+                                                    <span>Setujui</span>
+                                                </button>
+                                            </form>
+                                        </template>
+
+                                        <!-- Tahap 2 -> Tahap 3: Eksekusi Fisik & Terbitkan No BAP Resmi -->
+                                        <template x-if="dLog.approval_status === 'approved'">
+                                            <button type="button" 
+                                                    @click="openCompleteModal(dLog)"
+                                                    class="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] border border-emerald-700 shadow-sm inline-flex items-center gap-1 cursor-pointer" 
+                                                    title="Eksekusi Fisik Pemusnahan & Terbitkan No. BAP">
+                                                <i data-lucide="trash-2" class="w-3 h-3"></i>
+                                                <span>Eksekusi BAP</span>
+                                            </button>
+                                        </template>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
@@ -516,7 +602,7 @@
 
                     <!-- EMPTY STATE JIKA BELUM ADA LOG PEMUSNAHAN -->
                     <tr x-show="filteredDestLogs.length === 0">
-                        <td colspan="6" class="py-8 px-4 text-center text-slate-500 dark:text-slate-400">
+                        <td colspan="7" class="py-8 px-4 text-center text-slate-500 dark:text-slate-400">
                             <i data-lucide="trash-2" class="w-8 h-8 text-rose-400 mx-auto mb-2 opacity-60"></i>
                             <div class="font-bold text-slate-800 dark:text-slate-200">Belum Ada Riwayat Pemusnahan Berkas</div>
                             <p class="text-[11px] text-slate-400 mt-0.5">Belum ada berkas yang diajukan atau dimusnahkan.</p>
@@ -526,5 +612,134 @@
             </table>
         </div>
     </div>
+
+    <!-- ========================================================================= -->
+    <!-- MODAL EKSEKUSI FISIK & PENERBITAN BAP (KHUSUS PIC GUDANG / SUPERADMIN) -->
+    <!-- ========================================================================= -->
+    @if(auth()->check() && (auth()->user()->isPicGudang() || auth()->user()->isSuperAdmin()))
+    <div x-show="completeModalOpen" 
+         x-cloak 
+         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs font-mono"
+         @keydown.escape.window="closeCompleteModal()">
+        <div @click.away="closeCompleteModal()" 
+             class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto space-y-4 p-5">
+            
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                <div class="flex items-center gap-2">
+                    <span class="p-1.5 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 rounded">
+                        <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                    </span>
+                    <div>
+                        <h3 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                            Eksekusi Pemusnahan & Penerbitan BAP Resmi
+                        </h3>
+                        <p class="text-[10px] text-slate-500 font-sans">
+                            Tahap 3: Gudang mengeksekusi fisik pemusnahan berkas, menerbitkan nomor BAP resmi, dan mengosongkan rak.
+                        </p>
+                    </div>
+                </div>
+                <button type="button" @click="closeCompleteModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded cursor-pointer">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <!-- Target Berkas Info Card -->
+            <div class="p-3 bg-slate-50 dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-800 text-xs space-y-1">
+                <div class="flex items-center justify-between">
+                    <span class="text-[10px] font-bold text-slate-500 uppercase">NO. BOX ARSIP</span>
+                    <span class="font-bold text-rose-600 dark:text-rose-400" x-text="selectedLogToComplete?.box_number || '-'"></span>
+                </div>
+                <div>
+                    <span class="font-sans font-bold text-slate-800 dark:text-slate-200 block truncate" x-text="selectedLogToComplete?.archive_title"></span>
+                    <span class="text-[10px] text-slate-500" x-text="'Dept: ' + (selectedLogToComplete?.department_code || '-')"></span>
+                </div>
+            </div>
+
+            <!-- Form Eksekusi BAP -->
+            <form :action="selectedLogToComplete ? '{{ url('/destructions') }}/' + selectedLogToComplete.id + '/complete' : '#'" 
+                  method="POST" 
+                  enctype="multipart/form-data" 
+                  class="space-y-3.5 text-xs">
+                @csrf
+
+                <!-- 1. Nomor BAP Resmi -->
+                <div>
+                    <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        NOMOR BERITA ACARA (BAP) RESMI <span class="text-rose-500">*</span>
+                    </label>
+                    <input type="text" 
+                           name="bap_number" 
+                           x-model="completeBapNumber" 
+                           required 
+                           placeholder="Contoh: BAP/IND/2026/00012"
+                           class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-bold text-rose-600 dark:text-rose-400 focus:outline-none focus:border-rose-500 transition">
+                    <span class="text-[10px] text-slate-400 block mt-0.5 font-sans">
+                        Nomor resmi Berita Acara Pemusnahan yang diterbitkan oleh bagian Gudang / Kearsipan.
+                    </span>
+                </div>
+
+                <!-- 2. Tanggal Pelaksanaan Pemusnahan -->
+                <div>
+                    <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        TANGGAL EKSEKUSI PEMUSNAHAN FISIK <span class="text-rose-500">*</span>
+                    </label>
+                    <input type="date" 
+                           name="destruction_date" 
+                           x-model="completeDestructionDate" 
+                           required 
+                           class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:border-rose-500 transition">
+                </div>
+
+                <!-- 3. Upload Sertifikat / Berkas Fisik BAP (Maks 500 KB) -->
+                <div>
+                    <x-file-uploader 
+                        name="certificate_file" 
+                        id="complete_certificate_file" 
+                        label="Upload Berkas / Sertifikat BAP Fisik" 
+                        :required="false" 
+                        badge="OPSIONAL" 
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        :maxSizeKB="500"
+                        :maxSizeMB="0.5"
+                        helperText="Scan surat berita acara fisik bertandatangan (Format: PDF, JPG, PNG Maks. 500 KB)."
+                    />
+                </div>
+
+                <!-- 4. Catatan Tambahan -->
+                <div>
+                    <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        CATATAN PELAKSANAAN (OPSIONAL)
+                    </label>
+                    <textarea name="notes" 
+                              x-model="completeNotes" 
+                              rows="2" 
+                              placeholder="Catatan pelaksanaan pemusnahan fisik, saksi, atau vendor pelaksana..."
+                              class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-rose-500 transition"></textarea>
+                </div>
+
+                <!-- Alert Notice Slot Rak Dikosongkan -->
+                <div class="p-2.5 bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 rounded text-[11px] flex items-start gap-2">
+                    <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5"></i>
+                    <div>
+                        <strong class="font-bold uppercase">Perhatian:</strong>
+                        Pengesahan ini akan mengubah status arsip menjadi <strong class="underline">Telah Dimusnahkan</strong>, mengosongkan slot rak penyimpanan gudang, dan mengaktifkan cetak BAP resmi.
+                    </div>
+                </div>
+
+                <!-- Modal Actions -->
+                <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+                    <button type="button" @click="closeCompleteModal()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded font-bold transition cursor-pointer">
+                        Batal
+                    </button>
+                    <button type="submit" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded shadow transition flex items-center gap-1.5 cursor-pointer">
+                        <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                        <span>Sahkan Pemusnahan & Terbitkan BAP</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    @endif
 </div>
 @endsection

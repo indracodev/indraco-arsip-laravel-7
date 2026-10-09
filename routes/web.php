@@ -77,6 +77,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/destructions/propose/{archive?}', 'DestructionController@propose')->name('destructions.store');
     Route::post('/destructions/propose/{archive}', 'DestructionController@propose')->name('destructions.store.archive');
     Route::get('/destructions/bap/{destructionLog}', 'DestructionController@showBap')->name('destructions.bap');
+    Route::post('/destructions/{destructionLog}/approve', 'DestructionController@approve')->name('destructions.approve');
+    Route::post('/destructions/{destructionLog}/complete', 'DestructionController@complete')->name('destructions.complete');
     Route::get('/destructions/extend', 'DestructionController@extendForm')->name('destructions.extend_form');
     Route::get('/destructions/extend/{archive}', 'DestructionController@extendForm')->name('destructions.extend_form.archive');
     Route::post('/destructions/extend/{archive?}', 'DestructionController@extendStore')->name('destructions.extend_store');

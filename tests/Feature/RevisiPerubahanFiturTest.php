@@ -157,7 +157,7 @@ class RevisiPerubahanFiturTest extends TestCase
     }
 
     /** @test */
-    public function test_pic_dept_auto_generates_bap_on_destruction()
+    public function test_pic_dept_propose_destruction_creates_pending_status_and_does_not_destroy_archive()
     {
         $this->actingAs($this->picDeptUser);
         Storage::fake('public');
@@ -184,13 +184,97 @@ class RevisiPerubahanFiturTest extends TestCase
             'destruction_date' => date('Y-m-d'),
             'method' => 'Pencacahan Mesin Industrial Paper Shredder',
             'approval_file' => $approvalFile,
-            // bap_number tidak dikirim oleh PIC Dept
         ]);
 
         $response->assertRedirect();
-        $this->assertDatabaseHas('destruction_logs', [
-            'archive_id' => $archive->id,
-            'method' => 'Pencacahan Mesin Industrial Paper Shredder',
+        
+        // Cek arsip berstatus 'pending_destruction' (bukan 'destroyed')
+        $archive->refresh();
+        $this->assertEquals('pending_destruction', $archive->status);
+
+        // Cek log pemusnahan berstatus 'pending' dan nomor BAP pending
+        $log = \App\Models\DestructionLog::where('archive_id', $archive->id)->first();
+        $this->assertNotNull($log);
+        $this->assertEquals('pending', $log->approval_status);
+        $this->assertEquals('(Menunggu Penerbitan BAP)', $log->bap_number);
+
+        // Cek cetak BAP ditolak / diblokir karena belum diterbitkan oleh Gudang
+        $printResponse = $this->get(route('destructions.bap', $log->id));
+        $printResponse->assertRedirect();
+        $printResponse->assertSessionHas('error');
+    }
+
+    /** @test */
+    public function test_gudang_can_approve_and_then_complete_destruction()
+    {
+        Storage::fake('public');
+
+        $gudangUser = User::firstOrCreate(
+            ['email' => 'gudang_test@indraco.com'],
+            [
+                'name' => 'PIC Gudang Test',
+                'password' => bcrypt('password'),
+                'role' => 'pic_gudang',
+                'department_id' => $this->dept->id,
+            ]
+        );
+
+        $archive = Archive::create([
+            'archive_code' => 'TEST-DEST-002',
+            'title' => 'Berkas Tahap 2 dan 3',
+            'document_type' => 'Pajak',
+            'department_id' => $this->dept->id,
+            'created_by_user_id' => $this->picDeptUser->id,
+            'tgl_penyerahan' => date('Y-m-d'),
+            'period_start_date' => date('Y-m-d'),
+            'period_end_date' => date('Y-m-d'),
+            'content_description' => 'Uraian berkas testing',
+            'physical_condition' => 'Baik',
+            'status' => 'pending_destruction',
+            'retention_years' => 5,
+            'retention_expiry_date' => now()->subDay(),
         ]);
+
+        $log = \App\Models\DestructionLog::create([
+            'archive_id' => $archive->id,
+            'proposed_by_user_id' => $this->picDeptUser->id,
+            'bap_number' => '(Menunggu Penerbitan BAP)',
+            'destruction_date' => now(),
+            'method' => 'Pencacahan Mesin Industrial Paper Shredder',
+            'approval_status' => 'pending',
+        ]);
+
+        // 1. TAHAP 2: Gudang menyetujui pengajuan masuk antrean
+        $this->actingAs($gudangUser);
+        $approveResponse = $this->post(route('destructions.approve', $log->id));
+        $approveResponse->assertRedirect();
+
+        $log->refresh();
+        $this->assertEquals('approved', $log->approval_status);
+
+        // Cetak BAP masih diblokir
+        $printResponse = $this->get(route('destructions.bap', $log->id));
+        $printResponse->assertRedirect();
+
+        // 2. TAHAP 3: Gudang mengeksekusi & menerbitkan nomor BAP resmi
+        $certFile = UploadedFile::fake()->create('sertifikat_bap.pdf', 150);
+        $completeResponse = $this->post(route('destructions.complete', $log->id), [
+            'bap_number' => 'BAP/IND/2026/99999',
+            'destruction_date' => date('Y-m-d'),
+            'certificate_file' => $certFile,
+            'notes' => 'Telah dimusnahkan dengan disaksikan tim audit',
+        ]);
+        $completeResponse->assertRedirect();
+
+        $log->refresh();
+        $archive->refresh();
+
+        $this->assertEquals('completed', $log->approval_status);
+        $this->assertEquals('BAP/IND/2026/99999', $log->bap_number);
+        $this->assertEquals('destroyed', $archive->status);
+
+        // Cetak BAP sekarang BERHASIL
+        $validPrintResponse = $this->get(route('destructions.bap', $log->id));
+        $validPrintResponse->assertOk();
     }
 }
