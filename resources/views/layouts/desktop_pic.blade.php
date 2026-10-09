@@ -345,7 +345,7 @@
             </button>
 
             <!-- SEARCH INPUT WITH AUTO-SUGGESTIONS & PHYSICAL LOCATION -->
-            <div class="relative z-50 flex-1 min-w-[200px] max-w-xl" x-data="picQuickSearch()" @click.outside="closeDropdown()" style="display: none !important;">
+            <div class="relative z-50 flex-1 min-w-[200px] max-w-xl" x-data="picQuickSearch()" @click.outside="closeDropdown()">
                 <div class="relative flex items-center">
                     <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
                         <svg x-show="isLoading" class="w-3.5 h-3.5 text-amber-500 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" x-cloak>
