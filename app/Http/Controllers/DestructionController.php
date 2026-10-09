@@ -181,7 +181,7 @@ class DestructionController extends Controller
         }
         $destructionLogs = $destructionLogsQuery->latest()->get()->map(function ($dLog) {
             $status = $dLog->approval_status ?? ($dLog->archive && $dLog->archive->status === 'destroyed' ? 'completed' : 'pending');
-            $canPrintBap = ($status === 'completed' || ($dLog->archive && $dLog->archive->status === 'destroyed')) && !empty($dLog->bap_number) && $dLog->bap_number !== '(Menunggu Penerbitan BAP)';
+            $canPrintBap = !empty($dLog->certificate_file);
             
             $statusLabel = 'Pengajuan Pemusnahan';
             $statusBadge = 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border-amber-300 dark:border-amber-700';
@@ -535,8 +535,8 @@ class DestructionController extends Controller
 
     public function showBap(DestructionLog $destructionLog)
     {
-        if ($destructionLog->approval_status !== 'completed' && (!$destructionLog->archive || $destructionLog->archive->status !== 'destroyed')) {
-            return redirect()->back()->with('error', 'Berita Acara Pemusnahan (BAP) belum diterbitkan oleh Gudang karena berkas masih dalam tahap pengajuan/antrean.');
+        if (empty($destructionLog->certificate_file)) {
+            return redirect()->back()->with('error', 'File Berita Acara Pemusnahan (BAP) belum diunggah oleh Gudang.');
         }
 
         $destructionLog->load(['archive.department', 'proposedBy', 'approvedBy', 'departmentApprovedBy', 'archive.location']);

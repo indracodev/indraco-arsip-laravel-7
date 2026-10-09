@@ -836,7 +836,7 @@
         </template>
 
         <!-- REAL-TIME FLOATING TOAST NOTIFICATIONS (TOP-RIGHT) -->
-        <div class="fixed top-12 right-3 sm:right-5 z-[999] flex flex-col gap-2.5 max-w-sm sm:max-w-md pointer-events-none font-mono">
+        <div class="fixed top-24 right-3 sm:right-5 z-[9999] flex flex-col gap-2.5 max-w-sm sm:max-w-md pointer-events-none font-mono">
             <template x-for="toast in activeToasts" :key="toast.id">
                 <div 
                     x-transition:enter="transition ease-out duration-300 transform"
@@ -1444,9 +1444,9 @@
                                 type: d.level || 'success',
                                 title: d.message,
                                 boxNumber: d.boxNumber || '',
-                                deptCode: '{{ auth()->user()->department->code ?? "DMS" }}',
-                                deptName: '{{ auth()->user()->department->name ?? "" }}',
-                                creatorName: '{{ auth()->user()->name }}',
+                                deptCode: {!! json_encode(auth()->user()->department->code ?? 'DMS') !!},
+                                deptName: {!! json_encode(auth()->user()->department->name ?? '') !!},
+                                creatorName: {!! json_encode(auth()->user()->name ?? '') !!},
                                 statusLabel: d.statusLabel || 'Tersimpan',
                                 time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
                                 url: d.url || null

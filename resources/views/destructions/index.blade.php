@@ -9,6 +9,10 @@
         $defaultTab = 'destructions';
     } elseif (request('view') === 'expiry') {
         $defaultTab = 'h30';
+    } elseif (!request()->has('tab') && !session()->has('active_tab')) {
+        if ($destructionLogs->whereIn('approval_status', ['pending', 'approved'])->isNotEmpty() || $expiredArchives->isEmpty()) {
+            $defaultTab = 'destructions';
+        }
     }
 @endphp
 
@@ -208,9 +212,10 @@
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'" 
             class="px-3 py-1.5 rounded transition flex items-center gap-1.5 cursor-pointer">
             <i data-lucide="trash-2" class="w-3.5 h-3.5" :class="activeTab === 'destructions' ? 'text-rose-500' : 'text-slate-400'"></i>
-            <span>Riwayat Pemusnahan</span>
+            <span>Alur & Riwayat Pemusnahan</span>
             <span 
-                class="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-slate-300 dark:bg-slate-700 text-slate-700 dark:text-slate-300" 
+                class="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold" 
+                :class="destructionLogs.some(d => d.approval_status === 'pending' || d.approval_status === 'approved') ? 'bg-amber-500 text-slate-950 font-black animate-pulse' : 'bg-slate-300 dark:bg-slate-700 text-slate-700 dark:text-slate-300'" 
                 x-text="destructionLogs.length">
             </span>
         </button>
@@ -465,10 +470,10 @@
             <div>
                 <h2 class="text-xs font-bold text-slate-900 dark:text-white uppercase flex items-center gap-1.5">
                     <i data-lucide="trash-2" class="w-3.5 h-3.5 text-rose-500"></i>
-                    <span>Riwayat Berita Acara Pemusnahan (BAP) Disahkan</span>
+                    <span>Alur & Antrean Pemusnahan Berkas (BAP)</span>
                 </h2>
                 <p class="text-[11px] text-slate-500 dark:text-slate-400 font-sans">
-                    Daftar arsip yang telah resmi dimusnahkan beserta dokumen bukti fisik Berita Acara Pemusnahan.
+                    Daftar usulan pengajuan dari departemen, antrean pemusnahan gudang, dan riwayat berkas yang telah resmi dimusnahkan.
                 </p>
             </div>
 
@@ -540,32 +545,27 @@
                                         </button>
                                     </template>
 
-                                    <!-- 2. Tombol Berkas / Sertifikat BAP Fisik (Upload Gudang) -->
+                                    <!-- 2. Tombol Cetak BAP (File BAP dari Gudang, disabled selama Gudang belum upload) -->
                                     <template x-if="dLog.certificate_file">
                                         <button type="button" 
                                                 @click="dmsPreviewFile({
                                                     url: dLog.certificate_file,
                                                     stream_url: dLog.certificate_file_stream,
                                                     raw_path: dLog.certificate_file_raw,
-                                                    name: 'Sertifikat BAP - ' + (dLog.bap_number || dLog.archive_title),
+                                                    name: 'BAP - ' + (dLog.bap_number || dLog.archive_title),
                                                     ext: (dLog.certificate_file_raw || dLog.certificate_file || '').split('.').pop().toLowerCase()
                                                 })"
-                                                class="px-2 py-0.5 rounded bg-white dark:bg-slate-900 hover:bg-slate-50 text-blue-600 dark:text-blue-400 border border-slate-300 dark:border-slate-700 text-[10px] font-bold inline-flex items-center gap-1 cursor-pointer shadow-2xs"
-                                                title="Lihat Berkas Sertifikat BAP Fisik dari Gudang">
-                                            <i data-lucide="file-text" class="w-3 h-3 text-blue-600 dark:text-blue-400"></i>
-                                            <span>Berkas BAP</span>
-                                        </button>
-                                    </template>
-
-                                    <!-- 3. Tombol Cetak BAP (HANYA AKTIF JIKA SUDAH DIMUSNAHKAN & RESMI DITERBITKAN OLEH GUDANG) -->
-                                    <template x-if="dLog.can_print_bap">
-                                        <a :href="'{{ url('/destructions/bap') }}/' + dLog.id" target="_blank" class="px-2 py-0.5 rounded bg-rose-600 hover:bg-rose-500 text-white font-bold text-[10px] border border-rose-700 shadow-sm inline-flex items-center gap-1 cursor-pointer" title="Cetak Berita Acara Pemusnahan (BAP) Resmi">
+                                                class="px-2 py-0.5 rounded bg-rose-600 hover:bg-rose-500 text-white font-bold text-[10px] border border-rose-700 shadow-sm inline-flex items-center gap-1 cursor-pointer"
+                                                title="Lihat & Cetak File Berita Acara Pemusnahan (BAP) dari Gudang">
                                             <i data-lucide="printer" class="w-3 h-3"></i>
                                             <span>Cetak BAP</span>
-                                        </a>
+                                        </button>
                                     </template>
-                                    <template x-if="!dLog.can_print_bap">
-                                        <button type="button" disabled class="px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 font-bold text-[10px] border border-slate-300 dark:border-slate-700 cursor-not-allowed inline-flex items-center gap-1 opacity-70" title="BAP belum diterbitkan oleh Gudang (Masih dalam tahap pengajuan / antrean)">
+                                    <template x-if="!dLog.certificate_file">
+                                        <button type="button" 
+                                                disabled 
+                                                class="px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 font-bold text-[10px] border border-slate-300 dark:border-slate-700 cursor-not-allowed inline-flex items-center gap-1 opacity-70" 
+                                                title="File BAP belum diunggah oleh Gudang">
                                             <i data-lucide="printer" class="w-3 h-3 text-slate-400 dark:text-slate-500"></i>
                                             <span>Cetak BAP</span>
                                         </button>

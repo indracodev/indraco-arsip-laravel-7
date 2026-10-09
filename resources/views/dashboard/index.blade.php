@@ -545,6 +545,7 @@
                                             'bg-blue-500/20 hover:bg-blue-500/35 text-blue-800 dark:text-blue-300 border-blue-500/50': '{{ $archive->status }}' === 'approved_booked',
                                             'bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-800 dark:text-emerald-300 border-emerald-500/50': '{{ $archive->status }}' === 'in_warehouse',
                                             'bg-purple-500/20 hover:bg-purple-500/35 text-purple-800 dark:text-purple-300 border-purple-500/50': '{{ $archive->status }}' === 'borrowed' || '{{ $archive->status }}' === 'taken',
+                                            'bg-orange-500/20 hover:bg-orange-500/35 text-orange-800 dark:text-orange-300 border-orange-500/50': '{{ $archive->status }}' === 'pending_destruction',
                                             'bg-rose-500/20 hover:bg-rose-500/35 text-rose-800 dark:text-rose-300 border-rose-500/50': '{{ $archive->status }}' === 'destroyed'
                                         }"
                                         title="Super Admin: Klik untuk ubah status workflow bebas"
@@ -564,6 +565,9 @@
                                         @elseif($archive->status === 'borrowed' || $archive->status === 'taken')
                                             <i data-lucide="log-out" class="w-3 h-3 text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform"></i>
                                             <span class="underline decoration-dotted underline-offset-2">Keluar (Out)</span>
+                                        @elseif($archive->status === 'pending_destruction')
+                                            <i data-lucide="shield-alert" class="w-3 h-3 text-orange-600 dark:text-orange-400 group-hover:scale-110 transition-transform"></i>
+                                            <span class="underline decoration-dotted underline-offset-2">{{ $archive->status_label }}</span>
                                         @elseif($archive->status === 'destroyed')
                                             <i data-lucide="trash-2" class="w-3 h-3 text-rose-600 dark:text-rose-400 group-hover:scale-110 transition-transform"></i>
                                             <span class="underline decoration-dotted underline-offset-2">Dimusnahkan</span>
@@ -625,6 +629,11 @@
                                         <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-500/30 inline-flex items-center gap-1">
                                             <i data-lucide="log-out" class="w-3 h-3 text-purple-500"></i>
                                             <span>Keluar (Out)</span>
+                                        </span>
+                                    @elseif($archive->status === 'pending_destruction')
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-orange-500/20 text-orange-700 dark:text-orange-300 border border-orange-500/30 inline-flex items-center gap-1">
+                                            <i data-lucide="shield-alert" class="w-3 h-3 text-orange-500"></i>
+                                            <span>{{ $archive->status_label }}</span>
                                         </span>
                                     @elseif($archive->status === 'destroyed')
                                         <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/30">Dimusnahkan</span>
@@ -1724,8 +1733,21 @@
                                 </div>
                             </label>
 
+                            <!-- Antrean Pemusnahan -->
+                            <label class="p-2.5 rounded-xl border cursor-pointer transition flex items-start gap-2.5"
+                                   :class="targetStatusChoice === 'pending_destruction' ? 'bg-orange-500/20 border-orange-500 ring-2 ring-orange-500/40 font-bold' : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 hover:border-orange-400'">
+                                <input type="radio" name="dash_super_status_opt" value="pending_destruction" x-model="targetStatusChoice" class="mt-0.5 text-orange-600">
+                                <div class="min-w-0">
+                                    <div class="text-xs font-bold text-orange-700 dark:text-orange-300 flex items-center gap-1.5">
+                                        <i data-lucide="shield-alert" class="w-3.5 h-3.5 text-orange-500"></i>
+                                        <span>Antrean Pemusnahan</span>
+                                    </div>
+                                    <p class="text-[10px] text-slate-500 leading-tight mt-0.5">Usulan/antrean pemusnahan berkas sebelum eksekusi fisik BAP.</p>
+                                </div>
+                            </label>
+
                             <!-- Dimusnahkan -->
-                            <label class="p-2.5 rounded-xl border cursor-pointer transition flex items-start gap-2.5 sm:col-span-2"
+                            <label class="p-2.5 rounded-xl border cursor-pointer transition flex items-start gap-2.5"
                                    :class="targetStatusChoice === 'destroyed' ? 'bg-rose-500/20 border-rose-500 ring-2 ring-rose-500/40 font-bold' : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 hover:border-rose-400'">
                                 <input type="radio" name="dash_super_status_opt" value="destroyed" x-model="targetStatusChoice" class="mt-0.5 text-rose-600">
                                 <div class="min-w-0">
@@ -1989,7 +2011,7 @@
                             <template x-if="!updatingStatus">
                                 <i data-lucide="check-circle-2" class="w-4 h-4 text-slate-950"></i>
                             </template>
-                            <span x-text="updatingStatus ? 'Menyimpan...' : (targetStatusChoice === 'draft' ? 'Kembalikan ke Draft' : (targetStatusChoice === 'pending_verification' ? 'Ubah ke Antrean Verifikasi' : (targetStatusChoice === 'in_warehouse' ? 'Simpan di Gudang' : (targetStatusChoice === 'taken' ? 'Keluarkan Berkas (Out)' : (targetStatusChoice === 'destroyed' ? 'Sahkan Pemusnahan (BAP)' : 'Terapkan Perubahan Status')))))"></span>
+                            <span x-text="updatingStatus ? 'Menyimpan...' : (targetStatusChoice === 'draft' ? 'Kembalikan ke Draft' : (targetStatusChoice === 'pending_verification' ? 'Ubah ke Antrean Verifikasi' : (targetStatusChoice === 'in_warehouse' ? 'Simpan di Gudang' : (targetStatusChoice === 'taken' ? 'Keluarkan Berkas (Out)' : (targetStatusChoice === 'pending_destruction' ? 'Pindah ke Antrean Pemusnahan' : (targetStatusChoice === 'destroyed' ? 'Sahkan Pemusnahan (BAP)' : 'Terapkan Perubahan Status'))))))"></span>
                         </button>
                     </div>
                 </div>

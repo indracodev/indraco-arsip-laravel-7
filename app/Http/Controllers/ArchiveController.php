@@ -1259,7 +1259,7 @@ class ArchiveController extends Controller
 
         // Rules validation based on target status
         $rules = [
-            'target_status' => 'required|in:draft,pending_verification,approved_booked,in_warehouse,taken,out,destroyed',
+            'target_status' => 'required|in:draft,pending_verification,approved_booked,in_warehouse,taken,out,pending_destruction,destroyed',
             'reason' => ($targetStatus === 'draft' && $oldStatus !== 'draft') ? 'required|string|min:3|max:1000' : 'nullable|string|max:1000',
         ];
 
@@ -1463,6 +1463,49 @@ class ArchiveController extends Controller
                     'department' => $validated['department_name'] ?? null,
                     'purpose' => $validated['purpose'],
                     'has_approval_file' => !empty($approvalPath),
+                    'superadmin_id' => $user->id,
+                ],
+                $archive->box_number
+            );
+
+        } elseif ($targetStatus === 'pending_destruction') {
+            $scanApprovalPath = null;
+            if ($request->hasFile('approval_file')) {
+                $scanApprovalPath = $request->file('approval_file')->store('destruction_approvals', 'public');
+            }
+
+            \App\Models\DestructionLog::create([
+                'archive_id' => $archive->id,
+                'proposed_by_user_id' => $user->id,
+                'department_approval_by' => $user->id,
+                'department_approved_at' => now(),
+                'approved_by_dept_pic_id' => $user->id,
+                'bap_number' => '(Menunggu Penerbitan BAP)',
+                'destruction_date' => now(),
+                'method' => 'Belum Ditentukan',
+                'approval_file' => $scanApprovalPath,
+                'scan_approval_destruction' => $scanApprovalPath,
+                'approval_status' => 'approved',
+                'notes' => $validated['reason'] ?? 'Dipindahkan ke Antrean Pemusnahan oleh Super Admin.',
+            ]);
+
+            $archive->status = 'pending_destruction';
+            if ($request->filled('reason')) {
+                $noteEntry = "[" . now()->format('d/m/Y H:i') . "] SuperAdmin Antrean Pemusnahan oleh {$user->name}: {$validated['reason']}";
+                $archive->content_description = ($archive->content_description ? $archive->content_description . "\n" : '') . $noteEntry;
+            }
+            $archive->save();
+
+            ActivityLogger::log(
+                'SUPERADMIN_STATUS_PENDING_DESTRUCTION',
+                "Super Admin {$user->name} memindahkan arsip '{$archive->title}' (Box: {$archive->box_number}) ke Antrean Pemusnahan.",
+                'PEMUSNAHAN',
+                [
+                    'archive_id' => $archive->id,
+                    'box_number' => $archive->box_number,
+                    'old_status' => $oldStatus,
+                    'new_status' => 'pending_destruction',
+                    'reason' => $validated['reason'] ?? null,
                     'superadmin_id' => $user->id,
                 ],
                 $archive->box_number
