@@ -58,6 +58,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/archives/{archive}/verify', 'ArchiveController@verify')->name('archives.verify');
     Route::post('/archives/{archive}/checkout', 'ArchiveController@checkout')->name('archives.checkout');
     Route::post('/archives/{archive}/checkin', 'ArchiveController@checkin')->name('archives.checkin');
+    Route::post('/archives/{archive}/superadmin-status', 'ArchiveController@superAdminUpdateStatus')->name('archives.superadmin_status');
 
 
     // Borrowing Workflow

@@ -1485,8 +1485,9 @@ class ArchiveController extends Controller
                 'method' => $validated['method'],
                 'approval_file' => $scanApprovalPath,
                 'scan_approval_destruction' => $scanApprovalPath,
+                'certificate_file' => $scanApprovalPath,
                 'is_approval_uploaded' => !empty($scanApprovalPath),
-                'approval_status' => 'approved',
+                'approval_status' => 'completed',
                 'notes' => $validated['notes'] ?? ($validated['reason'] ?? 'Pemusnahan berkas arsip via Super Admin Override'),
             ]);
 

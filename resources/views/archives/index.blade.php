@@ -1569,7 +1569,7 @@
                             <div class="space-y-1">
                                 <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase flex items-center justify-between">
                                     <span>Upload Bukti / Form Serah Terima (Opsional)</span>
-                                    <span class="text-[10px] text-slate-400 font-normal">PDF/JPG Max 10MB</span>
+                                    <span class="text-[10px] text-slate-400 font-normal">PDF/JPG Maks. 500 KB</span>
                                 </label>
                                 <input type="file" id="cat_checkout_approval_file" accept=".pdf,.jpg,.jpeg,.png" class="w-full px-2 py-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-[11px] font-mono text-slate-700 dark:text-slate-300">
                             </div>
@@ -1622,7 +1622,7 @@
                             <div class="space-y-1">
                                 <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase flex items-center justify-between">
                                     <span>Upload Scan Form Persetujuan / Bukti BAP (Opsional)</span>
-                                    <span class="text-[10px] text-slate-400 font-normal">PDF/JPG Max 10MB</span>
+                                    <span class="text-[10px] text-slate-400 font-normal">PDF/JPG Maks. 500 KB</span>
                                 </label>
                                 <input type="file" id="cat_destroy_approval_file" accept=".pdf,.jpg,.jpeg,.png" class="w-full px-2 py-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-[11px] font-mono text-slate-700 dark:text-slate-300">
                             </div>
@@ -1894,7 +1894,7 @@
                             <div class="space-y-1">
                                 <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase flex items-center justify-between">
                                     <span>Upload Berkas Serah Terima Masuk Gudang (Opsional)</span>
-                                    <span class="text-[10px] text-slate-400 font-normal">PDF/JPG Max 10MB</span>
+                                    <span class="text-[10px] text-slate-400 font-normal">PDF/JPG Maks. 500 KB</span>
                                 </label>
                                 <input type="file" id="sa_cat_warehouse_approval_file" accept=".pdf,.jpg,.jpeg,.png" class="w-full px-2 py-1 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-[11px] font-mono text-slate-700 dark:text-slate-300">
                             </div>
@@ -1991,7 +1991,7 @@
                             <div class="space-y-1">
                                 <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase flex items-center justify-between">
                                     <span>Upload Bukti / Form Serah Terima Keluar (Opsional)</span>
-                                    <span class="text-[10px] text-slate-400 font-normal">PDF/JPG Max 10MB</span>
+                                    <span class="text-[10px] text-slate-400 font-normal">PDF/JPG Maks. 500 KB</span>
                                 </label>
                                 <input type="file" id="sa_cat_taken_approval_file" accept=".pdf,.jpg,.jpeg,.png" class="w-full px-2 py-1 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-[11px] font-mono text-slate-700 dark:text-slate-300">
                             </div>
@@ -2038,7 +2038,7 @@
                             <div class="space-y-1">
                                 <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase flex items-center justify-between">
                                     <span>Upload Scan Form / Dokumen BAP Pemusnahan (Opsional)</span>
-                                    <span class="text-[10px] text-slate-400 font-normal">PDF/JPG Max 10MB</span>
+                                    <span class="text-[10px] text-slate-400 font-normal">PDF/JPG Maks. 500 KB</span>
                                 </label>
                                 <input type="file" id="sa_cat_destroy_approval_file" accept=".pdf,.jpg,.jpeg,.png" class="w-full px-2 py-1 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-[11px] font-mono text-slate-700 dark:text-slate-300">
                             </div>

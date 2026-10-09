@@ -277,4 +277,49 @@ class RevisiPerubahanFiturTest extends TestCase
         $validPrintResponse = $this->get(route('destructions.bap', $log->id));
         $validPrintResponse->assertOk();
     }
+
+    /** @test */
+    public function test_superadmin_status_update_route_works_via_ajax()
+    {
+        $this->actingAs($this->adminUser);
+        Storage::fake('public');
+
+        $archive = Archive::create([
+            'archive_code' => 'TEST-DEST-003',
+            'title' => 'Berkas Testing SuperAdmin Modal',
+            'document_type' => 'Pajak',
+            'department_id' => $this->dept->id,
+            'created_by_user_id' => $this->adminUser->id,
+            'tgl_penyerahan' => date('Y-m-d'),
+            'period_start_date' => date('Y-m-d'),
+            'period_end_date' => date('Y-m-d'),
+            'content_description' => 'Uraian berkas testing modal',
+            'physical_condition' => 'Baik',
+            'status' => 'in_warehouse',
+            'retention_years' => 5,
+            'retention_expiry_date' => now()->subDay(),
+        ]);
+
+        $file = UploadedFile::fake()->create('bap_scan.pdf', 200);
+
+        $response = $this->postJson(route('archives.superadmin_status', $archive->id), [
+            'target_status' => 'destroyed',
+            'bap_number' => 'BAP/IND/2026/00087',
+            'destruction_date' => date('Y-m-d'),
+            'method' => 'Shredding (Pencacahan Fisik)',
+            'approval_file' => $file,
+            'notes' => 'Testing pemusnahan via modal SuperAdmin',
+        ]);
+
+        $response->assertOk();
+        $response->assertJson(['success' => true]);
+
+        $archive->refresh();
+        $this->assertEquals('destroyed', $archive->status);
+
+        $log = \App\Models\DestructionLog::where('archive_id', $archive->id)->first();
+        $this->assertNotNull($log);
+        $this->assertEquals('BAP/IND/2026/00087', $log->bap_number);
+        $this->assertEquals('completed', $log->approval_status);
+    }
 }
