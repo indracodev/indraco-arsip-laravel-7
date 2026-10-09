@@ -8,8 +8,9 @@
  */
 
 window.DmsFileOptimizer = {
-    // Standard size limit (2 MB = 2,097,152 bytes)
-    DEFAULT_MAX_BYTES: 2 * 1024 * 1024,
+    // Standard size limit (500 KB = 512,000 bytes)
+    DEFAULT_MAX_BYTES: 500 * 1024,
+    DEFAULT_MAX_KB: 500,
 
     formatBytes: function(bytes, decimals = 1) {
         if (!bytes || bytes === 0) return '0 B';
@@ -28,15 +29,6 @@ window.DmsFileOptimizer = {
         if (ext === 'pdf' || mimeType === 'application/pdf') {
             return 'pdf';
         }
-        if (['doc', 'docx'].includes(ext)) {
-            return 'doc';
-        }
-        if (['xls', 'xlsx', 'csv'].includes(ext)) {
-            return 'xls';
-        }
-        if (['zip', 'rar', '7z'].includes(ext)) {
-            return 'zip';
-        }
         return 'other';
     },
 
@@ -45,11 +37,10 @@ window.DmsFileOptimizer = {
      * Prioritizes pin-sharp text clarity while drastically reducing file size.
      */
     compressImage: async function(file, options = {}) {
-        const maxDimension = options.maxDimension || 2400; // 2400px is ample for crisp A4 documents (300 DPI)
-        const quality = options.quality || 0.88;          // 88% JPEG quality preserves fine edges & high contrast
+        const maxDimension = options.maxDimension || 2000;
+        const quality = options.quality || 0.82;
 
         return new Promise((resolve) => {
-            // If browser doesn't support FileReader or Canvas, return original
             if (!window.FileReader || !window.HTMLCanvasElement) {
                 return resolve({ file: file, wasCompressed: false });
             }
@@ -61,7 +52,6 @@ window.DmsFileOptimizer = {
                     let width = img.naturalWidth || img.width;
                     let height = img.naturalHeight || img.height;
 
-                    // Calculate downscaled dimensions only if larger than maxDimension
                     if (width > maxDimension || height > maxDimension) {
                         if (width > height) {
                             height = Math.round((height * maxDimension) / width);
@@ -77,14 +67,10 @@ window.DmsFileOptimizer = {
                     canvas.height = height;
                     const ctx = canvas.getContext('2d');
 
-                    // High-quality image rendering settings for sharp document text
                     ctx.imageSmoothingEnabled = true;
                     ctx.imageSmoothingQuality = 'high';
-
-                    // Solid white canvas background (prevents transparent PNGs turning pitch black in JPEG)
                     ctx.fillStyle = '#FFFFFF';
                     ctx.fillRect(0, 0, width, height);
-
                     ctx.drawImage(img, 0, 0, width, height);
 
                     canvas.toBlob(function(blob) {
@@ -92,7 +78,6 @@ window.DmsFileOptimizer = {
                             return resolve({ file: file, wasCompressed: false });
                         }
 
-                        // Only replace file if the compressed blob is actually smaller
                         if (blob.size < file.size) {
                             const newFileName = file.name.replace(/\.[^.]+$/, '.jpg');
                             const compressedFile = new File([blob], newFileName, {
@@ -146,9 +131,9 @@ function dmsFileUploader(config) {
         inputId: config.id || ('dms_file_' + Math.random().toString(36).substr(2, 9)),
         accept: config.accept || '.pdf,.jpg,.jpeg,.png',
         required: !!config.required,
-        maxSizeMB: config.maxSizeMB || 2,
+        maxSizeKB: config.maxSizeKB || 500,
         label: config.label || 'Unggah Dokumen',
-        helperText: config.helperText || '',
+        helperText: config.helperText || 'Format: PDF, JPG, PNG (Maksimal 500 KB).',
         existingUrl: config.existingUrl || null,
         existingName: config.existingName || 'File Dokumen Tersimpan',
 
@@ -166,7 +151,6 @@ function dmsFileUploader(config) {
         hasFile: false,
 
         init() {
-            // Re-render lucide icons when state changes
             this.$watch('hasFile', () => {
                 this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
             });
@@ -183,78 +167,85 @@ function dmsFileUploader(config) {
             }
 
             let selectedFile = input.files[0];
-            const maxBytes = this.maxSizeMB * 1024 * 1024;
-            const category = window.DmsFileOptimizer.getFileCategory(selectedFile.name, selectedFile.type);
+            const maxBytes = this.maxSizeKB * 1024;
+            const ext = (selectedFile.name || '').split('.').pop().toLowerCase();
+            const allowedExts = ['pdf', 'jpg', 'jpeg', 'png'];
 
+            // 1. Ekstensi Wajib PDF & Gambar
+            if (!allowedExts.includes(ext)) {
+                input.value = '';
+                this.clearFile();
+                const rejectMsg = `Format file .${ext.toUpperCase() || 'tidak valid'} tidak didukung. Harap pilih berkas dengan format PDF, JPG, JPEG, atau PNG.`;
+                if (typeof window.showNotificationModal === 'function') {
+                    window.showNotificationModal(rejectMsg, 'Format Berkas Ditolak', 'warning');
+                } else {
+                    alert(rejectMsg);
+                }
+                return;
+            }
+
+            const category = window.DmsFileOptimizer.getFileCategory(selectedFile.name, selectedFile.type);
             this.errorMessage = '';
             this.isOverLimit = false;
             this.wasOptimized = false;
             this.fileCategory = category;
 
-            // 1. Process Images with Smart High-Fidelity Compression
-            if (category === 'image') {
-                const originalBytes = selectedFile.size;
+            // 2. Kompresi Cerdas untuk Gambar jika > 400KB
+            if (category === 'image' && selectedFile.size > 400 * 1024) {
+                this.isOptimizing = true;
+                try {
+                    const result = await window.DmsFileOptimizer.compressImage(selectedFile, {
+                        maxDimension: 2000,
+                        quality: 0.82
+                    });
 
-                // Compress if larger than 1.5MB or if explicitly > 2MB
-                if (originalBytes > 1.5 * 1024 * 1024) {
-                    this.isOptimizing = true;
-                    try {
-                        const result = await window.DmsFileOptimizer.compressImage(selectedFile, {
-                            maxDimension: 2400,
-                            quality: 0.88
-                        });
+                    if (result.wasCompressed) {
+                        selectedFile = result.file;
+                        this.wasOptimized = true;
+                        this.originalSizeFormatted = window.DmsFileOptimizer.formatBytes(result.originalSize);
 
-                        if (result.wasCompressed) {
-                            selectedFile = result.file;
-                            this.wasOptimized = true;
-                            this.originalSizeFormatted = window.DmsFileOptimizer.formatBytes(result.originalSize);
-
-                            // Transparently update input.files via DataTransfer
-                            if (window.DataTransfer) {
-                                const dt = new DataTransfer();
-                                dt.items.add(result.file);
-                                input.files = dt.files;
-                            }
+                        if (window.DataTransfer) {
+                            const dt = new DataTransfer();
+                            dt.items.add(result.file);
+                            input.files = dt.files;
                         }
-                    } catch (err) {
-                        console.warn('Image compression bypassed:', err);
-                    } finally {
-                        this.isOptimizing = false;
                     }
+                } catch (err) {
+                    console.warn('Image compression bypassed:', err);
+                } finally {
+                    this.isOptimizing = false;
                 }
             }
 
-            // 2. Validate Final File Size
+            // 3. Validasi Ukuran Maksimal 500 KB: Jika gagal langsung BLENG (clear) dan muncul notifikasi alert!
             if (selectedFile.size > maxBytes) {
-                this.isOverLimit = true;
+                input.value = '';
+                this.clearFile();
                 const formattedActual = window.DmsFileOptimizer.formatBytes(selectedFile.size);
-                
-                if (category === 'pdf') {
-                    this.errorMessage = `Ukuran PDF (${formattedActual}) melebihi batas maksimal ${this.maxSizeMB} MB. Silakan kompres berkas PDF Anda terlebih dahulu.`;
-                } else if (category === 'image') {
-                    this.errorMessage = `Ukuran gambar (${formattedActual}) masih melebihi batas maksimal ${this.maxSizeMB} MB. Silakan gunakan foto yang lebih padat.`;
+                const sizeMsg = `Ukuran berkas (${formattedActual}) melebihi batas maksimal ${this.maxSizeKB} KB. Berkas otomatis dibatalkan. Silakan pilih berkas dengan ukuran maksimal ${this.maxSizeKB} KB.`;
+                if (typeof window.showNotificationModal === 'function') {
+                    window.showNotificationModal(sizeMsg, 'Ukuran Berkas Melebihi Batas', 'warning');
                 } else {
-                    this.errorMessage = `Ukuran berkas (${formattedActual}) melebihi batas maksimal ${this.maxSizeMB} MB.`;
+                    alert(sizeMsg);
                 }
+                return;
             }
 
-            // 3. Set Active File Info & Object URL Preview
+            // 4. File Valid & Aman: Set Active File Info & Object URL Preview
             this.file = selectedFile;
             this.fileName = selectedFile.name;
             this.fileSizeFormatted = window.DmsFileOptimizer.formatBytes(selectedFile.size);
             this.hasFile = true;
 
-            // Revoke previous URL to prevent memory leaks
             if (this.fileUrl && this.fileUrl.startsWith('blob:')) {
                 URL.revokeObjectURL(this.fileUrl);
             }
             this.fileUrl = URL.createObjectURL(selectedFile);
 
-            // Dispatch custom event to notify parent containers
             this.$dispatch('file-change', {
                 name: this.inputName,
                 hasFile: true,
-                isOverLimit: this.isOverLimit,
+                isOverLimit: false,
                 file: selectedFile
             });
         },
@@ -332,3 +323,42 @@ function dmsFileUploader(config) {
         }
     };
 }
+
+// Global Delegated File Validator for All File Inputs across the application
+document.addEventListener('change', function(e) {
+    var input = e.target;
+    if (!input || input.type !== 'file') return;
+    // Skip if managed by dmsFileUploader component (already handled inside handleFileInput)
+    if (input.closest && input.closest('[x-data*="dmsFileUploader"]')) return;
+    if (!input.files || !input.files.length) return;
+
+    var file = input.files[0];
+    var ext = (file.name || '').split('.').pop().toLowerCase();
+    var allowedExts = ['pdf', 'jpg', 'jpeg', 'png'];
+    var maxBytes = 500 * 1024; // 500 KB limit
+
+    // 1. Validasi Ekstensi
+    if (!allowedExts.includes(ext)) {
+        input.value = ''; // BLENG (kosongkan seketika)
+        var msgExt = 'Format berkas (.' + (ext.toUpperCase() || 'tidak valid') + ') tidak didukung. Harap unggah berkas bertipe PDF atau Gambar (JPG, JPEG, PNG).';
+        if (typeof window.showNotificationModal === 'function') {
+            window.showNotificationModal(msgExt, 'Format Berkas Ditolak', 'warning');
+        } else {
+            alert(msgExt);
+        }
+        return;
+    }
+
+    // 2. Validasi Ukuran Maksimal 500 KB
+    if (file.size > maxBytes) {
+        input.value = ''; // BLENG (kosongkan seketika)
+        var actualFormatted = (file.size / 1024).toFixed(1) + ' KB';
+        var msgSize = 'Ukuran berkas (' + actualFormatted + ') melebihi batas maksimal 500 KB. Berkas otomatis dibatalkan.';
+        if (typeof window.showNotificationModal === 'function') {
+            window.showNotificationModal(msgSize, 'Batas Ukuran 500 KB', 'warning');
+        } else {
+            alert(msgSize);
+        }
+        return;
+    }
+}, true);

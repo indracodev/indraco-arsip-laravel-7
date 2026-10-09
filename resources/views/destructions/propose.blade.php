@@ -236,8 +236,9 @@
                 2. Parameter Berita Acara Pemusnahan (BAP)
             </legend>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <!-- BAP Number -->
+            <div class="grid grid-cols-1 {{ !auth()->user()->isPicDept() ? 'sm:grid-cols-2' : '' }} gap-3">
+                @if(!auth()->user()->isPicDept())
+                <!-- BAP Number (Khusus Gudang / Super Admin) -->
                 <div>
                     <label for="bap_number" class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
                         NOMOR BERITA ACARA (BAP) <span class="text-rose-500">*</span>
@@ -252,6 +253,9 @@
                     >
                     @error('bap_number') <span class="text-rose-500 font-mono text-[11px] font-bold block mt-1">{{ $message }}</span> @enderror
                 </div>
+                @else
+                <input type="hidden" name="bap_number" :value="autoBap">
+                @endif
 
                 <!-- Destruction Date -->
                 <div>
@@ -306,7 +310,7 @@
                 3. Upload Dokumen Persetujuan (Approval) & Berkas BAP
             </legend>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-xs"
+            <div class="grid grid-cols-1 {{ !auth()->user()->isPicDept() ? 'md:grid-cols-2' : '' }} gap-4 font-mono text-xs"
                  @file-change="if($event.detail.name === 'approval_file') { hasApprovalFile = $event.detail.hasFile && !$event.detail.isOverLimit; }">
                 <!-- 1. Dokumen Approval (Wajib) -->
                 <x-file-uploader 
@@ -316,11 +320,13 @@
                     :required="true" 
                     badge="WAJIB UNTUK PEMUSNAHAN" 
                     accept=".pdf,.jpg,.jpeg,.png"
-                    :maxSizeMB="2"
-                    helperText="Wajib upload scan persetujuan pemusnahan bertandatangan (Format: PDF, JPG, PNG Maks. 2MB)."
+                    :maxSizeKB="500"
+                    :maxSizeMB="0.5"
+                    helperText="Wajib upload scan persetujuan pemusnahan bertandatangan (Format: PDF, JPG, PNG Maks. 500 KB)."
                 />
 
-                <!-- 2. Sertifikat / Berkas BAP (Opsional) -->
+                @if(!auth()->user()->isPicDept())
+                <!-- 2. Sertifikat / Berkas BAP (Opsional untuk selain Departemen) -->
                 <x-file-uploader 
                     name="certificate_file" 
                     id="certificate_file" 
@@ -328,9 +334,11 @@
                     :required="false" 
                     badge="OPSIONAL" 
                     accept=".pdf,.jpg,.jpeg,.png"
-                    :maxSizeMB="2"
-                    helperText="Scan sertifikat atau berita acara pelaksanaan jika sudah tersedia."
+                    :maxSizeKB="500"
+                    :maxSizeMB="0.5"
+                    helperText="Scan sertifikat atau berita acara pelaksanaan jika sudah tersedia (Format: PDF, JPG, PNG Maks. 500 KB)."
                 />
+                @endif
             </div>
         </fieldset>
 

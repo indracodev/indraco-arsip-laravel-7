@@ -247,16 +247,17 @@
                     >
                 </div>
 
-                <!-- Kategori Dokumen (Input Text Opsional - Kanan) -->
+                <!-- Kategori Dokumen (Input Text Wajib - Kanan) -->
                 <div>
                     <label for="document_type" class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1 leading-normal">
-                        KATEGORI DOKUMEN <span class="text-slate-400 font-normal">(Opsional)</span>
+                        KATEGORI DOKUMEN <span class="text-rose-500">*</span>
                     </label>
                     <input 
                         type="text" 
                         name="document_type" 
                         id="document_type" 
                         value="{{ old('document_type') }}" 
+                        required
                         placeholder="Contoh: Pajak, Keuangan, SDM, Logistik..." 
                         class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 transition"
                     >
@@ -292,16 +293,18 @@
                 <!-- Periode Dokumen (Bulan) -->
                 <div>
                     <label for="periode_bulan" class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                        PERIODE DOKUMEN (BULAN) <span class="text-slate-400 font-normal">(Opsional)</span>
+                        PERIODE DOKUMEN (BULAN) <span class="text-rose-500">*</span>
                     </label>
                     <div class="relative flex items-center">
                         <input 
                             type="number" 
                             id="periode_bulan" 
                             x-model="periodeBulan"
+                            @input="if(periodeBulan > 60) periodeBulan = 60; if(periodeBulan !== '' && periodeBulan < 1) periodeBulan = 1;"
                             min="1" 
-                            max="600"
-                            placeholder="Misal: 1, 3, 4, 15..." 
+                            max="60"
+                            required
+                            placeholder="Maks. 60 Bulan (5 Thn)" 
                             class="w-full pl-2.5 pr-14 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 transition"
                         >
                         <span class="absolute right-2.5 text-xs font-mono font-bold text-slate-400 pointer-events-none select-none">Bulan</span>
@@ -565,8 +568,9 @@
                     :required="true" 
                     badge="WAJIB UNTUK PENGAJUAN" 
                     accept=".pdf,.jpg,.jpeg,.png"
-                    :maxSizeMB="2"
-                    helperText="Format: PDF, JPG, PNG (Maksimal 2MB). Foto scan besar otomatis dioptimalkan agar ringan & teks tetap tajam."
+                    :maxSizeKB="500"
+                    :maxSizeMB="0.5"
+                    helperText="Format: PDF, JPG, PNG (Maksimal 500 KB). Berkas otomatis dioptimalkan agar ringan & teks tetap tajam."
                 />
 
                 <!-- 2. Lampiran Digital Dokumen (Opsional) -->
@@ -576,9 +580,10 @@
                     label="Lampiran Digital Dokumen" 
                     :required="false" 
                     badge="OPSIONAL" 
-                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.zip"
-                    :maxSizeMB="2"
-                    helperText="Format: PDF, JPG, DOCX, XLSX, ZIP (Maksimal 2MB). Opsional untuk kelengkapan digital."
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    :maxSizeKB="500"
+                    :maxSizeMB="0.5"
+                    helperText="Format: PDF, JPG, JPEG, PNG (Maksimal 500 KB). Opsional untuk kelengkapan digital."
                 />
             </div>
         </fieldset>

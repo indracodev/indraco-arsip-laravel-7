@@ -147,7 +147,7 @@ class ArchiveController extends Controller
             'department_id' => 'required|exists:departments,id',
             'sub_department_id' => 'nullable|exists:sub_departments,id',
             'company_name' => 'nullable|string|max:150',
-            'document_type' => 'nullable|string|max:100',
+            'document_type' => 'required|string|max:100',
             'is_custom_doc_name' => 'nullable|boolean',
             'custom_doc_name' => 'nullable|string|max:255',
             'title' => 'required_without:custom_doc_name|nullable|string|max:255',
@@ -159,8 +159,8 @@ class ArchiveController extends Controller
             'retention_years' => 'nullable|integer|min:1|max:30',
             'masa_simpan_custom' => 'nullable|integer|min:1|max:30',
             'physical_condition' => 'required|string|max:100',
-            'file' => 'nullable|file|mimes:pdf,jpg,png,doc,docx,zip|max:2048',
-            'scan_input_form' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+            'file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:500',
+            'scan_input_form' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:500',
             'items' => 'nullable|array',
             'items.*.document_name' => 'nullable|string|max:255',
             'items.*.period_start' => 'nullable|string|max:50',
@@ -182,6 +182,9 @@ class ArchiveController extends Controller
         if (preg_match('/^(\d+)\s*(?:bulan|bln|m)?$/i', $rawPeriod, $matches)) {
             $isMonthsPeriod = true;
             $periodMonthsCount = (int) $matches[1];
+            if ($periodMonthsCount > 60) {
+                return redirect()->back()->withInput()->withErrors(['periode' => 'Periode dokumen maksimal 60 bulan.']);
+            }
             $startDate = $tglPenyerahan->copy()->startOfMonth();
             $endDate = $tglPenyerahan->copy()->startOfMonth()->addMonths($periodMonthsCount)->endOfMonth();
             $formattedPeriodDoc = "{$periodMonthsCount} Bulan";
@@ -482,7 +485,7 @@ class ArchiveController extends Controller
             'department_id' => 'required|exists:departments,id',
             'sub_department_id' => 'nullable|exists:sub_departments,id',
             'company_name' => 'nullable|string|max:150',
-            'document_type' => 'nullable|string|max:100',
+            'document_type' => 'required|string|max:100',
             'is_custom_doc_name' => 'nullable|boolean',
             'custom_doc_name' => 'nullable|string|max:255',
             'title' => 'required_without:custom_doc_name|nullable|string|max:255',
@@ -494,8 +497,8 @@ class ArchiveController extends Controller
             'retention_years' => 'nullable|integer|min:1|max:30',
             'masa_simpan_custom' => 'nullable|integer|min:1|max:30',
             'physical_condition' => 'required|string|max:100',
-            'file' => 'nullable|file|mimes:pdf,jpg,png,doc,docx,zip|max:2048',
-            'scan_input_form' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+            'file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:500',
+            'scan_input_form' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:500',
             'items' => 'nullable|array',
             'items.*.document_name' => 'nullable|string|max:255',
             'items.*.period_start' => 'nullable|string|max:50',
@@ -517,6 +520,9 @@ class ArchiveController extends Controller
         if (preg_match('/^(\d+)\s*(?:bulan|bln|m)?$/i', $rawPeriod, $matches)) {
             $isMonthsPeriod = true;
             $periodMonthsCount = (int) $matches[1];
+            if ($periodMonthsCount > 60) {
+                return redirect()->back()->withInput()->withErrors(['periode' => 'Periode dokumen maksimal 60 bulan.']);
+            }
             $startDate = $tglPenyerahan->copy()->startOfMonth();
             $endDate = $tglPenyerahan->copy()->startOfMonth()->addMonths($periodMonthsCount)->endOfMonth();
             $formattedPeriodDoc = "{$periodMonthsCount} Bulan";
@@ -1073,7 +1079,7 @@ class ArchiveController extends Controller
                 'destruction_date' => 'required|date',
                 'method' => 'required|string|max:100',
                 'notes' => 'nullable|string|max:500',
-                'approval_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
+                'approval_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:500',
             ]);
 
             $scanApprovalPath = null;
@@ -1152,7 +1158,7 @@ class ArchiveController extends Controller
                 'borrower_name' => 'nullable|string|max:255',
                 'department_name' => 'nullable|string|max:255',
                 'purpose' => 'required|string|max:500',
-                'approval_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
+                'approval_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:500',
                 'notes' => 'nullable|string|max:500',
             ]);
 
@@ -1258,23 +1264,23 @@ class ArchiveController extends Controller
         ];
 
         if ($targetStatus === 'pending_verification') {
-            $rules['scan_input_form'] = 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240';
-            $rules['file_path'] = 'nullable|file|mimes:pdf,jpg,jpeg,png,doc,docx,xls,xlsx,zip|max:20480';
+            $rules['scan_input_form'] = 'nullable|file|mimes:pdf,jpg,jpeg,png|max:500';
+            $rules['file_path'] = 'nullable|file|mimes:pdf,jpg,jpeg,png|max:500';
         } elseif ($targetStatus === 'in_warehouse') {
             $rules['box_number'] = 'nullable|string|max:100';
-            $rules['scan_input_form'] = 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240';
-            $rules['scan_approval_input'] = 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240';
+            $rules['scan_input_form'] = 'nullable|file|mimes:pdf,jpg,jpeg,png|max:500';
+            $rules['scan_approval_input'] = 'nullable|file|mimes:pdf,jpg,jpeg,png|max:500';
             $rules['warehouse_location_id'] = 'nullable|exists:warehouse_locations,id';
         } elseif ($targetStatus === 'taken') {
             $rules['borrower_name'] = 'nullable|string|max:255';
             $rules['department_name'] = 'nullable|string|max:255';
             $rules['purpose'] = 'required|string|max:500';
-            $rules['approval_file'] = 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240';
+            $rules['approval_file'] = 'nullable|file|mimes:pdf,jpg,jpeg,png|max:500';
         } elseif ($targetStatus === 'destroyed') {
             $rules['bap_number'] = 'required|string|max:100';
             $rules['destruction_date'] = 'required|date';
             $rules['method'] = 'required|string|max:100';
-            $rules['approval_file'] = 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240';
+            $rules['approval_file'] = 'nullable|file|mimes:pdf,jpg,jpeg,png|max:500';
             $rules['notes'] = 'nullable|string|max:500';
         }
 

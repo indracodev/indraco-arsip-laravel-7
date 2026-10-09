@@ -261,22 +261,28 @@ class DestructionController extends Controller
             abort(403, 'Anda hanya dapat mengajukan pemusnahan berkas milik departemen Anda.');
         }
 
+        if ($user->isPicDept() && !$request->filled('bap_number')) {
+            $request->merge([
+                'bap_number' => 'BAP/IND/' . date('Y') . '/' . str_pad($archive->id, 5, '0', STR_PAD_LEFT)
+            ]);
+        }
+
         $validated = $request->validate([
             'bap_number' => 'required|string|max:100',
             'destruction_date' => 'required|date',
             'method' => 'required|string|max:100',
             'notes' => 'nullable|string',
-            'approval_file' => 'required_without:scan_approval_destruction|nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
-            'scan_approval_destruction' => 'required_without:approval_file|nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
-            'certificate_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+            'approval_file' => 'required_without:scan_approval_destruction|nullable|file|mimes:pdf,jpg,jpeg,png|max:500',
+            'scan_approval_destruction' => 'required_without:approval_file|nullable|file|mimes:pdf,jpg,jpeg,png|max:500',
+            'certificate_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:500',
         ], [
             'bap_number.required' => 'Nomor BAP wajib diisi.',
             'destruction_date.required' => 'Tanggal pelaksanaan pemusnahan wajib diisi.',
             'method.required' => 'Metode fisik pemusnahan wajib dipilih.',
             'approval_file.required_without' => 'Wajib mengunggah berkas surat persetujuan (approval) pemusnahan.',
-            'approval_file.max' => 'Ukuran file surat persetujuan maksimal 2 MB.',
-            'scan_approval_destruction.max' => 'Ukuran file persetujuan maksimal 2 MB.',
-            'certificate_file.max' => 'Ukuran file sertifikat BAP maksimal 2 MB.',
+            'approval_file.max' => 'Ukuran file surat persetujuan maksimal 500 KB.',
+            'scan_approval_destruction.max' => 'Ukuran file persetujuan maksimal 500 KB.',
+            'certificate_file.max' => 'Ukuran file sertifikat BAP maksimal 500 KB.',
         ]);
 
         $certPath = null;
@@ -333,7 +339,7 @@ class DestructionController extends Controller
                 'scan_approval_destruction' => $scanApprovalPath,
                 'is_approval_uploaded' => !empty($scanApprovalPath),
                 'approval_status' => 'approved',
-                'notes' => $validated['notes'],
+                'notes' => $validated['notes'] ?? null,
             ]);
 
             ActivityLogger::log(
@@ -439,24 +445,27 @@ class DestructionController extends Controller
         }
 
         $validated = $request->validate([
-            'additional_months' => 'nullable|integer|min:1|max:600',
-            'additional_years' => 'nullable|integer|min:1|max:50',
+            'additional_months' => 'nullable|integer|min:1|max:60',
+            'additional_years' => 'nullable|integer|min:1|max:5',
             'extension_reason' => 'required|string|max:1000',
-            'scan_extension_form' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+            'scan_extension_form' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:500',
         ], [
+            'additional_months.max' => 'Tambahan masa simpan maksimal 60 bulan (5 tahun).',
+            'additional_years.max' => 'Tambahan masa simpan maksimal 5 tahun (60 bulan).',
             'extension_reason.required' => 'Alasan perpanjangan masa simpan wajib diisi.',
-            'scan_extension_form.max' => 'Ukuran file scan formulir perpanjangan maksimal 2 MB.',
+            'scan_extension_form.max' => 'Ukuran file formulir perpanjangan maksimal 500 KB.',
+            'scan_extension_form.mimes' => 'Format file formulir perpanjangan harus berupa PDF, JPG, JPEG, atau PNG.',
         ]);
 
         $months = 0;
         if ($request->filled('additional_months')) {
-            $months = (int)$request->input('additional_months');
+            $months = min((int)$request->input('additional_months'), 60);
         } elseif ($request->filled('additional_years')) {
-            $months = (int)$request->input('additional_years') * 12;
+            $months = min((int)$request->input('additional_years') * 12, 60);
         }
 
-        if ($months < 1) {
-            return back()->withErrors(['additional_months' => 'Tambahan masa simpan wajib diisi minimal 1 bulan atau 1 tahun.'])->withInput();
+        if ($months < 1 || $months > 60) {
+            return back()->withErrors(['additional_months' => 'Tambahan masa simpan harus antara 1 sampai 60 bulan.'])->withInput();
         }
 
         $addedYears = max(1, (int)round($months / 12));

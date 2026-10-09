@@ -251,8 +251,9 @@
                     :required="true" 
                     badge="WAJIB UNTUK PENARIKAN" 
                     accept=".pdf,.jpg,.jpeg,.png"
-                    :maxSizeMB="2"
-                    helperText="Wajib melampirkan berkas scan approval penarikan bertandatangan PIC/Manager (Format: PDF, JPG, PNG Maks. 2MB)."
+                    :maxSizeKB="500"
+                    :maxSizeMB="0.5"
+                    helperText="Wajib melampirkan berkas scan approval penarikan bertandatangan PIC/Manager (Format: PDF, JPG, PNG Maks. 500 KB)."
                 />
                 @error('approval_file') <span class="text-rose-500 font-mono text-[11px] font-bold block mt-1">{{ $message }}</span> @enderror
             </div>

@@ -99,7 +99,7 @@ class BorrowingController extends Controller
             'archive_id' => 'required|exists:archives,id',
             'purpose' => 'required|string|max:500',
             'expected_return_date' => 'nullable|date',
-            'approval_file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240',
+            'approval_file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:500',
         ]);
 
         $archive = Archive::findOrFail($validated['archive_id']);
@@ -153,8 +153,8 @@ class BorrowingController extends Controller
         }
 
         $request->validate([
-            'approval_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
-            'scan_approval_borrow' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
+            'approval_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:500',
+            'scan_approval_borrow' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:500',
         ]);
 
         $scanPath = $borrowing->approval_file ?? $borrowing->scan_approval_borrow;
@@ -223,8 +223,8 @@ class BorrowingController extends Controller
         }
 
         $request->validate([
-            'approval_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
-            'scan_approval_borrow' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
+            'approval_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:500',
+            'scan_approval_borrow' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:500',
         ]);
 
         $scanPath = $borrowing->approval_file ?? $borrowing->scan_approval_borrow;
@@ -322,7 +322,7 @@ class BorrowingController extends Controller
         $validated = $request->validate([
             'purpose' => 'required|string|max:500',
             'expected_return_date' => 'nullable|date',
-            'approval_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
+            'approval_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:500',
         ]);
 
         $isPermanent = $request->has('is_permanent') || empty($validated['expected_return_date']);
