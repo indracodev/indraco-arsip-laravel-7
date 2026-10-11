@@ -147,7 +147,7 @@ class ArchiveController extends Controller
             'department_id' => 'required|exists:departments,id',
             'sub_department_id' => 'nullable|exists:sub_departments,id',
             'company_name' => 'nullable|string|max:150',
-            'document_type' => 'required|string|max:100',
+            'document_type' => 'nullable|string|max:100',
             'is_custom_doc_name' => 'nullable|boolean',
             'custom_doc_name' => 'nullable|string|max:255',
             'title' => 'required_without:custom_doc_name|nullable|string|max:255',
@@ -360,7 +360,7 @@ class ArchiveController extends Controller
             'department_id' => $validated['department_id'],
             'sub_department_id' => $validated['sub_department_id'] ?? null,
             'company_name' => $validated['company_name'] ?? 'PT INDRACO GLOBAL INDONESIA',
-            'document_type' => $validated['document_type'] ?? 'UMUM',
+            'document_type' => $validated['document_type'] ?? null,
             'created_by_user_id' => $user->id,
             'title' => $finalTitle,
             'is_custom_doc_name' => $isCustomDocName,
@@ -485,7 +485,7 @@ class ArchiveController extends Controller
             'department_id' => 'required|exists:departments,id',
             'sub_department_id' => 'nullable|exists:sub_departments,id',
             'company_name' => 'nullable|string|max:150',
-            'document_type' => 'required|string|max:100',
+            'document_type' => 'nullable|string|max:100',
             'is_custom_doc_name' => 'nullable|boolean',
             'custom_doc_name' => 'nullable|string|max:255',
             'title' => 'required_without:custom_doc_name|nullable|string|max:255',
@@ -692,7 +692,7 @@ class ArchiveController extends Controller
             'department_id' => $validated['department_id'],
             'sub_department_id' => $validated['sub_department_id'] ?? null,
             'company_name' => $validated['company_name'] ?? $archive->company_name,
-            'document_type' => $validated['document_type'] ?? $archive->document_type,
+            'document_type' => array_key_exists('document_type', $validated) ? $validated['document_type'] : $archive->document_type,
             'title' => $finalTitle,
             'is_custom_doc_name' => $isCustomDocName,
             'custom_doc_name' => $customDocName,
@@ -1244,10 +1244,10 @@ class ArchiveController extends Controller
     public function superAdminUpdateStatus(Request $request, Archive $archive, NumberingService $numberingService)
     {
         $user = auth()->user();
-        if (!$user || !$user->isSuperAdmin()) {
+        if (!$user || (!$user->isSuperAdmin() && !$user->isPicGudang())) {
             return response()->json([
                 'success' => false,
-                'message' => 'Akses ditolak. Fitur ini khusus untuk Super Admin.'
+                'message' => 'Akses ditolak. Fitur ini khusus untuk Super Admin dan PIC Gudang.'
             ], 403);
         }
 
@@ -1381,16 +1381,26 @@ class ArchiveController extends Controller
                 $archive->warehouse_location_id = $request->input('warehouse_location_id');
             }
 
+            // Jika sebelumnya pending_destruction dan dikembalikan ke gudang, tolak/batalkan log usulan
+            if ($oldStatus === 'pending_destruction') {
+                \App\Models\DestructionLog::where('archive_id', $archive->id)
+                    ->where('approval_status', '!=', 'completed')
+                    ->update([
+                        'approval_status' => 'rejected',
+                        'notes' => $validated['reason'] ?? 'Dibatalkan / dikembalikan ke status Tersimpan di Gudang.',
+                    ]);
+            }
+
             $archive->status = $targetStatus;
             if ($request->filled('reason')) {
-                $noteEntry = "[" . now()->format('d/m/Y H:i') . "] SuperAdmin Override ke {$targetStatus} oleh {$user->name}: {$validated['reason']}";
+                $noteEntry = "[" . now()->format('d/m/Y H:i') . "] Update status ke {$targetStatus} oleh {$user->name}: {$validated['reason']}";
                 $archive->content_description = ($archive->content_description ? $archive->content_description . "\n" : '') . $noteEntry;
             }
             $archive->save();
 
             ActivityLogger::log(
-                'SUPERADMIN_STATUS_WAREHOUSE',
-                "Super Admin {$user->name} mengubah status arsip '{$archive->title}' menjadi Tersimpan di Gudang (No. Box: {$archive->box_number})" . ($request->filled('reason') ? ". Catatan: {$validated['reason']}" : ''),
+                'STATUS_UPDATE_WAREHOUSE',
+                "Pengguna {$user->name} mengubah status arsip '{$archive->title}' menjadi Tersimpan di Gudang (No. Box: {$archive->box_number})" . ($request->filled('reason') ? ". Catatan: {$validated['reason']}" : ''),
                 'OVERRIDE',
                 [
                     'archive_id' => $archive->id,
@@ -1398,7 +1408,7 @@ class ArchiveController extends Controller
                     'old_status' => $oldStatus,
                     'new_status' => $targetStatus,
                     'reason' => $validated['reason'] ?? null,
-                    'superadmin_id' => $user->id,
+                    'user_id' => $user->id,
                 ],
                 $archive->box_number
             );
@@ -1421,7 +1431,7 @@ class ArchiveController extends Controller
                 'expected_return_date' => null,
                 'purpose' => $validated['purpose'] . (!empty($validated['borrower_name']) ? " (Penerima: {$validated['borrower_name']})" : '') . (!empty($validated['department_name']) ? " (Dept: {$validated['department_name']})" : ''),
                 'status' => 'dispatched',
-                'notes' => $validated['reason'] ?? 'Pengeluaran berkas fisik dari gudang oleh Super Admin (Keluar / Out)',
+                'notes' => $validated['reason'] ?? 'Pengeluaran berkas fisik dari gudang (Keluar / Out)',
                 'approval_file' => $approvalPath,
                 'scan_approval_borrow' => $approvalPath,
                 'is_approval_uploaded' => !empty($approvalPath),
@@ -1445,14 +1455,14 @@ class ArchiveController extends Controller
 
             $archive->status = 'taken';
             if ($request->filled('reason')) {
-                $noteEntry = "[" . now()->format('d/m/Y H:i') . "] SuperAdmin Pengeluaran Berkas (Out) oleh {$user->name}: {$validated['reason']}";
+                $noteEntry = "[" . now()->format('d/m/Y H:i') . "] Pengeluaran Berkas (Out) oleh {$user->name}: {$validated['reason']}";
                 $archive->content_description = ($archive->content_description ? $archive->content_description . "\n" : '') . $noteEntry;
             }
             $archive->save();
 
             ActivityLogger::log(
-                'SUPERADMIN_STATUS_OUT',
-                "Super Admin {$user->name} mengubah status arsip '{$archive->title}' (Box: {$archive->box_number}) menjadi Keluar (Out). Keperluan: {$validated['purpose']}",
+                'STATUS_UPDATE_OUT',
+                "Pengguna {$user->name} mengubah status arsip '{$archive->title}' (Box: {$archive->box_number}) menjadi Keluar (Out). Keperluan: {$validated['purpose']}",
                 'PENGELUARAN',
                 [
                     'archive_id' => $archive->id,
@@ -1463,7 +1473,7 @@ class ArchiveController extends Controller
                     'department' => $validated['department_name'] ?? null,
                     'purpose' => $validated['purpose'],
                     'has_approval_file' => !empty($approvalPath),
-                    'superadmin_id' => $user->id,
+                    'user_id' => $user->id,
                 ],
                 $archive->box_number
             );
@@ -1474,31 +1484,44 @@ class ArchiveController extends Controller
                 $scanApprovalPath = $request->file('approval_file')->store('destruction_approvals', 'public');
             }
 
-            \App\Models\DestructionLog::create([
-                'archive_id' => $archive->id,
-                'proposed_by_user_id' => $user->id,
-                'department_approval_by' => $user->id,
-                'department_approved_at' => now(),
-                'approved_by_dept_pic_id' => $user->id,
-                'bap_number' => '(Menunggu Penerbitan BAP)',
-                'destruction_date' => now(),
-                'method' => 'Belum Ditentukan',
-                'approval_file' => $scanApprovalPath,
-                'scan_approval_destruction' => $scanApprovalPath,
-                'approval_status' => 'approved',
-                'notes' => $validated['reason'] ?? 'Dipindahkan ke Antrean Pemusnahan oleh Super Admin.',
-            ]);
+            $existingDestLog = \App\Models\DestructionLog::where('archive_id', $archive->id)
+                ->where('approval_status', '!=', 'completed')
+                ->latest()
+                ->first();
+
+            if ($existingDestLog) {
+                $existingDestLog->update([
+                    'approval_status' => 'approved',
+                    'approved_by_dept_pic_id' => $user->id,
+                    'notes' => $validated['reason'] ?? $existingDestLog->notes,
+                ]);
+            } else {
+                \App\Models\DestructionLog::create([
+                    'archive_id' => $archive->id,
+                    'proposed_by_user_id' => $user->id,
+                    'department_approval_by' => $user->id,
+                    'department_approved_at' => now(),
+                    'approved_by_dept_pic_id' => $user->id,
+                    'bap_number' => '(Menunggu Penerbitan BAP)',
+                    'destruction_date' => now(),
+                    'method' => 'Belum Ditentukan',
+                    'approval_file' => $scanApprovalPath,
+                    'scan_approval_destruction' => $scanApprovalPath,
+                    'approval_status' => 'approved',
+                    'notes' => $validated['reason'] ?? 'Dipindahkan ke Antrean Pemusnahan.',
+                ]);
+            }
 
             $archive->status = 'pending_destruction';
             if ($request->filled('reason')) {
-                $noteEntry = "[" . now()->format('d/m/Y H:i') . "] SuperAdmin Antrean Pemusnahan oleh {$user->name}: {$validated['reason']}";
+                $noteEntry = "[" . now()->format('d/m/Y H:i') . "] Antrean Pemusnahan oleh {$user->name}: {$validated['reason']}";
                 $archive->content_description = ($archive->content_description ? $archive->content_description . "\n" : '') . $noteEntry;
             }
             $archive->save();
 
             ActivityLogger::log(
-                'SUPERADMIN_STATUS_PENDING_DESTRUCTION',
-                "Super Admin {$user->name} memindahkan arsip '{$archive->title}' (Box: {$archive->box_number}) ke Antrean Pemusnahan.",
+                'STATUS_UPDATE_PENDING_DESTRUCTION',
+                "Pengguna {$user->name} memindahkan arsip '{$archive->title}' (Box: {$archive->box_number}) ke Antrean Pemusnahan.",
                 'PEMUSNAHAN',
                 [
                     'archive_id' => $archive->id,
@@ -1506,7 +1529,7 @@ class ArchiveController extends Controller
                     'old_status' => $oldStatus,
                     'new_status' => 'pending_destruction',
                     'reason' => $validated['reason'] ?? null,
-                    'superadmin_id' => $user->id,
+                    'user_id' => $user->id,
                 ],
                 $archive->box_number
             );
@@ -1514,25 +1537,43 @@ class ArchiveController extends Controller
         } elseif ($targetStatus === 'destroyed') {
             $scanApprovalPath = null;
             if ($request->hasFile('approval_file')) {
-                $scanApprovalPath = $request->file('approval_file')->store('destruction_approvals', 'public');
+                $scanApprovalPath = $request->file('approval_file')->store('bap_certificates', 'public');
+            } elseif ($request->hasFile('certificate_file')) {
+                $scanApprovalPath = $request->file('certificate_file')->store('bap_certificates', 'public');
             }
 
-            \App\Models\DestructionLog::create([
-                'archive_id' => $archive->id,
-                'proposed_by_user_id' => $user->id,
-                'department_approval_by' => $user->id,
-                'department_approved_at' => now(),
-                'approved_by_dept_pic_id' => $user->id,
-                'bap_number' => $validated['bap_number'],
-                'destruction_date' => $validated['destruction_date'],
-                'method' => $validated['method'],
-                'approval_file' => $scanApprovalPath,
-                'scan_approval_destruction' => $scanApprovalPath,
-                'certificate_file' => $scanApprovalPath,
-                'is_approval_uploaded' => !empty($scanApprovalPath),
-                'approval_status' => 'completed',
-                'notes' => $validated['notes'] ?? ($validated['reason'] ?? 'Pemusnahan berkas arsip via Super Admin Override'),
-            ]);
+            $existingDestLog = \App\Models\DestructionLog::where('archive_id', $archive->id)
+                ->where('approval_status', '!=', 'completed')
+                ->latest()
+                ->first();
+
+            if ($existingDestLog) {
+                $existingDestLog->update([
+                    'bap_number' => $validated['bap_number'],
+                    'destruction_date' => $validated['destruction_date'],
+                    'method' => $validated['method'],
+                    'certificate_file' => $scanApprovalPath ?: $existingDestLog->certificate_file,
+                    'approval_status' => 'completed',
+                    'notes' => $validated['notes'] ?? ($validated['reason'] ?? $existingDestLog->notes),
+                ]);
+            } else {
+                \App\Models\DestructionLog::create([
+                    'archive_id' => $archive->id,
+                    'proposed_by_user_id' => $user->id,
+                    'department_approval_by' => $user->id,
+                    'department_approved_at' => now(),
+                    'approved_by_dept_pic_id' => $user->id,
+                    'bap_number' => $validated['bap_number'],
+                    'destruction_date' => $validated['destruction_date'],
+                    'method' => $validated['method'],
+                    'approval_file' => $scanApprovalPath,
+                    'scan_approval_destruction' => $scanApprovalPath,
+                    'certificate_file' => $scanApprovalPath,
+                    'is_approval_uploaded' => !empty($scanApprovalPath),
+                    'approval_status' => 'completed',
+                    'notes' => $validated['notes'] ?? ($validated['reason'] ?? 'Pemusnahan berkas arsip resmi dengan BAP'),
+                ]);
+            }
 
             // Free rack slot & location
             if ($archive->rackSlot) {

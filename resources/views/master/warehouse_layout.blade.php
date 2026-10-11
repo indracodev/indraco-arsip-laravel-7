@@ -3,6 +3,23 @@
 @section('title', 'Interactive Layout Gudang 2D - DMS PT Indraco')
 
 @section('content')
+<style>
+    @keyframes pulseNearExp {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.55; }
+    }
+    .animate-pulse-near-exp {
+        animation: pulseNearExp 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    @keyframes pulseExpired {
+        0%, 100% { opacity: 1; filter: brightness(1); }
+        50% { opacity: 0.82; filter: brightness(1.22); }
+    }
+    .animate-pulse-expired {
+        animation: pulseExpired 0.9s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+</style>
 <div class="space-y-3" x-data="warehouseCanvasApp()">
     <!-- Header Controls -->
     <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-3 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-2 font-mono">
@@ -1629,11 +1646,18 @@
                                             :title="slot.archive ? ('Box #' + (slot.box_number_display || slot.slot_number) + ': ' + (slot.archive.box_number || 'Box') + ' - ' + slot.archive.title) : ('Box #' + (slot.box_number_display || slot.slot_number) + ': Slot Kosong')"
                                         >
                                             <div class="w-full flex items-center justify-between text-[9px] font-mono font-bold opacity-90 mb-0.5">
-                                                <span class="text-amber-400 font-black text-[11px]" x-text="'#' + (slot.box_number_display || slot.slot_number)"></span>
-                                                <template x-if="slot.status === 'expired' || slot.archive?.is_expired">
+                                                <span 
+                                                    class="font-black text-[11px]" 
+                                                    :class="isSlotExpired(slot) ? '!text-white' : (isSlotNearExp(slot) ? 'text-rose-600 dark:text-rose-400' : 'text-amber-500 dark:text-amber-400')" 
+                                                    x-text="'#' + (slot.box_number_display || slot.slot_number)"
+                                                ></span>
+                                                <template x-if="isSlotExpired(slot)">
+                                                    <span class="w-1.5 h-1.5 rounded-none bg-white shadow-xs"></span>
+                                                </template>
+                                                <template x-if="isSlotNearExp(slot)">
                                                     <span class="w-1.5 h-1.5 rounded-none bg-rose-500 animate-pulse"></span>
                                                 </template>
-                                                <template x-if="(slot.status === 'filled' || slot.archive) && !(slot.status === 'expired' || slot.archive?.is_expired)">
+                                                <template x-if="isSlotFilled(slot)">
                                                     <span class="w-1.5 h-1.5 rounded-none bg-amber-500"></span>
                                                 </template>
                                                 <template x-if="!slot.archive && slot.status === 'empty'">
@@ -1645,8 +1669,16 @@
                                             <div class="w-full flex-1 flex flex-col items-center justify-center">
                                                 <template x-if="slot.archive">
                                                     <div class="space-y-0.5 w-full">
-                                                        <span class="font-mono font-bold text-[9px] leading-tight block truncate text-amber-700 dark:text-amber-400 max-w-[75px] mx-auto" :class="(slotBlinkActive && highlightedSlotCode === slot.slot_code) ? '!text-slate-950 font-black' : ''" x-text="slot.archive.box_number || 'TERISI'"></span>
-                                                        <span class="text-[7px] text-slate-500 font-mono block truncate max-w-[75px] mx-auto" x-text="slot.archive.periode_doc || slot.archive.department || ''"></span>
+                                                        <span 
+                                                            class="font-mono font-bold text-[9px] leading-tight block truncate max-w-[75px] mx-auto uppercase" 
+                                                            :class="isSlotExpired(slot) ? '!text-white font-black' : (isSlotNearExp(slot) ? 'text-rose-700 dark:text-rose-300 font-bold' : ((slotBlinkActive && highlightedSlotCode === slot.slot_code) ? '!text-slate-950 font-black' : 'text-amber-800 dark:text-amber-400 font-bold'))" 
+                                                            x-text="'TERISI'"
+                                                        ></span>
+                                                        <span 
+                                                            class="text-[7px] font-mono block truncate max-w-[75px] mx-auto" 
+                                                            :class="isSlotExpired(slot) ? '!text-white/95 font-semibold' : (isSlotNearExp(slot) ? 'text-rose-700/80 dark:text-rose-300/80 font-medium' : 'text-slate-500 dark:text-slate-400')" 
+                                                            x-text="slot.archive.retention_duration_label || slot.archive.periode_doc || slot.archive.department || ''"
+                                                        ></span>
                                                     </div>
                                                 </template>
                                                 <template x-if="!slot.archive">
@@ -1684,11 +1716,18 @@
                                             :title="slot.archive ? ('Box #' + (slot.box_number_display || slot.slot_number) + ': ' + (slot.archive.box_number || 'Box') + ' - ' + slot.archive.title) : ('Box #' + (slot.box_number_display || slot.slot_number) + ': Slot Kosong')"
                                         >
                                             <div class="w-full flex items-center justify-between text-[9px] font-mono font-bold opacity-90 mb-0.5">
-                                                <span class="text-amber-400 font-black text-[11px]" x-text="'#' + (slot.box_number_display || slot.slot_number)"></span>
-                                                <template x-if="slot.status === 'expired' || slot.archive?.is_expired">
+                                                <span 
+                                                    class="font-black text-[11px]" 
+                                                    :class="isSlotExpired(slot) ? '!text-white' : (isSlotNearExp(slot) ? 'text-rose-600 dark:text-rose-400' : 'text-amber-500 dark:text-amber-400')" 
+                                                    x-text="'#' + (slot.box_number_display || slot.slot_number)"
+                                                ></span>
+                                                <template x-if="isSlotExpired(slot)">
+                                                    <span class="w-1.5 h-1.5 rounded-none bg-white shadow-xs"></span>
+                                                </template>
+                                                <template x-if="isSlotNearExp(slot)">
                                                     <span class="w-1.5 h-1.5 rounded-none bg-rose-500 animate-pulse"></span>
                                                 </template>
-                                                <template x-if="(slot.status === 'filled' || slot.archive) && !(slot.status === 'expired' || slot.archive?.is_expired)">
+                                                <template x-if="isSlotFilled(slot)">
                                                     <span class="w-1.5 h-1.5 rounded-none bg-amber-500"></span>
                                                 </template>
                                                 <template x-if="!slot.archive && slot.status === 'empty'">
@@ -1700,8 +1739,16 @@
                                             <div class="w-full flex-1 flex flex-col items-center justify-center">
                                                 <template x-if="slot.archive">
                                                     <div class="space-y-0.5 w-full">
-                                                        <span class="font-mono font-bold text-[9px] leading-tight block truncate text-amber-700 dark:text-amber-400 max-w-[75px] mx-auto" :class="(slotBlinkActive && highlightedSlotCode === slot.slot_code) ? '!text-slate-950 font-black' : ''" x-text="slot.archive.box_number || 'TERISI'"></span>
-                                                        <span class="text-[7px] text-slate-500 font-mono block truncate max-w-[75px] mx-auto" x-text="slot.archive.periode_doc || slot.archive.department || ''"></span>
+                                                        <span 
+                                                            class="font-mono font-bold text-[9px] leading-tight block truncate max-w-[75px] mx-auto uppercase" 
+                                                            :class="isSlotExpired(slot) ? '!text-white font-black' : (isSlotNearExp(slot) ? 'text-rose-700 dark:text-rose-300 font-bold' : ((slotBlinkActive && highlightedSlotCode === slot.slot_code) ? '!text-slate-950 font-black' : 'text-amber-800 dark:text-amber-400 font-bold'))" 
+                                                            x-text="'TERISI'"
+                                                        ></span>
+                                                        <span 
+                                                            class="text-[7px] font-mono block truncate max-w-[75px] mx-auto" 
+                                                            :class="isSlotExpired(slot) ? '!text-white/95 font-semibold' : (isSlotNearExp(slot) ? 'text-rose-700/80 dark:text-rose-300/80 font-medium' : 'text-slate-500 dark:text-slate-400')" 
+                                                            x-text="slot.archive.retention_duration_label || slot.archive.periode_doc || slot.archive.department || ''"
+                                                        ></span>
                                                     </div>
                                                 </template>
                                                 <template x-if="!slot.archive">
@@ -1738,9 +1785,9 @@
                                 <h3 class="text-base font-bold text-white font-mono" x-text="'SLOT BOX #' + (selectedSlotDetail?.box_number_display || selectedSlotDetail?.slot_number || getBoxIndex(selectedSlotDetail?.sap_level, selectedSlotDetail?.layer, selectedSlotDetail?.slot_number))"></h3>
                             </div>
                             <span 
-                                class="px-1.5 py-0.2 text-[10px] font-bold uppercase rounded tracking-wider"
-                                :class="(selectedSlotDetail?.status === 'expired' || selectedSlotDetail?.archive?.is_expired) ? 'bg-rose-100 text-rose-800 border border-rose-300' : (selectedSlotDetail?.archive ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-emerald-100 text-emerald-800 border border-emerald-300')"
-                                x-text="(selectedSlotDetail?.status === 'expired' || selectedSlotDetail?.archive?.is_expired) ? 'EXPIRED' : (selectedSlotDetail?.archive ? 'TERISI' : 'KOSONG')"
+                                class="px-1.5 py-0.5 text-[10px] font-bold uppercase rounded tracking-wider"
+                                :class="isSlotExpired(selectedSlotDetail) ? 'bg-rose-600 text-white border border-rose-700 shadow-xs font-black' : (isSlotNearExp(selectedSlotDetail) ? 'bg-rose-100 text-rose-800 border border-rose-300' : (selectedSlotDetail?.archive ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-emerald-100 text-emerald-800 border border-emerald-300'))"
+                                x-text="isSlotExpired(selectedSlotDetail) ? 'EXPIRED' : (isSlotNearExp(selectedSlotDetail) ? 'MENDEKATI EXP' : (selectedSlotDetail?.archive ? 'TERISI' : 'KOSONG'))"
                             ></span>
                         </div>
 
@@ -4875,15 +4922,51 @@ function warehouseCanvasApp() {
             }
         },
 
+        isSlotExpired(slot) {
+            if (!slot) return false;
+            if (slot.is_active === false || slot.status === 'inactive') return false;
+            return slot.status === 'expired' || !!(slot.archive?.is_expired) || slot.is_expired === true;
+        },
+
+        isSlotNearExp(slot) {
+            if (!slot) return false;
+            if (slot.is_active === false || slot.status === 'inactive') return false;
+            if (this.isSlotExpired(slot)) return false;
+            if (slot.is_near_exp === true || slot.archive?.is_near_exp === true) return true;
+            if (slot.archive && slot.archive.retention_expiry_date) {
+                try {
+                    const expDate = new Date(slot.archive.retention_expiry_date);
+                    if (!isNaN(expDate.getTime())) {
+                        const now = new Date();
+                        const diffDays = Math.ceil((expDate - now) / (1000 * 60 * 60 * 24));
+                        return diffDays >= 0 && diffDays <= 30;
+                    }
+                } catch(e) {}
+            }
+            return false;
+        },
+
+        isSlotFilled(slot) {
+            if (!slot) return false;
+            if (slot.is_active === false || slot.status === 'inactive') return false;
+            if (this.isSlotExpired(slot) || this.isSlotNearExp(slot)) return false;
+            return (slot.status === 'filled' || !!slot.archive);
+        },
+
         getRackSlotStats(rack) {
-            if (!rack) return { total: 100, empty: 100, filled: 0, expired: 0 };
+            if (!rack) return { total: 100, empty: 100, filled: 0, expired: 0, near_exp: 0 };
             const slots = rack.slots || [];
-            let empty = 0, filled = 0, expired = 0;
+            let empty = 0, filled = 0, expired = 0, near_exp = 0;
 
             if (slots.length > 0) {
                 slots.forEach(s => {
-                    if (s.status === 'expired' || s.archive?.is_expired) {
+                    if (s.is_active === false || s.status === 'inactive') {
+                        // inactive
+                    } else if (this.isSlotExpired(s)) {
                         expired++;
+                    } else if (this.isSlotNearExp(s)) {
+                        near_exp++;
+                        filled++;
                     } else if (s.status === 'filled' || s.archive) {
                         filled++;
                     } else {
@@ -4900,7 +4983,8 @@ function warehouseCanvasApp() {
                 total: 100,
                 empty: empty,
                 filled: filled,
-                expired: expired
+                expired: expired,
+                near_exp: near_exp
             };
         },
 
@@ -4909,23 +4993,32 @@ function warehouseCanvasApp() {
             if (slot.is_active === false || slot.status === 'inactive') {
                 return 'bg-slate-100 text-slate-400 border-slate-200 shadow-xs';
             }
-            const isExpired = slot.status === 'expired' || slot.archive?.is_expired;
-            const isFilled = (slot.status === 'filled' || slot.archive) && !isExpired;
+            
+            // 1. Expired (Melebihi Exp) -> Merah solid seperti notifikasi LAN, teks putih, denyut cepat
+            if (this.isSlotExpired(slot)) {
+                return 'bg-rose-600 !text-white border-rose-700 hover:bg-rose-700 dark:bg-rose-600 dark:border-rose-500 shadow-md animate-pulse-expired';
+            }
 
-            if (isExpired) {
-                return 'bg-rose-50 text-rose-800 border-rose-300 hover:bg-rose-100 hover:border-rose-400 shadow-xs';
+            // 2. Mendekati Exp (H-30) -> Merah transparan seperti warna kuning itu, denyut lembut
+            if (this.isSlotNearExp(slot)) {
+                return 'bg-rose-50 text-rose-800 border-rose-300 hover:bg-rose-100 hover:border-rose-400 dark:bg-rose-950/40 dark:text-rose-200 dark:border-rose-700 animate-pulse-near-exp shadow-xs';
             }
-            if (isFilled) {
-                return 'bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100 hover:border-amber-400 shadow-xs';
+
+            // 3. Terisi Normal -> Kuning transparan, tidak denyut
+            if (slot.status === 'filled' || slot.archive) {
+                return 'bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100 hover:border-amber-400 dark:bg-amber-950/35 dark:text-amber-200 dark:border-amber-600/50 shadow-xs';
             }
+
+            // 4. Kosong
             return 'bg-white text-slate-700 border-slate-200 hover:border-emerald-400 hover:bg-emerald-50/70 shadow-xs';
         },
 
         isSlotMatchFilter(slot) {
             if (!slot) return false;
-            const isExpired = slot.status === 'expired' || slot.archive?.is_expired;
-            const isFilled = (slot.status === 'filled' || slot.archive) && !isExpired;
-            const isEmpty = !isExpired && !isFilled;
+            const isExpired = this.isSlotExpired(slot);
+            const isNearExp = this.isSlotNearExp(slot);
+            const isFilled = this.isSlotFilled(slot) || isNearExp;
+            const isEmpty = !isExpired && !isFilled && !slot.archive;
 
             if (this.slotFilterStatus === 'empty' && !isEmpty) return false;
             if (this.slotFilterStatus === 'filled' && !isFilled) return false;

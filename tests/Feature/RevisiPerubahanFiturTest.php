@@ -50,20 +50,25 @@ class RevisiPerubahanFiturTest extends TestCase
     }
 
     /** @test */
-    public function test_document_type_is_required_on_archive_create()
+    public function test_document_type_is_optional_on_archive_create()
     {
         $this->actingAs($this->adminUser);
         Storage::fake('public');
 
         $response = $this->post(route('archives.store'), [
             'department_id' => $this->dept->id,
-            'title' => 'Berkas Testing',
-            'document_type' => '', // Empty, should fail
+            'title' => 'Berkas Testing Tanpa Kategori',
+            'document_type' => '', // Empty, should succeed
             'tgl_penyerahan' => date('Y-m-d'),
             'physical_condition' => 'Baik',
+            'scan_input_form' => UploadedFile::fake()->create('form.pdf', 100),
         ]);
 
-        $response->assertSessionHasErrors(['document_type']);
+        $response->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('archives', [
+            'title' => 'Berkas Testing Tanpa Kategori',
+            'document_type' => null,
+        ]);
     }
 
     /** @test */

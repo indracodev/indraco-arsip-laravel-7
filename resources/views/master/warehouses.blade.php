@@ -3,6 +3,23 @@
 @section('title', 'Master Gudang & Lokasi Rak - DMS PT Indraco')
 
 @section('content')
+<style>
+    @keyframes pulseNearExp {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.55; }
+    }
+    .animate-pulse-near-exp {
+        animation: pulseNearExp 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    @keyframes pulseExpired {
+        0%, 100% { opacity: 1; filter: brightness(1); }
+        50% { opacity: 0.82; filter: brightness(1.22); }
+    }
+    .animate-pulse-expired {
+        animation: pulseExpired 0.9s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+</style>
 <div class="space-y-3" x-data="masterWarehousesManager()">
 
     <!-- DELPHI ACTION RIBBON TOOLBAR & HEADER -->

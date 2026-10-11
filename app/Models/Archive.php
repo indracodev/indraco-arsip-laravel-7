@@ -144,6 +144,11 @@ class Archive extends Model
         return $this->hasOne(DestructionLog::class);
     }
 
+    public function destructionLogs(): HasMany
+    {
+        return $this->hasMany(DestructionLog::class);
+    }
+
     public function items(): HasMany
     {
         return $this->hasMany(ArchiveItem::class)->orderBy('item_number', 'asc');
@@ -425,6 +430,18 @@ class Archive extends Model
         $expiryEndOfMonth = Carbon::parse($this->retention_expiry_date)->endOfMonth()->endOfDay();
 
         return Carbon::now()->gt($expiryEndOfMonth);
+    }
+
+    public function getIsNearExpAttribute(): bool
+    {
+        if (!$this->retention_expiry_date || $this->status === 'destroyed' || $this->is_expired) {
+            return false;
+        }
+
+        $expiryEndOfMonth = Carbon::parse($this->retention_expiry_date)->endOfMonth()->endOfDay();
+        $h30Threshold = $expiryEndOfMonth->copy()->subDays(30)->startOfDay();
+
+        return Carbon::today()->gte($h30Threshold);
     }
 
     /**

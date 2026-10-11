@@ -93,8 +93,10 @@ class WarehouseLayoutController extends Controller
                 'slots' => $loc->slots->map(function ($slot) {
                     $hasActiveArchive = $slot->archive && in_array($slot->archive->status, ['in_warehouse', 'approved_booked', 'pending_verification']);
                     $isExpired = false;
+                    $isNearExp = false;
                     if ($hasActiveArchive) {
                         $isExpired = (bool) $slot->archive->is_expired;
+                        $isNearExp = (bool) $slot->archive->is_near_exp;
                     }
                     $status = $slot->status;
                     if (!$hasActiveArchive) {
@@ -114,6 +116,8 @@ class WarehouseLayoutController extends Controller
                         'slot_number' => (int) $slot->slot_number,
                         'slot_code' => $slot->slot_code,
                         'status' => $status,
+                        'is_expired' => $isExpired,
+                        'is_near_exp' => $isNearExp,
                         'status_badge' => $status === 'filled' ? 'bg-amber-400 text-slate-900' : ($status === 'expired' ? 'bg-red-500 text-white' : 'bg-emerald-500 text-white'),
                         'archive' => $hasActiveArchive ? [
                             'id' => $slot->archive->id,
@@ -128,6 +132,7 @@ class WarehouseLayoutController extends Controller
                             'sub_department' => $slot->archive->subDepartment ? $slot->archive->subDepartment->code : null,
                             'sub_department_name' => $slot->archive->subDepartment ? $slot->archive->subDepartment->name : null,
                             'is_expired' => $isExpired,
+                            'is_near_exp' => $isNearExp,
                             'scan_input_form' => $slot->archive->scan_input_form ? app_storage_url($slot->archive->scan_input_form) : null,
                             'scan_input_form_stream' => $slot->archive->scan_input_form ? app_preview_stream_url($slot->archive->scan_input_form) : null,
                             'scan_input_form_raw' => $slot->archive->scan_input_form,
@@ -644,12 +649,14 @@ class WarehouseLayoutController extends Controller
                     'box_number' => $archive->box_number,
                     'title' => $archive->title,
                     'periode_doc' => $archive->periode_doc,
+                    'retention_duration_label' => $archive->retention_duration_label,
                     'retention_expiry_date' => $archive->retention_expiry_date ? $archive->retention_expiry_date->format('d M Y') : '-',
                     'department' => $archive->department ? $archive->department->code : 'Dept',
                     'department_name' => $archive->department ? $archive->department->name : '',
                     'sub_department' => $archive->subDepartment ? $archive->subDepartment->code : null,
                     'sub_department_name' => $archive->subDepartment ? $archive->subDepartment->name : null,
                     'is_expired' => (bool) $archive->is_expired,
+                    'is_near_exp' => (bool) $archive->is_near_exp,
                 ],
             ],
         ]);

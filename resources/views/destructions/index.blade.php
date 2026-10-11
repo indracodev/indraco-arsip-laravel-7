@@ -517,11 +517,43 @@
                                 <span class="text-[10px] text-slate-500 block mt-0.5" x-text="'Box: ' + dLog.box_number + ' • Dept: ' + dLog.department_code"></span>
                             </td>
                             <td class="py-2.5 px-3 border-r border-slate-200 dark:border-slate-800 whitespace-nowrap">
-                                <span 
-                                    class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border" 
-                                    :class="dLog.status_badge"
-                                    x-text="dLog.status_label">
-                                </span>
+                                @if(auth()->check() && (auth()->user()->isPicGudang() || auth()->user()->isSuperAdmin()))
+                                    <template x-if="dLog.approval_status === 'pending'">
+                                        <button 
+                                            type="button"
+                                            @click="if (confirm('Setujui usulan pengajuan pemusnahan ini untuk masuk ke Antrean Pemusnahan Gudang?')) { const f = document.getElementById('approve-form-' + dLog.id); if (f) f.submit(); }"
+                                            class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border hover:scale-105 transition cursor-pointer group shadow-2xs" 
+                                            :class="dLog.status_badge"
+                                            title="Klik untuk langsung menyetujui pengajuan pemusnahan (Tahap 1 -> Tahap 2)">
+                                            <i data-lucide="shield-alert" class="w-3 h-3 mr-1 text-orange-500"></i>
+                                            <span class="underline decoration-dotted underline-offset-2" x-text="dLog.status_label"></span>
+                                        </button>
+                                    </template>
+                                    <template x-if="dLog.approval_status === 'approved'">
+                                        <button 
+                                            type="button"
+                                            @click="openCompleteModal(dLog)"
+                                            class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border hover:scale-105 transition cursor-pointer group shadow-2xs" 
+                                            :class="dLog.status_badge"
+                                            title="Klik untuk eksekusi fisik & terbitkan No. BAP resmi (Tahap 2 -> Tahap 3)">
+                                            <i data-lucide="clock" class="w-3 h-3 mr-1 text-blue-500"></i>
+                                            <span class="underline decoration-dotted underline-offset-2" x-text="dLog.status_label"></span>
+                                        </button>
+                                    </template>
+                                    <template x-if="dLog.approval_status === 'completed'">
+                                        <span 
+                                            class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border" 
+                                            :class="dLog.status_badge"
+                                            x-text="dLog.status_label">
+                                        </span>
+                                    </template>
+                                @else
+                                    <span 
+                                        class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border" 
+                                        :class="dLog.status_badge"
+                                        x-text="dLog.status_label">
+                                    </span>
+                                @endif
                             </td>
                             <td class="py-2.5 px-3 border-r border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 text-[11px] whitespace-nowrap" x-text="dLog.destruction_date"></td>
                             <td class="py-2.5 px-3 border-r border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-[11px]" x-text="dLog.method"></td>
@@ -575,7 +607,7 @@
                                     @if(auth()->check() && (auth()->user()->isPicGudang() || auth()->user()->isSuperAdmin()))
                                         <!-- Tahap 1 -> Tahap 2: Setujui Usulan Pengajuan ke Antrean Pemusnahan -->
                                         <template x-if="dLog.approval_status === 'pending'">
-                                            <form :action="'{{ url('/destructions') }}/' + dLog.id + '/approve'" method="POST" class="inline" @submit="return confirm('Apakah Anda yakin menyetujui usulan pengajuan pemusnahan ini untuk masuk ke Antrean Pemusnahan Gudang?')">
+                                            <form :id="'approve-form-' + dLog.id" :action="'{{ url('/destructions') }}/' + dLog.id + '/approve'" method="POST" class="inline" @submit="return confirm('Apakah Anda yakin menyetujui usulan pengajuan pemusnahan ini untuk masuk ke Antrean Pemusnahan Gudang?')">
                                                 @csrf
                                                 <button type="submit" class="px-2 py-0.5 rounded bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] border border-blue-700 shadow-sm inline-flex items-center gap-1 cursor-pointer" title="Setujui Pengajuan Masuk Antrean Gudang">
                                                     <i data-lucide="check" class="w-3 h-3"></i>

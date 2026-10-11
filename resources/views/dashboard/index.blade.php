@@ -631,10 +631,35 @@
                                             <span>Keluar (Out)</span>
                                         </span>
                                     @elseif($archive->status === 'pending_destruction')
-                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-orange-500/20 text-orange-700 dark:text-orange-300 border border-orange-500/30 inline-flex items-center gap-1">
-                                            <i data-lucide="shield-alert" class="w-3 h-3 text-orange-500"></i>
-                                            <span>{{ $archive->status_label }}</span>
-                                        </span>
+                                        @if(auth()->user()->isPicGudang())
+                                            <button 
+                                                type="button" 
+                                                @click="openSuperAdminStatusModal({
+                                                    id: {{ $archive->id }},
+                                                    box_number: {{ json_encode($archive->box_number ?: 'Pending') }},
+                                                    raw_box_number: {{ json_encode($archive->box_number) }},
+                                                    title: {{ json_encode($archive->effective_title ?? $archive->title) }},
+                                                    department: {{ json_encode($archive->department->name ?? 'Dept') }},
+                                                    department_code: {{ json_encode($archive->department->code ?? 'GEN') }},
+                                                    status: {{ json_encode($archive->status) }},
+                                                    status_label: {{ json_encode($archive->status_label ?? $archive->status) }},
+                                                    location: {{ json_encode($archive->display_location) }},
+                                                    has_scan_input: {{ !empty($archive->scan_input_form) ? 'true' : 'false' }},
+                                                    has_file_path: {{ !empty($archive->file_path) ? 'true' : 'false' }},
+                                                    has_approval: {{ !empty($archive->scan_approval_input) ? 'true' : 'false' }}
+                                                })"
+                                                class="px-2 py-0.5 rounded text-[10px] font-bold bg-orange-500/20 hover:bg-orange-500/35 text-orange-800 dark:text-orange-300 border border-orange-500/50 inline-flex items-center gap-1 transition shadow-xs cursor-pointer hover:scale-105 group"
+                                                title="Klik untuk proses / ubah status Pengajuan Pemusnahan"
+                                            >
+                                                <i data-lucide="shield-alert" class="w-3 h-3 text-orange-600 dark:text-orange-400 group-hover:scale-110 transition-transform"></i>
+                                                <span class="underline decoration-dotted underline-offset-2">{{ $archive->status_label }}</span>
+                                            </button>
+                                        @else
+                                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-orange-500/20 text-orange-700 dark:text-orange-300 border border-orange-500/30 inline-flex items-center gap-1">
+                                                <i data-lucide="shield-alert" class="w-3 h-3 text-orange-500"></i>
+                                                <span>{{ $archive->status_label }}</span>
+                                            </span>
+                                        @endif
                                     @elseif($archive->status === 'destroyed')
                                         <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/30">Dimusnahkan</span>
                                     @endif

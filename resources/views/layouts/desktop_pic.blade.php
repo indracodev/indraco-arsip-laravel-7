@@ -345,8 +345,17 @@
             </button>
 
             <!-- SEARCH INPUT WITH AUTO-SUGGESTIONS & PHYSICAL LOCATION -->
-            <div class="relative z-50 flex-1 min-w-[200px] max-w-xl" x-data="picQuickSearch()" @click.outside="closeDropdown()">
-                <div class="relative flex items-center">
+            <div class="relative z-50 flex-1 min-w-[200px] max-w-xl" x-data="picQuickSearch()">
+                <!-- Invisible Full Backdrop to intercept clicks outside anywhere on screen including over iframes -->
+                <div 
+                    x-show="showSuggestions" 
+                    @mousedown="closeDropdown()"
+                    @click="closeDropdown()" 
+                    class="fixed inset-0 z-[985] bg-transparent cursor-default"
+                    x-cloak
+                ></div>
+
+                <div class="relative z-[990] flex items-center" @mousedown.stop>
                     <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
                         <svg x-show="isLoading" class="w-3.5 h-3.5 text-amber-500 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" x-cloak>
                             <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
@@ -397,6 +406,7 @@
                     x-transition:leave-start="opacity-100 scale-100 translate-y-0"
                     x-transition:leave-end="opacity-0 scale-95 -translate-y-1"
                     class="absolute left-0 mt-1 w-[680px] sm:w-[740px] max-w-[94vw] bg-white dark:bg-slate-900 border-2 border-amber-500 rounded-lg shadow-2xl z-[999] overflow-hidden font-mono text-xs"
+                    @mousedown.stop
                     x-cloak
                 >
                     <!-- Header Dropdown Info -->
@@ -408,9 +418,17 @@
                             </svg>
                             PENCARIAN ARSIP & LOKASI GUDANG
                         </span>
-                        <span class="px-2 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-400/40 rounded text-[11px] font-bold">
-                            DEPT: {{ auth()->user()->department->code ?? 'DEPT' }} - {{ auth()->user()->department->name ?? '' }}
-                        </span>
+                        <div class="flex items-center gap-2">
+                            <span class="px-2 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-400/40 rounded text-[11px] font-bold">
+                                DEPT: {{ auth()->user()->department->code ?? 'DEPT' }} - {{ auth()->user()->department->name ?? '' }}
+                            </span>
+                            <button 
+                                @click="closeDropdown()" 
+                                type="button" 
+                                class="w-5 h-5 flex items-center justify-center rounded bg-slate-800 hover:bg-rose-600 text-slate-300 hover:text-white transition cursor-pointer font-bold text-xs"
+                                title="Tutup Pencarian (Esc)"
+                            >✕</button>
+                        </div>
                     </div>
 
                     <!-- Suggestion / Quick Filters Chips (when no input or matching keywords) -->
@@ -2145,6 +2163,22 @@
                 searchResults: [],
                 suggestedKeywords: [],
                 selectedIndex: -1,
+
+                init() {
+                    // Tutup dropdown saat klik di luar area input & modal dropdown
+                    document.addEventListener('pointerdown', (e) => {
+                        if (this.showSuggestions && !this.$el.contains(e.target)) {
+                            this.closeDropdown();
+                        }
+                    });
+
+                    // Tutup dropdown saat iframe diklik (window parent kehilangan fokus)
+                    window.addEventListener('blur', () => {
+                        if (this.showSuggestions) {
+                            this.closeDropdown();
+                        }
+                    });
+                },
 
                 async loadDefaultSuggestions() {
                     this.isLoading = true;

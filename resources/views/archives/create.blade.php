@@ -247,17 +247,16 @@
                     >
                 </div>
 
-                <!-- Kategori Dokumen (Input Text Wajib - Kanan) -->
+                <!-- Kategori Dokumen (Input Text Opsional - Kanan) -->
                 <div>
                     <label for="document_type" class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1 leading-normal">
-                        KATEGORI DOKUMEN <span class="text-rose-500">*</span>
+                        KATEGORI DOKUMEN <span class="text-slate-400 font-normal">(Opsional)</span>
                     </label>
                     <input 
                         type="text" 
                         name="document_type" 
                         id="document_type" 
                         value="{{ old('document_type') }}" 
-                        required
                         placeholder="Contoh: Pajak, Keuangan, SDM, Logistik..." 
                         class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 transition"
                     >
