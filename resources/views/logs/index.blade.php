@@ -447,9 +447,15 @@
                                 {{ $dLog->proposedBy->name ?? 'Gudang Specialist' }}
                             </td>
                             <td class="py-3.5 px-4 text-right">
-                                <a href="{{ route('destructions.bap', $dLog) }}" target="_blank" class="px-2.5 py-1 bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30 rounded font-bold hover:bg-amber-500/30">
-                                    Cetak BAP
-                                </a>
+                                @if(!empty($dLog->certificate_file))
+                                    <a href="{{ route('destructions.bap', $dLog) }}" target="_blank" class="px-2.5 py-1 bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30 rounded font-bold hover:bg-amber-500/30" title="Cetak Berita Acara Pemusnahan (BAP) dari Gudang">
+                                        Cetak BAP
+                                    </a>
+                                @else
+                                    <span class="px-2.5 py-1 text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 rounded font-bold border border-slate-300 dark:border-slate-700 cursor-not-allowed opacity-60 text-xs" title="File BAP belum diunggah oleh Gudang">
+                                        Cetak BAP
+                                    </span>
+                                @endif
                             </td>
                         </tr>
                         @empty

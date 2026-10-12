@@ -3,9 +3,9 @@
 @section('title', ($archive->status === 'draft' ? 'Edit Draft Pengajuan Box Arsip - ' : 'Edit Berkas Arsip - ') . $archive->title)
 
 @section('content')
-<div class="max-w-5xl mx-auto space-y-3 font-sans pb-10" x-data="archiveEditApp()">
+<div class="max-w-6xl mx-auto space-y-3 font-sans pb-10" x-data="archiveEditApp()">
 
-    <!-- DELPHI FORM TOOLBAR HEADER -->
+    <!-- FORM TOOLBAR HEADER -->
     <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-3 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 font-mono">
         <div class="flex items-center gap-2.5">
             <span class="p-2 bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 rounded">
@@ -40,42 +40,42 @@
         <fieldset class="border border-slate-300 dark:border-slate-800 p-3.5 rounded bg-white dark:bg-slate-950 shadow-sm space-y-3">
             <legend class="px-2 font-mono text-[11px] font-bold text-purple-700 dark:text-purple-400 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded shadow-sm flex items-center gap-1.5">
                 <i data-lucide="building-2" class="w-3.5 h-3.5 text-purple-500"></i>
-                1. Identitas Unit Kerja & Kepemilikan Dokumen
+                1. Identitas Unit Kerja & Penyerahan Dokumen
             </legend>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <!-- Company Entity (Searchable Select) -->
+                <!-- Company Entity -->
                 <div>
                     <label class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
                         PERUSAHAAN ENTITAS <span class="text-rose-500">*</span>
                     </label>
-                    <div class="relative">
-                        <input type="hidden" name="company_name" :value="selectedCompany" required>
-                        <button 
-                            type="button" 
-                            disabled
-                            class="w-full px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-left font-bold text-slate-600 dark:text-slate-300 cursor-not-allowed select-none transition flex items-center justify-between shadow-2xs opacity-90"
-                            title="Entitas perusahaan dikunci ke default PT INDRACO GLOBAL INDONESIA"
-                        >
-                            <span class="truncate" x-text="selectedCompany"></span>
-                            <i data-lucide="chevrons-up-down" class="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1"></i>
-                        </button>
-                    </div>
+                    <input type="hidden" name="company_name" :value="selectedCompany">
+                    <button 
+                        type="button" 
+                        disabled
+                        class="w-full px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-left font-bold text-slate-600 dark:text-slate-300 cursor-not-allowed select-none transition flex items-center justify-between opacity-90"
+                    >
+                        <span class="truncate" x-text="selectedCompany"></span>
+                        <i data-lucide="lock" class="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1"></i>
+                    </button>
                 </div>
 
-                <!-- Department Selection (Searchable Select) -->
+                <!-- Department Selection -->
                 <div>
                     <label class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                        DEPARTEMEN <span class="text-rose-500">*</span>
+                        DEPARTEMEN PEMILIK <span class="text-rose-500">*</span>
                     </label>
                     @if(auth()->user()->isPicDept())
                         <input type="hidden" name="department_id" value="{{ auth()->user()->department_id }}">
-                        <input 
-                            type="text" 
-                            value="{{ auth()->user()->department ? auth()->user()->department->code . ' - ' . auth()->user()->department->name : 'Departemen' }}" 
+                        <button 
+                            type="button" 
                             disabled 
-                            class="w-full px-2.5 py-1.5 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-800 dark:text-slate-300 cursor-not-allowed"
+                            class="w-full px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-left font-bold text-slate-600 dark:text-slate-300 cursor-not-allowed select-none transition flex items-center justify-between opacity-90"
+                            title="Departemen dikunci sesuai akun Anda"
                         >
+                            <span class="truncate">{{ auth()->user()->department ? auth()->user()->department->code . ' - ' . auth()->user()->department->name : 'Departemen' }}</span>
+                            <i data-lucide="lock" class="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1"></i>
+                        </button>
                     @else
                         <div class="relative" x-data="{
                             open: false,
@@ -100,7 +100,7 @@
                             <button 
                                 type="button" 
                                 @click="open = !open" 
-                                class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-left text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition flex items-center justify-between shadow-2xs cursor-pointer"
+                                class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-left text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition flex items-center justify-between cursor-pointer"
                             >
                                 <span class="truncate font-semibold" x-text="selectedDeptLabel"></span>
                                 <i data-lucide="chevrons-up-down" class="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1"></i>
@@ -136,150 +136,15 @@
                                             <i data-lucide="check" class="w-3.5 h-3.5 text-purple-600" x-show="selectedDeptId == d.id"></i>
                                         </li>
                                     </template>
-                                    <li x-show="filteredDepts.length === 0" class="p-2 text-center text-slate-400 text-[11px]">
-                                        Tidak ada hasil
-                                    </li>
                                 </ul>
                             </div>
                         </div>
                     @endif
                 </div>
 
-                <!-- Sub-Department Selection (Searchable Select) -->
+                <!-- Tgl Penyerahan -->
                 <div>
                     <label class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                        SUB-DEPARTEMEN <span class="text-slate-400 font-normal">(Opsional)</span>
-                    </label>
-                    <div class="relative" x-data="{
-                        open: false,
-                        search: '',
-                        get filteredSubDepts() {
-                            if (!this.search) return subDepartments;
-                            const q = this.search.toLowerCase();
-                            return subDepartments.filter(s => (s.code && s.code.toLowerCase().includes(q)) || (s.name && s.name.toLowerCase().includes(q)));
-                        },
-                        get selectedSubDeptLabel() {
-                            if (!selectedSubDeptId) return '-- Pilih Sub-Departemen (Induk) --';
-                            const s = subDepartments.find(item => item.id == selectedSubDeptId);
-                            return s ? (s.code + ' - ' + s.name) : '-- Pilih Sub-Departemen (Induk) --';
-                        },
-                        select(s) {
-                            selectedSubDeptId = s ? s.id : '';
-                            onSubDeptChange();
-                            this.open = false;
-                            this.search = '';
-                        }
-                    }" @click.outside="open = false">
-                        <input type="hidden" name="sub_department_id" :value="selectedSubDeptId">
-                        <button 
-                            type="button" 
-                            @click="open = !open" 
-                            class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-left text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition flex items-center justify-between shadow-2xs cursor-pointer"
-                        >
-                            <span class="truncate" :class="selectedSubDeptId ? 'font-semibold text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'" x-text="selectedSubDeptLabel"></span>
-                            <i data-lucide="chevrons-up-down" class="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1"></i>
-                        </button>
-                        <div 
-                            x-show="open" 
-                            x-cloak 
-                            x-transition
-                            class="absolute z-50 left-0 right-0 mt-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded shadow-lg overflow-hidden font-mono text-xs"
-                        >
-                            <div class="p-1.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
-                                <div class="relative">
-                                    <i data-lucide="search" class="w-3 h-3 absolute left-2 top-2 text-slate-400"></i>
-                                    <input 
-                                        type="text" 
-                                        x-model="search" 
-                                        @keydown.escape="open = false" 
-                                        placeholder="Cari sub-departemen..." 
-                                        class="w-full pl-7 pr-2 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-[11px] text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
-                                        x-ref="searchSubDeptInput"
-                                        x-init="$watch('open', value => { if(value) { setTimeout(() => $refs.searchSubDeptInput?.focus(), 50); if(window.lucide) lucide.createIcons(); } })"
-                                    >
-                                </div>
-                            </div>
-                            <ul class="max-h-48 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/50">
-                                <li 
-                                    @click="select(null)" 
-                                    class="px-2.5 py-1.5 hover:bg-indigo-500/15 dark:hover:bg-indigo-500/20 cursor-pointer flex items-center justify-between transition"
-                                    :class="!selectedSubDeptId ? 'bg-indigo-500/20 font-bold text-indigo-700 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-400 italic'"
-                                >
-                                    <span>-- Pilih Sub-Departemen (Induk) --</span>
-                                    <i data-lucide="check" class="w-3.5 h-3.5 text-indigo-600" x-show="!selectedSubDeptId"></i>
-                                </li>
-                                <template x-for="s in filteredSubDepts" :key="s.id">
-                                    <li 
-                                        @click="select(s)" 
-                                        class="px-2.5 py-1.5 hover:bg-indigo-500/15 dark:hover:bg-indigo-500/20 cursor-pointer flex items-center justify-between transition"
-                                        :class="selectedSubDeptId == s.id ? 'bg-indigo-500/20 font-bold text-indigo-700 dark:text-indigo-400' : 'text-slate-800 dark:text-slate-200'"
-                                    >
-                                        <span x-text="s.code + ' - ' + s.name"></span>
-                                        <i data-lucide="check" class="w-3.5 h-3.5 text-indigo-600" x-show="selectedSubDeptId == s.id"></i>
-                                    </li>
-                                </template>
-                                <li x-show="filteredSubDepts.length === 0" class="p-2 text-center text-slate-400 text-[11px]">
-                                    Tidak ada sub-departemen
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </fieldset>
-
-        <!-- SECTION 2: IDENTITAS UTAMA KARDUS & KATEGORI -->
-        <fieldset class="border border-slate-300 dark:border-slate-800 p-3.5 rounded bg-white dark:bg-slate-950 shadow-sm space-y-3">
-            <legend class="px-2 font-mono text-[11px] font-bold text-blue-700 dark:text-blue-400 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded shadow-sm flex items-center gap-1.5">
-                <i data-lucide="file-text" class="w-3.5 h-3.5 text-blue-500"></i>
-                2. Identitas Utama Kardus & Kategori
-            </legend>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 items-start">
-                <!-- Judul Utama / Label Kardus (Wajib - Kiri) -->
-                <div class="md:col-span-2">
-                    <label for="title" class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1 leading-normal">
-                        JUDUL UTAMA / LABEL KARDUS <span class="text-rose-500">*</span>
-                    </label>
-                    <input 
-                        type="text" 
-                        name="title" 
-                        id="title" 
-                        x-model="title"
-                        required
-                        placeholder="Contoh: Laporan Maintenance & Faktur Operasional" 
-                        class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 transition"
-                    >
-                </div>
-
-                <!-- Kategori Dokumen (Input Text Opsional - Kanan) -->
-                <div>
-                    <label for="document_type" class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1 leading-normal">
-                        KATEGORI DOKUMEN <span class="text-slate-400 font-normal">(Opsional)</span>
-                    </label>
-                    <input 
-                        type="text" 
-                        name="document_type" 
-                        id="document_type" 
-                        value="{{ old('document_type', $archive->document_type) }}" 
-                        placeholder="Contoh: Pajak, Keuangan, SDM, Logistik..." 
-                        class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 transition"
-                    >
-                </div>
-            </div>
-        </fieldset>
-
-        <!-- SECTION 3: TANGGAL PENYERAHAN & SPESIFIKASI WADAH -->
-        <fieldset class="border border-amber-500/40 p-3.5 rounded bg-amber-500/5 dark:bg-amber-950/20 shadow-sm space-y-3">
-            <legend class="px-2 font-mono text-[11px] font-bold text-amber-800 dark:text-amber-400 bg-amber-100 dark:bg-slate-800 border border-amber-400 dark:border-amber-700 rounded shadow-sm flex items-center gap-1.5">
-                <i data-lucide="calendar" class="w-3.5 h-3.5 text-amber-600"></i>
-                3. Tanggal Penyerahan & Wadah Fisik Box
-            </legend>
-
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <!-- Tgl Penyerahan (Disatukan sebagai tanggal serah terima & periode pengajuan, max hari ini) -->
-                <div>
-                    <label for="tgl_penyerahan" class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
                         TGL. PENYERAHAN DOKUMEN <span class="text-rose-500">*</span>
                     </label>
                     <input 
@@ -291,273 +156,424 @@
                         required 
                         class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition"
                     >
-                    <span class="text-[10px] text-slate-500 dark:text-slate-400 font-mono block mt-0.5">Tanggal serah terima fisik ke Gudang Arsip (maksimal hari ini)</span>
-                </div>
-
-                <!-- Periode Dokumen (Bulan) -->
-                <div>
-                    <label for="periode_bulan" class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                        PERIODE DOKUMEN (BULAN) <span class="text-slate-400 font-normal">(Opsional)</span>
-                    </label>
-                    <div class="relative flex items-center">
-                        <input 
-                            type="number" 
-                            id="periode_bulan" 
-                            x-model="periodeBulan"
-                            min="1" 
-                            max="600"
-                            placeholder="Misal: 1, 3, 4, 15..." 
-                            class="w-full pl-2.5 pr-14 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 transition"
-                        >
-                        <span class="absolute right-2.5 text-xs font-mono font-bold text-slate-400 pointer-events-none select-none">Bulan</span>
-                    </div>
-                    <input type="hidden" name="periode" :value="periodeBulan ? (periodeBulan + ' Bulan') : ''">
-
-                    <!-- Quick Preset Buttons -->
-                    <div class="flex flex-wrap items-center gap-1 mt-1 font-mono text-[10px]">
-                        <span class="text-slate-400 text-[9px] mr-0.5">Preset:</span>
-                        <template x-for="preset in [1, 3, 4, 6, 12, 15, 24, 60]" :key="preset">
-                            <button 
-                                type="button" 
-                                @click="periodeBulan = preset" 
-                                class="px-1.5 py-0.2 rounded border transition cursor-pointer"
-                                :class="periodeBulan == preset 
-                                    ? 'bg-amber-500 text-slate-950 border-amber-600 font-black' 
-                                    : 'bg-slate-100 dark:bg-slate-900 hover:bg-amber-500/20 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 font-medium'"
-                                x-text="preset + ' Bln'"
-                            ></button>
-                        </template>
-                    </div>
-                </div>
-
-                <!-- Kondisi Fisik -->
-                <div>
-                    <label for="physical_condition" class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                        KONDISI / WADAH FISIK BERKAS <span class="text-rose-500">*</span>
-                    </label>
-                    <input 
-                        type="text" 
-                        name="physical_condition" 
-                        id="physical_condition" 
-                        value="{{ old('physical_condition', $archive->physical_condition) }}" 
-                        required 
-                        class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition"
-                    >
-                    <span class="text-[10px] text-slate-500 dark:text-slate-400 font-mono block mt-0.5">Standar Box: TB 30g (Kapasitas 100 per Rak)</span>
+                    <span class="text-[10px] text-slate-500 dark:text-slate-400 font-sans block mt-0.5">Tanggal serah terima kardus fisik ke Gudang (maksimal hari ini)</span>
                 </div>
             </div>
         </fieldset>
 
-        <!-- SECTION 4: DYNAMIC REPEATER GRID (1 BOX -> BANYAK DOKUMEN ARSIP) -->
-        <fieldset class="border border-emerald-500/40 p-3.5 rounded bg-emerald-500/5 dark:bg-emerald-950/20 shadow-sm space-y-3">
-            <legend class="px-2 font-mono text-[11px] font-bold text-emerald-800 dark:text-emerald-400 bg-emerald-100 dark:bg-slate-800 border border-emerald-400 dark:border-emerald-700 rounded shadow-sm flex items-center gap-1.5">
-                <i data-lucide="list-plus" class="w-3.5 h-3.5 text-emerald-600"></i>
-                4. Rincian Butir Dokumen / Berkas Arsip dalam Box (Label A5)
-            </legend>
+        <!-- SECTION 2: WORKSTATION PENGELOLAAN BOX ARSIP -->
+        <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl p-3.5 shadow-sm space-y-3 font-mono">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-2.5">
+                <div class="flex items-center gap-2">
+                    <span class="p-1.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded">
+                        <i data-lucide="boxes" class="w-4 h-4"></i>
+                    </span>
+                    <div>
+                        <h2 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                            2. Pengelolaan Kardus & Butir Dokumen Arsip
+                        </h2>
+                        <p class="text-[10px] text-slate-500 font-sans">
+                            {{ $archive->status === 'draft' ? 'Klik tab box untuk beralih. Anda dapat menambah, menyunting, atau menduplikat box secara instan.' : 'Perbarui rincian metadata box kardus dan rincian butir dokumen di dalamnya.' }}
+                        </p>
+                    </div>
+                </div>
 
-            <div class="flex items-center justify-between border-b border-emerald-500/20 pb-2 font-mono text-xs">
-                <span class="font-bold text-slate-700 dark:text-slate-300">
-                    Setiap kardus/box berisi banyak arsip. Tuliskan butir dokumen di bawah ini:
-                </span>
-                <button 
-                    @click="addItem()" 
-                    type="button" 
-                    class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded text-xs shadow transition flex items-center gap-1.5 cursor-pointer"
-                >
-                    <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-                    <span>Tambah Baris Dokumen</span>
-                </button>
+                @if($archive->status === 'draft')
+                <!-- Box Action Toolbar untuk Mode Draft -->
+                <div class="flex items-center gap-1.5 shrink-0">
+                    <button 
+                        type="button" 
+                        @click="addBox()" 
+                        class="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs font-bold transition flex items-center gap-1 shadow-sm cursor-pointer"
+                        title="Tambah Box Arsip Baru"
+                    >
+                        <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                        <span>Tambah Box</span>
+                    </button>
+
+                    <button 
+                        type="button" 
+                        @click="openDuplicateModal(activeBoxIndex)" 
+                        class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                        title="Duplikasi Box dengan Pilihan Granular"
+                    >
+                        <i data-lucide="copy" class="w-3.5 h-3.5 text-amber-500"></i>
+                        <span>Duplikat Box...</span>
+                    </button>
+
+                    <template x-if="boxes.length > 1">
+                        <button 
+                            type="button" 
+                            @click="removeBox(activeBoxIndex)" 
+                            class="px-2 py-1 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 border border-rose-300 dark:border-rose-800 rounded text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                            title="Hapus Box yang Sedang Aktif"
+                        >
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            <span>Hapus Box</span>
+                        </button>
+                    </template>
+                </div>
+                @endif
             </div>
 
-            <!-- Repeater Table -->
-            <div class="border border-slate-300 dark:border-slate-700 rounded bg-white dark:bg-slate-950 shadow-xs">
-                <table class="w-full text-left border-collapse text-xs">
-                    <thead>
-                        <tr class="bg-slate-100 dark:bg-slate-900 border-b border-slate-300 dark:border-slate-700 font-mono text-[11px] text-slate-700 dark:text-slate-300">
-                            <th class="py-2 px-2.5 w-10 text-center">NO</th>
-                            <th class="py-2 px-3 w-56 sm:w-64">NAMA DOKUMEN / BERKAS ARSIP <span class="text-rose-500">*</span></th>
-                            <th class="py-2 px-2.5 w-44">PERIODE MULAI (BLN/THN) <span class="text-rose-500">*</span></th>
-                            <th class="py-2 px-2.5 w-44">PERIODE SELESAI (BLN/THN) <span class="text-rose-500">*</span></th>
-                            <th class="py-2 px-3 w-48">KETERANGAN <span class="text-rose-500">*</span></th>
-                            <th class="py-2 px-2.5 w-12 text-center">AKSI</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
-                        <template x-for="(item, index) in items" :key="item.id">
-                            <tr class="hover:bg-emerald-500/5 transition">
-                                <td class="py-2 px-2.5 text-center font-mono font-bold text-slate-600 dark:text-slate-400" x-text="index + 1"></td>
-                                <td class="py-2 px-3">
-                                    <!-- Searchable Dropdown from Master Archives or Custom Input -->
-                                    <div class="space-y-1">
-                                        <template x-if="!item.is_custom && masterArchives.length > 0">
-                                            <div class="relative w-full max-w-[240px] sm:max-w-[260px]" x-data="{
-                                                open: false,
-                                                search: '',
-                                                get filteredList() {
-                                                    if (!this.search) return masterArchives;
-                                                    const q = this.search.toLowerCase();
-                                                    return masterArchives.filter(m => (m.name && m.name.toLowerCase().includes(q)) || (m.code && m.code.toLowerCase().includes(q)));
-                                                },
-                                                select(m) {
-                                                    item.document_name = m.name;
-                                                    this.open = false;
-                                                    this.search = '';
-                                                },
-                                                switchToCustom() {
-                                                    item.is_custom = true;
-                                                    item.document_name = '';
-                                                    this.open = false;
-                                                    this.search = '';
-                                                }
-                                            }" @click.outside="open = false">
-                                                <input type="hidden" :name="'items[' + index + '][document_name]'" :value="item.document_name" required>
-                                                <button 
-                                                    type="button" 
-                                                    @click="open = !open" 
-                                                    class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-left text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500 transition flex items-center justify-between shadow-2xs cursor-pointer"
-                                                    :title="item.document_name || ''"
-                                                >
-                                                    <span class="truncate" :class="item.document_name ? 'text-slate-900 dark:text-white' : 'text-slate-400'" x-text="item.document_name || '-- Pilih dari Master Berkas Arsip --'"></span>
-                                                    <i data-lucide="chevrons-up-down" class="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1"></i>
-                                                </button>
-                                                <div 
-                                                    x-show="open" 
-                                                    x-cloak 
-                                                    x-transition
-                                                    class="absolute z-50 left-0 mt-1 w-[380px] sm:w-[460px] max-w-[85vw] bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg shadow-2xl overflow-hidden font-mono text-xs"
-                                                >
-                                                    <div class="p-1.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
-                                                        <div class="relative">
-                                                            <i data-lucide="search" class="w-3 h-3 absolute left-2 top-2 text-slate-400"></i>
-                                                            <input 
-                                                                type="text" 
-                                                                x-model="search" 
-                                                                @keydown.escape="open = false" 
-                                                                placeholder="Ketik cari master berkas arsip..." 
-                                                                class="w-full pl-7 pr-2 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-[11px] text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
-                                                                x-ref="searchItemInput"
-                                                                x-init="$watch('open', value => { if(value) { setTimeout(() => $refs.searchItemInput?.focus(), 50); if(window.lucide) lucide.createIcons(); } })"
-                                                            >
-                                                        </div>
-                                                    </div>
-                                                    <ul class="max-h-56 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/50">
-                                                        <template x-for="m in filteredList" :key="m.id">
-                                                            <li 
-                                                                @click="select(m)" 
-                                                                :title="m.name"
-                                                                class="px-3 py-2 hover:bg-emerald-500/15 dark:hover:bg-emerald-500/20 cursor-pointer flex items-start justify-between gap-2 transition"
-                                                                :class="item.document_name === m.name ? 'bg-emerald-500/20 font-bold text-emerald-700 dark:text-emerald-400' : 'text-slate-800 dark:text-slate-200'"
-                                                            >
-                                                                <div class="min-w-0 flex-1">
-                                                                    <span class="block whitespace-normal break-words leading-snug" x-text="m.name"></span>
-                                                                    <span class="block text-[10px] text-slate-500 dark:text-slate-400 font-sans mt-0.5" x-show="m.code || (!selectedSubDeptId && m.sub_department)" x-text="(m.code ? '[' + m.code + '] ' : '') + (!selectedSubDeptId && m.sub_department ? '(' + (m.sub_department.code || m.sub_department.name) + ')' : '')"></span>
-                                                                </div>
-                                                                <i data-lucide="check" class="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" x-show="item.document_name === m.name"></i>
-                                                            </li>
-                                                        </template>
-                                                        <li x-show="filteredList.length === 0" class="p-3 text-center text-slate-400 text-[11px]">
-                                                            Tidak ada berkas yang cocok
-                                                        </li>
-                                                    </ul>
-                                                </div>
-                                            </div>
-                                        </template>
+            <!-- Box Navigation Tabs (Scrollable Ribbon jika lebih dari 1 box) -->
+            <template x-if="boxes.length > 1">
+                <div class="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-thin">
+                    <template x-for="(b, bIdx) in boxes" :key="b.id">
+                        <button 
+                            type="button" 
+                            @click="activeBoxIndex = bIdx; $nextTick(() => { if(window.lucide) lucide.createIcons(); });" 
+                            class="px-3 py-1.5 rounded-lg border text-xs font-mono font-bold transition flex items-center gap-2 shrink-0 select-none cursor-pointer"
+                            :class="activeBoxIndex === bIdx 
+                                ? 'bg-gradient-to-r from-amber-500 to-amber-400 text-slate-950 border-amber-600 shadow-md ring-2 ring-amber-500/20' 
+                                : 'bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-800 hover:bg-slate-200 dark:hover:bg-slate-800'"
+                        >
+                            <i data-lucide="package" class="w-3.5 h-3.5" :class="activeBoxIndex === bIdx ? 'text-slate-950' : 'text-amber-500'"></i>
+                            <span x-text="'Box ' + (bIdx + 1)"></span>
+                            <span class="text-[10px] font-normal max-w-[120px] truncate" x-show="b.title" x-text="b.title"></span>
+                            <span 
+                                class="px-1.5 py-0.2 rounded-full text-[10px] font-black"
+                                :class="activeBoxIndex === bIdx ? 'bg-slate-950 text-amber-400' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'"
+                                x-text="(b.items ? b.items.length : 0) + ' Dokumen'"
+                            ></span>
+                        </button>
+                    </template>
+                </div>
+            </template>
 
-                                        <!-- Custom Text Input -->
-                                        <template x-if="item.is_custom || masterArchives.length === 0">
-                                            <div class="flex items-center gap-1 w-full max-w-[240px] sm:max-w-[260px]">
+            <!-- CONTAINER FOR ALL BOXES -->
+            <template x-for="(box, bIdx) in boxes" :key="box.id">
+                <div x-show="activeBoxIndex === bIdx" class="space-y-4 pt-2">
+                    
+                    <!-- BOX METADATA CARD -->
+                    <div class="p-3.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl space-y-3">
+                        <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+                            <div class="flex items-center gap-2">
+                                <span class="px-2 py-0.5 bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 rounded font-black text-xs" x-text="'BOX #' + (bIdx + 1)"></span>
+                                <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Pengaturan Identitas & Wadah Kardus</span>
+                                
+                                @if($archive->status === 'draft')
+                                <template x-if="bIdx > 0">
+                                    <button 
+                                        type="button" 
+                                        @click="applyPreviousBoxPreset(bIdx)"
+                                        class="px-2 py-0.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded text-[10px] font-bold transition flex items-center gap-1 cursor-pointer"
+                                        title="Salin sub-dept, jenis dokumen, dan kondisi fisik dari Box sebelumnya"
+                                    >
+                                        <i data-lucide="sparkles" class="w-3 h-3 text-blue-500"></i>
+                                        <span>Gunakan Pola Box Sebelumnya</span>
+                                    </button>
+                                </template>
+                                @endif
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                            <!-- Judul Box dengan Live Similarity Check -->
+                            <div class="sm:col-span-2">
+                                <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                                    JUDUL / LABEL BOX KARDUS <span class="text-rose-500">*</span>
+                                </label>
+                                <input 
+                                    type="text" 
+                                    :name="'boxes[' + bIdx + '][title]'" 
+                                    x-model="box.title"
+                                    @input="checkSimilarity(bIdx)"
+                                    required
+                                    placeholder="Contoh: Voucher Kas Kecil & Pengeluaran Q1" 
+                                    class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 transition"
+                                >
+
+                                <!-- Live Similarity Alert Banner -->
+                                <template x-if="box.similarityInfo && box.similarityInfo.has_similarity">
+                                    <div 
+                                        class="mt-1.5 p-2 rounded border text-[11px] font-sans flex items-start gap-2 transition"
+                                        :class="box.similarityInfo.match_type === 'identical' ? 'bg-amber-500/15 border-amber-500/40 text-amber-900 dark:text-amber-200' : 'bg-blue-50 dark:bg-blue-950/40 border-blue-300 dark:border-blue-800 text-blue-900 dark:text-blue-200'"
+                                    >
+                                        <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-500 shrink-0 mt-0.5"></i>
+                                        <div class="space-y-0.5 flex-1">
+                                            <div class="font-bold flex items-center justify-between">
+                                                <span x-text="box.similarityInfo.message"></span>
+                                                <span class="text-[10px] font-mono px-1.5 py-0.2 rounded font-black" :class="box.similarityInfo.match_type === 'identical' ? 'bg-amber-500/30 text-amber-800 dark:text-amber-200' : 'bg-blue-500/20 text-blue-800 dark:text-blue-200'" x-text="box.similarityInfo.similarity_percentage + '% Mirip'"></span>
+                                            </div>
+                                            <p class="text-[10px] text-slate-500 italic">Peringatan ini informatif agar Anda dapat memeriksa potensi duplikasi.</p>
+                                        </div>
+                                        <button type="button" @click="box.similarityInfo = null" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 shrink-0 text-xs px-1 cursor-pointer">✕</button>
+                                    </div>
+                                </template>
+                            </div>
+
+                            <!-- Sub-Departemen -->
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                                    SUB-DEPARTEMEN <span class="text-slate-400 font-normal">(Opsional)</span>
+                                </label>
+                                <select 
+                                    :name="'boxes[' + bIdx + '][sub_department_id]'" 
+                                    x-model="box.sub_department_id"
+                                    class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition"
+                                >
+                                    <option value="">-- Induk Departemen --</option>
+                                    <template x-for="s in subDepartments" :key="s.id">
+                                        <option :value="s.id" x-text="s.code + ' - ' + s.name"></option>
+                                    </template>
+                                </select>
+                            </div>
+
+                            <!-- Kategori Dokumen (Opsional) -->
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                                    KATEGORI DOKUMEN <span class="text-slate-400 font-normal">(Opsional)</span>
+                                </label>
+                                <input 
+                                    type="text" 
+                                    :name="'boxes[' + bIdx + '][document_type]'" 
+                                    x-model="box.document_type"
+                                    placeholder="Contoh: Keuangan, Pajak, SDM" 
+                                    class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 transition"
+                                >
+                            </div>
+
+                            <!-- Wadah Fisik -->
+                            <div class="sm:col-span-2">
+                                <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                                    KONDISI FISIK WADAH KARDUS <span class="text-rose-500">*</span>
+                                </label>
+                                <input 
+                                    type="text" 
+                                    :name="'boxes[' + bIdx + '][physical_condition]'" 
+                                    x-model="box.physical_condition"
+                                    required 
+                                    class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition"
+                                >
+                            </div>
+
+                            <!-- Periode Dokumen (Bulan) -->
+                            <div class="sm:col-span-2 space-y-1">
+                                <div class="flex items-center justify-between">
+                                    <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                                        PERIODE DOKUMEN (BULAN) <span class="text-rose-500">*</span>
+                                    </label>
+                                    <span class="text-[10px] text-amber-600 dark:text-amber-400 font-normal">Maks. 60 Bulan</span>
+                                </div>
+
+                                <div class="relative flex items-center">
+                                    <input 
+                                        type="number" 
+                                        :id="'periode_bulan_' + bIdx"
+                                        x-model="box.periode_bulan"
+                                        :disabled="bIdx > 0 && box.follow_previous"
+                                        @input="if(box.periode_bulan > 60) box.periode_bulan = 60; if(box.periode_bulan !== '' && box.periode_bulan < 1) box.periode_bulan = 1;"
+                                        min="1" 
+                                        max="60"
+                                        placeholder="Maks. 60 Bulan (5 Thn)" 
+                                        class="w-full pl-2.5 pr-14 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 transition disabled:bg-slate-100 dark:disabled:bg-slate-900/50 disabled:text-slate-400 disabled:cursor-not-allowed"
+                                    >
+                                    <span class="absolute right-2.5 text-xs font-mono font-bold text-slate-400 pointer-events-none select-none">Bulan</span>
+                                </div>
+
+                                @if($archive->status === 'draft')
+                                <template x-if="bIdx > 0">
+                                    <label class="flex items-center gap-1.5 pt-0.5 font-mono text-[11px] text-amber-700 dark:text-amber-400 cursor-pointer">
+                                        <input 
+                                            type="checkbox" 
+                                            x-model="box.follow_previous" 
+                                            @change="if(box.follow_previous) { box.periode_bulan = boxes[bIdx - 1].periode_bulan; }"
+                                            class="rounded text-amber-500 focus:ring-amber-400"
+                                        >
+                                        <span class="font-bold">Ikuti Periode Box Sebelumnya</span>
+                                        <span class="text-[10px] text-slate-500" x-show="box.follow_previous" x-text="'(' + getPreviousBoxPeriodText(bIdx) + ')'"></span>
+                                    </label>
+                                </template>
+                                @endif
+
+                                <!-- Quick Preset Buttons -->
+                                <div class="flex flex-wrap items-center gap-1 pt-1 font-mono text-[10px]" x-show="!(bIdx > 0 && box.follow_previous)">
+                                    <span class="text-slate-400 text-[9px] mr-0.5">Preset:</span>
+                                    <template x-for="preset in [1, 3, 4, 6, 12, 15, 24, 60]" :key="preset">
+                                        <button 
+                                            type="button" 
+                                            @click="box.periode_bulan = preset" 
+                                            class="px-1.5 py-0.5 rounded border transition cursor-pointer"
+                                            :class="box.periode_bulan == preset 
+                                                ? 'bg-amber-500 text-slate-950 border-amber-600 font-black' 
+                                                : 'bg-slate-100 dark:bg-slate-900 hover:bg-amber-500/20 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 font-medium'"
+                                            x-text="preset + ' Bln'"
+                                        ></button>
+                                    </template>
+                                </div>
+
+                                <!-- Hidden field submitted to backend -->
+                                <input 
+                                    type="hidden" 
+                                    :name="'boxes[' + bIdx + '][periode]'" 
+                                    :value="getBoxFinalPeriod(box, bIdx)"
+                                >
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- REPEATER BUTIR DOKUMEN DALAM BOX INI -->
+                    <div class="border border-emerald-500/30 rounded-xl p-3.5 bg-emerald-500/5 dark:bg-emerald-950/20 space-y-3">
+                        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-emerald-500/20 pb-2">
+                            <div>
+                                <h3 class="text-xs font-bold text-emerald-900 dark:text-emerald-300 uppercase tracking-wider flex items-center gap-1.5">
+                                    <i data-lucide="list-plus" class="w-4 h-4 text-emerald-600"></i>
+                                    <span>Rincian Butir Dokumen dalam Box #<span x-text="bIdx + 1"></span></span>
+                                </h3>
+                                <p class="text-[10px] text-slate-500 font-sans">
+                                    Setiap kardus/box berisi banyak butir berkas arsip. Anda dapat menyalin data baris dari Excel dan langsung menempelnya (Ctrl+V) di tabel.
+                                </p>
+                            </div>
+
+                            <div class="flex items-center gap-1.5 shrink-0 flex-wrap">
+                                <button 
+                                    type="button" 
+                                    @click="addItem(bIdx)" 
+                                    class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-bold transition flex items-center gap-1 shadow-xs cursor-pointer"
+                                    title="Tambah 1 Baris Dokumen"
+                                >
+                                    <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                                    <span>Tambah Butir</span>
+                                </button>
+                                <button 
+                                    type="button" 
+                                    @click="addBulkItems(bIdx, 5)" 
+                                    class="px-2.5 py-1 bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/80 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 rounded text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                                    title="Tambah 5 Baris Dokumen Sekaligus untuk Entri Cepat"
+                                >
+                                    <i data-lucide="layers" class="w-3.5 h-3.5"></i>
+                                    <span>Tambah 5 Baris</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Dense Items Table (Mendukung copas langsung dari Excel / Spreadsheet via Ctrl+V) -->
+                        <div class="border border-slate-300 dark:border-slate-700 rounded-lg overflow-x-auto bg-white dark:bg-slate-950 shadow-xs" @paste="handleTablePaste($event, bIdx)">
+                            <table class="w-full text-left border-collapse text-xs">
+                                <thead>
+                                    <tr class="bg-slate-100 dark:bg-slate-900 border-b border-slate-300 dark:border-slate-700 font-mono text-[11px] text-slate-700 dark:text-slate-300">
+                                        <th class="py-2 px-2.5 w-10 text-center">NO</th>
+                                        <th class="py-2 px-3 min-w-[240px]">NAMA DOKUMEN / BERKAS ARSIP <span class="text-rose-500">*</span></th>
+                                        <th class="py-2 px-2.5 w-36">PERIODE MULAI <span class="text-rose-500">*</span></th>
+                                        <th class="py-2 px-2.5 w-36">PERIODE SELESAI <span class="text-rose-500">*</span></th>
+                                        <th class="py-2 px-3 min-w-[180px]">KETERANGAN <span class="text-rose-500">*</span></th>
+                                        <th class="py-2 px-2 w-16 text-center">AKSI</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-200 dark:divide-slate-800 font-mono">
+                                    <template x-for="(item, iIdx) in box.items" :key="item.id">
+                                        <tr class="hover:bg-emerald-500/5 transition">
+                                            <td class="py-2 px-2.5 text-center font-bold text-slate-500" x-text="iIdx + 1"></td>
+                                            
+                                            <!-- Nama Dokumen Input / Select (Tetap Dropdown Seperti Biasa) -->
+                                            <td class="py-2 px-3">
+                                                <div class="flex items-center gap-1.5">
+                                                    <select 
+                                                        :name="'boxes[' + bIdx + '][items][' + iIdx + '][document_name]'" 
+                                                        x-model="item.document_name"
+                                                        class="w-full px-2 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
+                                                    >
+                                                        <option value="">-- Pilih dari Master Berkas Arsip --</option>
+                                                        <template x-for="m in masterArchives" :key="m.id">
+                                                            <option :value="m.name" x-text="m.code ? (m.code + ' - ' + m.name) : m.name"></option>
+                                                        </template>
+                                                        <template x-if="item.document_name && !masterArchives.some(m => m.name === item.document_name)">
+                                                            <option :value="item.document_name" x-text="item.document_name" selected></option>
+                                                        </template>
+                                                    </select>
+                                                    @if(auth()->user()->isSuperAdmin())
+                                                    <button 
+                                                        type="button" 
+                                                        @click="promptCustomDocName(item)" 
+                                                        class="p-1.5 text-slate-400 hover:text-amber-500 rounded border border-slate-200 dark:border-slate-800 shrink-0 cursor-pointer" 
+                                                        title="Ketik nama berkas khusus jika tidak ada di daftar master (Super Admin)"
+                                                    >
+                                                        <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                                                    </button>
+                                                    @endif
+                                                </div>
+                                            </td>
+
+                                            <!-- Periode Mulai (Bulan) -->
+                                            <td class="py-2 px-2.5">
+                                                <input 
+                                                    type="month" 
+                                                    :name="'boxes[' + bIdx + '][items][' + iIdx + '][period_start]'" 
+                                                    x-model="item.period_start"
+                                                    :max="currentMonth"
+                                                    @change="validatePeriod(item)"
+                                                    class="w-full px-2 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-purple-700 dark:text-purple-300 focus:outline-none focus:border-emerald-500"
+                                                >
+                                            </td>
+
+                                            <!-- Periode Selesai (Bulan) -->
+                                            <td class="py-2 px-2.5">
+                                                <input 
+                                                    type="month" 
+                                                    :name="'boxes[' + bIdx + '][items][' + iIdx + '][period_end]'" 
+                                                    x-model="item.period_end"
+                                                    :max="currentMonth"
+                                                    :min="item.period_start || null"
+                                                    @change="validatePeriod(item)"
+                                                    class="w-full px-2 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-purple-700 dark:text-purple-300 focus:outline-none focus:border-emerald-500"
+                                                >
+                                            </td>
+
+                                            <!-- Keterangan / No Berkas -->
+                                            <td class="py-2 px-3">
                                                 <input 
                                                     type="text" 
-                                                    :name="'items[' + index + '][document_name]'" 
-                                                    x-model="item.document_name" 
-                                                    required 
-                                                    placeholder="Ketik nama dokumen / berkas..."
-                                                    class="w-full px-2.5 py-1.5 bg-amber-500/10 dark:bg-amber-950/20 border-2 border-amber-500/60 rounded text-xs font-mono font-bold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500"
+                                                    :name="'boxes[' + bIdx + '][items][' + iIdx + '][notes]'" 
+                                                    x-model="item.notes"
+                                                    @keydown.enter.prevent="handleEnterOnItem(bIdx, iIdx)"
+                                                    placeholder="No. berkas / keterangan fisik..." 
+                                                    class="w-full px-2 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-emerald-500"
                                                 >
-                                                <button 
-                                                    x-show="masterArchives.length > 0" 
-                                                    @click="item.is_custom = false; item.document_name = (masterArchives[0] ? masterArchives[0].name : '')" 
-                                                    type="button" 
-                                                    class="px-2 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded text-[10px] font-mono font-bold shrink-0 cursor-pointer" 
-                                                    title="Kembali ke pilihan Master Berkas"
-                                                >
-                                                    ↺ Master
-                                                </button>
-                                            </div>
-                                        </template>
-                                    </div>
-                                </td>
-                                <td class="py-2 px-2.5">
-                                    <div class="relative flex items-center">
-                                        <input 
-                                            type="month" 
-                                            :name="'items[' + index + '][period_start]'" 
-                                            x-model="item.period_start" 
-                                            max="{{ date('Y-m') }}"
-                                            :max="item.period_end ? (item.period_end < '{{ date('Y-m') }}' ? item.period_end : '{{ date('Y-m') }}') : '{{ date('Y-m') }}'"
-                                            @change="validatePeriod(item)"
-                                            required 
-                                            class="w-full px-2 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-purple-700 dark:text-purple-300 focus:outline-none focus:border-emerald-500"
-                                            title="Pilih Bulan & Tahun Mulai (Maksimal Bulan Sekarang)"
-                                        >
-                                    </div>
-                                </td>
-                                <td class="py-2 px-2.5">
-                                    <div class="relative flex items-center">
-                                        <input 
-                                            type="month" 
-                                            :name="'items[' + index + '][period_end]'" 
-                                            x-model="item.period_end" 
-                                            max="{{ date('Y-m') }}"
-                                            :max="'{{ date('Y-m') }}'"
-                                            :min="item.period_start || null"
-                                            @change="validatePeriod(item)"
-                                            required 
-                                            class="w-full px-2 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-purple-700 dark:text-purple-300 focus:outline-none focus:border-emerald-500"
-                                            title="Pilih Bulan & Tahun Selesai (Maksimal Bulan Aktif Sekarang)"
-                                        >
-                                    </div>
-                                </td>
-                                <td class="py-2 px-3 align-top">
-                                    <textarea 
-                                        :name="'items[' + index + '][notes]'" 
-                                        x-model="item.notes" 
-                                        required
-                                        rows="1"
-                                        placeholder="No. berkas fisik / catatan (Wajib)" 
-                                        @input="$el.style.height = 'auto'; $el.style.height = Math.max(34, $el.scrollHeight) + 'px'"
-                                        x-init="$nextTick(() => { $el.style.height = 'auto'; $el.style.height = Math.max(34, $el.scrollHeight) + 'px'; })"
-                                        class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-700 dark:text-slate-300 placeholder-slate-400 focus:outline-none focus:border-emerald-500 transition resize-none overflow-hidden leading-relaxed block shadow-2xs"
-                                        style="min-height: 34px;"
-                                    ></textarea>
-                                </td>
-                                <td class="py-2 px-2.5 text-center">
-                                    <button 
-                                        @click="removeItem(index)" 
-                                        type="button" 
-                                        class="p-1.5 text-rose-500 hover:bg-rose-500/20 rounded transition cursor-pointer" 
-                                        title="Hapus baris dokumen ini"
-                                    >
-                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                        </template>
-                    </tbody>
-                </table>
-            </div>
+                                            </td>
 
-            <!-- Total Counter Bar -->
-            <div class="flex items-center justify-between font-mono text-[11px] text-slate-500 dark:text-slate-400 pt-1">
-                <span>Total Butir Terdaftar: <strong class="text-emerald-600 dark:text-emerald-400 font-bold" x-text="items.length"></strong> Dokumen</span>
-            </div>
-        </fieldset>
+                                            <!-- Aksi Row -->
+                                            <td class="py-2 px-2 text-center">
+                                                <div class="flex items-center justify-center gap-1">
+                                                    <button 
+                                                        type="button" 
+                                                        @click="duplicateItem(bIdx, iIdx)" 
+                                                        class="p-1 text-slate-400 hover:text-blue-500 rounded transition cursor-pointer"
+                                                        title="Duplikat baris dokumen ini"
+                                                    >
+                                                        <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                                                    </button>
+                                                    <button 
+                                                        type="button" 
+                                                        @click="removeItem(bIdx, iIdx)" 
+                                                        class="p-1 text-slate-400 hover:text-rose-500 rounded transition cursor-pointer"
+                                                        title="Hapus baris dokumen ini"
+                                                    >
+                                                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
 
-        <!-- SECTION 5: UPLOAD BERKAS DIGITAL & SCAN FORMULIR -->
+                        <!-- Subtotal Box Counter -->
+                        <div class="flex items-center justify-between text-[11px] font-mono text-slate-500 pt-1">
+                            <span>Total Butir di Box #<span x-text="bIdx + 1"></span>: <strong class="text-emerald-600 dark:text-emerald-400 font-bold" x-text="box.items.length"></strong> Dokumen</span>
+                            <span class="text-slate-400 text-[10px]">Tip: Anda dapat langsung menekan Ctrl+V di tabel untuk menempel baris dari Excel.</span>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+
+        <!-- SECTION 3: UPLOAD BERKAS DIGITAL & SCAN FORMULIR -->
         <fieldset class="border border-slate-300 dark:border-slate-800 p-3.5 rounded bg-white dark:bg-slate-950 shadow-sm space-y-3">
             <legend class="px-2 font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded shadow-sm flex items-center gap-1.5">
                 <i data-lucide="file-check" class="w-3.5 h-3.5 text-slate-500"></i>
-                5. Upload Berkas Digital & Scan Formulir
+                3. Upload Berkas Digital & Scan Formulir
             </legend>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-xs"
@@ -567,72 +583,139 @@
                     name="scan_input_form" 
                     id="scan_input_form" 
                     label="Scan Formulir Input" 
-                    :required="!$archive->scan_input_form" 
+                    :required="!$archive->scan_input_form && $archive->status !== 'draft'" 
                     badge="WAJIB UNTUK PENGAJUAN" 
                     accept=".pdf,.jpg,.jpeg,.png"
-                    :maxSizeMB="2"
+                    :maxSizeKB="500"
+                    :maxSizeMB="0.5"
                     :existingUrl="app_storage_url($archive->scan_input_form)"
                     existingLabel="Scan Formulir Tersimpan"
-                    helperText="Format: PDF, JPG, PNG (Maksimal 2MB). Kosongkan jika tidak ingin mengganti file."
+                    helperText="Format: PDF, JPG, PNG (Maksimal 500 KB). Kosongkan jika tidak ingin mengganti file."
                 />
 
-                <!-- 2. Lampiran Digital Dokumen (Opsional) -->
+                <!-- 2. Lampiran Digital Dokumen / Foto Box (Opsional) -->
                 <x-file-uploader 
                     name="file" 
                     id="file" 
-                    label="Lampiran Digital Dokumen" 
+                    label="Foto Fisik Box / Lampiran Digital" 
                     :required="false" 
                     badge="OPSIONAL" 
-                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.zip"
-                    :maxSizeMB="2"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    :maxSizeKB="500"
+                    :maxSizeMB="0.5"
                     :existingUrl="app_storage_url($archive->file_path)"
                     existingLabel="Lampiran Digital Tersimpan"
-                    helperText="Format: PDF, JPG, DOCX, XLSX, ZIP (Maksimal 2MB). Kosongkan jika tidak ingin mengganti file."
+                    helperText="Format: PDF, JPG, JPEG, PNG (Maksimal 500 KB). Kosongkan jika tidak ingin mengganti file."
                 />
             </div>
         </fieldset>
 
+        <!-- MODAL DUPLIKASI BOX (Granular Copy) -->
+        <div 
+            x-show="duplicateModalOpen" 
+            x-cloak 
+            class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4"
+        >
+            <div 
+                @click.outside="duplicateModalOpen = false" 
+                class="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl max-w-lg w-full p-4 space-y-3.5 shadow-xl font-mono text-xs"
+            >
+                <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2.5">
+                    <div class="flex items-center gap-2">
+                        <span class="p-1.5 bg-amber-500/20 text-amber-600 rounded">
+                            <i data-lucide="copy" class="w-4 h-4"></i>
+                        </span>
+                        <div>
+                            <h3 class="font-bold text-sm text-slate-900 dark:text-white">Duplikasi Box Arsip</h3>
+                            <p class="text-[10px] text-slate-400 font-sans">Sumber: Box #<span x-text="duplicateSourceIndex + 1"></span></p>
+                        </div>
+                    </div>
+                    <button type="button" @click="duplicateModalOpen = false" class="text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer">✕</button>
+                </div>
+
+                <div class="space-y-2 font-sans">
+                    <p class="text-xs font-bold text-slate-700 dark:text-slate-300">Pilih mode duplikasi:</p>
+                    <div class="space-y-1.5">
+                        <label class="flex items-start gap-2 p-2 rounded border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer">
+                            <input type="radio" value="full" x-model="duplicateMode" class="mt-0.5 text-amber-500">
+                            <div>
+                                <span class="font-bold text-xs text-slate-900 dark:text-white">Duplikat Lengkap (Seluruh Butir Dokumen)</span>
+                                <p class="text-[10px] text-slate-500">Menyalin pengaturan box beserta seluruh butir berkas di dalamnya.</p>
+                            </div>
+                        </label>
+                        <label class="flex items-start gap-2 p-2 rounded border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer">
+                            <input type="radio" value="metadata_only" x-model="duplicateMode" class="mt-0.5 text-amber-500">
+                            <div>
+                                <span class="font-bold text-xs text-slate-900 dark:text-white">Hanya Pengaturan Identitas (Kosongkan Butir)</span>
+                                <p class="text-[10px] text-slate-500">Menyalin sub-dept, tipe dokumen, dan kondisi fisik. Butir berkas dimulai baru.</p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 border-t border-slate-200 dark:border-slate-800 pt-2.5 font-mono">
+                    <button type="button" @click="duplicateModalOpen = false" class="px-3 py-1.5 rounded border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 cursor-pointer">Batal</button>
+                    <button type="button" @click="confirmDuplicateBox()" class="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded shadow-xs flex items-center gap-1.5 cursor-pointer">
+                        <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                        <span>Duplikat Sekarang</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- FORM ACTION BAR -->
-        <div class="pt-2 flex flex-wrap items-center justify-end gap-2 font-mono">
-            <a href="{{ route('archives.index', request()->has('embed') ? ['embed' => 1] : []) }}" class="px-3.5 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded text-xs font-bold border border-slate-300 dark:border-slate-700 transition">
-                Batal
-            </a>
-            @if($archive->status === 'draft')
-                <!-- Simpan Sebagai Draft (Simpan Sementara) - Selalu Aktif -->
-                <button 
-                    type="submit" 
-                    name="submit_action" 
-                    value="draft" 
-                    class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs rounded border border-slate-400 dark:border-slate-600 shadow-xs transition flex items-center gap-1.5 cursor-pointer"
-                    title="Perbarui data dan tetap simpan sementara sebagai draft"
-                >
-                    <i data-lucide="file-clock" class="w-3.5 h-3.5 text-amber-500"></i>
-                    <span>Simpan Sementara (Draft)</span>
-                </button>
-                <!-- Simpan & Ajukan Box Arsip Permanen -->
-                <button 
-                    type="button" 
-                    @click="submitFinal('submit')"
-                    :class="hasScanForm ? 'bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:from-amber-400 hover:to-amber-300 text-slate-950 border-amber-600 shadow-md cursor-pointer' : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-300 dark:border-slate-700 cursor-pointer'"
-                    class="px-5 py-2 font-black text-xs rounded border transition flex items-center gap-1.5"
-                    title="Simpan permanen dan teruskan pengajuan ke PIC Gudang untuk diverifikasi"
-                >
-                    <i data-lucide="send" class="w-3.5 h-3.5" :class="hasScanForm ? 'text-slate-950' : 'text-slate-400 dark:text-slate-500'"></i>
-                    <span>Simpan & Ajukan Permanen ke Gudang</span>
-                </button>
-            @else
-                <!-- Simpan Perubahan Berkas Arsip (Non-Draft) -->
-                <button 
-                    type="submit" 
-                    name="submit_action" 
-                    value="update" 
-                    class="px-5 py-2 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black text-xs rounded border border-amber-600 shadow-md transition flex items-center gap-1.5 cursor-pointer"
-                    title="Simpan perubahan rincian data berkas arsip"
-                >
-                    <i data-lucide="save" class="w-3.5 h-3.5 text-slate-950"></i>
-                    <span>Simpan Perubahan Berkas</span>
-                </button>
-            @endif
+        <div class="pt-2 flex flex-wrap items-center justify-between gap-3 font-mono border-t border-slate-200 dark:border-slate-800">
+            <div class="text-xs text-slate-600 dark:text-slate-400 flex items-center gap-2">
+                <span class="p-1.5 bg-amber-500/20 text-amber-700 dark:text-amber-400 rounded">
+                    <i data-lucide="check-circle" class="w-4 h-4"></i>
+                </span>
+                <span>Total: <strong class="text-slate-900 dark:text-white" x-text="boxes.length + ' Box'"></strong> dengan <strong class="text-slate-900 dark:text-white" x-text="getTotalItemsCount() + ' Butir Dokumen'"></strong></span>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <a href="{{ route('archives.index', request()->has('embed') ? ['embed' => 1] : []) }}" class="px-3.5 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded text-xs font-bold border border-slate-300 dark:border-slate-700 transition">
+                    Batal
+                </a>
+
+                @if($archive->status === 'draft')
+                    <!-- Simpan Sebagai Draft (Simpan Sementara) -->
+                    <button 
+                        type="submit" 
+                        formnovalidate
+                        name="submit_action" 
+                        value="draft" 
+                        class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs rounded border border-slate-400 dark:border-slate-600 shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+                        title="Simpan sementara semua box sebagai 1 berkas draft tanpa validasi ketat"
+                    >
+                        <i data-lucide="file-clock" class="w-3.5 h-3.5 text-amber-500"></i>
+                        <span>Simpan Sementara (Draft)</span>
+                    </button>
+
+                    <!-- Simpan & Ajukan Box Arsip Permanen -->
+                    <button 
+                        type="button" 
+                        @click="submitFinal('submit')"
+                        :class="hasScanForm ? 'bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:from-amber-400 hover:to-amber-300 text-slate-950 border-amber-600 shadow-md cursor-pointer' : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-300 dark:border-slate-700 cursor-pointer'"
+                        class="px-5 py-2 font-black text-xs rounded border transition flex items-center gap-1.5"
+                        title="Submit verifikasi seluruh box arsip ke Gudang"
+                    >
+                        <i data-lucide="send" class="w-3.5 h-3.5" :class="hasScanForm ? 'text-slate-950' : 'text-slate-400 dark:text-slate-500'"></i>
+                        <span>Simpan & Ajukan Permanen ke Gudang</span>
+                    </button>
+                @else
+                    <!-- Simpan Perubahan Berkas Arsip (Non-Draft) -->
+                    <button 
+                        type="submit" 
+                        name="submit_action" 
+                        value="update" 
+                        class="px-5 py-2 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black text-xs rounded border border-amber-600 shadow-md transition flex items-center gap-1.5 cursor-pointer"
+                        title="Simpan perubahan data berkas arsip"
+                    >
+                        <i data-lucide="save" class="w-3.5 h-3.5 text-slate-950"></i>
+                        <span>Simpan Perubahan Berkas</span>
+                    </button>
+                @endif
+            </div>
         </div>
     </form>
 </div>
@@ -640,20 +723,61 @@
 @push('scripts')
 <script>
 function archiveEditApp() {
-    const rawItems = @json($archive->items);
-    let initialItems = [];
-    if (rawItems && rawItems.length > 0) {
-        initialItems = rawItems.map(it => ({
-            id: it.id || (Date.now() + Math.random()),
-            document_name: it.document_name,
-            is_custom: false,
-            period_start: it.period_start || '',
-            period_end: it.period_end || '',
-            notes: it.notes || ''
+    const isDraft = {{ $archive->status === 'draft' ? 'true' : 'false' }};
+    const savedDraftBoxes = @json($draftBoxes);
+    let initialBoxes = [];
+
+    if (savedDraftBoxes && savedDraftBoxes.length > 0) {
+        initialBoxes = savedDraftBoxes.map((b, bIdx) => ({
+            id: b.id || (Date.now() + bIdx + Math.random()),
+            title: b.title || '',
+            sub_department_id: b.sub_department_id || '',
+            document_type: b.document_type || '',
+            physical_condition: b.physical_condition || 'Baik / Box Karton Standar TB 30g',
+            periode_bulan: (b.periode_bulan || (b.periode ? String(b.periode).replace(/[^0-9]/g, '') : '') || '1'),
+            follow_previous: b.follow_previous || false,
+            similarityInfo: null,
+            items: (b.items && b.items.length > 0) ? b.items.map((it, iIdx) => ({
+                id: it.id || (Date.now() + iIdx + Math.random()),
+                document_name: it.document_name || '',
+                period_start: it.period_start || '',
+                period_end: it.period_end || it.period_start || '',
+                notes: it.notes || ''
+            })) : [
+                { id: Date.now(), document_name: '', period_start: '{{ date('Y-m') }}', period_end: '{{ date('Y-m') }}', notes: '' }
+            ]
         }));
     } else {
-        initialItems = [
-            { id: 1, document_name: '', is_custom: false, period_start: '{{ date('Y-06') }}', period_end: '{{ date('Y-08') }}', notes: '' }
+        const rawItems = @json($archive->items);
+        const mappedItems = (rawItems && rawItems.length > 0) ? rawItems.map((it, iIdx) => ({
+            id: it.id || (Date.now() + iIdx + Math.random()),
+            document_name: it.document_name,
+            period_start: it.period_start || '',
+            period_end: it.period_end || it.period_start || '',
+            notes: it.notes || ''
+        })) : [
+            { id: Date.now(), document_name: '', period_start: '{{ date('Y-m') }}', period_end: '{{ date('Y-m') }}', notes: '' }
+        ];
+
+        let extractedBulan = '1';
+        @if(!empty($archive->periode))
+            extractedBulan = '{{ preg_match('/(\d+)/', $archive->periode, $m) ? $m[1] : 1 }}';
+        @elseif(!empty($archive->periode_doc))
+            extractedBulan = '{{ preg_match('/(\d+)/', $archive->periode_doc, $m) ? $m[1] : 1 }}';
+        @endif
+
+        initialBoxes = [
+            {
+                id: 'box_' + {{ $archive->id }},
+                title: @json($archive->title ?? ''),
+                sub_department_id: '{{ $archive->sub_department_id ?? '' }}',
+                document_type: @json($archive->document_type ?? ''),
+                physical_condition: @json($archive->physical_condition ?? 'Baik / Box Karton Standar TB 30g'),
+                periode_bulan: extractedBulan || '1',
+                follow_previous: false,
+                similarityInfo: null,
+                items: mappedItems
+            }
         ];
     }
 
@@ -661,31 +785,25 @@ function archiveEditApp() {
         departments: @json($departments),
         selectedCompany: '{{ old('company_name', $archive->company_name ?? 'PT INDRACO GLOBAL INDONESIA') }}',
         selectedDeptId: '{{ old('department_id', $archive->department_id) }}',
-        selectedSubDeptId: '{{ old('sub_department_id', $archive->sub_department_id ?? '') }}',
+        tglPenyerahan: '{{ old('tgl_penyerahan', $archive->tgl_penyerahan ? $archive->tgl_penyerahan->format('Y-m-d') : date('Y-m-d')) }}',
+        currentMonth: '{{ date('Y-m') }}',
         subDepartments: [],
         masterArchives: [],
-        isCustomDocName: {{ old('is_custom_doc_name', $archive->is_custom_doc_name ? 'true' : 'false') }},
-        customDocName: @json(old('custom_doc_name', $archive->custom_doc_name ?? '')),
-        title: @json(old('title', $archive->title ?? '')),
-        tglPenyerahan: '{{ old('tgl_penyerahan', $archive->tgl_penyerahan ? $archive->tgl_penyerahan->format('Y-m-d') : date('Y-m-d')) }}',
-        periodeBulan: '{{ old('periode_bulan', preg_match('/(\d+)/', $archive->periode ?? $archive->periode_doc ?? '', $m) ? $m[1] : '') }}',
         hasExistingScanForm: {{ !empty($archive->scan_input_form) ? 'true' : 'false' }},
         hasScanForm: {{ !empty($archive->scan_input_form) ? 'true' : 'false' }},
 
-        items: initialItems,
+        // Workstation Multi-Box State
+        activeBoxIndex: 0,
+        boxes: initialBoxes,
 
-        validatePeriod(item) {
-            const maxM = '{{ date('Y-m') }}';
-            if (item.period_end && item.period_end > maxM) {
-                item.period_end = maxM;
-            }
-            if (item.period_start && item.period_start > maxM) {
-                item.period_start = maxM;
-            }
-            if (item.period_start && item.period_end && item.period_start > item.period_end) {
-                item.period_start = item.period_end;
-            }
-        },
+        // Duplicate Modal State
+        duplicateModalOpen: false,
+        duplicateSourceIndex: 0,
+        duplicateMode: 'full',
+        duplicateSelectedItems: [],
+
+        // Similarity check debounce timer
+        similarityTimer: null,
 
         init() {
             this.updateSubDepartments();
@@ -693,49 +811,368 @@ function archiveEditApp() {
             this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
         },
 
-        submitFinal(action) {
-            if (!this.hasScanForm) {
-                alert('⚠️ PERHATIAN: BERKAS BELUM LENGKAP!\n\n"Scan Formulir Input" wajib diunggah sebelum mengajukan verifikasi box arsip.\n\nSilakan unggah Scan Formulir Input pada Bagian 5, atau klik tombol "Simpan Sementara (Draft)" jika ingin menyimpan data sementara tanpa pengajuan.');
-                const fileInput = document.getElementById('scan_input_form');
-                if (fileInput) {
-                    fileInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    fileInput.focus();
+        getTotalItemsCount() {
+            return this.boxes.reduce((sum, b) => sum + (b.items ? b.items.length : 0), 0);
+        },
+
+        addBox() {
+            const nextNum = this.boxes.length + 1;
+            const defaultDoc = this.masterArchives.length > 0 ? this.masterArchives[0].name : '';
+            const prevBox = this.boxes.length > 0 ? this.boxes[this.boxes.length - 1] : null;
+
+            this.boxes.push({
+                id: Date.now() + Math.random(),
+                title: 'Box ' + nextNum,
+                sub_department_id: prevBox ? prevBox.sub_department_id : '',
+                document_type: prevBox ? prevBox.document_type : '',
+                physical_condition: 'Baik / Box Karton Standar TB 30g',
+                periode_bulan: prevBox ? prevBox.periode_bulan : '1',
+                follow_previous: true,
+                similarityInfo: null,
+                items: [
+                    { id: Date.now(), document_name: defaultDoc, period_start: this.currentMonth, period_end: this.currentMonth, notes: '' }
+                ]
+            });
+            this.activeBoxIndex = this.boxes.length - 1;
+            this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+        },
+
+        getBoxFinalPeriod(box, bIdx) {
+            if (bIdx > 0 && box.follow_previous) {
+                const prev = this.boxes[bIdx - 1];
+                const prevVal = (prev && prev.periode_bulan) ? prev.periode_bulan : '1';
+                return prevVal ? (prevVal + ' Bulan') : '1 Bulan';
+            }
+            const val = box.periode_bulan || '1';
+            return val ? (val + ' Bulan') : '1 Bulan';
+        },
+
+        getPreviousBoxPeriodText(bIdx) {
+            if (bIdx <= 0) return '1 Bulan';
+            const prev = this.boxes[bIdx - 1];
+            return (prev && prev.periode_bulan) ? (prev.periode_bulan + ' Bulan') : '1 Bulan';
+        },
+
+        openDuplicateModal(index) {
+            this.duplicateSourceIndex = index;
+            this.duplicateMode = 'full';
+            this.duplicateModalOpen = true;
+            this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+        },
+
+        confirmDuplicateBox() {
+            const source = this.boxes[this.duplicateSourceIndex];
+            if (!source) return;
+
+            let duplicatedItems = [];
+            if (this.duplicateMode === 'full') {
+                duplicatedItems = source.items.map(it => ({
+                    id: Date.now() + Math.random(),
+                    document_name: it.document_name,
+                    period_start: it.period_start,
+                    period_end: it.period_end,
+                    notes: it.notes
+                }));
+            } else {
+                const defaultDoc = this.masterArchives.length > 0 ? this.masterArchives[0].name : '';
+                duplicatedItems = [
+                    { id: Date.now(), document_name: defaultDoc, period_start: this.currentMonth, period_end: this.currentMonth, notes: '' }
+                ];
+            }
+
+            this.boxes.push({
+                id: Date.now() + Math.random(),
+                title: source.title + ' (Salinan)',
+                sub_department_id: source.sub_department_id,
+                document_type: source.document_type,
+                physical_condition: source.physical_condition,
+                periode_bulan: source.periode_bulan,
+                follow_previous: false,
+                similarityInfo: null,
+                items: duplicatedItems
+            });
+
+            this.activeBoxIndex = this.boxes.length - 1;
+            this.duplicateModalOpen = false;
+            this.checkSimilarity(this.activeBoxIndex);
+            this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+        },
+
+        async removeBox(index) {
+            if (this.boxes.length <= 1) {
+                if (window.showConfirmModal) {
+                    await window.showConfirmModal({
+                        title: 'Perhatian',
+                        message: 'Pengajuan minimal harus memiliki 1 box kardus arsip.',
+                        type: 'warning',
+                        confirmText: 'Mengerti'
+                    });
                 }
                 return;
             }
+            if (window.showConfirmModal) {
+                const ok = await window.showConfirmModal({
+                    title: 'Hapus Box Arsip',
+                    message: `Apakah Anda yakin ingin menghapus Box #${index + 1}? Seluruh butir berkas di dalam box ini akan dihapus.`,
+                    type: 'danger',
+                    confirmText: 'Ya, Hapus Box'
+                });
+                if (!ok) return;
+            }
+            this.boxes.splice(index, 1);
+            if (this.activeBoxIndex >= this.boxes.length) {
+                this.activeBoxIndex = this.boxes.length - 1;
+            }
+            this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+        },
 
-            const form = document.getElementById('archiveEditForm');
-            if (form) {
-                let actionInput = form.querySelector('input[name="submit_action"]');
-                if (!actionInput) {
-                    actionInput = document.createElement('input');
-                    actionInput.type = 'hidden';
-                    actionInput.name = 'submit_action';
-                    form.appendChild(actionInput);
+        handleTablePaste(e, boxIndex) {
+            const clipboardData = (e.clipboardData || window.clipboardData);
+            if (!clipboardData) return;
+            const text = clipboardData.getData('text');
+            if (!text || (!text.includes('\t') && !text.includes('\n'))) {
+                return; // Normal paste inside a single input
+            }
+
+            e.preventDefault();
+            const box = this.boxes[boxIndex];
+            if (!box) return;
+
+            const lines = text.trim().split(/\r?\n/);
+            const newItems = [];
+
+            for (let line of lines) {
+                let trimmed = line.trim();
+                if (!trimmed) continue;
+
+                let cols = trimmed.split('\t');
+                if (cols.length === 1 && trimmed.includes(';')) cols = trimmed.split(';');
+                else if (cols.length === 1 && trimmed.includes(',')) cols = trimmed.split(',');
+
+                cols = cols.map(c => c.trim().replace(/^["']|["']$/g, ''));
+
+                const firstColLower = (cols[0] || '').toLowerCase();
+                if (firstColLower === 'nama dokumen' || firstColLower === 'judul dokumen' || firstColLower === 'nama' || firstColLower === 'no') {
+                    continue;
                 }
-                actionInput.value = action;
-                form.submit();
+
+                let docName = cols[0] || '';
+                let pStart = cols[1] || this.currentMonth;
+                let pEnd = cols[2] || pStart;
+                let notes = cols[3] || '';
+
+                pStart = pStart.replace('/', '-').substring(0, 7);
+                pEnd = pEnd.replace('/', '-').substring(0, 7);
+                if (!/^\d{4}-\d{2}$/.test(pStart)) pStart = this.currentMonth;
+                if (!/^\d{4}-\d{2}$/.test(pEnd)) pEnd = pStart;
+
+                if (docName) {
+                    newItems.push({
+                        id: Date.now() + Math.random(),
+                        document_name: docName,
+                        period_start: pStart,
+                        period_end: pEnd,
+                        notes: notes
+                    });
+                }
+            }
+
+            if (newItems.length > 0) {
+                if (box.items.length === 1 && !box.items[0].document_name) {
+                    box.items = newItems;
+                } else {
+                    box.items.push(...newItems);
+                }
+
+                if (window.showToast) {
+                    window.showToast(`📋 Berhasil menempel ${newItems.length} butir dokumen dari spreadsheet ke Box #${boxIndex + 1}.`, 'success');
+                }
+                this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
             }
         },
 
-        addItem() {
-            const defaultName = this.masterArchives.length > 0 ? this.masterArchives[0].name : '';
-            this.items.push({
+        addItem(boxIndex) {
+            const box = this.boxes[boxIndex];
+            if (!box) return;
+            const defaultDoc = this.masterArchives.length > 0 ? this.masterArchives[0].name : '';
+            
+            const prevItem = box.items.length > 0 ? box.items[box.items.length - 1] : null;
+            const pStart = prevItem ? prevItem.period_start : this.currentMonth;
+            const pEnd = prevItem ? prevItem.period_end : this.currentMonth;
+            const pNotes = prevItem ? prevItem.notes : '';
+
+            box.items.push({
                 id: Date.now() + Math.random(),
-                document_name: defaultName,
-                is_custom: false,
-                period_start: '{{ date('Y-m') }}',
-                period_end: '{{ date('Y-m') }}',
-                notes: ''
+                document_name: defaultDoc,
+                period_start: pStart,
+                period_end: pEnd,
+                notes: pNotes
             });
             this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
         },
 
-        removeItem(index) {
-            if (this.items.length > 1) {
-                this.items.splice(index, 1);
-            } else {
-                alert('Minimal harus terdapat 1 butir berkas arsip dalam box.');
+        handleEnterOnItem(boxIndex, itemIndex) {
+            const box = this.boxes[boxIndex];
+            if (!box) return;
+            if (itemIndex === box.items.length - 1) {
+                this.addItem(boxIndex);
+            }
+        },
+
+        applyPreviousBoxPreset(boxIndex) {
+            if (boxIndex <= 0) return;
+            const prevBox = this.boxes[boxIndex - 1];
+            const currentBox = this.boxes[boxIndex];
+            if (!prevBox || !currentBox) return;
+
+            currentBox.sub_department_id = prevBox.sub_department_id;
+            currentBox.document_type = prevBox.document_type;
+            currentBox.physical_condition = prevBox.physical_condition;
+            currentBox.periode_bulan = prevBox.periode_bulan;
+            this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+        },
+
+        addBulkItems(boxIndex, count = 5) {
+            const box = this.boxes[boxIndex];
+            if (!box) return;
+            const defaultDoc = this.masterArchives.length > 0 ? this.masterArchives[0].name : '';
+            const prevItem = box.items.length > 0 ? box.items[box.items.length - 1] : null;
+            const pStart = prevItem ? prevItem.period_start : this.currentMonth;
+            const pEnd = prevItem ? prevItem.period_end : this.currentMonth;
+
+            for (let i = 0; i < count; i++) {
+                box.items.push({
+                    id: Date.now() + i + Math.random(),
+                    document_name: defaultDoc,
+                    period_start: pStart,
+                    period_end: pEnd,
+                    notes: ''
+                });
+            }
+            this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+        },
+
+        duplicateItem(boxIndex, itemIndex) {
+            const box = this.boxes[boxIndex];
+            if (!box) return;
+            const source = box.items[itemIndex];
+            box.items.splice(itemIndex + 1, 0, {
+                id: Date.now() + Math.random(),
+                document_name: source.document_name,
+                period_start: source.period_start,
+                period_end: source.period_end,
+                notes: source.notes
+            });
+            this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+        },
+
+        removeItem(boxIndex, itemIndex) {
+            const box = this.boxes[boxIndex];
+            if (!box) return;
+            if (box.items.length <= 1) {
+                alert('Box minimal harus memiliki 1 butir dokumen.');
+                return;
+            }
+            box.items.splice(itemIndex, 1);
+            this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+        },
+
+        promptCustomDocName(item) {
+            const current = item.document_name || '';
+            const custom = prompt('Ketik nama berkas khusus yang ingin ditambahkan (Super Admin):', current);
+            if (custom !== null && custom.trim() !== '') {
+                item.document_name = custom.trim();
+            }
+        },
+
+        checkSimilarity(boxIndex) {
+            clearTimeout(this.similarityTimer);
+            this.similarityTimer = setTimeout(() => {
+                const box = this.boxes[boxIndex];
+                if (!box || !box.title || !box.title.trim()) {
+                    if (box) box.similarityInfo = null;
+                    return;
+                }
+
+                const currentTitle = box.title.trim().toLowerCase();
+
+                // 1. Local In-Batch Check
+                let localMatch = null;
+                for (let i = 0; i < this.boxes.length; i++) {
+                    if (i === boxIndex) continue;
+                    const otherTitle = (this.boxes[i].title || '').trim().toLowerCase();
+                    if (!otherTitle) continue;
+                    if (currentTitle === otherTitle) {
+                        localMatch = {
+                            box_num: i + 1,
+                            title: this.boxes[i].title,
+                            similarity_percentage: 100
+                        };
+                        break;
+                    }
+                }
+
+                if (localMatch) {
+                    box.similarityInfo = {
+                        has_similarity: true,
+                        match_type: 'identical',
+                        source: 'batch',
+                        similarity_percentage: 100,
+                        message: `Judul identik 100% dengan Box #${localMatch.box_num} di form ini.`,
+                        matched_title: localMatch.title
+                    };
+                    return;
+                }
+
+                // 2. Remote Database Scoped Check
+                const deptId = this.selectedDeptId;
+                if (!deptId) return;
+
+                fetch('{{ route('api.archives.check_similarity') }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        department_id: deptId,
+                        title: box.title
+                    })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.has_similarity) {
+                        box.similarityInfo = {
+                            has_similarity: true,
+                            match_type: data.match_type,
+                            source: 'database',
+                            similarity_percentage: data.similarity_percentage,
+                            message: data.match_type === 'identical'
+                                ? `Judul identik 100% dengan arsip tersimpan [${data.matched_archive.box_number || 'Box'}]: ${data.matched_archive.title}`
+                                : `Kemiripan ${data.similarity_percentage}% dengan arsip tersimpan [${data.matched_archive.box_number || 'Box'}]: ${data.matched_archive.title}`,
+                            matched_archive: data.matched_archive,
+                            diff: data.diff
+                        };
+                    } else {
+                        box.similarityInfo = null;
+                    }
+                })
+                .catch(err => {
+                    console.error('Similarity check error:', err);
+                });
+            }, 400);
+        },
+
+        validatePeriod(item) {
+            if (item.period_end && item.period_end > this.currentMonth) {
+                item.period_end = this.currentMonth;
+            }
+            if (item.period_start && item.period_start > this.currentMonth) {
+                item.period_start = this.currentMonth;
+            }
+            if (item.period_start && item.period_end && item.period_start > item.period_end) {
+                item.period_start = item.period_end;
             }
         },
 
@@ -749,29 +1186,18 @@ function archiveEditApp() {
             this.updateMasterArchives();
         },
 
-        onSubDeptChange() {
-            this.updateMasterArchives();
-        },
-
         updateMasterArchives() {
             const dept = this.departments.find(d => d.id == this.selectedDeptId);
             let allArchives = [];
             if (dept && dept.master_archives && dept.master_archives.length > 0) {
-                allArchives = dept.master_archives;
-                this.filterAndSetArchives(allArchives);
+                this.masterArchives = dept.master_archives;
             } else if (this.selectedDeptId) {
                 fetch('{{ url('/api/departments') }}/' + this.selectedDeptId + '/master-archives')
                     .then(res => res.json())
                     .then(data => {
-                        if (data.master_archives) {
-                            if (dept) dept.master_archives = data.master_archives;
-                            this.filterAndSetArchives(data.master_archives);
-                        } else {
-                            this.masterArchives = [];
-                        }
+                        this.masterArchives = data.master_archives || [];
                     })
                     .catch(err => {
-                        console.error('Error fetching master archives:', err);
                         this.masterArchives = [];
                     });
             } else {
@@ -779,13 +1205,54 @@ function archiveEditApp() {
             }
         },
 
-        filterAndSetArchives(allArchives) {
-            if (this.selectedSubDeptId) {
-                this.masterArchives = allArchives.filter(m => {
-                    return m.sub_department_id == this.selectedSubDeptId || !m.sub_department_id;
+        submitFinal(action) {
+            // Check that all boxes have at least 1 item with document_name
+            let missingName = false;
+            let missingBoxIdx = -1;
+            this.boxes.forEach((box, bIdx) => {
+                box.items.forEach(it => {
+                    if (!it.document_name || !it.document_name.trim()) {
+                        missingName = true;
+                        if (missingBoxIdx === -1) missingBoxIdx = bIdx;
+                    }
                 });
-            } else {
-                this.masterArchives = allArchives;
+            });
+
+            if (missingName) {
+                alert(`⚠️ Terdapat butir dokumen pada Box #${missingBoxIdx + 1} yang belum memiliki nama berkas arsip. Silakan pilih atau lengkapi nama dokumen.`);
+                this.activeBoxIndex = missingBoxIdx;
+                return;
+            }
+
+            if (!this.hasScanForm && !this.hasExistingScanForm) {
+                alert('⚠️ PERHATIAN: BERKAS BELUM LENGKAP!\n\n"Scan Formulir Input" wajib diunggah sebelum mengajukan verifikasi box arsip ke Gudang.\n\nSilakan unggah Scan Formulir Input pada Bagian 3, atau klik tombol "Simpan Sementara (Draft)" jika ingin menyimpan data tanpa pengajuan.');
+                const fileInput = document.getElementById('scan_input_form');
+                if (fileInput) {
+                    fileInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    fileInput.focus();
+                }
+                return;
+            }
+
+            for (let i = 0; i < this.boxes.length; i++) {
+                if (!this.boxes[i].title || !this.boxes[i].title.trim()) {
+                    alert(`⚠️ Judul / Label Kardus untuk Box #${i + 1} belum diisi. Silakan lengkapi judul kardus.`);
+                    this.activeBoxIndex = i;
+                    return;
+                }
+            }
+
+            const form = document.getElementById('archiveEditForm');
+            if (form) {
+                let actionInput = form.querySelector('input[name="submit_action"]');
+                if (!actionInput) {
+                    actionInput = document.createElement('input');
+                    actionInput.type = 'hidden';
+                    actionInput.name = 'submit_action';
+                    form.appendChild(actionInput);
+                }
+                actionInput.value = action;
+                form.submit();
             }
         }
     };

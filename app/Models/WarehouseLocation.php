@@ -157,7 +157,9 @@ class WarehouseLocation extends Model
             }
         }
 
-        WarehouseRackSlot::insert($slotsToInsert);
+        foreach (array_chunk($slotsToInsert, 250) as $chunk) {
+            WarehouseRackSlot::insert($chunk);
+        }
     }
 
     public function getFullLocationAttribute(): string

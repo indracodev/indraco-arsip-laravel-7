@@ -33,6 +33,12 @@
                 <span>Refresh (F5)</span>
             </button>
 
+            <!-- Impor Multi-Box Button -->
+            <a href="{{ route('archives.index', ['open_import' => 1]) }}" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-mono font-bold text-xs rounded border border-emerald-700 shadow transition flex items-center gap-1.5 shrink-0" title="Impor Massal Multi-Box & Butir Dokumen via Excel">
+                <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i>
+                <span>Impor Multi-Box</span>
+            </a>
+
             <!-- Create Draft Button -->
             <a href="{{ route('archives.create') }}" class="px-3 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-mono font-black text-xs rounded border border-amber-600 shadow transition flex items-center gap-1.5 shrink-0">
                 <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
@@ -536,7 +542,10 @@
                                             location: {{ json_encode($archive->display_location) }},
                                             has_scan_input: {{ !empty($archive->scan_input_form) ? 'true' : 'false' }},
                                             has_file_path: {{ !empty($archive->file_path) ? 'true' : 'false' }},
-                                            has_approval: {{ !empty($archive->scan_approval_input) ? 'true' : 'false' }}
+                                            has_approval: {{ !empty($archive->scan_approval_input) ? 'true' : 'false' }},
+                                            files: {{ json_encode($archiveFiles) }},
+                                            scan_input_form_url: {{ json_encode(app_storage_url($archive->scan_input_form)) }},
+                                            file_path_url: {{ json_encode(app_storage_url($archive->file_path)) }}
                                         })"
                                         class="px-2 py-0.5 rounded text-[10px] font-bold inline-flex items-center gap-1 transition shadow-xs cursor-pointer hover:scale-105 group border"
                                         :class="{
@@ -545,6 +554,7 @@
                                             'bg-blue-500/20 hover:bg-blue-500/35 text-blue-800 dark:text-blue-300 border-blue-500/50': '{{ $archive->status }}' === 'approved_booked',
                                             'bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-800 dark:text-emerald-300 border-emerald-500/50': '{{ $archive->status }}' === 'in_warehouse',
                                             'bg-purple-500/20 hover:bg-purple-500/35 text-purple-800 dark:text-purple-300 border-purple-500/50': '{{ $archive->status }}' === 'borrowed' || '{{ $archive->status }}' === 'taken',
+                                            'bg-orange-500/20 hover:bg-orange-500/35 text-orange-800 dark:text-orange-300 border-orange-500/50': '{{ $archive->status }}' === 'pending_destruction',
                                             'bg-rose-500/20 hover:bg-rose-500/35 text-rose-800 dark:text-rose-300 border-rose-500/50': '{{ $archive->status }}' === 'destroyed'
                                         }"
                                         title="Super Admin: Klik untuk ubah status workflow bebas"
@@ -564,6 +574,9 @@
                                         @elseif($archive->status === 'borrowed' || $archive->status === 'taken')
                                             <i data-lucide="log-out" class="w-3 h-3 text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform"></i>
                                             <span class="underline decoration-dotted underline-offset-2">Keluar (Out)</span>
+                                        @elseif($archive->status === 'pending_destruction')
+                                            <i data-lucide="shield-alert" class="w-3 h-3 text-orange-600 dark:text-orange-400 group-hover:scale-110 transition-transform"></i>
+                                            <span class="underline decoration-dotted underline-offset-2">{{ $archive->status_label }}</span>
                                         @elseif($archive->status === 'destroyed')
                                             <i data-lucide="trash-2" class="w-3 h-3 text-rose-600 dark:text-rose-400 group-hover:scale-110 transition-transform"></i>
                                             <span class="underline decoration-dotted underline-offset-2">Dimusnahkan</span>
@@ -626,6 +639,36 @@
                                             <i data-lucide="log-out" class="w-3 h-3 text-purple-500"></i>
                                             <span>Keluar (Out)</span>
                                         </span>
+                                    @elseif($archive->status === 'pending_destruction')
+                                        @if(auth()->user()->isPicGudang())
+                                            <button 
+                                                type="button" 
+                                                @click="openSuperAdminStatusModal({
+                                                    id: {{ $archive->id }},
+                                                    box_number: {{ json_encode($archive->box_number ?: 'Pending') }},
+                                                    raw_box_number: {{ json_encode($archive->box_number) }},
+                                                    title: {{ json_encode($archive->effective_title ?? $archive->title) }},
+                                                    department: {{ json_encode($archive->department->name ?? 'Dept') }},
+                                                    department_code: {{ json_encode($archive->department->code ?? 'GEN') }},
+                                                    status: {{ json_encode($archive->status) }},
+                                                    status_label: {{ json_encode($archive->status_label ?? $archive->status) }},
+                                                    location: {{ json_encode($archive->display_location) }},
+                                                    has_scan_input: {{ !empty($archive->scan_input_form) ? 'true' : 'false' }},
+                                                    has_file_path: {{ !empty($archive->file_path) ? 'true' : 'false' }},
+                                                    has_approval: {{ !empty($archive->scan_approval_input) ? 'true' : 'false' }}
+                                                })"
+                                                class="px-2 py-0.5 rounded text-[10px] font-bold bg-orange-500/20 hover:bg-orange-500/35 text-orange-800 dark:text-orange-300 border border-orange-500/50 inline-flex items-center gap-1 transition shadow-xs cursor-pointer hover:scale-105 group"
+                                                title="Klik untuk proses / ubah status Pengajuan Pemusnahan"
+                                            >
+                                                <i data-lucide="shield-alert" class="w-3 h-3 text-orange-600 dark:text-orange-400 group-hover:scale-110 transition-transform"></i>
+                                                <span class="underline decoration-dotted underline-offset-2">{{ $archive->status_label }}</span>
+                                            </button>
+                                        @else
+                                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-orange-500/20 text-orange-700 dark:text-orange-300 border border-orange-500/30 inline-flex items-center gap-1">
+                                                <i data-lucide="shield-alert" class="w-3 h-3 text-orange-500"></i>
+                                                <span>{{ $archive->status_label }}</span>
+                                            </span>
+                                        @endif
                                     @elseif($archive->status === 'destroyed')
                                         <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/30">Dimusnahkan</span>
                                     @endif
@@ -1258,7 +1301,7 @@
 
                     <!-- Status Berkas Lampiran / Scan -->
                     <div class="p-3 rounded-xl border" :class="verifyModalData.has_files ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-900 dark:text-emerald-200' : 'bg-rose-500/10 border-rose-500/30 text-rose-900 dark:text-rose-200'">
-                        <div class="flex items-center justify-between">
+                        <div class="flex items-center justify-between mb-2">
                             <span class="font-bold text-[11px] flex items-center gap-1.5">
                                 <i data-lucide="paperclip" class="w-3.5 h-3.5"></i>
                                 <span>Kelengkapan Berkas Scan:</span>
@@ -1270,6 +1313,41 @@
                                 <span class="px-2 py-0.5 rounded bg-rose-600 text-white font-black text-[10px]">Belum Ada Berkas</span>
                             </template>
                         </div>
+
+                        <!-- Daftar Berkas Lampiran dengan Tombol Preview Langsung -->
+                        <template x-if="verifyModalData.has_files && verifyModalData.files.length > 0">
+                            <div class="space-y-1.5 pt-1.5 border-t border-emerald-500/20">
+                                <template x-for="(f, fIdx) in verifyModalData.files" :key="fIdx">
+                                    <div class="flex items-center justify-between p-2 rounded-lg bg-white/80 dark:bg-slate-900/80 border border-emerald-500/30 gap-2">
+                                        <div class="min-w-0 flex items-center gap-2">
+                                            <span class="p-1 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 shrink-0">
+                                                <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+                                            </span>
+                                            <div class="truncate">
+                                                <span class="font-bold text-xs text-slate-900 dark:text-white block truncate" x-text="f.name"></span>
+                                                <span class="text-[10px] text-slate-500 dark:text-slate-400 block truncate" x-text="(f.category || '') + ' (' + (f.ext ? f.ext.toUpperCase() : 'FILE') + ')'"></span>
+                                            </div>
+                                        </div>
+                                        <button type="button"
+                                                @click="dmsPreviewFile({
+                                                    box_number: verifyModalData.box_number || '',
+                                                    title: verifyModalData.title,
+                                                    department: verifyModalData.department_code,
+                                                    files: verifyModalData.files,
+                                                    raw_path: f.raw_path,
+                                                    url: f.url,
+                                                    stream_url: f.stream_url,
+                                                    name: f.name,
+                                                    ext: f.ext
+                                                })"
+                                                class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer shrink-0 shadow-xs">
+                                            <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                                            <span>Lihat Berkas</span>
+                                        </button>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
                     </div>
 
                     <!-- Rejection Form Input (If rejecting) -->
@@ -1496,7 +1574,7 @@
                             <div class="space-y-1">
                                 <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase flex items-center justify-between">
                                     <span>Upload Bukti / Form Serah Terima (Opsional)</span>
-                                    <span class="text-[10px] text-slate-400 font-normal">PDF/JPG Max 10MB</span>
+                                    <span class="text-[10px] text-slate-400 font-normal">PDF/JPG Maks. 500 KB</span>
                                 </label>
                                 <input type="file" id="dash_checkout_approval_file" accept=".pdf,.jpg,.jpeg,.png" class="w-full px-2 py-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-[11px] font-mono text-slate-700 dark:text-slate-300">
                             </div>
@@ -1549,7 +1627,7 @@
                             <div class="space-y-1">
                                 <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase flex items-center justify-between">
                                     <span>Upload Scan Form Persetujuan / Bukti BAP (Opsional)</span>
-                                    <span class="text-[10px] text-slate-400 font-normal">PDF/JPG Max 10MB</span>
+                                    <span class="text-[10px] text-slate-400 font-normal">PDF/JPG Maks. 500 KB</span>
                                 </label>
                                 <input type="file" id="dash_destroy_approval_file" accept=".pdf,.jpg,.jpeg,.png" class="w-full px-2 py-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-[11px] font-mono text-slate-700 dark:text-slate-300">
                             </div>
@@ -1660,9 +1738,24 @@
                                   x-text="superAdminStatusData.status_label || superAdminStatusData.status">
                             </span>
                         </div>
-                        <div class="pt-1 border-t border-slate-200 dark:border-slate-800">
-                            <span class="text-[10px] text-slate-400 uppercase font-bold block mb-0.5">Judul Dokumen:</span>
-                            <h4 class="font-bold text-slate-900 dark:text-white text-xs truncate" x-text="superAdminStatusData.title"></h4>
+                        <div class="pt-1 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2">
+                            <div class="min-w-0">
+                                <span class="text-[10px] text-slate-400 uppercase font-bold block mb-0.5">Judul Dokumen:</span>
+                                <h4 class="font-bold text-slate-900 dark:text-white text-xs truncate" x-text="superAdminStatusData.title"></h4>
+                            </div>
+                            <template x-if="superAdminStatusData.files && superAdminStatusData.files.length > 0">
+                                <button type="button"
+                                        @click="dmsPreviewFile({
+                                            box_number: superAdminStatusData.box_number,
+                                            title: superAdminStatusData.title,
+                                            department: superAdminStatusData.department_code,
+                                            files: superAdminStatusData.files
+                                        })"
+                                        class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer shrink-0 shadow-xs">
+                                    <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                                    <span>Pratinjau Berkas</span>
+                                </button>
+                            </template>
                         </div>
                     </div>
 
@@ -1724,8 +1817,21 @@
                                 </div>
                             </label>
 
+                            <!-- Antrean Pemusnahan -->
+                            <label class="p-2.5 rounded-xl border cursor-pointer transition flex items-start gap-2.5"
+                                   :class="targetStatusChoice === 'pending_destruction' ? 'bg-orange-500/20 border-orange-500 ring-2 ring-orange-500/40 font-bold' : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 hover:border-orange-400'">
+                                <input type="radio" name="dash_super_status_opt" value="pending_destruction" x-model="targetStatusChoice" class="mt-0.5 text-orange-600">
+                                <div class="min-w-0">
+                                    <div class="text-xs font-bold text-orange-700 dark:text-orange-300 flex items-center gap-1.5">
+                                        <i data-lucide="shield-alert" class="w-3.5 h-3.5 text-orange-500"></i>
+                                        <span>Antrean Pemusnahan</span>
+                                    </div>
+                                    <p class="text-[10px] text-slate-500 leading-tight mt-0.5">Usulan/antrean pemusnahan berkas sebelum eksekusi fisik BAP.</p>
+                                </div>
+                            </label>
+
                             <!-- Dimusnahkan -->
-                            <label class="p-2.5 rounded-xl border cursor-pointer transition flex items-start gap-2.5 sm:col-span-2"
+                            <label class="p-2.5 rounded-xl border cursor-pointer transition flex items-start gap-2.5"
                                    :class="targetStatusChoice === 'destroyed' ? 'bg-rose-500/20 border-rose-500 ring-2 ring-rose-500/40 font-bold' : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 hover:border-rose-400'">
                                 <input type="radio" name="dash_super_status_opt" value="destroyed" x-model="targetStatusChoice" class="mt-0.5 text-rose-600">
                                 <div class="min-w-0">
@@ -1774,7 +1880,21 @@
                                 <div class="p-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg space-y-1.5">
                                     <div class="flex items-center justify-between text-[11px]">
                                         <span class="font-bold text-slate-800 dark:text-slate-200">1. Scan Formulir Input Fisik</span>
-                                        <span class="px-2 py-0.2 rounded text-[10px] font-bold" :class="superAdminStatusData.has_scan_input ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300' : 'bg-rose-500/20 text-rose-700 dark:text-rose-300'" x-text="superAdminStatusData.has_scan_input ? 'Sudah Ada' : 'Belum Ada'"></span>
+                                        <div class="flex items-center gap-1.5">
+                                            <span class="px-2 py-0.2 rounded text-[10px] font-bold" :class="superAdminStatusData.has_scan_input ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300' : 'bg-rose-500/20 text-rose-700 dark:text-rose-300'" x-text="superAdminStatusData.has_scan_input ? 'Sudah Ada' : 'Belum Ada'"></span>
+                                            <template x-if="superAdminStatusData.has_scan_input">
+                                                <button type="button"
+                                                        @click="const sf = (superAdminStatusData.files || []).find(f => f.name && (f.name.includes('Formulir') || f.category === 'Formulir Pendaftaran Fisik')); dmsPreviewFile(sf || {
+                                                            url: superAdminStatusData.scan_input_form_url,
+                                                            name: 'Scan Formulir Input - ' + superAdminStatusData.title,
+                                                            box_number: superAdminStatusData.box_number
+                                                        })"
+                                                        class="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] inline-flex items-center gap-1 cursor-pointer transition shadow-2xs">
+                                                    <i data-lucide="eye" class="w-3 h-3"></i>
+                                                    <span>Lihat</span>
+                                                </button>
+                                            </template>
+                                        </div>
                                     </div>
                                     <input type="file" id="sa_scan_input_form" accept=".pdf,.jpg,.jpeg,.png" class="w-full text-[10px] font-mono text-slate-600 dark:text-slate-400 file:mr-2 file:py-0.5 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-bold file:bg-amber-500/20 file:text-amber-800 dark:file:text-amber-200 hover:file:bg-amber-500/30">
                                 </div>
@@ -1783,7 +1903,21 @@
                                 <div class="p-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg space-y-1.5">
                                     <div class="flex items-center justify-between text-[11px]">
                                         <span class="font-bold text-slate-800 dark:text-slate-200">2. Lampiran Digital Dokumen</span>
-                                        <span class="px-2 py-0.2 rounded text-[10px] font-bold" :class="superAdminStatusData.has_file_path ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300' : 'bg-rose-500/20 text-rose-700 dark:text-rose-300'" x-text="superAdminStatusData.has_file_path ? 'Sudah Ada' : 'Belum Ada'"></span>
+                                        <div class="flex items-center gap-1.5">
+                                            <span class="px-2 py-0.2 rounded text-[10px] font-bold" :class="superAdminStatusData.has_file_path ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300' : 'bg-rose-500/20 text-rose-700 dark:text-rose-300'" x-text="superAdminStatusData.has_file_path ? 'Sudah Ada' : 'Belum Ada'"></span>
+                                            <template x-if="superAdminStatusData.has_file_path">
+                                                <button type="button"
+                                                        @click="const df = (superAdminStatusData.files || []).find(f => f.name && (f.name.includes('Digital') || f.category === 'Softcopy Dokumen')); dmsPreviewFile(df || {
+                                                            url: superAdminStatusData.file_path_url,
+                                                            name: 'Lampiran Digital - ' + superAdminStatusData.title,
+                                                            box_number: superAdminStatusData.box_number
+                                                        })"
+                                                        class="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] inline-flex items-center gap-1 cursor-pointer transition shadow-2xs">
+                                                    <i data-lucide="eye" class="w-3 h-3"></i>
+                                                    <span>Lihat</span>
+                                                </button>
+                                            </template>
+                                        </div>
                                     </div>
                                     <input type="file" id="sa_file_path" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.zip" class="w-full text-[10px] font-mono text-slate-600 dark:text-slate-400 file:mr-2 file:py-0.5 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-bold file:bg-amber-500/20 file:text-amber-800 dark:file:text-amber-200 hover:file:bg-amber-500/30">
                                 </div>
@@ -1820,7 +1954,7 @@
                             <div class="space-y-1">
                                 <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase flex items-center justify-between">
                                     <span>Upload Berkas Serah Terima Masuk Gudang (Opsional)</span>
-                                    <span class="text-[10px] text-slate-400 font-normal">PDF/JPG Max 10MB</span>
+                                    <span class="text-[10px] text-slate-400 font-normal">PDF/JPG Maks. 500 KB</span>
                                 </label>
                                 <input type="file" id="sa_warehouse_approval_file" accept=".pdf,.jpg,.jpeg,.png" class="w-full px-2 py-1 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-[11px] font-mono text-slate-700 dark:text-slate-300">
                             </div>
@@ -1917,7 +2051,7 @@
                             <div class="space-y-1">
                                 <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase flex items-center justify-between">
                                     <span>Upload Bukti / Form Serah Terima Keluar (Opsional)</span>
-                                    <span class="text-[10px] text-slate-400 font-normal">PDF/JPG Max 10MB</span>
+                                    <span class="text-[10px] text-slate-400 font-normal">PDF/JPG Maks. 500 KB</span>
                                 </label>
                                 <input type="file" id="sa_taken_approval_file" accept=".pdf,.jpg,.jpeg,.png" class="w-full px-2 py-1 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-[11px] font-mono text-slate-700 dark:text-slate-300">
                             </div>
@@ -1964,7 +2098,7 @@
                             <div class="space-y-1">
                                 <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase flex items-center justify-between">
                                     <span>Upload Scan Form / Dokumen BAP Pemusnahan (Opsional)</span>
-                                    <span class="text-[10px] text-slate-400 font-normal">PDF/JPG Max 10MB</span>
+                                    <span class="text-[10px] text-slate-400 font-normal">PDF/JPG Maks. 500 KB</span>
                                 </label>
                                 <input type="file" id="sa_destroy_approval_file" accept=".pdf,.jpg,.jpeg,.png" class="w-full px-2 py-1 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-[11px] font-mono text-slate-700 dark:text-slate-300">
                             </div>
@@ -1989,7 +2123,7 @@
                             <template x-if="!updatingStatus">
                                 <i data-lucide="check-circle-2" class="w-4 h-4 text-slate-950"></i>
                             </template>
-                            <span x-text="updatingStatus ? 'Menyimpan...' : (targetStatusChoice === 'draft' ? 'Kembalikan ke Draft' : (targetStatusChoice === 'pending_verification' ? 'Ubah ke Antrean Verifikasi' : (targetStatusChoice === 'in_warehouse' ? 'Simpan di Gudang' : (targetStatusChoice === 'taken' ? 'Keluarkan Berkas (Out)' : (targetStatusChoice === 'destroyed' ? 'Sahkan Pemusnahan (BAP)' : 'Terapkan Perubahan Status')))))"></span>
+                            <span x-text="updatingStatus ? 'Menyimpan...' : (targetStatusChoice === 'draft' ? 'Kembalikan ke Draft' : (targetStatusChoice === 'pending_verification' ? 'Ubah ke Antrean Verifikasi' : (targetStatusChoice === 'in_warehouse' ? 'Simpan di Gudang' : (targetStatusChoice === 'taken' ? 'Keluarkan Berkas (Out)' : (targetStatusChoice === 'pending_destruction' ? 'Pindah ke Antrean Pemusnahan' : (targetStatusChoice === 'destroyed' ? 'Sahkan Pemusnahan (BAP)' : 'Terapkan Perubahan Status'))))))"></span>
                         </button>
                     </div>
                 </div>

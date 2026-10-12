@@ -252,10 +252,11 @@
                             name="additional_months" 
                             id="additional_months" 
                             x-model="additionalMonths"
+                            @input="if (additionalMonths > 60) additionalMonths = 60; if (additionalMonths < 1 && additionalMonths !== '') additionalMonths = 1;"
                             min="1" 
-                            max="600"
+                            max="60"
                             required 
-                            placeholder="Misal: 12, 24, 60..." 
+                            placeholder="Misal: 6, 12, 60..." 
                             class="w-full pl-2.5 pr-14 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-purple-700 dark:text-purple-300 placeholder-slate-400 focus:outline-none focus:border-purple-500 transition shadow-2xs"
                         >
                         <span class="absolute right-2.5 text-[11px] font-mono font-bold text-slate-400 pointer-events-none select-none">Bulan</span>
@@ -264,7 +265,7 @@
                     <!-- Quick Preset Buttons -->
                     <div class="flex flex-wrap items-center gap-1 font-mono text-xs">
                         <span class="text-slate-400 text-[10px] mr-0.5">Preset:</span>
-                        <template x-for="preset in [6, 12, 24, 36, 60, 120]" :key="preset">
+                        <template x-for="preset in [6, 12, 24, 36, 60]" :key="preset">
                             <button 
                                 type="button" 
                                 @click="additionalMonths = preset" 
@@ -272,13 +273,13 @@
                                 :class="additionalMonths == preset 
                                     ? 'bg-purple-600 text-white border-purple-600 font-black shadow-xs' 
                                     : 'bg-slate-100 dark:bg-slate-800 hover:bg-purple-500/10 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 font-semibold'"
-                                x-text="preset + ' Bln' + (preset == 60 ? ' (5 Thn)' : (preset == 12 ? ' (1 Thn)' : (preset == 120 ? ' (10 Thn)' : '')))"
+                                x-text="preset + ' Bln' + (preset == 60 ? ' (5 Thn)' : (preset == 12 ? ' (1 Thn)' : ''))"
                             ></button>
                         </template>
                     </div>
                 </div>
                 <span class="text-[10px] text-slate-500 dark:text-slate-400 font-mono block">
-                    * Masa simpan baru akan ditambahkan dari tanggal akhir bulan expiry sebelumnya.
+                    * Maksimal perpanjangan masa simpan adalah 60 Bulan (5 Tahun). Penambahan dihitung dari akhir bulan expiry sebelumnya.
                 </span>
             </div>
 
@@ -314,8 +315,8 @@
                     :required="false" 
                     badge="OPSIONAL" 
                     accept=".pdf,.jpg,.jpeg,.png"
-                    :maxSizeMB="2"
-                    helperText="Scan permohonan perpanjangan yang disetujui PIC / Manager (Format: PDF, JPG, PNG Maks. 2MB)."
+                    :maxSizeKB="500"
+                    helperText="Scan permohonan perpanjangan yang disetujui PIC / Manager (Format: PDF, JPG, PNG Maks. 500 KB)."
                 />
             </div>
         </fieldset>

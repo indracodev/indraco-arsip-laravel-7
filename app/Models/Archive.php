@@ -144,6 +144,11 @@ class Archive extends Model
         return $this->hasOne(DestructionLog::class);
     }
 
+    public function destructionLogs(): HasMany
+    {
+        return $this->hasMany(DestructionLog::class);
+    }
+
     public function items(): HasMany
     {
         return $this->hasMany(ArchiveItem::class)->orderBy('item_number', 'asc');
@@ -367,7 +372,10 @@ class Archive extends Model
             case 'taken':
                 return 'Telah Diambil (Permanen)';
             case 'pending_destruction':
-                return 'Antrean Pemusnahan';
+                if ($this->relationLoaded('destructionLog') && $this->destructionLog) {
+                    return $this->destructionLog->approval_status === 'approved' ? 'Antrean Pemusnahan' : 'Pengajuan Pemusnahan';
+                }
+                return 'Pengajuan Pemusnahan';
             case 'destroyed':
                 return 'Telah Dimusnahkan';
             default:
@@ -391,7 +399,10 @@ class Archive extends Model
             case 'taken':
                 return 'bg-purple-100 text-purple-800 border-purple-300';
             case 'pending_destruction':
-                return 'bg-orange-100 text-orange-800 border-orange-300';
+                if ($this->relationLoaded('destructionLog') && $this->destructionLog && $this->destructionLog->approval_status === 'approved') {
+                    return 'bg-blue-100 text-blue-800 border-blue-300';
+                }
+                return 'bg-amber-100 text-amber-800 border-amber-300';
             case 'destroyed':
                 return 'bg-rose-100 text-rose-800 border-rose-200';
             default:
@@ -419,6 +430,18 @@ class Archive extends Model
         $expiryEndOfMonth = Carbon::parse($this->retention_expiry_date)->endOfMonth()->endOfDay();
 
         return Carbon::now()->gt($expiryEndOfMonth);
+    }
+
+    public function getIsNearExpAttribute(): bool
+    {
+        if (!$this->retention_expiry_date || $this->status === 'destroyed' || $this->is_expired) {
+            return false;
+        }
+
+        $expiryEndOfMonth = Carbon::parse($this->retention_expiry_date)->endOfMonth()->endOfDay();
+        $h30Threshold = $expiryEndOfMonth->copy()->subDays(30)->startOfDay();
+
+        return Carbon::today()->gte($h30Threshold);
     }
 
     /**

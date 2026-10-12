@@ -5,8 +5,9 @@
     'required' => false,
     'badge' => null,
     'accept' => '.pdf,.jpg,.jpeg,.png',
-    'maxSizeMB' => 2,
-    'helperText' => 'Format: PDF, JPG, PNG (Maksimal 2MB).',
+    'maxSizeKB' => 500,
+    'maxSizeMB' => 0.5,
+    'helperText' => 'Format: PDF, JPG, PNG (Maksimal 500 KB).',
     'existingUrl' => null,
     'existingLabel' => 'Lihat File Tersimpan',
     'color' => 'amber'
@@ -21,7 +22,7 @@
         id: '{{ $inputId }}',
         accept: '{{ $accept }}',
         required: {{ $required ? 'true' : 'false' }},
-        maxSizeMB: {{ $maxSizeMB }},
+        maxSizeKB: {{ $maxSizeKB }},
         label: '{{ $label }}',
         existingUrl: {{ json_encode($existingUrl) }},
         existingName: {{ json_encode($existingLabel) }}
@@ -68,7 +69,7 @@
     @endif
 
     {{-- File Input Control (Hidden when file is already selected to keep UI clean, or visible) --}}
-    <div x-show="!hasFile">
+    <div x-show="!hasFile" class="space-y-1.5">
         <input 
             type="file" 
             name="{{ $name }}" 
@@ -78,7 +79,10 @@
             @if($required && !$existingUrl) required @endif
             class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-[11px] text-slate-700 dark:text-slate-300 file:mr-2.5 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[11px] file:font-bold file:bg-amber-500/20 file:text-amber-800 dark:file:text-amber-300 hover:file:bg-amber-500/30 cursor-pointer transition"
         >
-        <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-1">{{ $helperText }}</p>
+        <div class="p-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-[10px] flex items-center gap-1.5">
+            <i data-lucide="info" class="w-3.5 h-3.5 text-amber-500 shrink-0"></i>
+            <span>{{ $helperText ?: 'Format berkas: PDF, JPG, JPEG, PNG | Ukuran maksimal: 500 KB' }}</span>
+        </div>
     </div>
 
     {{-- Optimizing & Compressing Progress Bar --}}

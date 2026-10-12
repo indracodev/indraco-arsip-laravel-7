@@ -66,8 +66,12 @@
                 <i data-lucide="trash-2" class="w-4 h-4"></i>
             </span>
             <div>
-                <h1 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Formulir Pengajuan Pemusnahan Dokumen Arsip (BAP)</h1>
-                <p class="text-[11px] text-slate-500 dark:text-slate-400">Pemusnahan Berkas Fisik • Berita Acara Pelaksanaan & Approval Pengesahan</p>
+                <h1 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                    {{ auth()->user()->isPicDept() ? 'Formulir Pengajuan Usulan Pemusnahan Berkas Arsip' : 'Formulir Pengesahan / Pemusnahan Dokumen Arsip (BAP)' }}
+                </h1>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400">
+                    {{ auth()->user()->isPicDept() ? 'Usulan Pemusnahan dari Departemen • Menunggu Verifikasi & Persetujuan Gudang' : 'Pemusnahan Berkas Fisik • Berita Acara Pelaksanaan & Approval Pengesahan' }}
+                </p>
             </div>
         </div>
 
@@ -236,8 +240,9 @@
                 2. Parameter Berita Acara Pemusnahan (BAP)
             </legend>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <!-- BAP Number -->
+            <div class="grid grid-cols-1 {{ !auth()->user()->isPicDept() ? 'sm:grid-cols-2' : '' }} gap-3">
+                @if(!auth()->user()->isPicDept())
+                <!-- BAP Number (Khusus Gudang / Super Admin) -->
                 <div>
                     <label for="bap_number" class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
                         NOMOR BERITA ACARA (BAP) <span class="text-rose-500">*</span>
@@ -252,6 +257,9 @@
                     >
                     @error('bap_number') <span class="text-rose-500 font-mono text-[11px] font-bold block mt-1">{{ $message }}</span> @enderror
                 </div>
+                @else
+                <input type="hidden" name="bap_number" :value="autoBap">
+                @endif
 
                 <!-- Destruction Date -->
                 <div>
@@ -306,7 +314,7 @@
                 3. Upload Dokumen Persetujuan (Approval) & Berkas BAP
             </legend>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-xs"
+            <div class="grid grid-cols-1 {{ !auth()->user()->isPicDept() ? 'md:grid-cols-2' : '' }} gap-4 font-mono text-xs"
                  @file-change="if($event.detail.name === 'approval_file') { hasApprovalFile = $event.detail.hasFile && !$event.detail.isOverLimit; }">
                 <!-- 1. Dokumen Approval (Wajib) -->
                 <x-file-uploader 
@@ -316,11 +324,13 @@
                     :required="true" 
                     badge="WAJIB UNTUK PEMUSNAHAN" 
                     accept=".pdf,.jpg,.jpeg,.png"
-                    :maxSizeMB="2"
-                    helperText="Wajib upload scan persetujuan pemusnahan bertandatangan (Format: PDF, JPG, PNG Maks. 2MB)."
+                    :maxSizeKB="500"
+                    :maxSizeMB="0.5"
+                    helperText="Wajib upload scan persetujuan pemusnahan bertandatangan (Format: PDF, JPG, PNG Maks. 500 KB)."
                 />
 
-                <!-- 2. Sertifikat / Berkas BAP (Opsional) -->
+                @if(!auth()->user()->isPicDept())
+                <!-- 2. Sertifikat / Berkas BAP (Opsional untuk selain Departemen) -->
                 <x-file-uploader 
                     name="certificate_file" 
                     id="certificate_file" 
@@ -328,9 +338,11 @@
                     :required="false" 
                     badge="OPSIONAL" 
                     accept=".pdf,.jpg,.jpeg,.png"
-                    :maxSizeMB="2"
-                    helperText="Scan sertifikat atau berita acara pelaksanaan jika sudah tersedia."
+                    :maxSizeKB="500"
+                    :maxSizeMB="0.5"
+                    helperText="Scan sertifikat atau berita acara pelaksanaan jika sudah tersedia (Format: PDF, JPG, PNG Maks. 500 KB)."
                 />
+                @endif
             </div>
         </fieldset>
 
@@ -339,9 +351,9 @@
             <!-- Left status hint -->
             <div class="text-xs">
                 <span x-show="!selectedArchive" class="text-slate-500 font-bold">• Silakan pilih berkas arsip terlebih dahulu di atas</span>
-                <span x-show="selectedArchive && !hasApprovalFile" class="text-rose-500 font-bold">• Unggah dokumen approval untuk mengaktifkan tombol pengesahan</span>
+                <span x-show="selectedArchive && !hasApprovalFile" class="text-rose-500 font-bold">• Unggah dokumen approval untuk {{ auth()->user()->isPicDept() ? 'mengajukan usulan pemusnahan ke Gudang' : 'mengaktifkan tombol pengesahan' }}</span>
                 <span x-show="selectedArchive && hasApprovalFile" class="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
-                    <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i> Berkas & dokumen approval lengkap, siap disahkan
+                    <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i> {{ auth()->user()->isPicDept() ? 'Berkas & dokumen approval lengkap, siap dikirim ke Gudang' : 'Berkas & dokumen approval lengkap, siap disahkan' }}
                 </span>
             </div>
 
@@ -354,8 +366,8 @@
                         :disabled="!selectedArchive || !hasApprovalFile" 
                         :class="(selectedArchive && hasApprovalFile) ? 'bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 text-white font-black border-rose-700 shadow-md cursor-pointer' : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-300 dark:border-slate-700 cursor-not-allowed font-bold'"
                         class="px-5 py-2 text-xs rounded border transition flex items-center gap-1.5">
-                    <i data-lucide="shield-alert" class="w-3.5 h-3.5"></i>
-                    <span>Sahkan Pemusnahan Berkas</span>
+                    <i data-lucide="{{ auth()->user()->isPicDept() ? 'send' : 'shield-alert' }}" class="w-3.5 h-3.5"></i>
+                    <span>{{ auth()->user()->isPicDept() ? 'Kirim Pengajuan Pemusnahan ke Gudang' : 'Sahkan Pemusnahan Berkas' }}</span>
                 </button>
             </div>
         </div>

@@ -963,7 +963,7 @@
         </template>
 
         <!-- REAL-TIME FLOATING TOAST NOTIFICATIONS (TOP-RIGHT) -->
-        <div class="fixed top-12 right-3 sm:right-5 z-[999] flex flex-col gap-2.5 max-w-sm sm:max-w-md pointer-events-none font-mono">
+        <div class="fixed top-24 right-3 sm:right-5 z-[9999] flex flex-col gap-2.5 max-w-sm sm:max-w-md pointer-events-none font-mono">
             <template x-for="toast in activeToasts" :key="toast.id">
                 <div 
                     x-transition:enter="transition ease-out duration-300 transform"
@@ -1522,6 +1522,8 @@
                     { id: 'users', title: 'Kelola User & Hak Akses', icon: 'users', url: '{{ route("master.users") }}?embed=1' },
                     @endif
                     { id: 'archives', title: 'Katalog Arsip', icon: 'folder-archive', url: '{{ route("archives.index") }}?embed=1' },
+                    { id: 'borrowings', title: 'Penarikan Berkas', icon: 'file-symlink', url: '{{ route("borrowings.index") }}?embed=1' },
+                    { id: 'destructions', title: 'Pemusnahan & Retensi', icon: 'shield-alert', badgeCount: {{ (int) \App\Models\Archive::getForm3PendingCount() }}, url: '{{ route("destructions.index") }}?embed=1' },
                     @if(auth()->check() && auth()->user()->isSuperAdmin())
                     { id: 'logs', title: 'Log History', icon: 'history', url: '{{ route("logs.index") }}?embed=1' },
                     { id: 'reports', title: 'Report', icon: 'file-text', url: '{{ route("reports.index") }}?embed=1' },
@@ -1537,6 +1539,8 @@
                     @elseif(request()->routeIs('master.numbering')) initialId = 'numbering';
                     @elseif(request()->routeIs('master.users') && auth()->check() && auth()->user()->isSuperAdmin()) initialId = 'users';
                     @elseif(request()->routeIs('archives.*')) initialId = 'archives';
+                    @elseif(request()->routeIs('borrowings.*')) initialId = 'borrowings';
+                    @elseif(request()->routeIs('destructions.*')) initialId = 'destructions';
                     @elseif(request()->routeIs('logs.*') && auth()->check() && auth()->user()->isSuperAdmin()) initialId = 'logs';
                     @elseif(request()->routeIs('reports.*')) initialId = 'reports';
                     @elseif(request()->routeIs('diagnostics.index')) initialId = 'diagnostics';
@@ -1575,9 +1579,9 @@
                                 type: d.level || 'success',
                                 title: d.message,
                                 boxNumber: d.boxNumber || '',
-                                deptCode: '{{ auth()->user()->department->code ?? "DMS" }}',
-                                deptName: '{{ auth()->user()->department->name ?? "" }}',
-                                creatorName: '{{ auth()->user()->name }}',
+                                deptCode: {!! json_encode(auth()->user()->department->code ?? 'DMS') !!},
+                                deptName: {!! json_encode(auth()->user()->department->name ?? '') !!},
+                                creatorName: {!! json_encode(auth()->user()->name ?? '') !!},
                                 statusLabel: d.statusLabel || 'Tersimpan',
                                 time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
                                 url: d.url || null

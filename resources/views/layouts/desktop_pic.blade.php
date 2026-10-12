@@ -525,7 +525,7 @@
 
             <!-- SEARCH INPUT WITH AUTO-SUGGESTIONS & PHYSICAL LOCATION -->
             <div class="relative z-50 flex-1 min-w-[200px] max-w-xl" x-data="picQuickSearch()"
-               @click.outside="closeDropdown()">
+               @click.outside="closeDropdown()" style="display: none !important;">
                <div class="relative flex items-center">
                   <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
                      <svg x-show="isLoading" class="w-3.5 h-3.5 text-amber-500 animate-spin" viewBox="0 0 24 24"
@@ -918,7 +918,7 @@
                    (isWindowOpen(form.id) ?
                        'bg-slate-100 dark:bg-slate-900/80 text-slate-900 dark:text-slate-100 border-t-2 border-t-transparent border-x border-slate-300 dark:border-slate-700 font-bold' :
                        'bg-slate-200/60 dark:bg-slate-950 text-slate-600 dark:text-slate-400 border-t-2 border-t-transparent border-x border-transparent font-bold hover:bg-slate-100 dark:hover:bg-slate-850'
-                       )"
+                   )"
                class="px-3 py-1.5 rounded-t text-xs transition-colors flex items-center gap-2 shrink-0 cursor-pointer whitespace-nowrap">
                <i :data-lucide="form.icon" class="w-3.5 h-3.5"
                   :class="activeWinId === form.id ? 'text-amber-500' : (isWindowOpen(form.id) ? 'text-amber-500/80' :
@@ -953,7 +953,7 @@
                    'absolute rounded-t-lg rounded-b-sm border-2 border-slate-400 dark:border-slate-700 shadow-2xl resize overflow-hidden'"
                :style="getWindowStyle(win) + (win.maximized ? '' :
                    'width: 980px; max-width: 96vw; height: 580px; max-height: 82vh; min-width: 480px; min-height: 320px;'
-                   )"
+               )"
                class="delphi-window bg-slate-100 dark:bg-slate-900 flex flex-col transition-shadow duration-150">
                <!-- WINDOW TITLE BAR (Draggable Desktop Caption & 3 Window Control Buttons) -->
                <div @mousedown="startDragWindow(win, $event)" @dblclick="win.maximized = !win.maximized"
@@ -1840,7 +1840,7 @@
                   try {
                      const res = await fetch(
                         `{{ route('api.realtime.check') }}?last_id=${this.lastArchiveId}&since_seq=${this.lastEventSeq || 0}`
-                        );
+                     );
                      if (!res.ok) return;
                      const data = await res.json();
 
