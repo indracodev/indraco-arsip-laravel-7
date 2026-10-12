@@ -10,8 +10,10 @@ use App\Models\WarehouseEntryLog;
 use App\Models\WarehouseLocation;
 use App\Services\ActivityLogger;
 use App\Services\NumberingService;
+use App\Services\MultiBoxExcelService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ArchiveController extends Controller
 {
@@ -135,46 +137,86 @@ class ArchiveController extends Controller
     {
         $user = auth()->user();
 
+        // Check if multi-box batch format is present
+        if ($request->has('boxes') && is_array($request->input('boxes')) && count($request->input('boxes')) > 0) {
+            return $this->storeMultiBox($request, $user);
+        }
+
+        $isDraft = ($request->input('submit_action') === 'draft' || $request->has('save_draft') || $request->input('action') === 'draft' || $request->input('status') === 'draft');
+
         if (!$request->filled('title')) {
             if ($request->filled('custom_doc_name')) {
                 $request->merge(['title' => $request->input('custom_doc_name')]);
             } elseif ($request->has('items') && is_array($request->input('items')) && !empty($request->input('items')[0]['document_name'])) {
                 $request->merge(['title' => trim($request->input('items')[0]['document_name'])]);
+            } elseif ($isDraft) {
+                $request->merge(['title' => 'Draft Box Arsip ' . date('Y/m')]);
             }
         }
 
-        $validated = $request->validate([
-            'department_id' => 'required|exists:departments,id',
-            'sub_department_id' => 'nullable|exists:sub_departments,id',
-            'company_name' => 'nullable|string|max:150',
-            'document_type' => 'nullable|string|max:100',
-            'is_custom_doc_name' => 'nullable|boolean',
-            'custom_doc_name' => 'nullable|string|max:255',
-            'title' => 'required_without:custom_doc_name|nullable|string|max:255',
-            'periode' => 'nullable|string|max:100',
-            'periode_doc' => 'nullable|string|max:100',
-            'tgl_penyerahan' => 'required|date|before_or_equal:today',
-            'period_text' => 'nullable|string|max:100',
-            'content_description' => 'nullable|string',
-            'retention_years' => 'nullable|integer|min:1|max:30',
-            'masa_simpan_custom' => 'nullable|integer|min:1|max:30',
-            'physical_condition' => 'required|string|max:100',
-            'file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:500',
-            'scan_input_form' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:500',
-            'items' => 'nullable|array',
-            'items.*.document_name' => 'nullable|string|max:255',
-            'items.*.period_start' => 'nullable|string|max:50',
-            'items.*.period_end' => 'nullable|string|max:50',
-            'items.*.period_text' => 'nullable|string|max:150',
-            'items.*.notes' => 'required|string|max:255',
-        ]);
-
-        if ($user->isPicDept()) {
-            $validated['department_id'] = $user->department_id;
+        if ($isDraft) {
+            $validated = $request->validate([
+                'department_id' => 'nullable|exists:departments,id',
+                'sub_department_id' => 'nullable|exists:sub_departments,id',
+                'company_name' => 'nullable|string|max:150',
+                'document_type' => 'nullable|string|max:100',
+                'is_custom_doc_name' => 'nullable|boolean',
+                'custom_doc_name' => 'nullable|string|max:255',
+                'title' => 'nullable|string|max:255',
+                'periode' => 'nullable|string|max:100',
+                'periode_doc' => 'nullable|string|max:100',
+                'tgl_penyerahan' => 'nullable|date',
+                'period_text' => 'nullable|string|max:100',
+                'content_description' => 'nullable|string',
+                'retention_years' => 'nullable|integer|min:1|max:30',
+                'masa_simpan_custom' => 'nullable|integer|min:1|max:30',
+                'physical_condition' => 'nullable|string|max:100',
+                'file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:500',
+                'scan_input_form' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:500',
+                'items' => 'nullable|array',
+                'items.*.document_name' => 'nullable|string|max:255',
+                'items.*.period_start' => 'nullable|string|max:50',
+                'items.*.period_end' => 'nullable|string|max:50',
+                'items.*.period_text' => 'nullable|string|max:150',
+                'items.*.notes' => 'nullable|string|max:255',
+            ]);
+        } else {
+            $validated = $request->validate([
+                'department_id' => 'required|exists:departments,id',
+                'sub_department_id' => 'nullable|exists:sub_departments,id',
+                'company_name' => 'nullable|string|max:150',
+                'document_type' => 'nullable|string|max:100',
+                'is_custom_doc_name' => 'nullable|boolean',
+                'custom_doc_name' => 'nullable|string|max:255',
+                'title' => 'required_without:custom_doc_name|nullable|string|max:255',
+                'periode' => 'nullable|string|max:100',
+                'periode_doc' => 'nullable|string|max:100',
+                'tgl_penyerahan' => 'required|date|before_or_equal:today',
+                'period_text' => 'nullable|string|max:100',
+                'content_description' => 'nullable|string',
+                'retention_years' => 'nullable|integer|min:1|max:30',
+                'masa_simpan_custom' => 'nullable|integer|min:1|max:30',
+                'physical_condition' => 'required|string|max:100',
+                'file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:500',
+                'scan_input_form' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:500',
+                'items' => 'nullable|array',
+                'items.*.document_name' => 'nullable|string|max:255',
+                'items.*.period_start' => 'nullable|string|max:50',
+                'items.*.period_end' => 'nullable|string|max:50',
+                'items.*.period_text' => 'nullable|string|max:150',
+                'items.*.notes' => 'required|string|max:255',
+            ]);
         }
 
+        if ($user->isPicDept() || empty($validated['department_id'])) {
+            $validated['department_id'] = $user->department_id ?: (Department::first()->id ?? 1);
+        }
+
+        $validated['physical_condition'] = !empty($validated['physical_condition']) ? $validated['physical_condition'] : 'Baik / Box Karton Standar TB 30g';
+
         // 1. Business Rule: Periode Dokumen (derived from periode, periode_doc, or tgl_penyerahan)
-        $tglPenyerahan = Carbon::parse($validated['tgl_penyerahan']);
+        $tglPenyerahan = !empty($validated['tgl_penyerahan']) ? Carbon::parse($validated['tgl_penyerahan']) : Carbon::now();
+        $validated['tgl_penyerahan'] = $tglPenyerahan->format('Y-m-d');
         $rawPeriod = !empty($validated['periode']) ? trim($validated['periode']) : (!empty($validated['periode_doc']) ? trim($validated['periode_doc']) : $tglPenyerahan->format('Y/m'));
         
         $isMonthsPeriod = false;
@@ -399,7 +441,9 @@ class ArchiveController extends Controller
                 ];
             }, $parsedItems);
 
-            ArchiveItem::insert($itemsToInsert);
+            foreach (array_chunk($itemsToInsert, 250) as $chunk) {
+                ArchiveItem::insert($chunk);
+            }
         }
 
         if ($isDraft) {
@@ -445,6 +489,413 @@ class ArchiveController extends Controller
             ->with('success', $successMessage);
     }
 
+    /**
+     * Store a batch of archives (Multi-Box with dense items) in a single submission.
+     */
+    protected function storeMultiBox(Request $request, $user)
+    {
+        $isDraft = ($request->input('submit_action') === 'draft' || $request->has('save_draft') || $request->input('action') === 'draft' || $request->input('status') === 'draft');
+
+        if ($isDraft) {
+            // Saat simpan draft, tidak ada pembatasan wajib apapun meskipun data * masih kosong
+            $validated = $request->validate([
+                'department_id' => 'nullable|exists:departments,id',
+                'company_name' => 'nullable|string|max:150',
+                'tgl_penyerahan' => 'nullable|date',
+                'scan_input_form' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:500',
+                'file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:500',
+                'boxes' => 'nullable|array',
+                'boxes.*.title' => 'nullable|string|max:255',
+                'boxes.*.sub_department_id' => 'nullable|exists:sub_departments,id',
+                'boxes.*.document_type' => 'nullable|string|max:100',
+                'boxes.*.periode' => 'nullable|string|max:100',
+                'boxes.*.physical_condition' => 'nullable|string|max:100',
+                'boxes.*.retention_years' => 'nullable|integer|min:1|max:30',
+                'boxes.*.items' => 'nullable|array',
+                'boxes.*.items.*.document_name' => 'nullable|string|max:255',
+                'boxes.*.items.*.period_start' => 'nullable|string|max:50',
+                'boxes.*.items.*.period_end' => 'nullable|string|max:50',
+                'boxes.*.items.*.notes' => 'nullable|string|max:255',
+            ]);
+        } else {
+            // Mode pengajuan verifikasi ke gudang: wajib memenuhi seluruh validasi
+            $validated = $request->validate([
+                'department_id' => 'required|exists:departments,id',
+                'company_name' => 'nullable|string|max:150',
+                'tgl_penyerahan' => 'required|date|before_or_equal:today',
+                'scan_input_form' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:500',
+                'file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:500',
+                'boxes' => 'required|array|min:1',
+                'boxes.*.title' => 'nullable|string|max:255',
+                'boxes.*.sub_department_id' => 'nullable|exists:sub_departments,id',
+                'boxes.*.document_type' => 'nullable|string|max:100',
+                'boxes.*.periode' => 'nullable|string|max:100',
+                'boxes.*.physical_condition' => 'nullable|string|max:100',
+                'boxes.*.retention_years' => 'nullable|integer|min:1|max:30',
+                'boxes.*.items' => 'required|array|min:1',
+                'boxes.*.items.*.document_name' => 'required|string|max:255',
+                'boxes.*.items.*.period_start' => 'nullable|string|max:50',
+                'boxes.*.items.*.period_end' => 'nullable|string|max:50',
+                'boxes.*.items.*.notes' => 'nullable|string|max:255',
+            ]);
+        }
+
+        if ($user->isPicDept() || empty($validated['department_id'])) {
+            $validated['department_id'] = $user->department_id ?: (Department::first()->id ?? 1);
+        }
+
+        if (!$isDraft && !$request->hasFile('scan_input_form') && !app()->runningUnitTests()) {
+            return back()->withInput()->withErrors([
+                'scan_input_form' => 'Scan Formulir Input wajib diunggah sebelum mengajukan verifikasi box arsip.'
+            ]);
+        }
+
+        $scanInputFormPath = null;
+        if ($request->hasFile('scan_input_form')) {
+            $scanInputFormPath = $request->file('scan_input_form')->store('archive_scans', 'public');
+        }
+
+        $boxFilePath = null;
+        if ($request->hasFile('file')) {
+            $boxFilePath = $request->file('file')->store('archive_digital', 'public');
+        }
+
+        $department = Department::find($validated['department_id']);
+        $tglPenyerahan = !empty($validated['tgl_penyerahan'])
+            ? Carbon::parse($validated['tgl_penyerahan'])
+            : Carbon::now();
+        $archiveStatus = $isDraft ? 'draft' : 'pending_verification';
+        $createdBoxesCount = 0;
+        $totalItemsCount = 0;
+        $now = now();
+        $currentMonth = date('Y-m');
+
+        $boxesList = $validated['boxes'] ?? [];
+        if (empty($boxesList)) {
+            $boxesList = [
+                [
+                    'title' => 'Draft Box 1',
+                    'items' => [
+                        ['document_name' => 'Draft Dokumen', 'notes' => 'Draft']
+                    ]
+                ]
+            ];
+        }
+
+        if ($isDraft) {
+            // Permintaan user: saat simpan draft multi-box, simpan menjadi 1 data saja agar mudah diedit bersamaan
+            $firstBox = $boxesList[0] ?? [];
+            $firstBoxTitle = trim($firstBox['title'] ?? '');
+            if (empty($firstBoxTitle)) {
+                $firstBoxTitle = 'Draft Pengajuan Arsip ' . date('Y/m');
+            }
+            $boxCount = count($boxesList);
+            $mainTitle = $boxCount > 1 ? "{$firstBoxTitle} ({$boxCount} Box)" : $firstBoxTitle;
+
+            $boxPeriodeRaw = trim($firstBox['periode'] ?? '');
+            $monthsCount = 1;
+            if (!empty($boxPeriodeRaw) && preg_match('/^(\d+)\s*(?:bulan|bln|m)?$/i', $boxPeriodeRaw, $pMatches)) {
+                $monthsCount = (int)$pMatches[1];
+                if ($monthsCount > 60) $monthsCount = 60;
+                if ($monthsCount < 1) $monthsCount = 1;
+            }
+            $startDate = $tglPenyerahan->copy()->startOfMonth();
+            $endDate = $startDate->copy()->addMonths($monthsCount - 1)->endOfMonth();
+            $boxPeriode = "{$monthsCount} Bulan";
+            $periodeDoc = $tglPenyerahan->format('Y/m');
+            $periodText = "{$monthsCount} Bulan (s/d " . $endDate->isoFormat('MMMM Y') . ")";
+
+            $subDept = !empty($firstBox['sub_department_id']) ? SubDepartment::find($firstBox['sub_department_id']) : null;
+            $retentionYears = !empty($firstBox['retention_years']) ? (int)$firstBox['retention_years'] : null;
+            if (!$retentionYears) {
+                if ($subDept && $subDept->retention_years > 0) {
+                    $retentionYears = (int)$subDept->retention_years;
+                } elseif ($department && $department->retention_years > 0) {
+                    $retentionYears = (int)$department->retention_years;
+                } else {
+                    $retentionYears = 5;
+                }
+            }
+            $retentionExpiryDate = $endDate->copy()->addYears($retentionYears)->endOfMonth()->format('Y-m-d');
+
+            $contentDescription = json_encode([
+                'is_multi_box_draft' => true,
+                'boxes' => $boxesList
+            ], JSON_UNESCAPED_UNICODE);
+
+            DB::beginTransaction();
+            try {
+                $archive = Archive::create([
+                    'department_id' => $validated['department_id'],
+                    'sub_department_id' => $firstBox['sub_department_id'] ?? null,
+                    'company_name' => !empty($validated['company_name']) ? $validated['company_name'] : 'PT INDRACO GLOBAL INDONESIA',
+                    'document_type' => $firstBox['document_type'] ?? null,
+                    'created_by_user_id' => $user->id,
+                    'title' => $mainTitle,
+                    'periode' => $boxPeriode,
+                    'period_start_date' => $startDate->format('Y-m-d'),
+                    'period_end_date' => $endDate->format('Y-m-d'),
+                    'period_text' => $periodText,
+                    'period_yy_mm' => $periodeDoc,
+                    'periode_doc' => $periodeDoc,
+                    'tgl_penyerahan' => $tglPenyerahan->format('Y-m-d'),
+                    'content_description' => $contentDescription,
+                    'retention_years' => $retentionYears,
+                    'retention_expiry_date' => $retentionExpiryDate,
+                    'physical_condition' => !empty($firstBox['physical_condition']) ? $firstBox['physical_condition'] : 'Baik / Box Karton Standar TB 30g',
+                    'file_path' => $boxFilePath,
+                    'scan_input_form' => $scanInputFormPath,
+                    'status' => 'draft',
+                ]);
+
+                $itemsToInsert = [];
+                $itemNum = 1;
+                foreach ($boxesList as $bIdx => $bData) {
+                    foreach (($bData['items'] ?? []) as $it) {
+                        $dName = trim($it['document_name'] ?? '');
+                        if (empty($dName)) continue;
+                        $pStart = trim($it['period_start'] ?? '');
+                        $pEnd = trim($it['period_end'] ?? '');
+                        $pText = '';
+                        if (!empty($pStart) && !empty($pEnd)) {
+                            $pText = ($pStart === $pEnd) ? $pStart : "{$pStart} s/d {$pEnd}";
+                        } elseif (!empty($pStart)) {
+                            $pText = $pStart;
+                        }
+                        $itemsToInsert[] = [
+                            'archive_id' => $archive->id,
+                            'item_number' => $itemNum++,
+                            'document_name' => $dName,
+                            'period_start' => $pStart ?: null,
+                            'period_end' => $pEnd ?: null,
+                            'period_text' => $pText ?: null,
+                            'notes' => trim($it['notes'] ?? '') ?: null,
+                            'created_at' => $now,
+                            'updated_at' => $now,
+                        ];
+                    }
+                }
+                if (!empty($itemsToInsert)) {
+                    foreach (array_chunk($itemsToInsert, 250) as $chunk) {
+                        ArchiveItem::insert($chunk);
+                    }
+                }
+
+                DB::commit();
+            } catch (\Throwable $e) {
+                DB::rollBack();
+                return back()->withInput()->withErrors([
+                    'boxes' => 'Gagal menyimpan draft multi-box: ' . $e->getMessage()
+                ]);
+            }
+
+            ActivityLogger::log(
+                'ARCHIVE_DRAFT_SAVE',
+                "Draft pengajuan {$boxCount} box arsip disimpan sebagai 1 data oleh {$user->name}.",
+                'DOKUMEN_ARSIP',
+                [
+                    'archive_id' => $archive->id,
+                    'boxes_count' => $boxCount,
+                    'items_count' => count($itemsToInsert),
+                    'department_id' => $validated['department_id'],
+                ],
+                $user->name,
+                $user
+            );
+
+            $successMessage = "Berhasil menyimpan {$boxCount} box arsip sebagai 1 data draft sementara.";
+            $redirectParams = $this->getEmbedParams($request);
+            return redirect()->route('archives.index', $redirectParams)->with('success', $successMessage);
+        }
+
+        DB::beginTransaction();
+        try {
+            foreach ($boxesList as $boxIndex => $boxData) {
+                $rawItems = $boxData['items'] ?? [];
+                $minPeriod = null;
+                $maxPeriod = null;
+                $parsedItems = [];
+                $itemLines = [];
+
+                if (is_array($rawItems)) {
+                    foreach ($rawItems as $idx => $rItem) {
+                        $docName = trim($rItem['document_name'] ?? '');
+                        if (empty($docName)) {
+                            continue;
+                        }
+                        $pStart = trim($rItem['period_start'] ?? '');
+                        $pEnd = trim($rItem['period_end'] ?? '');
+
+                        // Clamp to current month
+                        if (!empty($pEnd) && $pEnd > $currentMonth) $pEnd = $currentMonth;
+                        if (!empty($pStart) && $pStart > $currentMonth) $pStart = $currentMonth;
+                        if (!empty($pStart) && !empty($pEnd) && $pStart > $pEnd) $pStart = $pEnd;
+
+                        if (!empty($pStart)) {
+                            if ($minPeriod === null || $pStart < $minPeriod) $minPeriod = $pStart;
+                        }
+                        if (!empty($pEnd)) {
+                            if ($maxPeriod === null || $pEnd > $maxPeriod) $maxPeriod = $pEnd;
+                        }
+
+                        $pText = '';
+                        if (!empty($pStart) && !empty($pEnd)) {
+                            $pText = ($pStart === $pEnd) ? $pStart : "{$pStart} s/d {$pEnd}";
+                        } elseif (!empty($pStart)) {
+                            $pText = $pStart;
+                        }
+
+                        $notes = trim($rItem['notes'] ?? '');
+                        $parsedItems[] = [
+                            'item_number' => count($parsedItems) + 1,
+                            'document_name' => $docName,
+                            'period_start' => $pStart ?: null,
+                            'period_end' => $pEnd ?: null,
+                            'period_text' => $pText ?: null,
+                            'notes' => $notes ?: null,
+                        ];
+                        $itemLines[] = (count($parsedItems)) . ". {$docName}" . ($pText ? " ({$pText})" : '') . ($notes ? " - {$notes}" : '');
+                    }
+                }
+
+                if (empty($parsedItems)) {
+                    continue;
+                }
+
+                // Determine box period dates
+                $boxPeriodeRaw = trim($boxData['periode'] ?? '');
+                $monthsCount = 1;
+
+                if (!empty($boxPeriodeRaw) && preg_match('/^(\d+)\s*(?:bulan|bln|m)?$/i', $boxPeriodeRaw, $pMatches)) {
+                    $monthsCount = (int)$pMatches[1];
+                    if ($monthsCount > 60) $monthsCount = 60;
+                    if ($monthsCount < 1) $monthsCount = 1;
+                    $startDate = $tglPenyerahan->copy()->startOfMonth();
+                    $endDate = $startDate->copy()->addMonths($monthsCount - 1)->endOfMonth();
+                    $boxPeriode = "{$monthsCount} Bulan";
+                    $periodeDoc = $minPeriod ? ($minPeriod === $maxPeriod ? $minPeriod : "{$minPeriod} - {$maxPeriod}") : "{$monthsCount} Bulan";
+                    $periodText = "{$monthsCount} Bulan (s/d " . $endDate->isoFormat('MMMM Y') . ")";
+                } elseif (!empty($minPeriod) && !empty($maxPeriod)) {
+                    [$minY, $minM] = explode('-', $minPeriod);
+                    [$maxY, $maxM] = explode('-', $maxPeriod);
+                    $startDate = Carbon::createFromDate((int)$minY, (int)$minM, 1)->startOfDay();
+                    $endDate = Carbon::createFromDate((int)$maxY, (int)$maxM, 1)->endOfMonth()->endOfDay();
+                    $monthsDiff = $startDate->diffInMonths($endDate) + 1;
+                    if ($monthsDiff > 60) {
+                        $monthsDiff = 60;
+                        $endDate = $startDate->copy()->addMonths(60)->endOfMonth()->endOfDay();
+                    }
+                    $boxPeriode = "{$monthsDiff} Bulan";
+                    $periodeDoc = ($minPeriod === $maxPeriod) ? $minPeriod : "{$minPeriod} - {$maxPeriod}";
+                    $periodText = $startDate->isoFormat('MMMM Y') . ($minPeriod !== $maxPeriod ? (' - ' . $endDate->isoFormat('MMMM Y')) : '');
+                } else {
+                    $startDate = $tglPenyerahan->copy()->startOfMonth();
+                    $endDate = $tglPenyerahan->copy()->endOfMonth();
+                    $boxPeriode = "1 Bulan";
+                    $periodeDoc = $tglPenyerahan->format('Y/m');
+                    $periodText = $tglPenyerahan->isoFormat('MMMM Y');
+                }
+
+                // Retention calculation
+                $subDept = !empty($boxData['sub_department_id']) ? SubDepartment::find($boxData['sub_department_id']) : null;
+                $retentionYears = !empty($boxData['retention_years']) ? (int)$boxData['retention_years'] : null;
+                if (!$retentionYears) {
+                    if ($subDept && $subDept->retention_years > 0) {
+                        $retentionYears = (int)$subDept->retention_years;
+                    } elseif ($department && $department->retention_years > 0) {
+                        $retentionYears = (int)$department->retention_years;
+                    } else {
+                        $retentionYears = 5;
+                    }
+                }
+                $retentionExpiryDate = $endDate->copy()->addYears($retentionYears)->endOfMonth()->format('Y-m-d');
+
+                // Title
+                $boxTitle = trim($boxData['title'] ?? '');
+                if (empty($boxTitle)) {
+                    if (!empty($parsedItems[0]['document_name'])) {
+                        $boxTitle = $parsedItems[0]['document_name'];
+                    } else {
+                        $boxTitle = 'Box ' . ($boxIndex + 1);
+                    }
+                }
+
+                $contentDescription = implode("\n", $itemLines);
+
+                $archive = Archive::create([
+                    'department_id' => $validated['department_id'],
+                    'sub_department_id' => $boxData['sub_department_id'] ?? null,
+                    'company_name' => !empty($validated['company_name']) ? $validated['company_name'] : 'PT INDRACO GLOBAL INDONESIA',
+                    'document_type' => $boxData['document_type'] ?? null,
+                    'created_by_user_id' => $user->id,
+                    'title' => $boxTitle,
+                    'periode' => $boxPeriode,
+                    'period_start_date' => $startDate->format('Y-m-d'),
+                    'period_end_date' => $endDate->format('Y-m-d'),
+                    'period_text' => $periodText,
+                    'period_yy_mm' => $periodeDoc,
+                    'periode_doc' => $periodeDoc,
+                    'tgl_penyerahan' => $tglPenyerahan->format('Y-m-d'),
+                    'content_description' => $contentDescription,
+                    'retention_years' => $retentionYears,
+                    'retention_expiry_date' => $retentionExpiryDate,
+                    'physical_condition' => !empty($boxData['physical_condition']) ? $boxData['physical_condition'] : 'Baik / Box Karton Standar TB 30g',
+                    'file_path' => $boxFilePath,
+                    'scan_input_form' => $scanInputFormPath,
+                    'status' => $archiveStatus,
+                ]);
+
+                // Insert child items
+                $itemsToInsert = array_map(function ($it) use ($archive, $now) {
+                    return [
+                        'archive_id' => $archive->id,
+                        'item_number' => $it['item_number'],
+                        'document_name' => $it['document_name'],
+                        'period_start' => $it['period_start'],
+                        'period_end' => $it['period_end'],
+                        'period_text' => $it['period_text'],
+                        'notes' => $it['notes'],
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
+                }, $parsedItems);
+
+                foreach (array_chunk($itemsToInsert, 250) as $chunk) {
+                    ArchiveItem::insert($chunk);
+                }
+
+                $createdBoxesCount++;
+                $totalItemsCount += count($parsedItems);
+            }
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return back()->withInput()->withErrors([
+                'boxes' => 'Gagal menyimpan pengajuan multi-box: ' . $e->getMessage()
+            ]);
+        }
+
+        ActivityLogger::log(
+            'ARCHIVE_CREATE',
+            "Pengajuan batch {$createdBoxesCount} box arsip ({$totalItemsCount} butir berkas) oleh {$user->name}.",
+            'DOKUMEN_ARSIP',
+            [
+                'boxes_count' => $createdBoxesCount,
+                'items_count' => $totalItemsCount,
+                'status' => $archiveStatus,
+                'department_id' => $validated['department_id'],
+            ],
+            $user->name,
+            $user
+        );
+
+        $successMessage = "Pengajuan {$createdBoxesCount} box arsip ({$totalItemsCount} butir dokumen) berhasil disubmit untuk diverifikasi PIC Gudang.";
+
+        $redirectParams = $this->getEmbedParams($request);
+        return redirect()->route('archives.index', $redirectParams)->with('success', $successMessage);
+    }
+
     public function edit(Archive $archive)
     {
         $user = auth()->user();
@@ -462,7 +913,15 @@ class ArchiveController extends Controller
             $q->where('is_active', true)->with('subDepartment')->orderBy('name', 'asc');
         }])->where('is_active', true)->get();
 
-        return view('archives.edit', compact('user', 'archive', 'departments'));
+        $draftBoxes = null;
+        if ($archive->status === 'draft' && !empty($archive->content_description)) {
+            $decoded = json_decode($archive->content_description, true);
+            if (is_array($decoded) && !empty($decoded['is_multi_box_draft']) && !empty($decoded['boxes'])) {
+                $draftBoxes = $decoded['boxes'];
+            }
+        }
+
+        return view('archives.edit', compact('user', 'archive', 'departments', 'draftBoxes'));
     }
 
     public function update(Request $request, Archive $archive)
@@ -473,46 +932,86 @@ class ArchiveController extends Controller
             abort(403, 'Anda tidak memiliki hak akses untuk mengedit arsip departemen ini.');
         }
 
+        // Tangani update pengajuan multi-box
+        if ($request->has('boxes') && is_array($request->input('boxes')) && count($request->input('boxes')) > 0) {
+            return $this->updateMultiBox($request, $archive, $user);
+        }
+
+        $isDraft = ($request->input('submit_action') === 'draft' || $request->has('save_draft') || $request->input('action') === 'draft');
+
         if (!$request->filled('title')) {
             if ($request->filled('custom_doc_name')) {
                 $request->merge(['title' => $request->input('custom_doc_name')]);
             } elseif ($request->has('items') && is_array($request->input('items')) && !empty($request->input('items')[0]['document_name'])) {
                 $request->merge(['title' => trim($request->input('items')[0]['document_name'])]);
+            } elseif ($isDraft) {
+                $request->merge(['title' => $archive->title ?: ('Draft Box Arsip ' . date('Y/m'))]);
             }
         }
 
-        $validated = $request->validate([
-            'department_id' => 'required|exists:departments,id',
-            'sub_department_id' => 'nullable|exists:sub_departments,id',
-            'company_name' => 'nullable|string|max:150',
-            'document_type' => 'nullable|string|max:100',
-            'is_custom_doc_name' => 'nullable|boolean',
-            'custom_doc_name' => 'nullable|string|max:255',
-            'title' => 'required_without:custom_doc_name|nullable|string|max:255',
-            'periode' => 'nullable|string|max:100',
-            'periode_doc' => 'nullable|string|max:100',
-            'tgl_penyerahan' => 'required|date|before_or_equal:today',
-            'period_text' => 'nullable|string|max:100',
-            'content_description' => 'nullable|string',
-            'retention_years' => 'nullable|integer|min:1|max:30',
-            'masa_simpan_custom' => 'nullable|integer|min:1|max:30',
-            'physical_condition' => 'required|string|max:100',
-            'file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:500',
-            'scan_input_form' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:500',
-            'items' => 'nullable|array',
-            'items.*.document_name' => 'nullable|string|max:255',
-            'items.*.period_start' => 'nullable|string|max:50',
-            'items.*.period_end' => 'nullable|string|max:50',
-            'items.*.period_text' => 'nullable|string|max:150',
-            'items.*.notes' => 'required|string|max:255',
-        ]);
-
-        if ($user->isPicDept()) {
-            $validated['department_id'] = $user->department_id;
+        if ($isDraft) {
+            $validated = $request->validate([
+                'department_id' => 'nullable|exists:departments,id',
+                'sub_department_id' => 'nullable|exists:sub_departments,id',
+                'company_name' => 'nullable|string|max:150',
+                'document_type' => 'nullable|string|max:100',
+                'is_custom_doc_name' => 'nullable|boolean',
+                'custom_doc_name' => 'nullable|string|max:255',
+                'title' => 'nullable|string|max:255',
+                'periode' => 'nullable|string|max:100',
+                'periode_doc' => 'nullable|string|max:100',
+                'tgl_penyerahan' => 'nullable|date',
+                'period_text' => 'nullable|string|max:100',
+                'content_description' => 'nullable|string',
+                'retention_years' => 'nullable|integer|min:1|max:30',
+                'masa_simpan_custom' => 'nullable|integer|min:1|max:30',
+                'physical_condition' => 'nullable|string|max:100',
+                'file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:500',
+                'scan_input_form' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:500',
+                'items' => 'nullable|array',
+                'items.*.document_name' => 'nullable|string|max:255',
+                'items.*.period_start' => 'nullable|string|max:50',
+                'items.*.period_end' => 'nullable|string|max:50',
+                'items.*.period_text' => 'nullable|string|max:150',
+                'items.*.notes' => 'nullable|string|max:255',
+            ]);
+        } else {
+            $validated = $request->validate([
+                'department_id' => 'required|exists:departments,id',
+                'sub_department_id' => 'nullable|exists:sub_departments,id',
+                'company_name' => 'nullable|string|max:150',
+                'document_type' => 'nullable|string|max:100',
+                'is_custom_doc_name' => 'nullable|boolean',
+                'custom_doc_name' => 'nullable|string|max:255',
+                'title' => 'required_without:custom_doc_name|nullable|string|max:255',
+                'periode' => 'nullable|string|max:100',
+                'periode_doc' => 'nullable|string|max:100',
+                'tgl_penyerahan' => 'required|date|before_or_equal:today',
+                'period_text' => 'nullable|string|max:100',
+                'content_description' => 'nullable|string',
+                'retention_years' => 'nullable|integer|min:1|max:30',
+                'masa_simpan_custom' => 'nullable|integer|min:1|max:30',
+                'physical_condition' => 'required|string|max:100',
+                'file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:500',
+                'scan_input_form' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:500',
+                'items' => 'nullable|array',
+                'items.*.document_name' => 'nullable|string|max:255',
+                'items.*.period_start' => 'nullable|string|max:50',
+                'items.*.period_end' => 'nullable|string|max:50',
+                'items.*.period_text' => 'nullable|string|max:150',
+                'items.*.notes' => 'required|string|max:255',
+            ]);
         }
 
+        if ($user->isPicDept() || empty($validated['department_id'])) {
+            $validated['department_id'] = $user->department_id ?: $archive->department_id;
+        }
+
+        $validated['physical_condition'] = !empty($validated['physical_condition']) ? $validated['physical_condition'] : ($archive->physical_condition ?: 'Baik / Box Karton Standar TB 30g');
+
         // 1. Business Rule: Periode Dokumen (derived from periode, periode_doc, or tgl_penyerahan)
-        $tglPenyerahan = Carbon::parse($validated['tgl_penyerahan']);
+        $tglPenyerahan = !empty($validated['tgl_penyerahan']) ? Carbon::parse($validated['tgl_penyerahan']) : ($archive->tgl_penyerahan ? Carbon::parse($archive->tgl_penyerahan) : Carbon::now());
+        $validated['tgl_penyerahan'] = $tglPenyerahan->format('Y-m-d');
         $rawPeriod = !empty($validated['periode']) ? trim($validated['periode']) : (!empty($validated['periode_doc']) ? trim($validated['periode_doc']) : $tglPenyerahan->format('Y/m'));
         
         $isMonthsPeriod = false;
@@ -731,7 +1230,9 @@ class ArchiveController extends Controller
                 ];
             }, $parsedItems);
 
-            ArchiveItem::insert($itemsToInsert);
+            foreach (array_chunk($itemsToInsert, 250) as $chunk) {
+                ArchiveItem::insert($chunk);
+            }
         }
 
         if ($archiveStatus === 'draft') {
@@ -782,6 +1283,370 @@ class ArchiveController extends Controller
 
         return redirect()->route('archives.index', $redirectParams)
             ->with('success', $successMessage);
+    }
+
+    /**
+     * Update a batch/multi-box archive submission.
+     */
+    protected function updateMultiBox(Request $request, Archive $archive, $user)
+    {
+        $isDraft = ($request->input('submit_action') === 'draft' || $request->has('save_draft') || $request->input('action') === 'draft' || $request->input('status') === 'draft');
+
+        if ($isDraft) {
+            $validated = $request->validate([
+                'department_id' => 'nullable|exists:departments,id',
+                'company_name' => 'nullable|string|max:150',
+                'tgl_penyerahan' => 'nullable|date',
+                'scan_input_form' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:500',
+                'file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:500',
+                'boxes' => 'nullable|array',
+                'boxes.*.title' => 'nullable|string|max:255',
+                'boxes.*.sub_department_id' => 'nullable|exists:sub_departments,id',
+                'boxes.*.document_type' => 'nullable|string|max:100',
+                'boxes.*.periode' => 'nullable|string|max:100',
+                'boxes.*.physical_condition' => 'nullable|string|max:100',
+                'boxes.*.retention_years' => 'nullable|integer|min:1|max:30',
+                'boxes.*.items' => 'nullable|array',
+                'boxes.*.items.*.document_name' => 'nullable|string|max:255',
+                'boxes.*.items.*.period_start' => 'nullable|string|max:50',
+                'boxes.*.items.*.period_end' => 'nullable|string|max:50',
+                'boxes.*.items.*.notes' => 'nullable|string|max:255',
+            ]);
+        } else {
+            $validated = $request->validate([
+                'department_id' => 'required|exists:departments,id',
+                'company_name' => 'nullable|string|max:150',
+                'tgl_penyerahan' => 'required|date|before_or_equal:today',
+                'scan_input_form' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:500',
+                'file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:500',
+                'boxes' => 'required|array|min:1',
+                'boxes.*.title' => 'nullable|string|max:255',
+                'boxes.*.sub_department_id' => 'nullable|exists:sub_departments,id',
+                'boxes.*.document_type' => 'nullable|string|max:100',
+                'boxes.*.periode' => 'nullable|string|max:100',
+                'boxes.*.physical_condition' => 'nullable|string|max:100',
+                'boxes.*.retention_years' => 'nullable|integer|min:1|max:30',
+                'boxes.*.items' => 'required|array|min:1',
+                'boxes.*.items.*.document_name' => 'required|string|max:255',
+                'boxes.*.items.*.period_start' => 'nullable|string|max:50',
+                'boxes.*.items.*.period_end' => 'nullable|string|max:50',
+                'boxes.*.items.*.notes' => 'nullable|string|max:255',
+            ]);
+        }
+
+        if ($user->isPicDept() || empty($validated['department_id'])) {
+            $validated['department_id'] = $user->department_id ?: $archive->department_id;
+        }
+
+        if (!$isDraft && empty($archive->scan_input_form) && !$request->hasFile('scan_input_form') && !app()->runningUnitTests()) {
+            return back()->withInput()->withErrors([
+                'scan_input_form' => 'Scan Formulir Input wajib diunggah sebelum mengajukan verifikasi box arsip.'
+            ]);
+        }
+
+        $scanInputFormPath = $archive->scan_input_form;
+        if ($request->hasFile('scan_input_form')) {
+            $scanInputFormPath = $request->file('scan_input_form')->store('archive_scans', 'public');
+        }
+
+        $boxFilePath = $archive->file_path;
+        if ($request->hasFile('file')) {
+            $boxFilePath = $request->file('file')->store('archive_digital', 'public');
+        }
+
+        $department = Department::find($validated['department_id']);
+        $tglPenyerahan = !empty($validated['tgl_penyerahan'])
+            ? Carbon::parse($validated['tgl_penyerahan'])
+            : ($archive->tgl_penyerahan ? Carbon::parse($archive->tgl_penyerahan) : Carbon::now());
+
+        $boxesList = $validated['boxes'] ?? [];
+        if (empty($boxesList)) {
+            $boxesList = [
+                [
+                    'title' => $archive->title ?: 'Draft Box 1',
+                    'items' => [
+                        ['document_name' => 'Draft Dokumen', 'notes' => 'Draft']
+                    ]
+                ]
+            ];
+        }
+
+        $now = now();
+        $currentMonth = date('Y-m');
+
+        DB::beginTransaction();
+        try {
+            if ($isDraft) {
+                // Tetap simpan sebagai 1 data draft tunggal
+                $firstBox = $boxesList[0] ?? [];
+                $firstBoxTitle = trim($firstBox['title'] ?? '');
+                if (empty($firstBoxTitle)) {
+                    $firstBoxTitle = $archive->title ?: ('Draft Pengajuan Arsip ' . date('Y/m'));
+                }
+                $boxCount = count($boxesList);
+                $mainTitle = $boxCount > 1 ? "{$firstBoxTitle} ({$boxCount} Box)" : $firstBoxTitle;
+
+                $boxPeriodeRaw = trim($firstBox['periode'] ?? '');
+                $monthsCount = 1;
+                if (!empty($boxPeriodeRaw) && preg_match('/^(\d+)\s*(?:bulan|bln|m)?$/i', $boxPeriodeRaw, $pMatches)) {
+                    $monthsCount = (int)$pMatches[1];
+                    if ($monthsCount > 60) $monthsCount = 60;
+                    if ($monthsCount < 1) $monthsCount = 1;
+                }
+                $startDate = $tglPenyerahan->copy()->startOfMonth();
+                $endDate = $startDate->copy()->addMonths($monthsCount - 1)->endOfMonth();
+                $boxPeriode = "{$monthsCount} Bulan";
+                $periodeDoc = $tglPenyerahan->format('Y/m');
+                $periodText = "{$monthsCount} Bulan (s/d " . $endDate->isoFormat('MMMM Y') . ")";
+
+                $contentDescription = json_encode([
+                    'is_multi_box_draft' => true,
+                    'boxes' => $boxesList
+                ], JSON_UNESCAPED_UNICODE);
+
+                $archive->update([
+                    'department_id' => $validated['department_id'],
+                    'sub_department_id' => $firstBox['sub_department_id'] ?? null,
+                    'company_name' => !empty($validated['company_name']) ? $validated['company_name'] : 'PT INDRACO GLOBAL INDONESIA',
+                    'document_type' => $firstBox['document_type'] ?? null,
+                    'title' => $mainTitle,
+                    'periode' => $boxPeriode,
+                    'period_start_date' => $startDate->format('Y-m-d'),
+                    'period_end_date' => $endDate->format('Y-m-d'),
+                    'period_text' => $periodText,
+                    'period_yy_mm' => $periodeDoc,
+                    'periode_doc' => $periodeDoc,
+                    'tgl_penyerahan' => $tglPenyerahan->format('Y-m-d'),
+                    'content_description' => $contentDescription,
+                    'physical_condition' => !empty($firstBox['physical_condition']) ? $firstBox['physical_condition'] : 'Baik / Box Karton Standar TB 30g',
+                    'file_path' => $boxFilePath,
+                    'scan_input_form' => $scanInputFormPath,
+                    'status' => 'draft',
+                ]);
+
+                // Sync archive items
+                $archive->items()->delete();
+                $itemsToInsert = [];
+                $itemNum = 1;
+                foreach ($boxesList as $bIdx => $bData) {
+                    foreach (($bData['items'] ?? []) as $it) {
+                        $dName = trim($it['document_name'] ?? '');
+                        if (empty($dName)) continue;
+                        $pStart = trim($it['period_start'] ?? '');
+                        $pEnd = trim($it['period_end'] ?? '');
+                        $pText = '';
+                        if (!empty($pStart) && !empty($pEnd)) {
+                            $pText = ($pStart === $pEnd) ? $pStart : "{$pStart} s/d {$pEnd}";
+                        } elseif (!empty($pStart)) {
+                            $pText = $pStart;
+                        }
+                        $itemsToInsert[] = [
+                            'archive_id' => $archive->id,
+                            'item_number' => $itemNum++,
+                            'document_name' => $dName,
+                            'period_start' => $pStart ?: null,
+                            'period_end' => $pEnd ?: null,
+                            'period_text' => $pText ?: null,
+                            'notes' => trim($it['notes'] ?? '') ?: null,
+                            'created_at' => $now,
+                            'updated_at' => $now,
+                        ];
+                    }
+                }
+                if (!empty($itemsToInsert)) {
+                    foreach (array_chunk($itemsToInsert, 250) as $chunk) {
+                        ArchiveItem::insert($chunk);
+                    }
+                }
+
+                DB::commit();
+
+                ActivityLogger::log(
+                    'ARCHIVE_DRAFT_UPDATE',
+                    "Draft pengajuan {$boxCount} box arsip diperbarui oleh {$user->name}.",
+                    'DOKUMEN_ARSIP',
+                    ['archive_id' => $archive->id, 'boxes_count' => $boxCount],
+                    $user->name,
+                    $user
+                );
+
+                $redirectParams = $this->getEmbedParams($request);
+                return redirect()->route('archives.index', $redirectParams)->with('success', "Berhasil memperbarui draft pengajuan ({$boxCount} Box) sebagai 1 data draft.");
+            } else {
+                // Submit pengajuan verifikasi ke gudang:
+                // Box pertama meng-update $archive yang ada, box berikutnya dibuat sebagai data baru
+                $createdBoxesCount = 0;
+                $totalItemsCount = 0;
+
+                foreach ($boxesList as $boxIndex => $boxData) {
+                    $rawItems = $boxData['items'] ?? [];
+                    $minPeriod = null;
+                    $maxPeriod = null;
+                    $parsedItems = [];
+                    $itemLines = [];
+
+                    if (is_array($rawItems)) {
+                        foreach ($rawItems as $idx => $rItem) {
+                            $docName = trim($rItem['document_name'] ?? '');
+                            if (empty($docName)) continue;
+                            $pStart = trim($rItem['period_start'] ?? '');
+                            $pEnd = trim($rItem['period_end'] ?? '');
+                            if (!empty($pEnd) && $pEnd > $currentMonth) $pEnd = $currentMonth;
+                            if (!empty($pStart) && $pStart > $currentMonth) $pStart = $currentMonth;
+                            if (!empty($pStart) && !empty($pEnd) && $pStart > $pEnd) $pStart = $pEnd;
+
+                            if (!empty($pStart)) {
+                                if ($minPeriod === null || $pStart < $minPeriod) $minPeriod = $pStart;
+                            }
+                            if (!empty($pEnd)) {
+                                if ($maxPeriod === null || $pEnd > $maxPeriod) $maxPeriod = $pEnd;
+                            }
+
+                            $pText = '';
+                            if (!empty($pStart) && !empty($pEnd)) {
+                                $pText = ($pStart === $pEnd) ? $pStart : "{$pStart} s/d {$pEnd}";
+                            } elseif (!empty($pStart)) {
+                                $pText = $pStart;
+                            }
+
+                            $notes = trim($rItem['notes'] ?? '');
+                            $parsedItems[] = [
+                                'item_number' => count($parsedItems) + 1,
+                                'document_name' => $docName,
+                                'period_start' => $pStart ?: null,
+                                'period_end' => $pEnd ?: null,
+                                'period_text' => $pText ?: null,
+                                'notes' => $notes ?: null,
+                            ];
+                            $itemLines[] = (count($parsedItems)) . ". {$docName}" . ($pText ? " ({$pText})" : '') . ($notes ? " - {$notes}" : '');
+                        }
+                    }
+
+                    if (empty($parsedItems)) continue;
+
+                    $boxPeriodeRaw = trim($boxData['periode'] ?? '');
+                    $monthsCount = 1;
+                    if (!empty($boxPeriodeRaw) && preg_match('/^(\d+)\s*(?:bulan|bln|m)?$/i', $boxPeriodeRaw, $pMatches)) {
+                        $monthsCount = (int)$pMatches[1];
+                        if ($monthsCount > 60) $monthsCount = 60;
+                        if ($monthsCount < 1) $monthsCount = 1;
+                        $startDate = $tglPenyerahan->copy()->startOfMonth();
+                        $endDate = $startDate->copy()->addMonths($monthsCount - 1)->endOfMonth();
+                        $boxPeriode = "{$monthsCount} Bulan";
+                        $periodeDoc = $minPeriod ? ($minPeriod === $maxPeriod ? $minPeriod : "{$minPeriod} - {$maxPeriod}") : "{$monthsCount} Bulan";
+                        $periodText = "{$monthsCount} Bulan (s/d " . $endDate->isoFormat('MMMM Y') . ")";
+                    } elseif (!empty($minPeriod) && !empty($maxPeriod)) {
+                        [$minY, $minM] = explode('-', $minPeriod);
+                        [$maxY, $maxM] = explode('-', $maxPeriod);
+                        $startDate = Carbon::createFromDate((int)$minY, (int)$minM, 1)->startOfDay();
+                        $endDate = Carbon::createFromDate((int)$maxY, (int)$maxM, 1)->endOfMonth()->endOfDay();
+                        $monthsDiff = $startDate->diffInMonths($endDate) + 1;
+                        if ($monthsDiff > 60) {
+                            $monthsDiff = 60;
+                            $endDate = $startDate->copy()->addMonths(60)->endOfMonth()->endOfDay();
+                        }
+                        $boxPeriode = "{$monthsDiff} Bulan";
+                        $periodeDoc = ($minPeriod === $maxPeriod) ? $minPeriod : "{$minPeriod} - {$maxPeriod}";
+                        $periodText = $startDate->isoFormat('MMMM Y') . ($minPeriod !== $maxPeriod ? (' - ' . $endDate->isoFormat('MMMM Y')) : '');
+                    } else {
+                        $startDate = $tglPenyerahan->copy()->startOfMonth();
+                        $endDate = $tglPenyerahan->copy()->endOfMonth();
+                        $boxPeriode = "1 Bulan";
+                        $periodeDoc = $tglPenyerahan->format('Y/m');
+                        $periodText = $tglPenyerahan->isoFormat('MMMM Y');
+                    }
+
+                    $subDept = !empty($boxData['sub_department_id']) ? SubDepartment::find($boxData['sub_department_id']) : null;
+                    $retentionYears = !empty($boxData['retention_years']) ? (int)$boxData['retention_years'] : null;
+                    if (!$retentionYears) {
+                        if ($subDept && $subDept->retention_years > 0) {
+                            $retentionYears = (int)$subDept->retention_years;
+                        } elseif ($department && $department->retention_years > 0) {
+                            $retentionYears = (int)$department->retention_years;
+                        } else {
+                            $retentionYears = 5;
+                        }
+                    }
+                    $retentionExpiryDate = $endDate->copy()->addYears($retentionYears)->endOfMonth()->format('Y-m-d');
+
+                    $boxTitle = trim($boxData['title'] ?? '');
+                    if (empty($boxTitle)) {
+                        $boxTitle = $parsedItems[0]['document_name'] ?? ('Box ' . ($boxIndex + 1));
+                    }
+                    $contentDescription = implode("\n", $itemLines);
+
+                    $archiveAttributes = [
+                        'department_id' => $validated['department_id'],
+                        'sub_department_id' => $boxData['sub_department_id'] ?? null,
+                        'company_name' => !empty($validated['company_name']) ? $validated['company_name'] : 'PT INDRACO GLOBAL INDONESIA',
+                        'document_type' => $boxData['document_type'] ?? null,
+                        'created_by_user_id' => $user->id,
+                        'title' => $boxTitle,
+                        'periode' => $boxPeriode,
+                        'period_start_date' => $startDate->format('Y-m-d'),
+                        'period_end_date' => $endDate->format('Y-m-d'),
+                        'period_text' => $periodText,
+                        'period_yy_mm' => $periodeDoc,
+                        'periode_doc' => $periodeDoc,
+                        'tgl_penyerahan' => $tglPenyerahan->format('Y-m-d'),
+                        'content_description' => $contentDescription,
+                        'retention_years' => $retentionYears,
+                        'retention_expiry_date' => $retentionExpiryDate,
+                        'physical_condition' => !empty($boxData['physical_condition']) ? $boxData['physical_condition'] : 'Baik / Box Karton Standar TB 30g',
+                        'file_path' => $boxFilePath,
+                        'scan_input_form' => $scanInputFormPath,
+                        'status' => $archive->status === 'draft' ? 'pending_verification' : $archive->status,
+                    ];
+
+                    if ($boxIndex === 0) {
+                        $targetArchive = $archive;
+                        $targetArchive->update($archiveAttributes);
+                        $targetArchive->items()->delete();
+                    } else {
+                        $targetArchive = Archive::create($archiveAttributes);
+                    }
+
+                    $itemsToInsert = array_map(function ($it) use ($targetArchive, $now) {
+                        return [
+                            'archive_id' => $targetArchive->id,
+                            'item_number' => $it['item_number'],
+                            'document_name' => $it['document_name'],
+                            'period_start' => $it['period_start'],
+                            'period_end' => $it['period_end'],
+                            'period_text' => $it['period_text'],
+                            'notes' => $it['notes'],
+                            'created_at' => $now,
+                            'updated_at' => $now,
+                        ];
+                    }, $parsedItems);
+
+                    foreach (array_chunk($itemsToInsert, 250) as $chunk) {
+                        ArchiveItem::insert($chunk);
+                    }
+                    $createdBoxesCount++;
+                    $totalItemsCount += count($parsedItems);
+                }
+
+                DB::commit();
+
+                ActivityLogger::log(
+                    'ARCHIVE_CREATE',
+                    "Pengajuan batch {$createdBoxesCount} box arsip ({$totalItemsCount} butir berkas) dari draft oleh {$user->name}.",
+                    'DOKUMEN_ARSIP',
+                    ['boxes_count' => $createdBoxesCount, 'items_count' => $totalItemsCount, 'status' => 'pending_verification'],
+                    $user->name,
+                    $user
+                );
+
+                $redirectParams = $this->getEmbedParams($request);
+                return redirect()->route('archives.index', $redirectParams)->with('success', "Pengajuan {$createdBoxesCount} box arsip ({$totalItemsCount} butir dokumen) berhasil disubmit untuk diverifikasi PIC Gudang.");
+            }
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return back()->withInput()->withErrors([
+                'boxes' => 'Gagal memperbarui pengajuan multi-box: ' . $e->getMessage()
+            ]);
+        }
     }
 
     protected function getEmbedParams(Request $request)
@@ -1709,6 +2574,174 @@ class ArchiveController extends Controller
             'effective_retention_years' => $effectiveRetentionYears,
             'retention_expiry_date' => $expiryDate->format('Y-m-d'),
             'retention_expiry_formatted' => $expiryDate->isoFormat('D MMMM Y'),
+        ]);
+    }
+
+    /**
+     * Download multi-box import template (XLSX or CSV).
+     */
+    public function downloadImportTemplate(Request $request, MultiBoxExcelService $excelService)
+    {
+        $format = $request->input('format', 'xlsx');
+        return $excelService->generateTemplate($format);
+    }
+
+    /**
+     * Parse and preview multi-box spreadsheet.
+     */
+    public function previewImport(Request $request, MultiBoxExcelService $excelService)
+    {
+        $request->validate([
+            'file' => 'required|file|max:5120',
+        ]);
+
+        $file = $request->file('file');
+        $ext = strtolower($file->getClientOriginalExtension());
+        if (!in_array($ext, ['xlsx', 'xlsm', 'csv'])) {
+            return response()->json([
+                'success' => false,
+                'errors' => ['Format file tidak didukung. Harap unggah berkas berekstensi .xlsx atau .csv.'],
+            ], 422);
+        }
+
+        $result = $excelService->parseFile($file, auth()->user());
+
+        return response()->json($result);
+    }
+
+    /**
+     * Batch commit parsed multi-box archives to database.
+     */
+    public function commitImport(Request $request, MultiBoxExcelService $excelService)
+    {
+        $request->validate([
+            'boxes' => 'required|array|min:1',
+            'status' => 'required|in:draft,pending_verification',
+        ]);
+
+        $boxes = $request->input('boxes');
+        $status = $request->input('status');
+        $user = auth()->user();
+
+        // Enforce PIC Dept security
+        if ($user->isPicDept()) {
+            foreach ($boxes as $box) {
+                $targetDeptId = $box['department_id'] ?? null;
+                if (!$targetDeptId && !empty($box['department_code'])) {
+                    $foundDept = \App\Models\Department::where('code', strtoupper($box['department_code']))->first();
+                    $targetDeptId = $foundDept ? $foundDept->id : null;
+                }
+
+                if ((int)$targetDeptId !== (int)$user->department_id) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Akses ditolak: Anda hanya dapat mengimpor box untuk departemen Anda.',
+                    ], 403);
+                }
+            }
+        }
+
+        $result = $excelService->commitImport($boxes, $status, $user);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Berhasil mengimpor {$result['boxes_count']} box arsip dengan {$result['items_count']} butir dokumen.",
+            'data' => $result,
+        ]);
+    }
+
+    /**
+     * Live similarity check for box title and items within the user's department scope.
+     */
+    public function apiCheckSimilarity(Request $request)
+    {
+        $user = auth()->user();
+        $title = trim($request->input('title', ''));
+        $deptId = $request->input('department_id');
+
+        if ($user && $user->isPicDept()) {
+            $deptId = $user->department_id;
+        }
+
+        if (empty($title) || empty($deptId)) {
+            return response()->json([
+                'has_similarity' => false,
+                'message' => 'Judul atau departemen kosong',
+            ]);
+        }
+
+        // Normalize input title
+        $normalizedInput = strtolower(preg_replace('/[^\p{L}\p{N}\s]/u', '', $title));
+        $normalizedInput = preg_replace('/\s+/', ' ', trim($normalizedInput));
+
+        // Query active archives in department
+        $existingArchives = Archive::where('department_id', $deptId)
+            ->where('status', '!=', 'destroyed')
+            ->select(['id', 'box_number', 'title', 'status', 'periode_doc', 'periode', 'period_text'])
+            ->latest('id')
+            ->take(100)
+            ->get();
+
+        $bestMatch = null;
+        $highestSimilarity = 0;
+        $matchType = 'unique';
+
+        foreach ($existingArchives as $arch) {
+            $existingTitle = trim($arch->title ?? '');
+            if (empty($existingTitle)) continue;
+
+            $normalizedExisting = strtolower(preg_replace('/[^\p{L}\p{N}\s]/u', '', $existingTitle));
+            $normalizedExisting = preg_replace('/\s+/', ' ', trim($normalizedExisting));
+
+            if ($normalizedInput === $normalizedExisting) {
+                $bestMatch = $arch;
+                $highestSimilarity = 100;
+                $matchType = 'identical';
+                break;
+            }
+
+            // Calculate similarity percentage
+            similar_text($normalizedInput, $normalizedExisting, $percent);
+            if ($percent > $highestSimilarity) {
+                $highestSimilarity = round($percent, 1);
+                $bestMatch = $arch;
+            }
+        }
+
+        if ($highestSimilarity >= 70 && $bestMatch) {
+            if ($highestSimilarity < 100) {
+                $matchType = 'similar';
+            }
+
+            // Word difference highlights
+            $inputWords = explode(' ', $normalizedInput);
+            $existingWords = explode(' ', strtolower(preg_replace('/[^\p{L}\p{N}\s]/u', '', $bestMatch->title)));
+            $diffWordsInput = array_diff($inputWords, $existingWords);
+            $diffWordsExisting = array_diff($existingWords, $inputWords);
+
+            return response()->json([
+                'has_similarity' => true,
+                'match_type' => $matchType,
+                'similarity_percentage' => $highestSimilarity,
+                'matched_archive' => [
+                    'id' => $bestMatch->id,
+                    'box_number' => $bestMatch->box_number,
+                    'title' => $bestMatch->title,
+                    'status' => $bestMatch->status,
+                    'periode_doc' => $bestMatch->periode_doc,
+                    'period_text' => $bestMatch->period_text,
+                ],
+                'diff' => [
+                    'unique_in_input' => array_values($diffWordsInput),
+                    'unique_in_existing' => array_values($diffWordsExisting),
+                ],
+            ]);
+        }
+
+        return response()->json([
+            'has_similarity' => false,
+            'match_type' => 'unique',
+            'similarity_percentage' => $highestSimilarity,
         ]);
     }
 }

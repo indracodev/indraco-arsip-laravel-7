@@ -33,6 +33,15 @@
             </a>
             @endif
 
+            <!-- Impor Multi-Box Excel (Ctrl+I) -->
+            <button type="button" 
+                    @click="openImportModal = true; $nextTick(() => { if(window.lucide) window.lucide.createIcons(); });" 
+                    class="px-3 py-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-mono font-black text-xs rounded border border-emerald-700 shadow transition flex items-center gap-1.5 shrink-0 cursor-pointer" 
+                    title="Impor Massal Multi-Box & Butir Dokumen via Excel / CSV">
+                <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i>
+                <span>Impor Multi-Box (Excel)</span>
+            </button>
+
             <!-- Buat Draft Pengajuan Arsip (F2) -->
             <a href="{{ route('archives.create') }}" class="px-3 py-1 bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-mono font-black text-xs rounded border border-amber-600 shadow transition flex items-center gap-1.5 shrink-0" title="Buat Draft Pengajuan Arsip Baru (F2)">
                 <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-slate-950"></i>
@@ -431,7 +440,10 @@
                                         location: {{ json_encode($archive->display_location) }},
                                         has_scan_input: {{ !empty($archive->scan_input_form) ? 'true' : 'false' }},
                                         has_file_path: {{ !empty($archive->file_path) ? 'true' : 'false' }},
-                                        has_approval: {{ !empty($archive->scan_approval_input) ? 'true' : 'false' }}
+                                        has_approval: {{ !empty($archive->scan_approval_input) ? 'true' : 'false' }},
+                                        files: {{ json_encode($archiveFiles) }},
+                                        scan_input_form_url: {{ json_encode(app_storage_url($archive->scan_input_form)) }},
+                                        file_path_url: {{ json_encode(app_storage_url($archive->file_path)) }}
                                     })"
                                     class="px-2 py-0.5 rounded text-[10px] font-bold inline-flex items-center gap-1 transition shadow-xs cursor-pointer hover:scale-105 group border"
                                     :class="{
@@ -1366,7 +1378,7 @@
 
                     <!-- Status Berkas Lampiran / Scan -->
                     <div class="p-3 rounded-xl border" :class="verifyModalData.has_files ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-900 dark:text-emerald-200' : 'bg-rose-500/10 border-rose-500/30 text-rose-900 dark:text-rose-200'">
-                        <div class="flex items-center justify-between">
+                        <div class="flex items-center justify-between mb-2">
                             <span class="font-bold text-[11px] flex items-center gap-1.5">
                                 <i data-lucide="paperclip" class="w-3.5 h-3.5"></i>
                                 <span>Kelengkapan Berkas Scan:</span>
@@ -1378,6 +1390,41 @@
                                 <span class="px-2 py-0.5 rounded bg-rose-600 text-white font-black text-[10px]">Belum Ada Berkas</span>
                             </template>
                         </div>
+
+                        <!-- Daftar Berkas Lampiran dengan Tombol Preview Langsung -->
+                        <template x-if="verifyModalData.has_files && verifyModalData.files.length > 0">
+                            <div class="space-y-1.5 pt-1.5 border-t border-emerald-500/20">
+                                <template x-for="(f, fIdx) in verifyModalData.files" :key="fIdx">
+                                    <div class="flex items-center justify-between p-2 rounded-lg bg-white/80 dark:bg-slate-900/80 border border-emerald-500/30 gap-2">
+                                        <div class="min-w-0 flex items-center gap-2">
+                                            <span class="p-1 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 shrink-0">
+                                                <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+                                            </span>
+                                            <div class="truncate">
+                                                <span class="font-bold text-xs text-slate-900 dark:text-white block truncate" x-text="f.name"></span>
+                                                <span class="text-[10px] text-slate-500 dark:text-slate-400 block truncate" x-text="(f.category || '') + ' (' + (f.ext ? f.ext.toUpperCase() : 'FILE') + ')'"></span>
+                                            </div>
+                                        </div>
+                                        <button type="button"
+                                                @click="dmsPreviewFile({
+                                                    box_number: verifyModalData.box_number || '',
+                                                    title: verifyModalData.title,
+                                                    department: verifyModalData.department_code,
+                                                    files: verifyModalData.files,
+                                                    raw_path: f.raw_path,
+                                                    url: f.url,
+                                                    stream_url: f.stream_url,
+                                                    name: f.name,
+                                                    ext: f.ext
+                                                })"
+                                                class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer shrink-0 shadow-xs">
+                                            <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                                            <span>Lihat Berkas</span>
+                                        </button>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
                     </div>
 
                     <!-- Rejection Form Input (If rejecting) -->
@@ -1769,9 +1816,24 @@
                                   x-text="superAdminStatusData.status_label || superAdminStatusData.status">
                             </span>
                         </div>
-                        <div class="pt-1 border-t border-slate-200 dark:border-slate-800">
-                            <span class="text-[10px] text-slate-400 uppercase font-bold block mb-0.5">Judul Dokumen:</span>
-                            <h4 class="font-bold text-slate-900 dark:text-white text-xs truncate" x-text="superAdminStatusData.title"></h4>
+                        <div class="pt-1 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2">
+                            <div class="min-w-0">
+                                <span class="text-[10px] text-slate-400 uppercase font-bold block mb-0.5">Judul Dokumen:</span>
+                                <h4 class="font-bold text-slate-900 dark:text-white text-xs truncate" x-text="superAdminStatusData.title"></h4>
+                            </div>
+                            <template x-if="superAdminStatusData.files && superAdminStatusData.files.length > 0">
+                                <button type="button"
+                                        @click="dmsPreviewFile({
+                                            box_number: superAdminStatusData.box_number,
+                                            title: superAdminStatusData.title,
+                                            department: superAdminStatusData.department_code,
+                                            files: superAdminStatusData.files
+                                        })"
+                                        class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer shrink-0 shadow-xs">
+                                    <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                                    <span>Pratinjau Berkas</span>
+                                </button>
+                            </template>
                         </div>
                     </div>
 
@@ -1896,7 +1958,21 @@
                                 <div class="p-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg space-y-1.5">
                                     <div class="flex items-center justify-between text-[11px]">
                                         <span class="font-bold text-slate-800 dark:text-slate-200">1. Scan Formulir Input Fisik</span>
-                                        <span class="px-2 py-0.2 rounded text-[10px] font-bold" :class="superAdminStatusData.has_scan_input ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300' : 'bg-rose-500/20 text-rose-700 dark:text-rose-300'" x-text="superAdminStatusData.has_scan_input ? 'Sudah Ada' : 'Belum Ada'"></span>
+                                        <div class="flex items-center gap-1.5">
+                                            <span class="px-2 py-0.2 rounded text-[10px] font-bold" :class="superAdminStatusData.has_scan_input ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300' : 'bg-rose-500/20 text-rose-700 dark:text-rose-300'" x-text="superAdminStatusData.has_scan_input ? 'Sudah Ada' : 'Belum Ada'"></span>
+                                            <template x-if="superAdminStatusData.has_scan_input">
+                                                <button type="button"
+                                                        @click="const sf = (superAdminStatusData.files || []).find(f => f.name && (f.name.includes('Formulir') || f.category === 'Formulir Pendaftaran Fisik')); dmsPreviewFile(sf || {
+                                                            url: superAdminStatusData.scan_input_form_url,
+                                                            name: 'Scan Formulir Input - ' + superAdminStatusData.title,
+                                                            box_number: superAdminStatusData.box_number
+                                                        })"
+                                                        class="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] inline-flex items-center gap-1 cursor-pointer transition shadow-2xs">
+                                                    <i data-lucide="eye" class="w-3 h-3"></i>
+                                                    <span>Lihat</span>
+                                                </button>
+                                            </template>
+                                        </div>
                                     </div>
                                     <input type="file" id="sa_cat_scan_input_form" accept=".pdf,.jpg,.jpeg,.png" class="w-full text-[10px] font-mono text-slate-600 dark:text-slate-400 file:mr-2 file:py-0.5 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-bold file:bg-amber-500/20 file:text-amber-800 dark:file:text-amber-200 hover:file:bg-amber-500/30">
                                 </div>
@@ -1905,7 +1981,21 @@
                                 <div class="p-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg space-y-1.5">
                                     <div class="flex items-center justify-between text-[11px]">
                                         <span class="font-bold text-slate-800 dark:text-slate-200">2. Lampiran Digital Dokumen</span>
-                                        <span class="px-2 py-0.2 rounded text-[10px] font-bold" :class="superAdminStatusData.has_file_path ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300' : 'bg-rose-500/20 text-rose-700 dark:text-rose-300'" x-text="superAdminStatusData.has_file_path ? 'Sudah Ada' : 'Belum Ada'"></span>
+                                        <div class="flex items-center gap-1.5">
+                                            <span class="px-2 py-0.2 rounded text-[10px] font-bold" :class="superAdminStatusData.has_file_path ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300' : 'bg-rose-500/20 text-rose-700 dark:text-rose-300'" x-text="superAdminStatusData.has_file_path ? 'Sudah Ada' : 'Belum Ada'"></span>
+                                            <template x-if="superAdminStatusData.has_file_path">
+                                                <button type="button"
+                                                        @click="const df = (superAdminStatusData.files || []).find(f => f.name && (f.name.includes('Digital') || f.category === 'Softcopy Dokumen')); dmsPreviewFile(df || {
+                                                            url: superAdminStatusData.file_path_url,
+                                                            name: 'Lampiran Digital - ' + superAdminStatusData.title,
+                                                            box_number: superAdminStatusData.box_number
+                                                        })"
+                                                        class="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] inline-flex items-center gap-1 cursor-pointer transition shadow-2xs">
+                                                    <i data-lucide="eye" class="w-3 h-3"></i>
+                                                    <span>Lihat</span>
+                                                </button>
+                                            </template>
+                                        </div>
                                     </div>
                                     <input type="file" id="sa_cat_file_path" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.zip" class="w-full text-[10px] font-mono text-slate-600 dark:text-slate-400 file:mr-2 file:py-0.5 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-bold file:bg-amber-500/20 file:text-amber-800 dark:file:text-amber-200 hover:file:bg-amber-500/30">
                                 </div>
@@ -2118,6 +2208,257 @@
             </template>
         </div>
     </div>
+
+    <!-- MODAL IMPOR MULTI-BOX & BUTIR ARSIP (EXCEL / CSV) -->
+    <div x-show="openImportModal" x-cloak class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-import-title" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="if(!importSubmitting) openImportModal = false"></div>
+        <div class="flex min-h-screen items-center justify-center p-3 sm:p-4">
+            <div class="relative w-full max-w-4xl bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden font-sans text-slate-800 dark:text-slate-100 flex flex-col max-h-[90vh]">
+                <!-- Modal Header -->
+                <div class="flex items-center justify-between px-5 py-4 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+                    <div class="flex items-center gap-3">
+                        <span class="p-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-xl">
+                            <i data-lucide="file-spreadsheet" class="w-5 h-5"></i>
+                        </span>
+                        <div>
+                            <h3 id="modal-import-title" class="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider font-mono">
+                                Impor Multi-Box & Butir Dokumen (Excel / CSV)
+                            </h3>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">
+                                Unggah ratusan berkas dalam banyak box sekaligus dengan otomasi perhitungan periode & retensi.
+                            </p>
+                        </div>
+                    </div>
+                    <button type="button" @click="if(!importSubmitting) openImportModal = false" class="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 transition">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+                <!-- Modal Body (Scrollable) -->
+                <div class="p-5 space-y-5 overflow-y-auto flex-1">
+                    <!-- Instruction & Template Download -->
+                    <div class="p-4 bg-gradient-to-r from-blue-50/70 to-indigo-50/70 dark:from-blue-950/20 dark:to-indigo-950/20 border border-blue-200 dark:border-blue-900/40 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                        <div class="space-y-1">
+                            <div class="font-bold text-blue-900 dark:text-blue-200 flex items-center gap-1.5 font-mono">
+                                <i data-lucide="info" class="w-4 h-4 text-blue-500"></i>
+                                Petunjuk Pengisian Multi-Box:
+                            </div>
+                            <p class="text-slate-600 dark:text-slate-400 text-[11px] leading-relaxed">
+                                Gunakan kolom <span class="font-mono font-bold text-blue-600 dark:text-blue-400">NO_BOX_SEMENTARA</span> (misal: <code>BOX-01</code>, <code>BOX-02</code>) untuk mengelompokkan butir berkas ke dalam box yang berbeda. Periode box akan dihitung otomatis dari tanggal terawal & terakhir butir di dalamnya.
+                            </p>
+                        </div>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <a href="{{ route('archives.import.template', ['format' => 'xlsx']) }}" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-xs shadow-sm flex items-center gap-1.5 transition">
+                                <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                                <span>Template Excel (.xlsx)</span>
+                            </a>
+                            <a href="{{ route('archives.import.template', ['format' => 'csv']) }}" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg font-bold text-xs transition">
+                                <span>CSV</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- File Dropzone -->
+                    <div class="space-y-2">
+                        <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider font-mono">
+                            Pilih File Spreadsheet (.xlsx / .csv)
+                        </label>
+                        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                            <input type="file" 
+                                   id="multi_box_excel_file_input" 
+                                   accept=".xlsx,.xls,.csv" 
+                                   @change="handleImportFileSelect($event)" 
+                                   class="block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-950/40 dark:file:text-blue-300 border border-slate-300 dark:border-slate-700 rounded-xl bg-slate-50/50 dark:bg-slate-900 p-1">
+                            
+                            <button type="button" 
+                                    @click="submitImportPreview()" 
+                                    :disabled="!importFile || importPreviewing" 
+                                    class="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold text-xs shadow-sm transition flex items-center justify-center gap-1.5 shrink-0 disabled:opacity-50">
+                                <template x-if="importPreviewing">
+                                    <span class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                                </template>
+                                <template x-if="!importPreviewing">
+                                    <i data-lucide="scan" class="w-4 h-4"></i>
+                                </template>
+                                <span x-text="importPreviewing ? 'Menganalisis...' : 'Validasi File'"></span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Error Alert List -->
+                    <template x-if="importErrors && importErrors.length > 0">
+                        <div class="p-3.5 bg-rose-500/10 border border-rose-500/20 rounded-xl space-y-1.5">
+                            <div class="font-bold text-xs text-rose-700 dark:text-rose-400 flex items-center gap-1.5">
+                                <i data-lucide="alert-octagon" class="w-4 h-4"></i>
+                                <span>Ditemukan Kesalahan Validasi:</span>
+                            </div>
+                            <ul class="list-disc list-inside text-xs text-rose-600 dark:text-rose-300 space-y-1 font-mono">
+                                <template x-for="(err, eIdx) in importErrors" :key="eIdx">
+                                    <li x-text="err"></li>
+                                </template>
+                            </ul>
+                        </div>
+                    </template>
+
+                    <!-- Warning Alert List -->
+                    <template x-if="importWarnings && importWarnings.length > 0">
+                        <div class="p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-1.5">
+                            <div class="font-bold text-xs text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+                                <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                                <span>Peringatan & Catatan Penyesuaian:</span>
+                            </div>
+                            <ul class="list-disc list-inside text-xs text-amber-600 dark:text-amber-300 space-y-1 font-mono">
+                                <template x-for="(warn, wIdx) in importWarnings" :key="wIdx">
+                                    <li x-text="warn"></li>
+                                </template>
+                            </ul>
+                        </div>
+                    </template>
+
+                    <!-- Preview Content -->
+                    <template x-if="importPreviewResult">
+                        <div class="space-y-4">
+                            <!-- Stats & Target Status Radio -->
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div class="p-3.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center gap-3">
+                                    <div class="p-2 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-lg">
+                                        <i data-lucide="package" class="w-5 h-5"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-[10px] text-slate-500 uppercase tracking-wider font-mono">Total Box Terdeteksi</div>
+                                        <div class="text-base font-black text-slate-900 dark:text-white" x-text="importPreviewResult.total_boxes + ' Box'"></div>
+                                    </div>
+                                </div>
+                                <div class="p-3.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center gap-3">
+                                    <div class="p-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-lg">
+                                        <i data-lucide="file-text" class="w-5 h-5"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-[10px] text-slate-500 uppercase tracking-wider font-mono">Total Butir Dokumen</div>
+                                        <div class="text-base font-black text-slate-900 dark:text-white" x-text="importPreviewResult.total_items + ' Butir'"></div>
+                                    </div>
+                                </div>
+                                <div class="p-3.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl space-y-1.5">
+                                    <div class="text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider font-mono">
+                                        Status Pasca-Impor:
+                                    </div>
+                                    <div class="space-y-1">
+                                        <label class="flex items-center gap-2 text-xs cursor-pointer">
+                                            <input type="radio" value="draft" x-model="importTargetStatus" class="text-blue-600">
+                                            <span>Draft Sementara</span>
+                                        </label>
+                                        <label class="flex items-center gap-2 text-xs cursor-pointer">
+                                            <input type="radio" value="pending_verification" x-model="importTargetStatus" class="text-blue-600">
+                                            <span class="font-bold text-amber-600 dark:text-amber-400">Verifikasi Gudang</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Box Cards Accordion / List -->
+                            <div class="space-y-3">
+                                <div class="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider font-mono flex items-center justify-between">
+                                    <span>Pratinjau Struktur Box & Dokumen:</span>
+                                    <span class="text-[11px] text-slate-400 font-normal">Semua periode & retensi dihitung otomatis</span>
+                                </div>
+
+                                <div class="space-y-3 max-h-[360px] overflow-y-auto pr-1">
+                                    <template x-for="(box, bIdx) in importPreviewResult.boxes" :key="bIdx">
+                                        <div class="p-3.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl space-y-2.5">
+                                            <!-- Box Header -->
+                                            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800/80 pb-2">
+                                                <div class="flex items-center gap-2">
+                                                    <span class="px-2 py-0.5 bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 rounded font-mono font-bold text-xs" x-text="box.temp_box_id"></span>
+                                                    <h4 class="font-bold text-xs text-slate-900 dark:text-white" x-text="box.name"></h4>
+                                                </div>
+                                                <div class="flex items-center gap-1.5 text-[11px] font-mono">
+                                                    <span class="px-2 py-0.5 bg-slate-200 dark:bg-slate-800 rounded text-slate-700 dark:text-slate-300" x-text="'Dept: ' + box.department_code + (box.sub_department_code ? ' / ' + box.sub_department_code : '')"></span>
+                                                    <span class="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 rounded font-bold" x-text="box.items.length + ' Berkas'"></span>
+                                                </div>
+                                            </div>
+
+                                            <!-- Box Calculated Metrics -->
+                                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] font-mono bg-white dark:bg-slate-950/50 p-2 rounded-lg border border-slate-200 dark:border-slate-800">
+                                                <div>
+                                                    <span class="text-slate-400 block text-[10px]">Periode Arsip:</span>
+                                                    <span class="font-bold text-slate-700 dark:text-slate-300" x-text="box.periode_doc || '-'"></span>
+                                                </div>
+                                                <div>
+                                                    <span class="text-slate-400 block text-[10px]">Rentang Tanggal:</span>
+                                                    <span class="font-bold text-slate-700 dark:text-slate-300" x-text="(box.period_start_date || '?') + ' s/d ' + (box.period_end_date || '?')"></span>
+                                                </div>
+                                                <div>
+                                                    <span class="text-slate-400 block text-[10px]">Retensi (Kedaluwarsa):</span>
+                                                    <span class="font-bold text-amber-600 dark:text-amber-400" x-text="(box.retention_years || 5) + ' Thn (' + (box.retention_expiry_date || '-') + ')'"></span>
+                                                </div>
+                                                <div>
+                                                    <span class="text-slate-400 block text-[10px]">Kondisi Fisik:</span>
+                                                    <span class="font-bold text-slate-700 dark:text-slate-300" x-text="box.physical_condition || 'Baik'"></span>
+                                                </div>
+                                            </div>
+
+                                            <!-- Box Item Table -->
+                                            <div class="overflow-x-auto">
+                                                <table class="w-full text-left text-[11px] font-mono">
+                                                    <thead class="bg-slate-200/50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400">
+                                                        <tr>
+                                                            <th class="py-1 px-2 w-12">No</th>
+                                                            <th class="py-1 px-2">Nama Dokumen / Berkas</th>
+                                                            <th class="py-1 px-2 w-48">Periode Dokumen</th>
+                                                            <th class="py-1 px-2">Keterangan</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800/40">
+                                                        <template x-for="(itm, iIdx) in box.items" :key="iIdx">
+                                                            <tr class="hover:bg-white/50 dark:hover:bg-slate-800/30">
+                                                                <td class="py-1 px-2 font-bold text-slate-500" x-text="itm.item_number || (iIdx + 1)"></td>
+                                                                <td class="py-1 px-2 font-semibold text-slate-900 dark:text-slate-100" x-text="itm.name"></td>
+                                                                <td class="py-1 px-2 text-slate-600 dark:text-slate-400" x-text="(itm.period_start || '-') + ' s/d ' + (itm.period_end || '-')"></td>
+                                                                <td class="py-1 px-2 text-slate-500 italic" x-text="itm.description || '-'"></td>
+                                                            </tr>
+                                                        </template>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="flex items-center justify-between px-5 py-3.5 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800">
+                    <div class="text-[11px] text-slate-500 font-mono">
+                        <template x-if="importPreviewResult">
+                            <span>Siap mengimpor <strong class="text-slate-900 dark:text-white" x-text="importPreviewResult.total_boxes"></strong> box arsip.</span>
+                        </template>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button type="button" 
+                                @click="openImportModal = false" 
+                                :disabled="importSubmitting" 
+                                class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs transition">
+                            Tutup
+                        </button>
+                        <button type="button" 
+                                @click="submitImportCommit()" 
+                                :disabled="!importPreviewResult || importPreviewResult.boxes.length === 0 || importSubmitting" 
+                                class="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-500/20 transition flex items-center gap-1.5 disabled:opacity-50">
+                            <template x-if="importSubmitting">
+                                <span class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                            </template>
+                            <template x-if="!importSubmitting">
+                                <i data-lucide="check-circle" class="w-4 h-4"></i>
+                            </template>
+                            <span x-text="importSubmitting ? 'Mengimpor Box...' : 'Eksekusi Simpan Impor'"></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 @endsection
 
@@ -2144,6 +2485,142 @@ function archiveCatalog() {
         superAdminDestroyNotes: '',
         superAdminBoxNumber: '',
         updatingStatus: false,
+
+        // Multi-Box Excel Import State
+        openImportModal: {{ request('open_import') ? 'true' : 'false' }},
+        importFile: null,
+        importFileName: '',
+        importPreviewing: false,
+        importPreviewResult: null,
+        importTargetStatus: 'draft',
+        importSubmitting: false,
+        importErrors: [],
+        importWarnings: [],
+
+        handleImportFileSelect(e) {
+            const files = e.target.files;
+            if (files && files[0]) {
+                this.importFile = files[0];
+                this.importFileName = files[0].name;
+                this.importPreviewResult = null;
+                this.importErrors = [];
+                this.importWarnings = [];
+            }
+        },
+
+        async submitImportPreview() {
+            if (!this.importFile) {
+                alert('Pilih file Excel (.xlsx) atau CSV terlebih dahulu.');
+                return;
+            }
+
+            this.importPreviewing = true;
+            this.importErrors = [];
+            this.importWarnings = [];
+
+            try {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
+                const formData = new FormData();
+                formData.append('file', this.importFile);
+
+                const res = await fetch('{{ route("archives.import.preview") }}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: formData
+                });
+
+                const json = await res.json();
+                if (res.ok && json.success) {
+                    this.importPreviewResult = json;
+                    this.importWarnings = json.warnings || [];
+                    this.importErrors = [];
+                } else {
+                    this.importPreviewResult = null;
+                    this.importErrors = json.errors || [json.message || 'Gagal memproses file template spreadsheet.'];
+                }
+            } catch (err) {
+                console.error('Import preview error:', err);
+                this.importErrors = ['Terjadi kesalahan koneksi saat membaca file Excel: ' + err.message];
+            } finally {
+                this.importPreviewing = false;
+                this.$nextTick(() => {
+                    if (window.lucide) window.lucide.createIcons();
+                });
+            }
+        },
+
+        async submitImportCommit() {
+            if (!this.importPreviewResult || !this.importPreviewResult.boxes || this.importPreviewResult.boxes.length === 0) {
+                return;
+            }
+
+            const boxCount = this.importPreviewResult.total_boxes;
+            const itemCount = this.importPreviewResult.total_items;
+            const statusLabel = this.importTargetStatus === 'draft' ? 'Draft Sementara' : 'Antrean Verifikasi Gudang';
+
+            const ok = await window.showConfirmModal({
+                title: 'Konfirmasi Impor Multi-Box Arsip',
+                message: `Apakah Anda yakin ingin mengimpor ${boxCount} Box Arsip (${itemCount} Butir Dokumen) dengan status "${statusLabel}"?`,
+                type: 'info',
+                confirmText: 'Ya, Eksekusi Impor'
+            });
+            if (!ok) return;
+
+            this.importSubmitting = true;
+
+            try {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
+                const res = await fetch('{{ route("archives.import.commit") }}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({
+                        boxes: this.importPreviewResult.boxes,
+                        status: this.importTargetStatus
+                    })
+                });
+
+                const json = await res.json();
+                if (res.ok && json.success) {
+                    this.openImportModal = false;
+                    if (window.showToast) {
+                        window.showToast(json.message, 'success');
+                    } else {
+                        alert(json.message);
+                    }
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 600);
+                } else {
+                    await window.showNotificationModal(json.message || 'Gagal mengeksekusi impor data box arsip.', 'Gagal Impor', 'danger');
+                }
+            } catch (err) {
+                console.error('Import commit error:', err);
+                await window.showNotificationModal('Terjadi kesalahan saat menyimpan data impor.', 'Kesalahan Server', 'danger');
+            } finally {
+                this.importSubmitting = false;
+            }
+        },
+
+        resetImport() {
+            this.importFile = null;
+            this.importFileName = '';
+            this.importPreviewResult = null;
+            this.importErrors = [];
+            this.importWarnings = [];
+            this.importPreviewing = false;
+            this.importSubmitting = false;
+            const input = document.getElementById('excel_import_file_input');
+            if (input) input.value = '';
+        },
 
         openSuperAdminStatusModal(archiveData) {
             this.superAdminStatusData = archiveData;

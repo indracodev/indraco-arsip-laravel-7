@@ -521,7 +521,7 @@
                                     <template x-if="dLog.approval_status === 'pending'">
                                         <button 
                                             type="button"
-                                            @click="if (confirm('Setujui usulan pengajuan pemusnahan ini untuk masuk ke Antrean Pemusnahan Gudang?')) { const f = document.getElementById('approve-form-' + dLog.id); if (f) f.submit(); }"
+                                            @click="async () => { const ok = window.showConfirmModal ? await window.showConfirmModal({ title: 'Persetujuan Pemusnahan', message: 'Setujui usulan pengajuan pemusnahan ini untuk masuk ke Antrean Pemusnahan Gudang?', type: 'warning', confirmText: 'Ya, Setujui' }) : true; if (ok) { const f = document.getElementById('approve-form-' + dLog.id); if (f) f.submit(); } }"
                                             class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border hover:scale-105 transition cursor-pointer group shadow-2xs" 
                                             :class="dLog.status_badge"
                                             title="Klik untuk langsung menyetujui pengajuan pemusnahan (Tahap 1 -> Tahap 2)">
@@ -607,9 +607,12 @@
                                     @if(auth()->check() && (auth()->user()->isPicGudang() || auth()->user()->isSuperAdmin()))
                                         <!-- Tahap 1 -> Tahap 2: Setujui Usulan Pengajuan ke Antrean Pemusnahan -->
                                         <template x-if="dLog.approval_status === 'pending'">
-                                            <form :id="'approve-form-' + dLog.id" :action="'{{ url('/destructions') }}/' + dLog.id + '/approve'" method="POST" class="inline" @submit="return confirm('Apakah Anda yakin menyetujui usulan pengajuan pemusnahan ini untuk masuk ke Antrean Pemusnahan Gudang?')">
+                                            <form :id="'approve-form-' + dLog.id" :action="'{{ url('/destructions') }}/' + dLog.id + '/approve'" method="POST" class="inline">
                                                 @csrf
-                                                <button type="submit" class="px-2 py-0.5 rounded bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] border border-blue-700 shadow-sm inline-flex items-center gap-1 cursor-pointer" title="Setujui Pengajuan Masuk Antrean Gudang">
+                                                <button type="button" 
+                                                        @click="async () => { const ok = window.showConfirmModal ? await window.showConfirmModal({ title: 'Persetujuan Pemusnahan', message: 'Apakah Anda yakin menyetujui usulan pengajuan pemusnahan ini untuk masuk ke Antrean Pemusnahan Gudang?', type: 'warning', confirmText: 'Ya, Setujui' }) : true; if (ok) $el.closest('form').submit(); }"
+                                                        class="px-2 py-0.5 rounded bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] border border-blue-700 shadow-sm inline-flex items-center gap-1 cursor-pointer" 
+                                                        title="Setujui Pengajuan Masuk Antrean Gudang">
                                                     <i data-lucide="check" class="w-3 h-3"></i>
                                                     <span>Setujui</span>
                                                 </button>
@@ -686,6 +689,26 @@
                     <span class="font-sans font-bold text-slate-800 dark:text-slate-200 block truncate" x-text="selectedLogToComplete?.archive_title"></span>
                     <span class="text-[10px] text-slate-500" x-text="'Dept: ' + (selectedLogToComplete?.department_code || '-')"></span>
                 </div>
+                <template x-if="selectedLogToComplete && selectedLogToComplete.approval_file">
+                    <div class="mt-2 pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                        <span class="text-[11px] text-slate-600 dark:text-slate-300 flex items-center gap-1 font-bold">
+                            <i data-lucide="file-check" class="w-3.5 h-3.5 text-rose-500"></i>
+                            <span>Surat Usulan / Persetujuan PIC Dept:</span>
+                        </span>
+                        <button type="button" 
+                                @click="dmsPreviewFile({
+                                    url: selectedLogToComplete.approval_file,
+                                    stream_url: selectedLogToComplete.approval_file_stream,
+                                    raw_path: selectedLogToComplete.approval_file_raw,
+                                    name: 'Approval Pemusnahan - ' + (selectedLogToComplete.bap_number || selectedLogToComplete.archive_title),
+                                    ext: (selectedLogToComplete.approval_file_raw || selectedLogToComplete.approval_file || '').split('.').pop().toLowerCase()
+                                })"
+                                class="px-2.5 py-1 rounded bg-rose-600 hover:bg-rose-500 text-white font-bold text-[10px] inline-flex items-center gap-1 cursor-pointer transition shadow-xs">
+                            <i data-lucide="eye" class="w-3 h-3"></i>
+                            <span>Pratinjau Surat Usulan</span>
+                        </button>
+                    </div>
+                </template>
             </div>
 
             <!-- Form Eksekusi BAP -->

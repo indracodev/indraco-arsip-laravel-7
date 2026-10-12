@@ -72,7 +72,8 @@ class BorrowingController extends Controller
         $archivesQuery = Archive::select(
             'id', 'archive_code', 'title', 'department_id', 'sub_department_id',
             'warehouse_location_id', 'warehouse_rack_slot_id', 'box_number',
-            'retention_expiry_date', 'status'
+            'retention_expiry_date', 'status', 'period_start_date', 'period_end_date',
+            'period_text', 'periode_doc', 'physical_condition', 'content_description'
         )->with([
             'department:id,name,code',
             'subDepartment:id,name',
@@ -95,17 +96,56 @@ class BorrowingController extends Controller
     {
         $user = auth()->user();
 
+        // Support both single archive_id and multiple archive_ids (Multi-Box Penarikan)
+        $rawArchiveIds = [];
+        if ($request->has('archive_ids') && is_array($request->input('archive_ids'))) {
+            $rawArchiveIds = array_filter(array_map('intval', $request->input('archive_ids')));
+        } elseif ($request->has('boxes') && is_array($request->input('boxes'))) {
+            foreach ($request->input('boxes') as $b) {
+                if (!empty($b['archive_id'])) {
+                    $rawArchiveIds[] = (int)$b['archive_id'];
+                }
+            }
+        } elseif ($request->filled('archive_id')) {
+            $rawArchiveIds = [(int)$request->input('archive_id')];
+        }
+
+        $archiveIds = array_values(array_unique($rawArchiveIds));
+
+        if (empty($archiveIds)) {
+            return back()->withInput()->withErrors([
+                'archive_ids' => 'Minimal satu berkas arsip wajib dipilih untuk pengajuan penarikan.',
+                'archive_id' => 'Berkas arsip wajib dipilih.',
+            ]);
+        }
+
         $validated = $request->validate([
-            'archive_id' => 'required|exists:archives,id',
             'purpose' => 'required|string|max:500',
             'expected_return_date' => 'nullable|date',
             'approval_file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:500',
         ]);
 
-        $archive = Archive::findOrFail($validated['archive_id']);
+        $archives = Archive::whereIn('id', $archiveIds)->get();
 
-        if ($archive->status !== 'in_warehouse') {
-            return back()->with('error', 'Arsip dokumen saat ini tidak tersedia di gudang untuk ditarik.');
+        if ($archives->count() !== count($archiveIds)) {
+            return back()->withInput()->with('error', 'Satu atau lebih berkas arsip yang dipilih tidak ditemukan.');
+        }
+
+        // Validasi ketersediaan di gudang (in_warehouse)
+        $unavailableArchives = $archives->where('status', '!==', 'in_warehouse');
+        if ($unavailableArchives->isNotEmpty()) {
+            $unavailLabels = $unavailableArchives->map(function ($a) {
+                return ($a->box_number ? "[{$a->box_number}] " : '') . $a->title;
+            })->implode(', ');
+            return back()->withInput()->with('error', "Berkas arsip berikut tidak tersedia di gudang untuk ditarik: {$unavailLabels}");
+        }
+
+        // Proteksi departemen untuk PIC Dept
+        if ($user->isPicDept()) {
+            $unauthorized = $archives->where('department_id', '!==', (int)$user->department_id);
+            if ($unauthorized->isNotEmpty()) {
+                return back()->withInput()->with('error', 'Anda hanya berhak mengajukan penarikan untuk berkas milik departemen Anda.');
+            }
         }
 
         $approvalPath = $request->file('approval_file')->store('borrowing_approvals', 'public');
@@ -113,35 +153,56 @@ class BorrowingController extends Controller
         $isPermanent = $request->has('is_permanent') || empty($validated['expected_return_date']);
         $expectedReturnDate = $isPermanent ? null : $validated['expected_return_date'];
 
-        $borrowing = BorrowingLog::create([
-            'archive_id' => $archive->id,
-            'borrower_user_id' => $user->id,
-            'request_date' => now(),
-            'expected_return_date' => $expectedReturnDate,
-            'purpose' => $validated['purpose'],
-            'status' => 'requested',
-            'approval_file' => $approvalPath,
-            'scan_approval_borrow' => $approvalPath,
-            'is_approval_uploaded' => true,
-            'approval_status' => 'pending',
-        ]);
+        $createdLogs = [];
+        $boxNumbers = [];
+        $titles = [];
+
+        foreach ($archives as $archive) {
+            $borrowing = BorrowingLog::create([
+                'archive_id' => $archive->id,
+                'borrower_user_id' => $user->id,
+                'request_date' => now(),
+                'expected_return_date' => $expectedReturnDate,
+                'purpose' => $validated['purpose'],
+                'status' => 'requested',
+                'approval_file' => $approvalPath,
+                'scan_approval_borrow' => $approvalPath,
+                'is_approval_uploaded' => true,
+                'approval_status' => 'pending',
+            ]);
+
+            $createdLogs[] = $borrowing;
+            if ($archive->box_number) {
+                $boxNumbers[] = $archive->box_number;
+            }
+            $titles[] = $archive->title;
+        }
+
+        $boxCount = count($archives);
+        $boxListStr = !empty($boxNumbers) ? implode(', ', $boxNumbers) : implode(', ', array_slice($titles, 0, 3));
 
         ActivityLogger::log(
             'BORROW_CREATE',
-            "Pengajuan penarikan berkas '{$archive->title}' (Box: {$archive->box_number}) oleh {$user->name} untuk keperluan: {$validated['purpose']}",
+            "Pengajuan penarikan {$boxCount} box berkas ('{$boxListStr}') oleh {$user->name} untuk keperluan: {$validated['purpose']}",
             'PENARIKAN_BERKAS',
             [
-                'borrowing_id' => $borrowing->id,
-                'archive_id' => $archive->id,
-                'box_number' => $archive->box_number,
+                'box_count' => $boxCount,
+                'archive_ids' => $archiveIds,
+                'box_numbers' => $boxNumbers,
                 'purpose' => $validated['purpose'],
                 'expected_return_date' => $expectedReturnDate,
             ],
-            $archive->box_number
+            !empty($boxNumbers) ? implode(', ', array_slice($boxNumbers, 0, 2)) : "Batch {$boxCount} Box"
         );
 
-        return redirect()->route('borrowings.index')
-            ->with('success', 'Permintaan penarikan berkas berhasil diajukan dengan lampiran form persetujuan. Menunggu verifikasi Departemen & pengeluaran fisik Gudang.');
+        $successMessage = $boxCount > 1
+            ? "Permintaan penarikan {$boxCount} box berkas berhasil diajukan dengan lampiran form persetujuan. Menunggu verifikasi Departemen & pengeluaran fisik Gudang."
+            : "Permintaan penarikan berkas berhasil diajukan dengan lampiran form persetujuan. Menunggu verifikasi Departemen & pengeluaran fisik Gudang.";
+
+        $redirectParams = $request->has('embed') ? ['embed' => 1] : [];
+
+        return redirect()->route('borrowings.index', $redirectParams)
+            ->with('success', $successMessage);
     }
 
     public function deptApprove(BorrowingLog $borrowing, Request $request)

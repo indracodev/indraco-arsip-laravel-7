@@ -5,9 +5,15 @@
 @section('content')
 <div class="max-w-5xl mx-auto space-y-3 font-sans pb-10"
      x-data="{
-         search: '',
-         selectedArchive: null,
-         isOpen: false,
+         boxes: [
+             {
+                 id: Date.now(),
+                 selectedArchive: null,
+                 search: '',
+                 isOpen: false
+             }
+         ],
+         activeBoxIndex: 0,
          hasApprovalFile: false,
          archives: window.borrowingArchives || [],
          init() {
@@ -15,13 +21,51 @@
              if (initialId) {
                  const found = this.archives.find(a => a.id == initialId);
                  if (found) {
-                     this.selectArchive(found);
+                     this.selectArchive(0, found);
                  }
              }
+             this.$nextTick(() => {
+                 if (window.lucide) lucide.createIcons();
+             });
          },
-         get filteredArchives() {
-             if (!this.search.trim()) return this.archives.slice(0, 15);
-             const q = this.search.toLowerCase();
+         addBox(archive = null) {
+             const newBox = {
+                 id: Date.now() + Math.random(),
+                 selectedArchive: archive,
+                 search: archive ? (archive.box_number ? '[' + archive.box_number + '] ' + archive.title : archive.title) : '',
+                 isOpen: !archive
+             };
+             this.boxes.push(newBox);
+             this.activeBoxIndex = this.boxes.length - 1;
+             this.$nextTick(() => {
+                 if (window.lucide) lucide.createIcons();
+                 const el = document.getElementById('boxSearchInput_' + this.activeBoxIndex);
+                 if (el) el.focus();
+             });
+         },
+         async removeBox(index) {
+             if (this.boxes.length <= 1) return;
+             if (window.showConfirmModal) {
+                 const ok = await window.showConfirmModal({
+                     title: 'Hapus Box Penarikan',
+                     message: `Apakah Anda yakin ingin membatalkan pilihan Box #${index + 1} dari daftar penarikan?`,
+                     type: 'danger',
+                     confirmText: 'Ya, Hapus Box'
+                 });
+                 if (!ok) return;
+             }
+             this.boxes.splice(index, 1);
+             if (this.activeBoxIndex >= this.boxes.length) {
+                 this.activeBoxIndex = this.boxes.length - 1;
+             }
+             this.$nextTick(() => {
+                 if (window.lucide) lucide.createIcons();
+             });
+         },
+         getFilteredArchives(boxIdx) {
+             const b = this.boxes[boxIdx];
+             if (!b || !b.search.trim()) return this.archives.slice(0, 15);
+             const q = b.search.toLowerCase();
              return this.archives.filter(a => 
                  (a.box_number && a.box_number.toLowerCase().includes(q)) ||
                  (a.title && a.title.toLowerCase().includes(q)) ||
@@ -29,16 +73,45 @@
                  (a.department && a.department.code && a.department.code.toLowerCase().includes(q))
              );
          },
-         selectArchive(arc) {
-             this.selectedArchive = arc;
-             this.search = arc.box_number ? '[' + arc.box_number + '] ' + arc.title : arc.title;
-             this.isOpen = false;
+         isArchiveSelectedByOther(arcId, currentBoxIdx) {
+             return this.boxes.some((b, idx) => idx !== currentBoxIdx && b.selectedArchive && b.selectedArchive.id === arcId);
          },
-         clearSelection() {
-             this.selectedArchive = null;
-             this.search = '';
-             this.isOpen = true;
-             this.$nextTick(() => this.$refs.searchInput.focus());
+         async selectArchive(boxIdx, arc) {
+             if (this.isArchiveSelectedByOther(arc.id, boxIdx)) {
+                 if (window.showConfirmModal) {
+                     await window.showConfirmModal({
+                         title: 'Box Sudah Dipilih',
+                         message: 'Berkas arsip ' + (arc.box_number || arc.title) + ' sudah dipilih pada box lain.',
+                         type: 'warning',
+                         confirmText: 'Mengerti'
+                     });
+                 }
+                 return;
+             }
+             this.boxes[boxIdx].selectedArchive = arc;
+             this.boxes[boxIdx].search = arc.box_number ? '[' + arc.box_number + '] ' + arc.title : arc.title;
+             this.boxes[boxIdx].isOpen = false;
+             this.$nextTick(() => {
+                 if (window.lucide) lucide.createIcons();
+             });
+         },
+         clearSelection(boxIdx) {
+             this.boxes[boxIdx].selectedArchive = null;
+             this.boxes[boxIdx].search = '';
+             this.boxes[boxIdx].isOpen = true;
+             this.$nextTick(() => {
+                 const el = document.getElementById('boxSearchInput_' + boxIdx);
+                 if (el) el.focus();
+             });
+         },
+         get selectedBoxesCount() {
+             return this.boxes.filter(b => b.selectedArchive !== null).length;
+         },
+         get allBoxesFilled() {
+             return this.boxes.length > 0 && this.boxes.every(b => b.selectedArchive !== null);
+         },
+         get canSubmit() {
+             return this.allBoxesFilled && this.hasApprovalFile;
          }
      }">
 
@@ -50,7 +123,7 @@
             </span>
             <div>
                 <h1 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Formulir Permintaan Penarikan Berkas Arsip [Form 2]</h1>
-                <p class="text-[11px] text-slate-500 dark:text-slate-400">Pengajuan Penarikan Dokumen Arsip Tersimpan • Wajib Dokumen Persetujuan (Approval)</p>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400">Pengajuan Penarikan Dokumen Arsip Tersimpan • Dukungan Multi-Box Penarikan • Wajib Dokumen Persetujuan (Approval)</p>
             </div>
         </div>
 
@@ -98,120 +171,217 @@
             <input type="hidden" name="embed" value="1">
         @endif
 
-        <!-- Hidden Archive ID input & Default Permanent Mode -->
-        <input type="hidden" name="archive_id" :value="selectedArchive ? selectedArchive.id : ''" required>
+        <!-- Hidden Archive IDs (Multi-Box Support & Single Fallback) -->
+        <template x-for="(b, bIdx) in boxes" :key="b.id">
+            <input type="hidden" name="archive_ids[]" :value="b.selectedArchive ? b.selectedArchive.id : ''">
+        </template>
+        <input type="hidden" name="archive_id" :value="boxes[0]?.selectedArchive?.id || ''">
         <input type="hidden" name="is_permanent" value="1">
 
-        <!-- SECTION 1: CARI & PILIH BERKAS ARSIP -->
-        <fieldset class="border border-slate-300 dark:border-slate-800 p-3.5 rounded bg-white dark:bg-slate-950 shadow-sm space-y-3">
-            <legend class="px-2 font-mono text-[11px] font-bold text-emerald-700 dark:text-emerald-400 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded shadow-sm flex items-center gap-1.5">
-                <i data-lucide="search" class="w-3.5 h-3.5 text-emerald-500"></i>
-                1. Cari & Pilih Berkas Dokumen Arsip Target Penarikan
-            </legend>
-
-            <!-- Search Input Box -->
-            <div class="space-y-1.5">
-                <label class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300">
-                    KATA KUNCI PENCARIAN BERKAS <span class="text-rose-500">*</span>
-                </label>
-                <div class="relative" @click.away="isOpen = false">
-                    <div class="relative">
-                        <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 absolute left-2.5 top-2.5"></i>
-                        <input 
-                            type="text" 
-                            x-ref="searchInput"
-                            x-model="search"
-                            @focus="isOpen = true"
-                            @input="isOpen = true; selectedArchive = null"
-                            placeholder="Ketik Nomor Box (misal: BOX-...) atau Judul Berkas arsip..." 
-                            class="w-full pl-8 pr-8 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500 transition shadow-2xs"
-                        >
-                        <!-- Clear Selection Icon -->
-                        <button type="button" x-show="search.length > 0" @click="clearSelection()" class="absolute right-2.5 top-2 text-slate-400 hover:text-rose-500 cursor-pointer">
-                            <i data-lucide="x" class="w-3.5 h-3.5"></i>
-                        </button>
-                    </div>
-
-                    <!-- Autocomplete Dropdown List -->
-                    <div x-show="isOpen && filteredArchives.length > 0" 
-                         x-cloak
-                         x-transition 
-                         class="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg shadow-2xl z-50 max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 font-mono text-xs">
-                        <template x-for="arc in filteredArchives" :key="arc.id">
-                            <div @click="selectArchive(arc)" class="p-2.5 hover:bg-emerald-500/10 dark:hover:bg-emerald-500/20 cursor-pointer transition flex items-center justify-between gap-3">
-                                <div class="space-y-0.5 min-w-0">
-                                    <div class="flex items-center gap-1.5">
-                                        <span class="font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.2 rounded border border-amber-500/20 text-[10px]" x-text="arc.box_number || 'NO-BOX'"></span>
-                                        <span class="text-[10px] font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.2 rounded" x-text="arc.department ? arc.department.code : 'GEN'"></span>
-                                    </div>
-                                    <h4 class="text-xs font-bold text-slate-900 dark:text-white truncate" x-text="arc.title"></h4>
-                                    <p class="text-[10px] text-slate-500 dark:text-slate-400" x-text="arc.period_text || arc.period_start_date"></p>
-                                </div>
-                                <div class="text-right shrink-0">
-                                    <span class="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                                        <i data-lucide="map-pin" class="w-3 h-3"></i>
-                                        <span x-text="arc.short_location || arc.full_slot_location || (arc.location ? arc.location.full_location : 'Gudang')"></span>
-                                    </span>
-                                </div>
-                            </div>
-                        </template>
-                    </div>
-
-                    <!-- Empty Search Result State -->
-                    <div x-show="isOpen && filteredArchives.length === 0" x-cloak class="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg shadow-2xl p-3 text-center text-slate-500 text-xs font-mono z-50">
-                        Tidak ada berkas arsip yang cocok dengan pencarian di departemen ini.
+        <!-- SECTION 1: WORKSTATION MULTI-BOX PENARIKAN -->
+        <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl p-3.5 shadow-sm space-y-3 font-mono">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-2.5">
+                <div class="flex items-center gap-2">
+                    <span class="p-1.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded">
+                        <i data-lucide="boxes" class="w-4 h-4"></i>
+                    </span>
+                    <div>
+                        <h2 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                            1. Pengelolaan Multi-Box Penarikan Arsip
+                        </h2>
+                        <p class="text-[10px] text-slate-500 font-sans">
+                            Klik tab box untuk beralih. Anda dapat menambah box untuk mengajukan penarikan banyak box sekaligus.
+                        </p>
                     </div>
                 </div>
-                @error('archive_id') <span class="text-rose-500 font-mono text-[11px] font-bold block">{{ $message }}</span> @enderror
+
+                <!-- Box Action Toolbar -->
+                <div class="flex items-center gap-1.5 shrink-0">
+                    <button 
+                        type="button" 
+                        @click="addBox()" 
+                        class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-bold transition flex items-center gap-1 shadow-sm cursor-pointer"
+                        title="Tambah Box Target Penarikan Baru"
+                    >
+                        <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                        <span>Tambah Box</span>
+                    </button>
+
+                    <template x-if="boxes.length > 1">
+                        <button 
+                            type="button" 
+                            @click="removeBox(activeBoxIndex)" 
+                            class="px-2 py-1 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 border border-rose-300 dark:border-rose-800 rounded text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                            title="Hapus Box yang Sedang Aktif"
+                        >
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            <span>Hapus Box</span>
+                        </button>
+                    </template>
+                </div>
             </div>
 
-            <!-- DETAIL INFORMASI BERKAS YANG DIPILIH -->
-            <div x-show="selectedArchive" x-cloak x-transition class="bg-slate-50 dark:bg-slate-900/60 border border-emerald-500/40 rounded p-3 space-y-2.5 font-mono shadow-2xs">
-                <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
-                    <div class="flex items-center gap-2">
-                        <span class="p-1 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded">
-                            <i data-lucide="folder-check" class="w-3.5 h-3.5"></i>
-                        </span>
-                        <div>
-                            <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">BERKAS ARSIP TERPILIH</span>
-                            <span class="text-xs font-black text-amber-600 dark:text-amber-400" x-text="selectedArchive?.box_number || 'PENOMORAN PENDING'"></span>
+            <!-- Box Navigation Tabs (Scrollable Ribbon) -->
+            <div class="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-thin">
+                <template x-for="(b, bIdx) in boxes" :key="b.id">
+                    <button 
+                        type="button" 
+                        @click="activeBoxIndex = bIdx; $nextTick(() => { if(window.lucide) lucide.createIcons(); });" 
+                        class="px-3 py-1.5 rounded-lg border text-xs font-mono font-bold transition flex items-center gap-2 shrink-0 select-none cursor-pointer"
+                        :class="activeBoxIndex === bIdx 
+                            ? 'bg-gradient-to-r from-emerald-600 to-emerald-500 text-white border-emerald-600 shadow-md ring-2 ring-emerald-500/20' 
+                            : 'bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-800 hover:bg-slate-200 dark:hover:bg-slate-800'"
+                    >
+                        <i data-lucide="package" class="w-3.5 h-3.5" :class="activeBoxIndex === bIdx ? 'text-white' : 'text-emerald-500'"></i>
+                        <span x-text="'Box ' + (bIdx + 1)"></span>
+                        <span class="text-[10px] font-normal max-w-[120px] truncate" x-show="b.selectedArchive" x-text="b.selectedArchive ? (b.selectedArchive.box_number || b.selectedArchive.title) : ''"></span>
+                        <span 
+                            class="px-1.5 py-0.2 rounded-full text-[10px] font-black"
+                            :class="activeBoxIndex === bIdx ? 'bg-slate-950 text-emerald-300' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'"
+                            x-text="b.selectedArchive ? 'Siap' : 'Pilih'"
+                        ></span>
+                    </button>
+                </template>
+            </div>
+
+            <!-- Ringkasan Box Terpilih (Muncul jika ada lebih dari 1 box) -->
+            <div x-show="boxes.length > 1" class="p-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 font-mono text-xs">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+                        <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-600"></i>
+                        Ringkasan Box Target Penarikan (<span x-text="selectedBoxesCount"></span>/<span x-text="boxes.length"></span> Box Terisi)
+                    </span>
+                    <span class="text-[11px] text-emerald-600 dark:text-emerald-400">Klik kartu untuk beralih</span>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                    <template x-for="(b, bIdx) in boxes" :key="b.id">
+                        <div @click="activeBoxIndex = bIdx" class="p-2 rounded bg-white dark:bg-slate-900 border transition cursor-pointer flex items-center justify-between gap-2"
+                             :class="activeBoxIndex === bIdx ? 'border-emerald-500 shadow-sm' : 'border-slate-200 dark:border-slate-800 hover:border-slate-300'">
+                            <div class="min-w-0">
+                                <span class="text-[10px] font-bold text-slate-400 block" x-text="'Box ' + (bIdx + 1)"></span>
+                                <span class="text-xs font-bold text-slate-800 dark:text-white truncate block" x-text="b.selectedArchive ? (b.selectedArchive.box_number || b.selectedArchive.title) : '(Belum dipilih)'"></span>
+                            </div>
+                            <span class="p-1 rounded text-[10px] font-bold shrink-0"
+                                  :class="b.selectedArchive ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300'"
+                                  x-text="b.selectedArchive ? 'OK' : 'Kosong'"></span>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- CONTAINER ACTIVE BOX FORM -->
+            <template x-for="(box, bIdx) in boxes" :key="box.id">
+                <div x-show="activeBoxIndex === bIdx" class="space-y-3 pt-1">
+                    
+                    <!-- Search Input Box -->
+                    <div class="space-y-1.5">
+                        <label class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                            PENCARIAN BERKAS GUDANG (UNTUK BOX <span x-text="bIdx + 1"></span>) <span class="text-rose-500">*</span>
+                        </label>
+                        <div class="relative" @click.away="box.isOpen = false">
+                            <div class="relative">
+                                <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 absolute left-2.5 top-2.5"></i>
+                                <input 
+                                    type="text" 
+                                    :id="'boxSearchInput_' + bIdx"
+                                    x-model="box.search"
+                                    @focus="box.isOpen = true"
+                                    @input="box.isOpen = true; box.selectedArchive = null"
+                                    placeholder="Ketik Nomor Box (misal: BOX-...) atau Judul Berkas arsip..." 
+                                    class="w-full pl-8 pr-8 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500 transition shadow-2xs"
+                                >
+                                <!-- Clear Selection Icon -->
+                                <button type="button" x-show="box.search.length > 0" @click="clearSelection(bIdx)" class="absolute right-2.5 top-2 text-slate-400 hover:text-rose-500 cursor-pointer">
+                                    <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                                </button>
+                            </div>
+
+                            <!-- Autocomplete Dropdown List -->
+                            <div x-show="box.isOpen && getFilteredArchives(bIdx).length > 0" 
+                                 x-cloak
+                                 x-transition 
+                                 class="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg shadow-2xl z-50 max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 font-mono text-xs">
+                                <template x-for="arc in getFilteredArchives(bIdx)" :key="arc.id">
+                                    <div @click="!isArchiveSelectedByOther(arc.id, bIdx) && selectArchive(bIdx, arc)" 
+                                         class="p-2.5 transition flex items-center justify-between gap-3"
+                                         :class="isArchiveSelectedByOther(arc.id, bIdx) 
+                                            ? 'opacity-40 bg-slate-50 dark:bg-slate-950 cursor-not-allowed' 
+                                            : 'hover:bg-emerald-500/10 dark:hover:bg-emerald-500/20 cursor-pointer'">
+                                        <div class="space-y-0.5 min-w-0">
+                                            <div class="flex items-center gap-1.5">
+                                                <span class="font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.2 rounded border border-amber-500/20 text-[10px]" x-text="arc.box_number || 'NO-BOX'"></span>
+                                                <span class="text-[10px] font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.2 rounded" x-text="arc.department ? arc.department.code : 'GEN'"></span>
+                                                <span x-show="isArchiveSelectedByOther(arc.id, bIdx)" class="text-[9px] font-bold text-rose-500 bg-rose-500/10 px-1.5 py-0.2 rounded border border-rose-500/20">Sudah Dipilih di Box Lain</span>
+                                            </div>
+                                            <h4 class="text-xs font-bold text-slate-900 dark:text-white truncate" x-text="arc.title"></h4>
+                                            <p class="text-[10px] text-slate-500 dark:text-slate-400" x-text="arc.period_text || arc.period_start_date"></p>
+                                        </div>
+                                        <div class="text-right shrink-0">
+                                            <span class="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                                                <i data-lucide="map-pin" class="w-3 h-3"></i>
+                                                <span x-text="arc.short_location || arc.full_slot_location || (arc.location ? arc.location.full_location : 'Gudang')"></span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+
+                            <!-- Empty Search Result State -->
+                            <div x-show="box.isOpen && getFilteredArchives(bIdx).length === 0" x-cloak class="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg shadow-2xl p-3 text-center text-slate-500 text-xs font-mono z-50">
+                                Tidak ada berkas arsip yang cocok dengan pencarian di departemen ini.
+                            </div>
                         </div>
                     </div>
 
-                    <button type="button" @click="clearSelection()" class="px-2 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded text-[11px] font-bold transition flex items-center gap-1 cursor-pointer">
-                        <i data-lucide="refresh-cw" class="w-3 h-3 text-emerald-500"></i> Ganti Berkas
-                    </button>
+                    <!-- DETAIL INFORMASI BERKAS YANG DIPILIH PADA BOX AKTIF -->
+                    <div x-show="box.selectedArchive" x-cloak x-transition class="bg-slate-50 dark:bg-slate-900/60 border border-emerald-500/40 rounded p-3 space-y-2.5 font-mono shadow-2xs">
+                        <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+                            <div class="flex items-center gap-2">
+                                <span class="p-1 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded">
+                                    <i data-lucide="folder-check" class="w-3.5 h-3.5"></i>
+                                </span>
+                                <div>
+                                    <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block" x-text="'BERKAS TERPILIH UNTUK BOX ' + (bIdx + 1)"></span>
+                                    <span class="text-xs font-black text-amber-600 dark:text-amber-400" x-text="box.selectedArchive?.box_number || 'PENOMORAN PENDING'"></span>
+                                </div>
+                            </div>
+
+                            <button type="button" @click="clearSelection(bIdx)" class="px-2 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded text-[11px] font-bold transition flex items-center gap-1 cursor-pointer">
+                                <i data-lucide="refresh-cw" class="w-3 h-3 text-emerald-500"></i> Ganti Berkas
+                            </button>
+                        </div>
+
+                        <div class="space-y-0.5">
+                            <h3 class="text-xs font-bold text-slate-900 dark:text-white" x-text="box.selectedArchive?.title"></h3>
+                            <p class="text-[11px] text-slate-600 dark:text-slate-400" x-text="box.selectedArchive?.content_description || '-'"></p>
+                        </div>
+
+                        <!-- Grid Details 4 Kolom -->
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs pt-1">
+                            <div class="p-2 rounded bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                                <span class="text-[9px] font-bold text-slate-500 dark:text-slate-400 block uppercase">DEPARTEMEN</span>
+                                <span class="font-bold text-slate-800 dark:text-white truncate block text-[11px]" x-text="box.selectedArchive?.department ? (box.selectedArchive.department.code + ' - ' + box.selectedArchive.department.name) : 'UMUM'"></span>
+                            </div>
+
+                            <div class="p-2 rounded bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                                <span class="text-[9px] font-bold text-slate-500 dark:text-slate-400 block uppercase">LOKASI RAK GUDANG</span>
+                                <span class="font-bold text-emerald-600 dark:text-emerald-400 truncate block text-[11px]" x-text="box.selectedArchive?.short_location || box.selectedArchive?.full_slot_location || (box.selectedArchive?.location ? box.selectedArchive.location.full_location : 'Gudang')"></span>
+                            </div>
+
+                            <div class="p-2 rounded bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                                <span class="text-[9px] font-bold text-slate-500 dark:text-slate-400 block uppercase">PERIODE DOKUMEN</span>
+                                <span class="font-bold text-amber-600 dark:text-amber-400 truncate block text-[11px]" x-text="box.selectedArchive?.period_text || box.selectedArchive?.periode_doc || '-'"></span>
+                            </div>
+
+                            <div class="p-2 rounded bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                                <span class="text-[9px] font-bold text-slate-500 dark:text-slate-400 block uppercase">KONDISI FISIK</span>
+                                <span class="font-bold text-slate-800 dark:text-white truncate block text-[11px]" x-text="box.selectedArchive?.physical_condition || 'Baik'"></span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-
-                <div class="space-y-0.5">
-                    <h3 class="text-xs font-bold text-slate-900 dark:text-white" x-text="selectedArchive?.title"></h3>
-                    <p class="text-[11px] text-slate-600 dark:text-slate-400" x-text="selectedArchive?.content_description"></p>
-                </div>
-
-                <!-- Grid Details 4 Kolom -->
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs pt-1">
-                    <div class="p-2 rounded bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
-                        <span class="text-[9px] font-bold text-slate-500 dark:text-slate-400 block uppercase">DEPARTEMEN</span>
-                        <span class="font-bold text-slate-800 dark:text-white truncate block text-[11px]" x-text="selectedArchive?.department ? (selectedArchive.department.code + ' - ' + selectedArchive.department.name) : 'UMUM'"></span>
-                    </div>
-
-                    <div class="p-2 rounded bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
-                        <span class="text-[9px] font-bold text-slate-500 dark:text-slate-400 block uppercase">LOKASI RAK GUDANG</span>
-                        <span class="font-bold text-emerald-600 dark:text-emerald-400 truncate block text-[11px]" x-text="selectedArchive?.short_location || selectedArchive?.full_slot_location || (selectedArchive?.location ? selectedArchive.location.full_location : 'Gudang')"></span>
-                    </div>
-
-                    <div class="p-2 rounded bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
-                        <span class="text-[9px] font-bold text-slate-500 dark:text-slate-400 block uppercase">PERIODE DOKUMEN</span>
-                        <span class="font-bold text-amber-600 dark:text-amber-400 truncate block text-[11px]" x-text="selectedArchive?.period_text || selectedArchive?.periode_doc || '-'"></span>
-                    </div>
-
-                    <div class="p-2 rounded bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
-                        <span class="text-[9px] font-bold text-slate-500 dark:text-slate-400 block uppercase">KONDISI FISIK</span>
-                        <span class="font-bold text-slate-800 dark:text-white truncate block text-[11px]" x-text="selectedArchive?.physical_condition || 'Baik'"></span>
-                    </div>
-                </div>
-            </div>
-        </fieldset>
+            </template>
+        </div>
 
         <!-- SECTION 2: MAKSUD / ALASAN PENARIKAN -->
         <fieldset class="border border-slate-300 dark:border-slate-800 p-3.5 rounded bg-white dark:bg-slate-950 shadow-sm space-y-3">
@@ -263,10 +433,12 @@
         <div class="pt-2 flex flex-wrap items-center justify-between gap-2 font-mono">
             <!-- Left status hint -->
             <div class="text-xs">
-                <span x-show="!selectedArchive" class="text-slate-500 font-bold">• Silakan pilih berkas arsip terlebih dahulu</span>
-                <span x-show="selectedArchive && !hasApprovalFile" class="text-rose-500 font-bold">• Unggah berkas dokumen approval untuk mengaktifkan tombol pengajuan</span>
-                <span x-show="selectedArchive && hasApprovalFile" class="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
-                    <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i> Berkas & approval lengkap, siap diajukan
+                <span x-show="selectedBoxesCount === 0" class="text-slate-500 font-bold">• Silakan pilih berkas arsip terlebih dahulu</span>
+                <span x-show="selectedBoxesCount > 0 && !allBoxesFilled" class="text-amber-600 dark:text-amber-400 font-bold">• Ada slot box yang belum dipilih berkas arsipnya</span>
+                <span x-show="allBoxesFilled && !hasApprovalFile" class="text-rose-500 font-bold">• Unggah berkas dokumen approval untuk mengaktifkan tombol pengajuan</span>
+                <span x-show="canSubmit" class="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                    <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i> 
+                    <span x-text="selectedBoxesCount + ' box berkas & approval lengkap, siap diajukan'"></span>
                 </span>
             </div>
 
@@ -276,11 +448,12 @@
                     Batal
                 </a>
                 <button type="submit" 
-                        :disabled="!selectedArchive || !hasApprovalFile" 
-                        :class="(selectedArchive && hasApprovalFile) ? 'bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-black border-emerald-700 shadow-md cursor-pointer' : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-300 dark:border-slate-700 cursor-not-allowed font-bold'"
+                        :disabled="!canSubmit" 
+                        :class="canSubmit ? 'bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-black border-emerald-700 shadow-md cursor-pointer' : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-300 dark:border-slate-700 cursor-not-allowed font-bold'"
                         class="px-5 py-2 text-xs rounded border transition flex items-center gap-1.5">
                     <i data-lucide="send" class="w-3.5 h-3.5"></i>
-                    <span>Ajukan Penarikan Arsip</span>
+                    <span x-show="selectedBoxesCount <= 1">Ajukan Penarikan Arsip</span>
+                    <span x-show="selectedBoxesCount > 1" x-text="'Ajukan Penarikan (' + selectedBoxesCount + ' Box Arsip)'"></span>
                 </button>
             </div>
         </div>

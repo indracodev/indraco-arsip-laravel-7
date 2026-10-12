@@ -44,6 +44,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/api/departments/{department}/archives', 'DepartmentController@apiGetDepartmentArchives')->name('api.departments.archives');
     Route::get('/api/sub-departments/{subDepartment}/archives', 'DepartmentController@apiGetSubDepartmentArchives')->name('api.sub_departments.archives');
     Route::get('/api/archives/calculate-retention', 'ArchiveController@apiCalculateRetention')->name('api.archives.calculate_retention');
+    Route::post('/api/archives/check-similarity', 'ArchiveController@apiCheckSimilarity')->name('api.archives.check_similarity');
 
     // Archives Management
     Route::get('/archives', 'ArchiveController@index')->name('archives.index');
@@ -59,6 +60,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/archives/{archive}/checkout', 'ArchiveController@checkout')->name('archives.checkout');
     Route::post('/archives/{archive}/checkin', 'ArchiveController@checkin')->name('archives.checkin');
     Route::post('/archives/{archive}/superadmin-status', 'ArchiveController@superAdminUpdateStatus')->name('archives.superadmin_status');
+    Route::get('/archives/import/template', 'ArchiveController@downloadImportTemplate')->name('archives.import.template');
+    Route::post('/archives/import/preview', 'ArchiveController@previewImport')->name('archives.import.preview');
+    Route::post('/archives/import/commit', 'ArchiveController@commitImport')->name('archives.import.commit');
 
 
     // Borrowing Workflow
