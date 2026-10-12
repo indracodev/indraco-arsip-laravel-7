@@ -1883,10 +1883,20 @@ class ArchiveController extends Controller
         $location->increment('current_box_count');
 
         // Set archive location & status
-        $archive->update([
+        $updateData = [
             'warehouse_location_id' => $location->id,
+            'warehouse_rack_slot_id' => $archive->warehouse_rack_slot_id,
             'status' => 'in_warehouse',
-        ]);
+        ];
+
+        if (empty($archive->box_number)) {
+            $numberingService = new NumberingService();
+            $archive->box_number = $numberingService->generateBoxCode($archive);
+            $updateData['box_number'] = $archive->box_number;
+        }
+
+        $archive->update($updateData);
+        $archive->refresh();
 
         // Record Log Masuk Gudang
         WarehouseEntryLog::create([

@@ -598,12 +598,24 @@ class WarehouseLayoutController extends Controller
 
             $archive->save();
         } else {
-            $archive = Archive::findOrFail($validated['archive_id']);
-            $archive->update([
+            $archive = Archive::with('department')->findOrFail($validated['archive_id']);
+            $updateData = [
                 'warehouse_location_id' => $location->id,
                 'warehouse_rack_slot_id' => $slot->id,
                 'status' => 'in_warehouse',
-            ]);
+            ];
+
+            if (!empty($validated['box_number'])) {
+                $archive->box_number = trim($validated['box_number']);
+                $updateData['box_number'] = $archive->box_number;
+            } elseif (empty($archive->box_number)) {
+                $numberingService = new NumberingService();
+                $archive->box_number = $numberingService->generateBoxCode($archive);
+                $updateData['box_number'] = $archive->box_number;
+            }
+
+            $archive->update($updateData);
+            $archive->refresh();
         }
 
         // Link slot to archive
