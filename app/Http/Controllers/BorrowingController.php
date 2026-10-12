@@ -301,6 +301,9 @@ class BorrowingController extends Controller
             'pic_gudang_id' => auth()->id(),
             'approval_file' => $scanPath,
             'scan_approval_borrow' => $scanPath,
+            'approval_status' => 'approved',
+            'department_approved_at' => $borrowing->department_approved_at ?: now(),
+            'department_approval_by' => $borrowing->department_approval_by ?: auth()->id(),
         ]);
 
         $archive = $borrowing->archive;
@@ -326,6 +329,19 @@ class BorrowingController extends Controller
         if ($archive->location && $archive->location->current_box_count > 0) {
             $archive->location->decrement('current_box_count');
         }
+
+        ActivityLogger::log(
+            'BORROW_DISPATCH',
+            "Pengeluaran berkas fisik arsip '{$archive->title}' (Box: {$archive->box_number}) oleh PIC Gudang " . auth()->user()->name,
+            'PENARIKAN_BERKAS',
+            [
+                'borrowing_id' => $borrowing->id,
+                'archive_id' => $archive->id,
+                'box_number' => $archive->box_number,
+                'status' => $borrowing->status,
+            ],
+            $archive->box_number
+        );
 
         $successMsg = $isPermanent 
             ? 'Pengeluaran berkas disahkan! Status arsip diubah menjadi "Diambil (Permanen)" dan slot rak telah dikosongkan.'
