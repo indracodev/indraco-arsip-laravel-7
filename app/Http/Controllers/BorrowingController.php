@@ -18,6 +18,7 @@ class BorrowingController extends Controller
             'archive.subDepartment',
             'archive.items',
             'archive.location.warehouse',
+            'archive.rackSlot',
             'borrower',
             'picGudang',
             'departmentApprovedBy'
@@ -275,6 +276,48 @@ class BorrowingController extends Controller
 
         return redirect()->route('borrowings.index')
             ->with('success', 'Permintaan peminjaman disetujui Gudang. Silakan persiapkan berkas fisik untuk diserahkan.');
+    }
+
+    public function reject(BorrowingLog $borrowing, Request $request)
+    {
+        $user = auth()->user();
+        if (!$user->isPicGudang() && !$user->isSuperAdmin() && !$user->isPicDept()) {
+            abort(403);
+        }
+
+        if ($user->isPicDept() && $borrowing->archive && (int)$borrowing->archive->department_id !== (int)$user->department_id) {
+            abort(403);
+        }
+
+        $request->validate([
+            'reason' => 'required|string|max:500',
+        ]);
+
+        $reason = $request->input('reason');
+
+        $borrowing->update([
+            'status' => 'rejected',
+            'approval_status' => 'rejected',
+            'approval_notes' => $reason,
+            'pic_gudang_id' => $user->isPicGudang() ? $user->id : $borrowing->pic_gudang_id,
+        ]);
+
+        ActivityLogger::log(
+            'BORROW_REJECT',
+            "Penolakan pengajuan penarikan arsip '{$borrowing->archive->title}' (Box: {$borrowing->archive->box_number}) oleh {$user->name}. Alasan: {$reason}",
+            'PENARIKAN_BERKAS',
+            [
+                'borrowing_id' => $borrowing->id,
+                'archive_id' => $borrowing->archive_id,
+                'box_number' => $borrowing->archive ? $borrowing->archive->box_number : null,
+                'reason' => $reason,
+                'rejected_by' => $user->id,
+            ],
+            $borrowing->archive ? $borrowing->archive->box_number : 'Pengajuan Penarikan'
+        );
+
+        return redirect()->back()
+            ->with('success', "Pengajuan penarikan berkas arsip (Box: " . ($borrowing->archive->box_number ?? '-') . ") berhasil ditolak.");
     }
 
     public function dispatch(BorrowingLog $borrowing, Request $request)

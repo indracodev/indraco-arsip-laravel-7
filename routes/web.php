@@ -72,6 +72,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/borrowings/{borrowing}/dept-approve', 'BorrowingController@deptApprove')->name('borrowings.dept_approve');
     Route::post('/borrowings/{borrowing}/approve', 'BorrowingController@approve')->name('borrowings.approve');
     Route::post('/borrowings/{borrowing}/dispatch', 'BorrowingController@dispatch')->name('borrowings.dispatch');
+    Route::post('/borrowings/{borrowing}/reject', 'BorrowingController@reject')->name('borrowings.reject');
     Route::post('/borrowings/{borrowing}/return', 'BorrowingController@returnArchive')->name('borrowings.return');
     Route::put('/borrowings/{borrowing}', 'BorrowingController@update')->name('borrowings.update');
 

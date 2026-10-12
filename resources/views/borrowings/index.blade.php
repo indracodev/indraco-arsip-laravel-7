@@ -8,6 +8,7 @@
          submitting: false,
          detailModalData: null,
          dispatchModalData: null,
+         rejectModalData: null,
          openBorrowingDetail(data) {
              this.detailModalData = data;
              this.$nextTick(() => {
@@ -25,10 +26,20 @@
          },
          closeBorrowingDispatch() {
              this.dispatchModalData = null;
+         },
+         openBorrowingReject(data) {
+             this.rejectModalData = data;
+             this.$nextTick(() => {
+                 if (window.lucide) lucide.createIcons();
+             });
+         },
+         closeBorrowingReject() {
+             this.rejectModalData = null;
          }
      }"
      @open-borrowing-detail-modal.window="openBorrowingDetail($event.detail)"
      @open-borrowing-dispatch-modal.window="openBorrowingDispatch($event.detail)"
+     @open-borrowing-reject-modal.window="openBorrowingReject($event.detail)"
 >
     <!-- DELPHI ACTION RIBBON TOOLBAR & HEADER (TPanel / TToolBar) -->
     <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-2.5 sm:p-3 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3 font-mono">
@@ -108,6 +119,7 @@
                     <option value="approved" {{ request('status') == 'approved' ? 'selected' : '' }}>Disetujui Gudang</option>
                     <option value="dispatched" {{ request('status') == 'dispatched' ? 'selected' : '' }}>Sedang Ditarik / Keluar</option>
                     <option value="returned" {{ request('status') == 'returned' ? 'selected' : '' }}>Dikembalikan ke Gudang</option>
+                    <option value="rejected" {{ request('status') == 'rejected' ? 'selected' : '' }}>Ditolak</option>
                 </select>
             </div>
 
@@ -141,6 +153,9 @@
                         @endphp
                         <th class="py-2.5 px-3 border-r border-slate-300 dark:border-slate-700">
                             <span>NO. BOX & JUDUL BERKAS</span>
+                        </th>
+                        <th class="py-2.5 px-3 border-r border-slate-300 dark:border-slate-700 whitespace-nowrap">
+                            <span>LOKASI POSISI RAK</span>
                         </th>
                         <th class="py-2.5 px-3 border-r border-slate-300 dark:border-slate-700">
                             <span>PEMOHON PENARIKAN</span>
@@ -232,7 +247,7 @@
                             'department' => $bLog->archive->department->name ?? '-',
                             'department_code' => $bLog->archive->department->code ?? 'DEPT',
                             'sub_department' => $bLog->archive->subDepartment->name ?? '-',
-                            'location' => $bLog->archive && $bLog->archive->location ? ($bLog->archive->location->full_location . ' (' . ($bLog->archive->location->warehouse->name ?? '') . ')') : 'Belum ditentukan',
+                            'location' => $bLog->archive && $bLog->archive->display_location ? $bLog->archive->display_location : ($bLog->archive && $bLog->archive->location ? ($bLog->archive->location->full_location . ' (' . ($bLog->archive->location->warehouse->name ?? '') . ')') : 'Belum ditentukan'),
                             'borrower_name' => $bLog->borrower->name ?? 'User',
                             'borrower_email' => $bLog->borrower->email ?? '-',
                             'request_date' => $bLog->request_date ? $bLog->request_date->format('d/m/Y H:i') : ($bLog->created_at ? $bLog->created_at->format('d/m/Y H:i') : '-'),
@@ -248,7 +263,9 @@
                             'pic_gudang' => $bLog->picGudang->name ?? ($bLog->pic_gudang_id ? 'PIC Gudang' : '-'),
                             'files' => $borrowingFiles,
                             'has_files' => $hasBorrowingFiles,
-                            'dispatch_url' => route('borrowings.dispatch', $bLog),
+                            'dispatch_url' => \Illuminate\Support\Facades\Route::has('borrowings.dispatch') ? route('borrowings.dispatch', $bLog) : url("/borrowings/{$bLog->id}/dispatch"),
+                            'reject_url' => \Illuminate\Support\Facades\Route::has('borrowings.reject') ? route('borrowings.reject', $bLog) : url("/borrowings/{$bLog->id}/reject"),
+                            'approval_notes' => $bLog->approval_notes,
                             'items' => (!auth()->user()->isPicGudang() && $bLog->archive && $bLog->archive->items) ? $bLog->archive->items->map(function($it) {
                                 return [
                                     'number' => $it->item_number,
@@ -269,6 +286,24 @@
                                     {{ $bLog->archive->title }}
                                 </a>
                             </div>
+                        </td>
+
+                        <!-- Kolom Lokasi Posisi / Rak Gudang -->
+                        <td class="py-2.5 px-3 border-r border-slate-200 dark:border-slate-800 whitespace-nowrap">
+                            @if($bLog->archive && ($bLog->archive->display_location || $bLog->archive->location))
+                                <div class="flex items-center gap-1.5 font-bold text-emerald-600 dark:text-emerald-400 font-mono text-xs" title="{{ $bLog->archive->full_slot_location ?? $bLog->archive->display_location }}">
+                                    <i data-lucide="map-pin" class="w-3.5 h-3.5 text-emerald-500 shrink-0"></i>
+                                    <span>{{ $bLog->archive->display_location ?? ($bLog->archive->location ? $bLog->archive->location->full_location : 'Gudang') }}</span>
+                                </div>
+                                @if($bLog->archive->rackSlot)
+                                    <span class="text-[10px] text-slate-400 block font-mono pl-5">Sap {{ $bLog->archive->rackSlot->sap_level }} &bull; Slot {{ str_pad($bLog->archive->rackSlot->slot_number, 2, '0', STR_PAD_LEFT) }}</span>
+                                @endif
+                            @else
+                                <span class="text-slate-400 dark:text-slate-500 text-[11px] italic font-mono flex items-center gap-1">
+                                    <i data-lucide="help-circle" class="w-3.5 h-3.5 text-slate-500 shrink-0"></i>
+                                    <span>Belum ditentukan</span>
+                                </span>
+                            @endif
                         </td>
 
                         <!-- Kolom Pemohon -->
@@ -302,6 +337,8 @@
                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/30">Ditarik / Keluar</span>
                             @elseif($bLog->status === 'returned')
                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">Dikembalikan</span>
+                            @elseif($bLog->status === 'rejected')
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/30">Ditolak</span>
                             @endif
                         </td>
 
@@ -390,6 +427,14 @@
                                             <i data-lucide="package-check" class="w-3.5 h-3.5"></i>
                                             <span>Keluarkan Arsip</span>
                                         </button>
+
+                                        <button type="button" 
+                                                onclick="window.openBorrowingRejectModal({{ $bLog->id }})" 
+                                                class="px-2.5 py-1 bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-bold rounded border border-rose-700 transition shadow-sm inline-flex items-center gap-1 cursor-pointer" 
+                                                title="Tolak pengajuan penarikan berkas arsip">
+                                            <i data-lucide="ban" class="w-3.5 h-3.5"></i>
+                                            <span>Tolak</span>
+                                        </button>
                                     @elseif($bLog->status === 'dispatched')
                                         <form action="{{ route('borrowings.return', $bLog) }}" method="POST" class="inline" @submit="submitting = true">
                                             @csrf
@@ -422,7 +467,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="7" class="py-8 px-4 text-center font-mono text-xs text-slate-500 dark:text-slate-400">
+                        <td colspan="8" class="py-8 px-4 text-center font-mono text-xs text-slate-500 dark:text-slate-400">
                             <i data-lucide="inbox" class="w-8 h-8 text-slate-400 mx-auto mb-2 opacity-50"></i>
                             Belum ada riwayat pengajuan penarikan berkas arsip.
                         </td>
@@ -466,7 +511,8 @@
                               'bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30': detailModalData && detailModalData.status === 'dept_approved',
                               'bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/30': detailModalData && detailModalData.status === 'approved',
                               'bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/30': detailModalData && detailModalData.status === 'dispatched',
-                              'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30': detailModalData && detailModalData.status === 'returned'
+                              'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30': detailModalData && detailModalData.status === 'returned',
+                              'bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/30': detailModalData && detailModalData.status === 'rejected'
                           }"
                           x-text="detailModalData ? detailModalData.status_label : ''">
                     </span>
@@ -625,6 +671,17 @@
                         </div>
                     </div>
                 </fieldset>
+
+                <!-- GroupBox 5: Alasan Penolakan (Jika status rejected) -->
+                <template x-if="detailModalData.status === 'rejected'">
+                    <fieldset class="border border-rose-500/40 p-2.5 rounded bg-rose-500/10 text-[11px] space-y-1 font-sans">
+                        <legend class="px-1.5 font-bold text-rose-600 dark:text-rose-400 bg-white dark:bg-slate-900 border border-rose-500/40 rounded text-[10px] uppercase tracking-wider flex items-center gap-1 font-mono">
+                            <i data-lucide="ban" class="w-3 h-3 text-rose-500"></i>
+                            Catatan Penolakan Pengajuan
+                        </legend>
+                        <p class="text-rose-700 dark:text-rose-300 font-semibold" x-text="detailModalData.approval_notes || 'Pengajuan penarikan berkas ditolak oleh petugas.'"></p>
+                    </fieldset>
+                </template>
             </div>
 
             <!-- Modal Footer Ribbon -->
@@ -792,18 +849,122 @@
                 </div>
 
                 <!-- Modal Footer Ribbon -->
+                <div class="p-3 bg-slate-100 dark:bg-slate-900 border-t border-slate-300 dark:border-slate-800 flex items-center justify-between gap-2 shrink-0">
+                    <button type="button" 
+                            @click="const curId = dispatchModalData ? dispatchModalData.id : null; closeBorrowingDispatch(); if (curId) openBorrowingRejectModal(curId);" 
+                            class="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-600 text-rose-600 hover:text-white border border-rose-500/40 rounded text-xs font-bold transition flex items-center gap-1.5 cursor-pointer">
+                        <i data-lucide="ban" class="w-3.5 h-3.5"></i>
+                        <span>Tolak Pengajuan</span>
+                    </button>
+                    <div class="flex items-center gap-2">
+                        <button type="button" 
+                                @click="closeBorrowingDispatch()" 
+                                class="px-3.5 py-1.5 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded text-xs font-bold transition cursor-pointer">
+                            Batal
+                        </button>
+                        <button type="submit" 
+                                :disabled="submitting" 
+                                class="px-4 py-1.5 bg-purple-600 hover:bg-purple-500 text-white border border-purple-700 rounded text-xs font-bold transition flex items-center gap-1.5 shadow-sm disabled:opacity-50 cursor-pointer">
+                            <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin" x-show="submitting"></i>
+                            <i data-lucide="package-check" class="w-3.5 h-3.5" x-show="!submitting"></i>
+                            <span>Keluarkan Arsip</span>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- DELPHI MODAL: PENOLAKAN PENGAJUAN PENARIKAN BERKAS (REJECT) -->
+    <div x-show="rejectModalData" 
+         x-transition.opacity
+         style="display: none;"
+         class="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+        <div class="bg-white dark:bg-slate-950 border border-rose-500/50 rounded shadow-2xl max-w-lg w-full flex flex-col font-mono text-xs" 
+             @click.away="closeBorrowingReject()">
+            
+            <!-- Modal Header -->
+            <div class="p-3 bg-gradient-to-r from-rose-950/60 to-slate-900 border-b border-rose-500/40 flex items-center justify-between gap-2 shrink-0">
+                <div class="flex items-center gap-2 min-w-0">
+                    <span class="p-1.5 bg-rose-500/20 text-rose-400 border border-rose-500/40 rounded shrink-0">
+                        <i data-lucide="ban" class="w-4 h-4"></i>
+                    </span>
+                    <div class="min-w-0">
+                        <h3 class="font-bold text-white uppercase tracking-wider truncate flex items-center gap-1.5">
+                            <span>PENOLAKAN PENGAJUAN PENARIKAN</span>
+                        </h3>
+                        <p class="text-[11px] text-rose-200/80 font-sans truncate">
+                            Batalkan permohonan penarikan berkas dengan alasan resmi
+                        </p>
+                    </div>
+                </div>
+                <button type="button" @click="closeBorrowingReject()" class="p-1 text-slate-400 hover:text-white rounded transition cursor-pointer">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <!-- Form Reject -->
+            <form :action="rejectModalData ? rejectModalData.reject_url : '#'" 
+                  method="POST" 
+                  @submit="submitting = true" 
+                  class="flex flex-col flex-1 min-h-0">
+                @csrf
+
+                <!-- Modal Body -->
+                <div class="p-4 space-y-3.5" x-show="rejectModalData">
+                    
+                    <!-- Ringkasan Box -->
+                    <div class="p-2.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded space-y-1 text-xs">
+                        <div class="flex items-center justify-between">
+                            <span class="text-slate-400 uppercase text-[10px] font-bold">No. Box Arsip:</span>
+                            <span class="font-bold font-mono text-amber-500 text-xs" x-text="rejectModalData.box_number"></span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-slate-400 uppercase text-[10px] font-bold">Judul Berkas:</span>
+                            <span class="font-bold text-slate-800 dark:text-slate-200 font-sans text-xs truncate max-w-[280px]" x-text="rejectModalData.archive_title"></span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-slate-400 uppercase text-[10px] font-bold">Pemohon:</span>
+                            <span class="text-slate-700 dark:text-slate-300 font-sans text-xs" x-text="rejectModalData.borrower_name + ' (' + rejectModalData.department_code + ')'"></span>
+                        </div>
+                    </div>
+
+                    <!-- Input Alasan Penolakan -->
+                    <div class="space-y-1.5">
+                        <label class="block text-xs font-bold text-slate-800 dark:text-slate-200">
+                            Alasan Penolakan <span class="text-rose-500">*</span>
+                        </label>
+                        <p class="text-[11px] text-slate-500 dark:text-slate-400 font-sans">
+                            Jelaskan alasan penolakan secara jelas agar pemohon dapat memperbaiki dokumen formulir atau prosedur permohonan.
+                        </p>
+                        <textarea 
+                            name="reason" 
+                            required 
+                            rows="3" 
+                            placeholder="Contoh: Dokumen formulir permohonan belum ditandatangani Kepala Departemen, atau berkas pengajuan tidak lengkap..." 
+                            class="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 focus:border-rose-500 focus:ring-1 focus:ring-rose-500 rounded text-xs text-slate-900 dark:text-white font-sans placeholder-slate-400 resize-none transition"
+                        ></textarea>
+                    </div>
+
+                    <div class="p-2 bg-rose-500/10 border border-rose-500/30 rounded text-[11px] text-rose-300 font-sans flex items-start gap-2">
+                        <i data-lucide="alert-circle" class="w-4 h-4 text-rose-400 shrink-0 mt-0.5"></i>
+                        <span>Status pengajuan akan diubah menjadi <strong>Ditolak</strong> dan tercatat di jejak audit aktivitas sistem.</span>
+                    </div>
+                </div>
+
+                <!-- Footer -->
                 <div class="p-3 bg-slate-100 dark:bg-slate-900 border-t border-slate-300 dark:border-slate-800 flex items-center justify-end gap-2 shrink-0">
                     <button type="button" 
-                            @click="closeBorrowingDispatch()" 
+                            @click="closeBorrowingReject()" 
                             class="px-3.5 py-1.5 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded text-xs font-bold transition cursor-pointer">
                         Batal
                     </button>
                     <button type="submit" 
                             :disabled="submitting" 
-                            class="px-4 py-1.5 bg-purple-600 hover:bg-purple-500 text-white border border-purple-700 rounded text-xs font-bold transition flex items-center gap-1.5 shadow-sm disabled:opacity-50 cursor-pointer">
+                            class="px-4 py-1.5 bg-rose-600 hover:bg-rose-500 text-white border border-rose-700 rounded text-xs font-bold transition flex items-center gap-1.5 shadow-sm disabled:opacity-50 cursor-pointer">
                         <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin" x-show="submitting"></i>
-                        <i data-lucide="package-check" class="w-3.5 h-3.5" x-show="!submitting"></i>
-                        <span>Keluarkan Arsip</span>
+                        <i data-lucide="ban" class="w-3.5 h-3.5" x-show="!submitting"></i>
+                        <span>Konfirmasi Tolak Pengajuan</span>
                     </button>
                 </div>
             </form>
@@ -826,6 +987,14 @@
     window.openBorrowingDispatchModal = function(id) {
         if (window.borrowingDetailsMap && window.borrowingDetailsMap[id]) {
             window.dispatchEvent(new CustomEvent('open-borrowing-dispatch-modal', {
+                detail: window.borrowingDetailsMap[id]
+            }));
+        }
+    };
+
+    window.openBorrowingRejectModal = function(id) {
+        if (window.borrowingDetailsMap && window.borrowingDetailsMap[id]) {
+            window.dispatchEvent(new CustomEvent('open-borrowing-reject-modal', {
                 detail: window.borrowingDetailsMap[id]
             }));
         }
