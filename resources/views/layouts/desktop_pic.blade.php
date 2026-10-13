@@ -22,7 +22,7 @@
         request()->header('Sec-Fetch-Dest') === 'iframe' ||
         \Illuminate\Support\Str::contains(request()->header('referer', ''), 'embed=1'))
    <!DOCTYPE html>
-   <html lang="id" class="h-full select-none" style="font-size: {{ $fontSizeScale }};">
+   <html lang="id" class="h-full" style="font-size: {{ $fontSizeScale }};">
 
    <head>
       <meta charset="UTF-8">
@@ -53,6 +53,32 @@
       <style>
          [x-cloak] {
             display: none !important;
+         }
+
+         /* Enable text selection and copy-paste for all input, editable, and readable content */
+         html,
+         body {
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
+            user-select: text;
+         }
+
+         input, textarea, select, [contenteditable="true"], .select-text, .select-text * {
+            -webkit-user-select: text !important;
+            -moz-user-select: text !important;
+            -ms-user-select: text !important;
+            user-select: text !important;
+         }
+
+         ::selection {
+            background-color: #2563eb !important;
+            color: #ffffff !important;
+         }
+
+         ::-moz-selection {
+            background-color: #2563eb !important;
+            color: #ffffff !important;
          }
 
          /* Proportional rem scaling for Tailwind utility and arbitrary classes according to root font-size */
@@ -280,7 +306,7 @@
       @open-form-window.window="openFormWindowWithCustom($event.detail.id, $event.detail.title, $event.detail.icon, $event.detail.url)"
       @mousemove.window="onDrag($event)" @mouseup.window="stopDrag()" :class="theme === 'dark' ? 'dark' : ''"
       :style="'font-size: ' + currentFontSize + ';'" style="font-size: {{ $fontSizeScale }};"
-      class="h-full select-none">
+      class="h-full">
 
    <head>
       <meta charset="UTF-8">
@@ -309,6 +335,32 @@
       <style>
          [x-cloak] {
             display: none !important;
+         }
+
+         /* Enable text selection and copy-paste for all input, editable, and readable content */
+         html,
+         body {
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
+            user-select: text;
+         }
+
+         input, textarea, select, [contenteditable="true"], .select-text, .select-text * {
+            -webkit-user-select: text !important;
+            -moz-user-select: text !important;
+            -ms-user-select: text !important;
+            user-select: text !important;
+         }
+
+         ::selection {
+            background-color: #2563eb !important;
+            color: #ffffff !important;
+         }
+
+         ::-moz-selection {
+            background-color: #2563eb !important;
+            color: #ffffff !important;
          }
 
          .no-scrollbar::-webkit-scrollbar {

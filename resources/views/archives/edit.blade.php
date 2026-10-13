@@ -3,7 +3,7 @@
 @section('title', ($archive->status === 'draft' ? 'Edit Draft Pengajuan Box Arsip - ' : 'Edit Berkas Arsip - ') . $archive->title)
 
 @section('content')
-<div class="max-w-6xl mx-auto space-y-3 font-sans pb-10" x-data="archiveEditApp()">
+<div class="max-w-6xl mx-auto space-y-3 font-sans pb-10 select-text" x-data="archiveEditApp()">
 
     <!-- FORM TOOLBAR HEADER -->
     <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-3 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 font-mono">
@@ -22,10 +22,31 @@
             </div>
         </div>
 
-        <a href="{{ route('archives.index', request()->has('embed') ? ['embed' => 1] : []) }}" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded text-xs font-bold transition flex items-center gap-1 shadow-sm shrink-0">
-            <i data-lucide="arrow-left" class="w-3.5 h-3.5 text-amber-500"></i>
-            <span>Kembali ke Katalog (Esc)</span>
-        </a>
+        <div class="flex items-center gap-2">
+            <!-- Counter Chip -->
+            <div class="px-2.5 py-1 bg-amber-500/10 border border-amber-500/30 rounded text-xs font-mono font-bold text-amber-700 dark:text-amber-300 flex items-center gap-1.5">
+                <i data-lucide="boxes" class="w-3.5 h-3.5 text-amber-500"></i>
+                <span x-text="boxes.length + ' Box'"></span>
+                <span>•</span>
+                <span x-text="getTotalItemsCount() + ' Berkas'"></span>
+            </div>
+
+            <!-- Tombol Cetak Form Pengajuan Dokumen -->
+            <button 
+                type="button" 
+                @click="openFormPengajuanModal()" 
+                class="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/50 dark:hover:bg-amber-900/50 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700/60 rounded text-xs font-mono font-bold transition flex items-center gap-1.5 shadow-sm shrink-0 cursor-pointer"
+                title="Buka Pratinjau & Cetak Form Pengajuan Dokumen (Standar PDF)"
+            >
+                <i data-lucide="printer" class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400"></i>
+                <span>Form Pengajuan</span>
+            </button>
+
+            <a href="{{ route('archives.index', request()->has('embed') ? ['embed' => 1] : []) }}" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded text-xs font-bold transition flex items-center gap-1 shadow-sm shrink-0">
+                <i data-lucide="arrow-left" class="w-3.5 h-3.5 text-amber-500"></i>
+                <span>Kembali ke Katalog (Esc)</span>
+            </a>
+        </div>
     </div>
 
     <!-- MAIN FORM WINDOW CARD -->
@@ -472,11 +493,13 @@
                                                     <select 
                                                         :name="'boxes[' + bIdx + '][items][' + iIdx + '][document_name]'" 
                                                         x-model="item.document_name"
+                                                        x-init="$nextTick(() => { if (item.document_name && $el.value !== item.document_name) $el.value = item.document_name; })"
+                                                        x-effect="$nextTick(() => { if (item.document_name && $el.value !== item.document_name) $el.value = item.document_name; })"
                                                         class="w-full px-2 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
                                                     >
                                                         <option value="">-- Pilih dari Master Berkas Arsip --</option>
                                                         <template x-for="m in masterArchives" :key="m.id">
-                                                            <option :value="m.name" x-text="m.code ? (m.code + ' - ' + m.name) : m.name"></option>
+                                                            <option :value="m.name" x-text="m.code ? (m.code + ' - ' + m.name) : m.name" :selected="m.name === item.document_name"></option>
                                                         </template>
                                                         <template x-if="item.document_name && !masterArchives.some(m => m.name === item.document_name)">
                                                             <option :value="item.document_name" x-text="item.document_name" selected></option>
@@ -520,16 +543,18 @@
                                                 >
                                             </td>
 
-                                            <!-- Keterangan / No Berkas -->
-                                            <td class="py-2 px-3">
-                                                <input 
-                                                    type="text" 
+                                            <!-- Keterangan Butir (Textarea Auto-expand, bisa di-Enter) -->
+                                            <td class="py-2 px-3 align-top">
+                                                <textarea 
                                                     :name="'boxes[' + bIdx + '][items][' + iIdx + '][notes]'" 
-                                                    x-model="item.notes"
-                                                    @keydown.enter.prevent="handleEnterOnItem(bIdx, iIdx)"
-                                                    placeholder="No. berkas / keterangan fisik..." 
-                                                    class="w-full px-2 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-emerald-500"
-                                                >
+                                                    x-model="item.notes" 
+                                                    rows="1"
+                                                    placeholder="No. berkas fisik / catatan" 
+                                                    @input="$el.style.height = 'auto'; $el.style.height = Math.max(34, $el.scrollHeight) + 'px'"
+                                                    x-init="$nextTick(() => { $el.style.height = 'auto'; $el.style.height = Math.max(34, $el.scrollHeight) + 'px'; })"
+                                                    class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-700 dark:text-slate-300 placeholder-slate-400 focus:outline-none focus:border-emerald-500 transition resize-none overflow-hidden leading-relaxed block shadow-2xs"
+                                                    style="min-height: 34px;"
+                                                ></textarea>
                                             </td>
 
                                             <!-- Aksi Row -->
@@ -718,6 +743,544 @@
             </div>
         </div>
     </form>
+
+    <!-- ======================================================= -->
+    <!-- PREVIEW & CETAK FORM PENGAJUAN DOKUMEN MODAL (PDF/PRINT) -->
+    <!-- ======================================================= -->
+    <div 
+        x-show="formModalOpen" 
+        x-cloak 
+        class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto"
+        @keydown.escape.window="formModalOpen = false"
+    >
+        <div 
+            class="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg shadow-2xl max-w-6xl w-full max-h-[95vh] flex flex-col overflow-hidden text-slate-800 dark:text-slate-100"
+            @click.outside="formModalOpen = false"
+        >
+            <!-- Modal Header Toolbar -->
+            <div class="px-4 py-2.5 bg-slate-100 dark:bg-slate-950 border-b border-slate-300 dark:border-slate-800 flex items-center justify-between shrink-0 font-mono">
+                <div class="flex items-center gap-2">
+                    <span class="p-1.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded">
+                        <i data-lucide="printer" class="w-4 h-4"></i>
+                    </span>
+                    <div>
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
+                            Form Pengajuan Dokumen (Standar PT Indraco)
+                        </h3>
+                        <p class="text-[10px] text-slate-500 font-sans">
+                            Pratinjau formulir resmi A4. Kolom tabel terisi otomatis dari data box dan dokumen.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button 
+                        type="button" 
+                        @click="printFormPengajuan()" 
+                        class="px-3.5 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs rounded border border-amber-600 shadow-sm flex items-center gap-1.5 transition cursor-pointer"
+                        title="Cetak langsung ke printer atau simpan sebagai PDF"
+                    >
+                        <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+                        <span>Cetak Dokumen (Print / PDF)</span>
+                    </button>
+
+                    <button 
+                        type="button" 
+                        @click="formModalOpen = false" 
+                        class="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 rounded transition cursor-pointer"
+                        title="Tutup (Esc)"
+                    >
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal Body: Left Inputs Panel + Right Paper Preview -->
+            <div class="flex-1 overflow-y-auto flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x divide-slate-200 dark:divide-slate-800 bg-slate-100 dark:bg-slate-950">
+                
+                <!-- Left Column: Input Parameter & Signatures (Scrollable) -->
+                <div class="w-full lg:w-80 xl:w-96 p-4 space-y-3 font-mono text-xs overflow-y-auto shrink-0 bg-white dark:bg-slate-900">
+                    <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-1.5">
+                        <span class="text-[11px] font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                            <i data-lucide="sliders" class="w-3.5 h-3.5"></i>
+                            <span>Parameter & Approval</span>
+                        </span>
+                        <button 
+                            type="button" 
+                            @click="populateFormRows()" 
+                            class="text-[10px] text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 cursor-pointer"
+                            title="Sinkronkan ulang tabel dengan data box saat ini"
+                        >
+                            <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+                            <span>Sinkron Box</span>
+                        </button>
+                    </div>
+
+                    <div class="space-y-2">
+                        <!-- No. Form -->
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-0.5">
+                                NO. FORM
+                            </label>
+                            <input 
+                                type="text" 
+                                x-model="formPengajuanData.no_form" 
+                                placeholder="Contoh: FPD/2026/10/001 (opsional)" 
+                                style="font-size: 11px;"
+                                class="w-full px-2 py-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
+                            >
+                        </div>
+
+                        <!-- Tanggal Pengajuan -->
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-0.5">
+                                TANGGAL PENGAJUAN
+                            </label>
+                            <input 
+                                type="date" 
+                                x-model="formPengajuanData.tanggal_pengajuan" 
+                                style="font-size: 11px;"
+                                class="w-full px-2 py-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
+                            >
+                        </div>
+
+                        <!-- Departemen / Sub Dept -->
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-0.5">
+                                DEPARTEMEN / SUB DEPT.
+                            </label>
+                            <input 
+                                type="text" 
+                                x-model="formPengajuanData.dept_display" 
+                                style="font-size: 11px;"
+                                class="w-full px-2 py-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
+                            >
+                        </div>
+
+                        <!-- Nama PIC / Pemohon -->
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-0.5">
+                                NAMA PIC / PEMOHON
+                            </label>
+                            <input 
+                                type="text" 
+                                x-model="formPengajuanData.pic_pemohon" 
+                                @input="if(!formPengajuanData.approval_pemohon) formPengajuanData.approval_pemohon = formPengajuanData.pic_pemohon"
+                                placeholder="Ketik nama lengkap pemohon..."
+                                style="font-size: 11px;"
+                                class="w-full px-2 py-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
+                            >
+                        </div>
+
+                        <!-- Tipe Pengajuan -->
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                                TIPE PENGAJUAN
+                            </label>
+                            <div class="grid grid-cols-2 gap-1.5 font-sans" style="font-size: 11px;">
+                                <label class="flex items-center gap-1.5 p-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded cursor-pointer">
+                                    <input type="radio" value="Simpan" x-model="formPengajuanData.tipe" class="text-amber-500 focus:ring-0">
+                                    <span class="font-semibold text-slate-800 dark:text-slate-200">Simpan</span>
+                                </label>
+                                <label class="flex items-center gap-1.5 p-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded cursor-pointer">
+                                    <input type="radio" value="Penarikan" x-model="formPengajuanData.tipe" class="text-amber-500 focus:ring-0">
+                                    <span class="text-slate-600 dark:text-slate-400">Penarikan</span>
+                                </label>
+                                <label class="flex items-center gap-1.5 p-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded cursor-pointer">
+                                    <input type="radio" value="Pemusnahan" x-model="formPengajuanData.tipe" class="text-amber-500 focus:ring-0">
+                                    <span class="text-slate-600 dark:text-slate-400">Pemusnahan</span>
+                                </label>
+                                <label class="flex items-center gap-1.5 p-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded cursor-pointer">
+                                    <input type="radio" value="Perpanjangan" x-model="formPengajuanData.tipe" class="text-amber-500 focus:ring-0">
+                                    <span class="text-slate-600 dark:text-slate-400">Perpanjangan</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Masa Simpan (Bulan) -->
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-0.5">
+                                MASA SIMPAN YANG DIAJUKAN (BULAN)
+                            </label>
+                            <input 
+                                type="number" 
+                                min="1" 
+                                max="60" 
+                                x-model="formPengajuanData.masa_simpan" 
+                                style="font-size: 11px;"
+                                class="w-full px-2 py-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
+                            >
+                            <span class="text-[9px] text-slate-400 block mt-0.5 font-sans">*Maksimal 60 bulan</span>
+                        </div>
+
+                        <!-- Catatan Fisik / Opsional -->
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-0.5">
+                                CATATAN FORMULIR
+                            </label>
+                            <textarea 
+                                x-model="formPengajuanData.catatan" 
+                                rows="2" 
+                                placeholder="Kondisi fisik kardus dan dokumen..."
+                                style="font-size: 11px;"
+                                class="w-full px-2 py-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
+                            ></textarea>
+                        </div>
+
+                        <!-- Signature / Approval Section -->
+                        <div class="pt-2 border-t border-slate-200 dark:border-slate-800 space-y-1.5">
+                            <span class="block text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider">
+                                Penandatangan (Approval):
+                            </span>
+
+                            <!-- Diajukan oleh (Pemohon) -->
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 mb-0.5">
+                                    Diajukan oleh (Pemohon):
+                                </label>
+                                <input 
+                                    type="text" 
+                                    x-model="formPengajuanData.approval_pemohon" 
+                                    placeholder="Ketik nama pemohon..."
+                                    style="font-size: 11px;"
+                                    class="w-full px-2 py-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
+                                >
+                            </div>
+
+                            <!-- Disetujui oleh (Atasan Langsung) -->
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 mb-0.5">
+                                    Disetujui oleh (Atasan Langsung):
+                                </label>
+                                <input 
+                                    type="text" 
+                                    x-model="formPengajuanData.approval_atasan" 
+                                    placeholder="Nama Atasan Langsung" 
+                                    style="font-size: 11px;"
+                                    class="w-full px-2 py-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
+                                >
+                            </div>
+
+                            <!-- Diketahui oleh (Pimpinan Departemen) -->
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 mb-0.5">
+                                    Diketahui oleh (Pimpinan Departemen):
+                                </label>
+                                <input 
+                                    type="text" 
+                                    x-model="formPengajuanData.approval_pimpinan" 
+                                    placeholder="Nama Pimpinan Departemen" 
+                                    style="font-size: 11px;"
+                                    class="w-full px-2 py-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
+                                >
+                            </div>
+
+                            <!-- Diterima oleh (Admin Gudang) -->
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 mb-0.5">
+                                    Diterima oleh (Admin Gudang):
+                                </label>
+                                <input 
+                                    type="text" 
+                                    x-model="formPengajuanData.approval_admin_gudang" 
+                                    style="font-size: 11px;"
+                                    class="w-full px-2 py-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
+                                >
+                            </div>
+
+                            <!-- Tanggal Approval -->
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 mb-0.5">
+                                    Tanggal Tanda Tangan:
+                                </label>
+                                <input 
+                                    type="date" 
+                                    x-model="formPengajuanData.approval_tgl" 
+                                    style="font-size: 11px;"
+                                    class="w-full px-2 py-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
+                                >
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Live Printable Paper Preview -->
+                <div class="flex-1 p-3 sm:p-6 overflow-y-auto bg-slate-200/80 dark:bg-slate-950 flex justify-center items-start">
+                    
+                    <!-- Paper Sheet Container (Exact A4 Ratio) -->
+                    <div 
+                        id="form-pengajuan-print-document" 
+                        class="indraco-form-preview bg-white text-black shadow-2xl rounded-none border border-slate-300 w-full max-w-[210mm] min-h-[297mm] box-border"
+                        style="padding: 10mm 12mm; background-color: #ffffff; color: #000000; display: block;"
+                    >
+                        <div>
+                            <!-- Header with Logo & Document Title (User Styling) -->
+                            <div style="position: relative; margin-bottom: 8px; min-height: 28px;">
+                                <div style="position: absolute; left: 0; top: 0;">
+                                    <img src="{{ asset('images/logo_indraco.png') }}" alt="INDRACO" style="height: 25px; object-fit: contain;">
+                                </div>
+                                <div style="text-align: center; padding-top: 40px; padding-bottom: 10px;">
+                                    <h1 style="font-size: 16px; font-weight: bold; text-align: center; margin: 0; padding: 0; font-family: Arial, sans-serif; letter-spacing: 0.3px;">
+                                        Form Pengajuan Dokumen
+                                    </h1>
+                                </div>
+                            </div>
+
+                            <!-- Metadata Table Box (2 rows x 4 columns) -->
+                            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                                <tbody>
+                                    <tr>
+                                        <td style="width: 135px; border: 1px solid #000; padding: 3px 6px; font-size: 10px; font-weight: normal;">No. Form</td>
+                                        <td style="width: 35%; border: 1px solid #000; padding: 3px 6px; font-size: 10px; font-family: monospace;" x-text="formPengajuanData.no_form || ''"></td>
+                                        <td style="width: 135px; border: 1px solid #000; padding: 3px 6px; font-size: 10px; font-weight: normal;">Tanggal Pengajuan</td>
+                                        <td style="border: 1px solid #000; padding: 3px 6px; font-size: 10px;" x-text="formatDateDisplay(formPengajuanData.tanggal_pengajuan)"></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="width: 135px; border: 1px solid #000; padding: 3px 6px; font-size: 10px; font-weight: normal;">Departemen/ Sub Dept.</td>
+                                        <td style="border: 1px solid #000; padding: 3px 6px; font-size: 10px;" x-text="formPengajuanData.dept_display || getDeptSubDeptDisplay()"></td>
+                                        <td style="width: 135px; border: 1px solid #000; padding: 3px 6px; font-size: 10px; font-weight: normal;">Nama PIC/ Pemohon</td>
+                                        <td style="border: 1px solid #000; padding: 3px 6px; font-size: 10px;" x-text="formPengajuanData.pic_pemohon || ''"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <!-- Tipe Pengajuan Checkbox Row -->
+                            <div style="font-size: 10px; margin-bottom: 20px; display: flex; align-items: center; gap: 20px;">
+                                <span style="font-weight: normal;">Tipe Pengajuan :</span>
+                                <div style="display: flex; align-items: center; gap: 24px;">
+                                    <span style="display: inline-flex; align-items: center; gap: 6px;">
+                                        <span style="display: inline-block; width: 11px; height: 11px; border: 1px solid #000; font-size: 8.5px; line-height: 10px; text-align: center; font-weight: bold;" x-text="formPengajuanData.tipe === 'Simpan' ? '✓' : ''"></span>
+                                        <span>Simpan</span>
+                                    </span>
+                                    <span style="display: inline-flex; align-items: center; gap: 6px;">
+                                        <span style="display: inline-block; width: 11px; height: 11px; border: 1px solid #000; font-size: 8.5px; line-height: 10px; text-align: center; font-weight: bold;" x-text="formPengajuanData.tipe === 'Penarikan' ? '✓' : ''"></span>
+                                        <span>Penarikan</span>
+                                    </span>
+                                    <span style="display: inline-flex; align-items: center; gap: 6px;">
+                                        <span style="display: inline-block; width: 11px; height: 11px; border: 1px solid #000; font-size: 8.5px; line-height: 10px; text-align: center; font-weight: bold;" x-text="formPengajuanData.tipe === 'Pemusnahan' ? '✓' : ''"></span>
+                                        <span>Pemusnahan</span>
+                                    </span>
+                                    <span style="display: inline-flex; align-items: center; gap: 6px;">
+                                        <span style="display: inline-block; width: 11px; height: 11px; border: 1px solid #000; font-size: 8.5px; line-height: 10px; text-align: center; font-weight: bold;" x-text="formPengajuanData.tipe === 'Perpanjangan' ? '✓' : ''"></span>
+                                        <span>Perpanjangan</span>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Main Table: Daftar Box & Dokumen (12+ Rows) -->
+                            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                                <thead>
+                                    <tr style="text-align: center; font-weight: bold;">
+                                        <th style="border: 1px solid #000; width: 34px; padding: 3px 2px; font-size: 9.5px; text-align: center; line-height: 1.2;">No.</th>
+                                        <th style="border: 1px solid #000; padding: 3px 6px; font-size: 9.5px; text-align: center; line-height: 1.2;">
+                                            Nama Kardus,<br>Nama/ Kode Dokumen
+                                        </th>
+                                        <th style="border: 1px solid #000; width: 115px; padding: 3px 4px; font-size: 9.5px; text-align: center; line-height: 1.2;">
+                                            Label Kardus
+                                        </th>
+                                        <th style="border: 1px solid #000; width: 92px; padding: 3px 4px; font-size: 9.5px; text-align: center; line-height: 1.2;">
+                                            Periode Awal<br>(MM-YYYY)
+                                        </th>
+                                        <th style="border: 1px solid #000; width: 92px; padding: 3px 4px; font-size: 9.5px; text-align: center; line-height: 1.2;">
+                                            Periode Akhir<br>(MM-YYYY)
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template x-for="row in formPengajuanRows" :key="row.no">
+                                        <tr style="height: 22px;">
+                                            <td style="border: 1px solid #000; padding: 2px 2px; text-align: center; font-size: 9.5px;" x-text="row.no"></td>
+                                            <td style="border: 1px solid #000; padding: 2px 6px; text-align: left; font-size: 9.5px; outline: none;" contenteditable="true" @blur="row.title = $el.innerText" x-text="row.title"></td>
+                                            <td style="border: 1px solid #000; padding: 2px 4px; text-align: center; font-size: 9.5px; outline: none;" contenteditable="true" @blur="row.label_kardus = $el.innerText" x-text="row.label_kardus"></td>
+                                            <td style="border: 1px solid #000; padding: 2px 2px; text-align: center; font-size: 9px; font-family: monospace; outline: none;" contenteditable="true" @blur="row.period_start = $el.innerText" x-text="row.period_start"></td>
+                                            <td style="border: 1px solid #000; padding: 2px 2px; text-align: center; font-size: 9px; font-family: monospace; outline: none;" contenteditable="true" @blur="row.period_end = $el.innerText" x-text="row.period_end"></td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- BOTTOM FOOTER SECTION (Anchored to Bottom of A4 Page) -->
+                        <div style="margin-bottom: 20px">
+                            <!-- Masa Simpan & Catatan Section -->
+                            <div style="font-size: 9.5px; margin-bottom: 20px; line-height: 1.35;">
+                                <div style="margin-bottom: 20px;">
+                                    <span>Masa Simpan yang diajukan :</span>
+                                    <span style="display: inline-block; min-width: 24px; text-align: center; font-weight: bold; border-bottom: 1px dotted #000; margin: 0 4px;" x-text="formPengajuanData.masa_simpan"></span>
+                                    <span>Bulan (*maksimal 60 bulan)</span>
+                                </div>
+                                <div>
+                                    <div>Catatan (misal kondisi fisik kardus dan dokumen/ *optional) :</div>
+                                    <div 
+                                        style="border-bottom: 1px dotted #000; text-decoration: underline dotted #000; text-underline-offset: 3px; min-height: 16px; font-size: 9px; line-height: 16px; padding-top: 1px; word-break: break-word; outline: none;" 
+                                        contenteditable="true" 
+                                        @blur="formPengajuanData.catatan = $el.innerText" 
+                                        x-text="formPengajuanData.catatan"
+                                    ></div>
+                                    <div 
+                                        x-show="!formPengajuanData.catatan || !formPengajuanData.catatan.trim()" 
+                                        style="border-bottom: 1px dotted #000; min-height: 16px;"
+                                    ></div>
+                                </div>
+                            </div>
+
+                            <!-- Approval Signatures Table (4 Columns) -->
+                            <table style="width: 100%; border-collapse: collapse; margin-top: 6px; margin-bottom: 20px;">
+                                <tbody>
+                                    <tr>
+                                        <!-- Diajukan oleh (Pemohon) -->
+                                        <td style="width: 25%; border: 1px solid #000; vertical-align: top; height: 80px; padding: 4px 6px;">
+                                            <div style="font-size: 9.5px; text-align: left;">Diajukan oleh,</div>
+                                            <div style="height: 50px;"></div>
+                                            <div style="font-size: 8.5px; text-align: center; line-height: 1.2;">
+                                                (&nbsp;<span style="display: inline-block; min-width: 65px; border-bottom: 1px solid #000; text-align: center; vertical-align: bottom; padding: 0 4px; outline: none;" contenteditable="true" @blur="formPengajuanData.approval_pemohon = $el.innerText" x-text="formPengajuanData.approval_pemohon || ''"></span>&nbsp;)
+                                            </div>
+                                            <div style="font-size: 8.5px; text-align: left; margin-top: 3px;">
+                                                Tgl. <span x-text="formatDateDisplay(formPengajuanData.approval_tgl)"></span>
+                                            </div>
+                                        </td>
+                                        <!-- Disetujui oleh (Atasan Langsung) -->
+                                        <td style="width: 25%; border: 1px solid #000; vertical-align: top; height: 80px; padding: 4px 6px;">
+                                            <div style="font-size: 9.5px; text-align: left;">Disetujui oleh,</div>
+                                            <div style="height: 50px;"></div>
+                                            <div style="font-size: 8.5px; text-align: center; line-height: 1.2;">
+                                                (&nbsp;<span style="display: inline-block; min-width: 65px; border-bottom: 1px solid #000; text-align: center; vertical-align: bottom; padding: 0 4px; outline: none;" contenteditable="true" @blur="formPengajuanData.approval_atasan = $el.innerText" x-text="formPengajuanData.approval_atasan || ''"></span>&nbsp;)
+                                            </div>
+                                            <div style="font-size: 8.5px; text-align: left; margin-top: 3px;">
+                                                Tgl. <span x-text="formatDateDisplay(formPengajuanData.approval_tgl)"></span>
+                                            </div>
+                                        </td>
+                                        <!-- Diketahui oleh (Pimpinan Departemen) -->
+                                        <td style="width: 25%; border: 1px solid #000; vertical-align: top; height: 80px; padding: 4px 6px;">
+                                            <div style="font-size: 9.5px; text-align: left;">Diketahui oleh,</div>
+                                            <div style="height: 50px;"></div>
+                                            <div style="font-size: 8.5px; text-align: center; line-height: 1.2;">
+                                                (&nbsp;<span style="display: inline-block; min-width: 65px; border-bottom: 1px solid #000; text-align: center; vertical-align: bottom; padding: 0 4px; outline: none;" contenteditable="true" @blur="formPengajuanData.approval_pimpinan = $el.innerText" x-text="formPengajuanData.approval_pimpinan || ''"></span>&nbsp;)
+                                            </div>
+                                            <div style="font-size: 8.5px; text-align: left; margin-top: 3px;">
+                                                Tgl. <span x-text="formatDateDisplay(formPengajuanData.approval_tgl)"></span>
+                                            </div>
+                                        </td>
+                                        <!-- Diterima oleh (Admin Gudang) -->
+                                        <td style="width: 25%; border: 1px solid #000; vertical-align: top; height: 80px; padding: 4px 6px;">
+                                            <div style="font-size: 9.5px; text-align: left;">Diterima oleh,</div>
+                                            <div style="height: 50px;"></div>
+                                            <div style="font-size: 8.5px; text-align: center; line-height: 1.2;">
+                                                (&nbsp;<span style="display: inline-block; min-width: 65px; border-bottom: 1px solid #000; text-align: center; vertical-align: bottom; padding: 0 4px; outline: none;" contenteditable="true" @blur="formPengajuanData.approval_admin_gudang = $el.innerText" x-text="formPengajuanData.approval_admin_gudang || ''"></span>&nbsp;)
+                                            </div>
+                                            <div style="font-size: 8.5px; text-align: left; margin-top: 3px;">
+                                                Tgl. <span x-text="formatDateDisplay(formPengajuanData.approval_tgl)"></span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <!-- Petunjuk Pengisian (Verbatim from Official Form) -->
+                            <div style="font-size: 8.5px; line-height: 1.35; color: #000; margin-top: 6px;">
+                                <div style="font-weight: normal; margin-bottom: 2px;">Petunjuk Pengisian :</div>
+                                <ol style="margin: 0; padding-left: 14px; list-style-type: decimal;">
+                                    <li>Centang pada tipe pengajuan yang tersedia (Simpan/ Penarikan/ Pemusnahan/ Perpanjangan).</li>
+                                    <li>Isi Nama Kardus, Nama/ Kode Dokumen dan Periode Dokumen saat pengajuan Simpan (kosongkan label kardus).</li>
+                                    <li>Isi Label Kardus saat pengajuan Penarikan/ Pemusnahan/ Perpanjangan (kosongkan Nama Kardus, Nama/ Kode Dokumen dan Periode Dokumen).</li>
+                                    <li>Approval =
+                                        <ul style="margin: 0; padding-left: 14px; list-style-type: none;">
+                                            <li>✸ Diajukan oleh Pemohon</li>
+                                            <li>✸ Disetujui oleh Atasan Langsung</li>
+                                            <li>✸ Diketahui oleh Pimpinan Departemen</li>
+                                            <li>✸ Diterima oleh Admin Gudang</li>
+                                        </ul>
+                                    </li>
+                                </ol>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Print Styles & Fixed Scoped Preview CSS -->
+    <style>
+    /* Explicitly allow mouse text blocking / highlighting & copy-paste */
+    html,
+    body,
+    .select-text,
+    .select-text *,
+    input,
+    textarea,
+    select,
+    [contenteditable="true"],
+    .indraco-form-preview,
+    .indraco-form-preview * {
+        -webkit-user-select: text !important;
+        -moz-user-select: text !important;
+        -ms-user-select: text !important;
+        user-select: text !important;
+    }
+
+    .indraco-form-preview,
+    .indraco-form-preview * {
+        cursor: text;
+    }
+
+    ::selection {
+        background-color: #2563eb !important;
+        color: #ffffff !important;
+    }
+
+    ::-moz-selection {
+        background-color: #2563eb !important;
+        color: #ffffff !important;
+    }
+
+    .indraco-form-preview {
+        font-family: Arial, "Helvetica Neue", Helvetica, sans-serif !important;
+        font-size: 9.5px !important;
+        line-height: 1.3 !important;
+        color: #000000 !important;
+        background-color: #ffffff !important;
+    }
+    .indraco-form-preview * {
+        box-sizing: border-box !important;
+        font-family: Arial, "Helvetica Neue", Helvetica, sans-serif !important;
+    }
+    @media print {
+        body * {
+            visibility: hidden !important;
+        }
+        #form-pengajuan-print-document, 
+        #form-pengajuan-print-document * {
+            visibility: visible !important;
+        }
+        #form-pengajuan-print-document {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            min-height: 0 !important;
+            height: auto !important;
+            margin: 0 !important;
+            padding: 8mm 12mm !important;
+            box-shadow: none !important;
+            border: none !important;
+            background: #ffffff !important;
+            color: #000000 !important;
+            z-index: 9999999 !important;
+            font-family: Arial, "Helvetica Neue", Helvetica, sans-serif !important;
+            font-size: 9.5px !important;
+            display: block !important;
+        }
+        @page {
+            size: A4 portrait;
+            margin: 0;
+        }
+    }
+    </style>
+
 </div>
 
 @push('scripts')
@@ -781,14 +1344,20 @@ function archiveEditApp() {
         ];
     }
 
+    const departmentsData = @json($departments);
+    const initialDeptId = '{{ old('department_id', $archive->department_id) }}';
+    const initialDept = departmentsData.find(d => String(d.id) === String(initialDeptId)) || departmentsData[0] || null;
+    const initialSubDepts = (initialDept && initialDept.sub_departments) ? initialDept.sub_departments : [];
+    const initialMaster = (initialDept && initialDept.master_archives) ? initialDept.master_archives : [];
+
     return {
-        departments: @json($departments),
+        departments: departmentsData,
         selectedCompany: '{{ old('company_name', $archive->company_name ?? 'PT INDRACO GLOBAL INDONESIA') }}',
-        selectedDeptId: '{{ old('department_id', $archive->department_id) }}',
+        selectedDeptId: initialDept ? initialDept.id : initialDeptId,
         tglPenyerahan: '{{ old('tgl_penyerahan', $archive->tgl_penyerahan ? $archive->tgl_penyerahan->format('Y-m-d') : date('Y-m-d')) }}',
         currentMonth: '{{ date('Y-m') }}',
-        subDepartments: [],
-        masterArchives: [],
+        subDepartments: initialSubDepts,
+        masterArchives: initialMaster,
         hasExistingScanForm: {{ !empty($archive->scan_input_form) ? 'true' : 'false' }},
         hasScanForm: {{ !empty($archive->scan_input_form) ? 'true' : 'false' }},
 
@@ -801,13 +1370,32 @@ function archiveEditApp() {
         duplicateSourceIndex: 0,
         duplicateMode: 'full',
         duplicateSelectedItems: [],
+        // Form Pengajuan Dokumen Modal State
+        formModalOpen: false,
+        formPengajuanData: {
+            no_form: '',
+            tanggal_pengajuan: '{{ date('Y-m-d') }}',
+            dept_display: '',
+            pic_pemohon: '',
+            tipe: 'Simpan',
+            masa_simpan: 1,
+            catatan: 'Kondisi fisik kardus standar TB 30g dalam keadaan baik.',
+            approval_pemohon: '',
+            approval_atasan: '',
+            approval_pimpinan: '',
+            approval_admin_gudang: 'Admin Gudang',
+            approval_tgl: '{{ date('Y-m-d') }}'
+        },
+        formPengajuanRows: [],
 
         // Similarity check debounce timer
         similarityTimer: null,
 
         init() {
-            this.updateSubDepartments();
-            this.updateMasterArchives();
+            if (!this.masterArchives || this.masterArchives.length === 0) {
+                this.updateSubDepartments();
+                this.updateMasterArchives();
+            }
             this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
         },
 
@@ -1253,7 +1841,106 @@ function archiveEditApp() {
                 }
                 actionInput.value = action;
                 form.submit();
+            },
+
+        openFormPengajuanModal() {
+            this.formPengajuanData.dept_display = this.getDeptSubDeptDisplay();
+            let maxPeriod = 1;
+            this.boxes.forEach(b => {
+                const p = parseInt(b.periode_bulan, 10);
+                if (!isNaN(p) && p > maxPeriod) maxPeriod = p;
+            });
+            this.formPengajuanData.masa_simpan = maxPeriod;
+            this.formPengajuanData.tanggal_pengajuan = this.tglPenyerahan || '{{ date('Y-m-d') }}';
+            this.formPengajuanData.approval_tgl = this.tglPenyerahan || '{{ date('Y-m-d') }}';
+            this.populateFormRows();
+            this.formModalOpen = true;
+            this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+        },
+
+        populateFormRows() {
+            const rows = [];
+            const count = Math.max(12, this.boxes.length);
+            for (let i = 0; i < count; i++) {
+                if (i < this.boxes.length) {
+                    const b = this.boxes[i];
+                    rows.push({
+                        no: i + 1,
+                        title: b.title || '',
+                        label_kardus: '', // Kosongkan khusus untuk pengajuan simpan
+                        period_start: this.getBoxPeriodStartFormatted(b),
+                        period_end: this.getBoxPeriodEndFormatted(b)
+                    });
+                } else {
+                    rows.push({
+                        no: i + 1,
+                        title: '',
+                        label_kardus: '',
+                        period_start: '',
+                        period_end: ''
+                    });
+                }
             }
+            this.formPengajuanRows = rows;
+        },
+
+        getDeptSubDeptDisplay() {
+            let deptName = '';
+            const dept = this.departments.find(d => String(d.id) === String(this.selectedDeptId));
+            if (dept) {
+                deptName = dept.name || dept.code || '';
+            } else {
+                deptName = @json(auth()->user()->department ? auth()->user()->department->name : '');
+            }
+
+            let subDeptName = '';
+            if (this.selectedSubDeptId && this.subDepartments) {
+                const sub = this.subDepartments.find(s => String(s.id) === String(this.selectedSubDeptId));
+                if (sub) subDeptName = sub.name;
+            } else if (this.boxes.length > 0 && this.boxes[0].sub_department_id && this.subDepartments) {
+                const sub = this.subDepartments.find(s => String(s.id) === String(this.boxes[0].sub_department_id));
+                if (sub) subDeptName = sub.name;
+            }
+
+            if (deptName && subDeptName) {
+                return `${deptName} / ${subDeptName}`;
+            }
+            return deptName || '-';
+        },
+
+        getBoxPeriodStartFormatted(box) {
+            if (!box || !box.items || box.items.length === 0) return '';
+            const starts = box.items.map(it => it.period_start).filter(Boolean).sort();
+            if (starts.length === 0) return '';
+            const minStart = starts[0];
+            const parts = minStart.split('-');
+            return parts.length === 2 ? `${parts[1]}-${parts[0]}` : minStart;
+        },
+
+        getBoxPeriodEndFormatted(box) {
+            if (!box || !box.items || box.items.length === 0) return '';
+            const ends = box.items.map(it => it.period_end).filter(Boolean).sort();
+            if (ends.length === 0) return '';
+            const maxEnd = ends[ends.length - 1];
+            const parts = maxEnd.split('-');
+            return parts.length === 2 ? `${parts[1]}-${parts[0]}` : maxEnd;
+        },
+
+        formatDateDisplay(dateStr) {
+            if (!dateStr) return '';
+            if (typeof dateStr !== 'string') return '';
+            try {
+                const parts = dateStr.split('-');
+                if (parts.length === 3) {
+                    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+                }
+            } catch (e) {}
+            return dateStr;
+        },
+
+        printFormPengajuan() {
+            window.print();
+        }
         }
     };
 }
