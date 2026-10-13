@@ -460,7 +460,7 @@
                                                         </template>
                                                         <template x-if="slot.is_active !== false && slot.status !== 'inactive' && slot.archive">
                                                             <div class="space-y-0.5 w-full">
-                                                                <span class="font-mono font-bold text-[10px] leading-tight block truncate text-amber-700 dark:text-amber-300 max-w-[80px] mx-auto" x-text="slot.archive.box_number || 'TERISI'"></span>
+                                                                <span class="font-mono font-bold text-[10px] leading-tight block truncate max-w-[80px] mx-auto" :class="(slot.status === 'expired' || slot.archive?.is_expired) ? '!text-white font-black' : ((slot.status === 'near_exp' || slot.is_near_exp || slot.archive?.is_near_exp) ? 'text-rose-700 dark:text-rose-300' : 'text-amber-700 dark:text-amber-300')" x-text="slot.archive.box_number || 'TERISI'"></span>
                                                                 <span class="text-[8px] text-slate-500 dark:text-slate-400 font-mono block truncate max-w-[80px] mx-auto" x-text="slot.archive.periode_doc || slot.archive.department || ''"></span>
                                                             </div>
                                                         </template>
@@ -520,7 +520,7 @@
                                                         </template>
                                                         <template x-if="slot.is_active !== false && slot.status !== 'inactive' && slot.archive">
                                                             <div class="space-y-0.5 w-full">
-                                                                <span class="font-mono font-bold text-[10px] leading-tight block truncate text-amber-700 dark:text-amber-300 max-w-[80px] mx-auto" x-text="slot.archive.box_number || 'TERISI'"></span>
+                                                                <span class="font-mono font-bold text-[10px] leading-tight block truncate max-w-[80px] mx-auto" :class="(slot.status === 'expired' || slot.archive?.is_expired) ? '!text-white font-black' : ((slot.status === 'near_exp' || slot.is_near_exp || slot.archive?.is_near_exp) ? 'text-rose-700 dark:text-rose-300' : 'text-amber-700 dark:text-amber-300')" x-text="slot.archive.box_number || 'TERISI'"></span>
                                                                 <span class="text-[8px] text-slate-500 dark:text-slate-400 font-mono block truncate max-w-[80px] mx-auto" x-text="slot.archive.periode_doc || slot.archive.department || ''"></span>
                                                             </div>
                                                         </template>
@@ -1178,10 +1178,14 @@ function masterWarehousesManager() {
                 return 'bg-slate-100/90 text-slate-500 border-slate-300 dark:bg-slate-900/60 dark:text-slate-400 dark:border-slate-800 opacity-60 hover:opacity-100 transition shadow-xs';
             }
             const isExpired = slot.status === 'expired' || slot.archive?.is_expired;
-            const isFilled = (slot.status === 'filled' || slot.archive) && !isExpired;
+            const isNearExp = !isExpired && (slot.status === 'near_exp' || slot.is_near_exp || slot.archive?.is_near_exp);
+            const isFilled = (slot.status === 'filled' || slot.archive) && !isExpired && !isNearExp;
 
             if (isExpired) {
-                return 'bg-rose-50 text-rose-800 border-rose-300 hover:bg-rose-100 hover:border-rose-400 dark:bg-rose-950/40 dark:text-rose-200 dark:border-rose-600/60 dark:hover:bg-rose-900/50 dark:hover:border-rose-400 shadow-xs';
+                return 'bg-rose-600 !text-white border-rose-700 hover:bg-rose-700 dark:bg-rose-600 dark:border-rose-500 shadow-md animate-pulse-expired';
+            }
+            if (isNearExp) {
+                return 'bg-rose-500/20 text-rose-300 border border-rose-500 hover:bg-rose-500/30 dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500 shadow-xs';
             }
             if (isFilled) {
                 return 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100 hover:border-amber-400 dark:bg-amber-950/35 dark:text-amber-200 dark:border-amber-600/50 dark:hover:bg-amber-900/40 dark:hover:border-amber-400 shadow-xs';

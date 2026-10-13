@@ -103,6 +103,8 @@ class WarehouseLayoutController extends Controller
                         $status = 'empty';
                     } elseif ($isExpired) {
                         $status = 'expired';
+                    } elseif ($isNearExp) {
+                        $status = 'near_exp';
                     }
                     if ($slot->is_active === false) {
                         $status = 'inactive';

@@ -1017,6 +1017,7 @@
                         </div>
 
                         <!-- Legend & Status Indicators -->
+                        <!-- Legend & Status Indicators -->
                         <div class="flex items-center gap-2 flex-wrap text-[10px]">
                             <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40 font-bold">
                                 <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
@@ -1026,9 +1027,13 @@
                                 <span class="w-2 h-2 rounded-full bg-amber-500"></span>
                                 <span>Terisi Berkas</span>
                             </span>
-                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/40 font-bold">
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500 font-bold">
                                 <span class="w-2 h-2 rounded-full bg-rose-500"></span>
-                                <span>Expired / Rusak</span>
+                                <span>Mendekati Exp (H-30)</span>
+                            </span>
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-rose-600 text-white border border-rose-400 font-bold shadow-xs">
+                                <span class="w-2 h-2 rounded-full bg-white"></span>
+                                <span>Expired</span>
                             </span>
                         </div>
                     </div>
@@ -1076,21 +1081,27 @@
                                                  :class="{
                                                      'bg-emerald-500/15 border-emerald-500/50 hover:bg-emerald-500 hover:text-slate-950 hover:shadow-lg hover:scale-105 cursor-pointer text-emerald-400': slot.status === 'empty' && selectedSlot?.id !== slot.id,
                                                      'bg-emerald-400 text-slate-950 ring-2 ring-amber-400 font-black scale-105 cursor-pointer': slot.status === 'empty' && selectedSlot?.id === slot.id,
-                                                     'bg-amber-500/20 border-amber-500/40 text-amber-300 cursor-not-allowed opacity-90': slot.status === 'filled',
-                                                     'bg-rose-500/20 border-rose-500/40 text-rose-300 cursor-not-allowed': slot.status === 'expired',
+                                                     'bg-amber-500/20 border-amber-500/40 text-amber-300 cursor-not-allowed opacity-90': (slot.status === 'filled' || slot.archive) && !isSlotNearExp(slot) && !isSlotExpired(slot),
+                                                     'bg-rose-500/20 border border-rose-500 text-rose-300 cursor-not-allowed opacity-95': isSlotNearExp(slot) && !isSlotExpired(slot),
+                                                     'bg-rose-600 border border-rose-400 text-white cursor-not-allowed font-black shadow-md': isSlotExpired(slot),
                                                      'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed': slot.status === 'inactive'
                                                  }"
-                                                 :title="slot.status === 'empty' ? ('Slot ' + slot.slot_code + ' (Kosong) - Double click untuk simpan!') : ('Terisi: ' + (slot.archive ? (slot.archive.box_number + ' - ' + slot.archive.title) : 'Terisi'))">
-                                                <div class="font-mono font-black text-[11px] truncate" x-text="slot.slot_code"></div>
+                                                 :title="slot.status === 'empty' ? ('Slot ' + slot.slot_code + ' (Kosong) - Double click untuk simpan!') : (isSlotExpired(slot) ? ('EXPIRED: ' + (slot.archive ? (slot.archive.box_number + ' - ' + slot.archive.title) : 'Expired')) : (isSlotNearExp(slot) ? ('MENDEKATI EXP: ' + (slot.archive ? (slot.archive.box_number + ' - ' + slot.archive.title) : 'Mendekati Exp')) : ('Terisi: ' + (slot.archive ? (slot.archive.box_number + ' - ' + slot.archive.title) : 'Terisi'))))">
+                                                <div class="font-mono font-black text-[11px] truncate" 
+                                                     :class="isSlotExpired(slot) ? '!text-white' : (isSlotNearExp(slot) ? 'text-rose-300' : (slot.status === 'empty' ? 'text-emerald-400' : 'text-amber-300'))" 
+                                                     x-text="slot.slot_code"></div>
                                                 <div class="text-[9px] truncate font-sans">
                                                     <template x-if="slot.status === 'empty'">
                                                         <span class="text-emerald-500 group-hover:text-slate-950 font-bold">KOSONG</span>
                                                     </template>
-                                                    <template x-if="slot.status === 'filled'">
+                                                    <template x-if="!isSlotExpired(slot) && !isSlotNearExp(slot) && (slot.status === 'filled' || slot.archive)">
                                                         <span class="text-amber-400 font-bold" x-text="slot.archive ? (slot.archive.box_number || 'TERISI') : 'TERISI'"></span>
                                                     </template>
-                                                    <template x-if="slot.status === 'expired'">
-                                                        <span class="text-rose-400 font-bold">EXPIRED</span>
+                                                    <template x-if="!isSlotExpired(slot) && isSlotNearExp(slot)">
+                                                        <span class="text-rose-300 font-bold" x-text="slot.archive ? (slot.archive.box_number || 'TERISI') : 'TERISI'"></span>
+                                                    </template>
+                                                    <template x-if="isSlotExpired(slot)">
+                                                        <span class="!text-white font-black tracking-wider">EXPIRED</span>
                                                     </template>
                                                 </div>
                                             </div>
@@ -1112,29 +1123,33 @@
                                                  :class="{
                                                      'bg-emerald-500/15 border-emerald-500/50 hover:bg-emerald-500 hover:text-slate-950 hover:shadow-lg hover:scale-105 cursor-pointer text-emerald-400': slot.status === 'empty' && selectedSlot?.id !== slot.id,
                                                      'bg-emerald-400 text-slate-950 ring-2 ring-amber-400 font-black scale-105 cursor-pointer': slot.status === 'empty' && selectedSlot?.id === slot.id,
-                                                     'bg-amber-500/20 border-amber-500/40 text-amber-300 cursor-not-allowed opacity-90': slot.status === 'filled',
-                                                     'bg-rose-500/20 border-rose-500/40 text-rose-300 cursor-not-allowed': slot.status === 'expired',
+                                                     'bg-amber-500/20 border-amber-500/40 text-amber-300 cursor-not-allowed opacity-90': (slot.status === 'filled' || slot.archive) && !isSlotNearExp(slot) && !isSlotExpired(slot),
+                                                     'bg-rose-500/20 border border-rose-500 text-rose-300 cursor-not-allowed opacity-95': isSlotNearExp(slot) && !isSlotExpired(slot),
+                                                     'bg-rose-600 border border-rose-400 text-white cursor-not-allowed font-black shadow-md': isSlotExpired(slot),
                                                      'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed': slot.status === 'inactive'
                                                  }"
-                                                 :title="slot.status === 'empty' ? ('Slot ' + slot.slot_code + ' (Kosong) - Double click untuk simpan!') : ('Terisi: ' + (slot.archive ? (slot.archive.box_number + ' - ' + slot.archive.title) : 'Terisi'))">
-                                                <div class="font-mono font-black text-[11px] truncate" x-text="slot.slot_code"></div>
+                                                 :title="slot.status === 'empty' ? ('Slot ' + slot.slot_code + ' (Kosong) - Double click untuk simpan!') : (isSlotExpired(slot) ? ('EXPIRED: ' + (slot.archive ? (slot.archive.box_number + ' - ' + slot.archive.title) : 'Expired')) : (isSlotNearExp(slot) ? ('MENDEKATI EXP: ' + (slot.archive ? (slot.archive.box_number + ' - ' + slot.archive.title) : 'Mendekati Exp')) : ('Terisi: ' + (slot.archive ? (slot.archive.box_number + ' - ' + slot.archive.title) : 'Terisi'))))">
+                                                <div class="font-mono font-black text-[11px] truncate" 
+                                                     :class="isSlotExpired(slot) ? '!text-white' : (isSlotNearExp(slot) ? 'text-rose-300' : (slot.status === 'empty' ? 'text-emerald-400' : 'text-amber-300'))" 
+                                                     x-text="slot.slot_code"></div>
                                                 <div class="text-[9px] truncate font-sans">
                                                     <template x-if="slot.status === 'empty'">
                                                         <span class="text-emerald-500 group-hover:text-slate-950 font-bold">KOSONG</span>
                                                     </template>
-                                                    <template x-if="slot.status === 'filled'">
+                                                    <template x-if="!isSlotExpired(slot) && !isSlotNearExp(slot) && (slot.status === 'filled' || slot.archive)">
                                                         <span class="text-amber-400 font-bold" x-text="slot.archive ? (slot.archive.box_number || 'TERISI') : 'TERISI'"></span>
                                                     </template>
-                                                    <template x-if="slot.status === 'expired'">
-                                                        <span class="text-rose-400 font-bold">EXPIRED</span>
+                                                    <template x-if="!isSlotExpired(slot) && isSlotNearExp(slot)">
+                                                        <span class="text-rose-300 font-bold" x-text="slot.archive ? (slot.archive.box_number || 'TERISI') : 'TERISI'"></span>
+                                                    </template>
+                                                    <template x-if="isSlotExpired(slot)">
+                                                        <span class="!text-white font-black tracking-wider">EXPIRED</span>
                                                     </template>
                                                 </div>
                                             </div>
                                         </template>
                                     </div>
                                 </div>
-                            </div>
-                        </template>
                     </div>
                 </div>
 
@@ -2632,6 +2647,19 @@ function dashboardOverviewApp() {
             return this.selectedRack.slots.filter(slot => {
                 return parseInt(slot.sap_level) === parseInt(sapLevel) && String(slot.layer).toLowerCase() === String(layer).toLowerCase();
             }).sort((a, b) => parseInt(a.slot_number) - parseInt(b.slot_number));
+        },
+
+        isSlotExpired(slot) {
+            if (!slot) return false;
+            if (slot.status === 'inactive' || slot.is_active === false) return false;
+            return slot.status === 'expired' || slot.is_expired === true || !!(slot.archive?.is_expired);
+        },
+
+        isSlotNearExp(slot) {
+            if (!slot) return false;
+            if (slot.status === 'inactive' || slot.is_active === false) return false;
+            if (this.isSlotExpired(slot)) return false;
+            return slot.status === 'near_exp' || slot.is_near_exp === true || !!(slot.archive?.is_near_exp);
         },
 
         goToStep(step) {

@@ -92,6 +92,9 @@ class ArchiveController extends Controller
 
         if (in_array($sortColumn, $allowedSorts)) {
             $query->orderBy($sortColumn, $sortDirection);
+            if ($sortColumn === 'created_at') {
+                $query->orderBy('id', $sortDirection);
+            }
         } else {
             $query->latest();
         }
@@ -227,8 +230,8 @@ class ArchiveController extends Controller
             if ($periodMonthsCount > 60) {
                 return redirect()->back()->withInput()->withErrors(['periode' => 'Periode dokumen maksimal 60 bulan.']);
             }
-            $startDate = $tglPenyerahan->copy()->startOfMonth();
-            $endDate = $tglPenyerahan->copy()->startOfMonth()->addMonths($periodMonthsCount)->endOfMonth();
+            $startDate = $tglPenyerahan->copy()->addMonth()->startOfMonth();
+            $endDate = $startDate->copy()->addMonths($periodMonthsCount - 1)->endOfMonth();
             $formattedPeriodDoc = "{$periodMonthsCount} Bulan";
             $periodText = !empty($validated['period_text']) ? $validated['period_text'] : "{$periodMonthsCount} Bulan (s/d " . $endDate->isoFormat('MMMM Y') . ")";
         } elseif (preg_match('/^(\d{4}\/(?:0[1-9]|1[0-2]))\s*(?:-|s\/d|hingga|to)\s*(\d{4}\/(?:0[1-9]|1[0-2]))$/i', $rawPeriod, $matches)) {
@@ -359,15 +362,15 @@ class ArchiveController extends Controller
         $hasExplicitCustomRetention = (!empty($validated['masa_simpan_custom']) && (int)$validated['masa_simpan_custom'] > 0);
         $hasExplicitRetentionYears = (!empty($validated['retention_years']) && (int)$validated['retention_years'] > 0);
 
-        if ($hasExplicitCustomRetention) {
+        if ($isMonthsPeriod) {
+            $effectiveRetentionYears = $periodMonthsCount >= 12 ? (int)floor($periodMonthsCount / 12) : 0;
+            $retentionExpiryDate = $endDate->copy()->endOfMonth()->format('Y-m-d');
+        } elseif ($hasExplicitCustomRetention) {
             $effectiveRetentionYears = (int)$validated['masa_simpan_custom'];
             $retentionExpiryDate = $endDate->copy()->addYears($effectiveRetentionYears)->endOfMonth()->format('Y-m-d');
         } elseif ($hasExplicitRetentionYears) {
             $effectiveRetentionYears = (int)$validated['retention_years'];
             $retentionExpiryDate = $endDate->copy()->addYears($effectiveRetentionYears)->endOfMonth()->format('Y-m-d');
-        } elseif ($isMonthsPeriod) {
-            $effectiveRetentionYears = $periodMonthsCount >= 12 ? (int)floor($periodMonthsCount / 12) : 0;
-            $retentionExpiryDate = $endDate->copy()->endOfMonth()->format('Y-m-d');
         } else {
             $effectiveRetentionYears = 5;
             if ($subDepartment && $subDepartment->retention_years > 0) {
@@ -594,29 +597,43 @@ class ArchiveController extends Controller
 
             $boxPeriodeRaw = trim($firstBox['periode'] ?? '');
             $monthsCount = 1;
+            $isMonthsPeriod = false;
+            $monthsCount = 1;
             if (!empty($boxPeriodeRaw) && preg_match('/^(\d+)\s*(?:bulan|bln|m)?$/i', $boxPeriodeRaw, $pMatches)) {
+                $isMonthsPeriod = true;
                 $monthsCount = (int)$pMatches[1];
                 if ($monthsCount > 60) $monthsCount = 60;
                 if ($monthsCount < 1) $monthsCount = 1;
             }
-            $startDate = $tglPenyerahan->copy()->startOfMonth();
-            $endDate = $startDate->copy()->addMonths($monthsCount - 1)->endOfMonth();
-            $boxPeriode = "{$monthsCount} Bulan";
-            $periodeDoc = $tglPenyerahan->format('Y/m');
-            $periodText = "{$monthsCount} Bulan (s/d " . $endDate->isoFormat('MMMM Y') . ")";
 
-            $subDept = !empty($firstBox['sub_department_id']) ? SubDepartment::find($firstBox['sub_department_id']) : null;
-            $retentionYears = !empty($firstBox['retention_years']) ? (int)$firstBox['retention_years'] : null;
-            if (!$retentionYears) {
-                if ($subDept && $subDept->retention_years > 0) {
-                    $retentionYears = (int)$subDept->retention_years;
-                } elseif ($department && $department->retention_years > 0) {
-                    $retentionYears = (int)$department->retention_years;
-                } else {
-                    $retentionYears = 5;
+            if ($isMonthsPeriod) {
+                $startDate = $tglPenyerahan->copy()->addMonth()->startOfMonth();
+                $endDate = $startDate->copy()->addMonths($monthsCount - 1)->endOfMonth();
+                $boxPeriode = "{$monthsCount} Bulan";
+                $periodeDoc = $startDate->format('Y/m');
+                $periodText = "{$monthsCount} Bulan (s/d " . $endDate->isoFormat('MMMM Y') . ")";
+                $retentionYears = $monthsCount >= 12 ? (int)floor($monthsCount / 12) : 0;
+                $retentionExpiryDate = $endDate->format('Y-m-d');
+            } else {
+                $startDate = $tglPenyerahan->copy()->startOfMonth();
+                $endDate = $tglPenyerahan->copy()->endOfMonth();
+                $boxPeriode = "1 Bulan";
+                $periodeDoc = $tglPenyerahan->format('Y/m');
+                $periodText = $tglPenyerahan->isoFormat('MMMM Y');
+
+                $subDept = !empty($firstBox['sub_department_id']) ? SubDepartment::find($firstBox['sub_department_id']) : null;
+                $retentionYears = !empty($firstBox['retention_years']) ? (int)$firstBox['retention_years'] : null;
+                if (!$retentionYears) {
+                    if ($subDept && $subDept->retention_years > 0) {
+                        $retentionYears = (int)$subDept->retention_years;
+                    } elseif ($department && $department->retention_years > 0) {
+                        $retentionYears = (int)$department->retention_years;
+                    } else {
+                        $retentionYears = 5;
+                    }
                 }
+                $retentionExpiryDate = $endDate->copy()->addYears($retentionYears)->endOfMonth()->format('Y-m-d');
             }
-            $retentionExpiryDate = $endDate->copy()->addYears($retentionYears)->endOfMonth()->format('Y-m-d');
 
             $contentDescription = json_encode([
                 'is_multi_box_draft' => true,
@@ -710,6 +727,7 @@ class ArchiveController extends Controller
 
         DB::beginTransaction();
         try {
+            $totalBoxes = count($boxesList);
             foreach ($boxesList as $boxIndex => $boxData) {
                 $rawItems = $boxData['items'] ?? [];
                 $minPeriod = null;
@@ -765,12 +783,14 @@ class ArchiveController extends Controller
                 // Determine box period dates
                 $boxPeriodeRaw = trim($boxData['periode'] ?? '');
                 $monthsCount = 1;
+                $isMonthsPeriod = false;
 
                 if (!empty($boxPeriodeRaw) && preg_match('/^(\d+)\s*(?:bulan|bln|m)?$/i', $boxPeriodeRaw, $pMatches)) {
+                    $isMonthsPeriod = true;
                     $monthsCount = (int)$pMatches[1];
                     if ($monthsCount > 60) $monthsCount = 60;
                     if ($monthsCount < 1) $monthsCount = 1;
-                    $startDate = $tglPenyerahan->copy()->startOfMonth();
+                    $startDate = $tglPenyerahan->copy()->addMonth()->startOfMonth();
                     $endDate = $startDate->copy()->addMonths($monthsCount - 1)->endOfMonth();
                     $boxPeriode = "{$monthsCount} Bulan";
                     $periodeDoc = $minPeriod ? ($minPeriod === $maxPeriod ? $minPeriod : "{$minPeriod} - {$maxPeriod}") : "{$monthsCount} Bulan";
@@ -798,17 +818,22 @@ class ArchiveController extends Controller
 
                 // Retention calculation
                 $subDept = !empty($boxData['sub_department_id']) ? SubDepartment::find($boxData['sub_department_id']) : null;
-                $retentionYears = !empty($boxData['retention_years']) ? (int)$boxData['retention_years'] : null;
-                if (!$retentionYears) {
-                    if ($subDept && $subDept->retention_years > 0) {
-                        $retentionYears = (int)$subDept->retention_years;
-                    } elseif ($department && $department->retention_years > 0) {
-                        $retentionYears = (int)$department->retention_years;
-                    } else {
-                        $retentionYears = 5;
+                if ($isMonthsPeriod) {
+                    $retentionYears = $monthsCount >= 12 ? (int)floor($monthsCount / 12) : 0;
+                    $retentionExpiryDate = $endDate->format('Y-m-d');
+                } else {
+                    $retentionYears = !empty($boxData['retention_years']) ? (int)$boxData['retention_years'] : null;
+                    if (!$retentionYears) {
+                        if ($subDept && $subDept->retention_years > 0) {
+                            $retentionYears = (int)$subDept->retention_years;
+                        } elseif ($department && $department->retention_years > 0) {
+                            $retentionYears = (int)$department->retention_years;
+                        } else {
+                            $retentionYears = 5;
+                        }
                     }
+                    $retentionExpiryDate = $endDate->copy()->addYears($retentionYears)->endOfMonth()->format('Y-m-d');
                 }
-                $retentionExpiryDate = $endDate->copy()->addYears($retentionYears)->endOfMonth()->format('Y-m-d');
 
                 // Title
                 $boxTitle = trim($boxData['title'] ?? '');
@@ -822,7 +847,9 @@ class ArchiveController extends Controller
 
                 $contentDescription = implode("\n", $itemLines);
 
-                $archive = Archive::create([
+                $boxTimestamp = $now->copy()->addSeconds($boxIndex);
+
+                $archive = new Archive([
                     'department_id' => $validated['department_id'],
                     'sub_department_id' => $boxData['sub_department_id'] ?? null,
                     'company_name' => !empty($validated['company_name']) ? $validated['company_name'] : 'PT INDRACO GLOBAL INDONESIA',
@@ -844,6 +871,9 @@ class ArchiveController extends Controller
                     'scan_input_form' => $scanInputFormPath,
                     'status' => $archiveStatus,
                 ]);
+                $archive->created_at = $boxTimestamp;
+                $archive->updated_at = $boxTimestamp;
+                $archive->save();
 
                 // Insert child items
                 $itemsToInsert = array_map(function ($it) use ($archive, $now) {
@@ -1022,8 +1052,8 @@ class ArchiveController extends Controller
             if ($periodMonthsCount > 60) {
                 return redirect()->back()->withInput()->withErrors(['periode' => 'Periode dokumen maksimal 60 bulan.']);
             }
-            $startDate = $tglPenyerahan->copy()->startOfMonth();
-            $endDate = $tglPenyerahan->copy()->startOfMonth()->addMonths($periodMonthsCount)->endOfMonth();
+            $startDate = $tglPenyerahan->copy()->addMonth()->startOfMonth();
+            $endDate = $startDate->copy()->addMonths($periodMonthsCount - 1)->endOfMonth();
             $formattedPeriodDoc = "{$periodMonthsCount} Bulan";
             $periodText = !empty($validated['period_text']) ? $validated['period_text'] : "{$periodMonthsCount} Bulan (s/d " . $endDate->isoFormat('MMMM Y') . ")";
         } elseif (preg_match('/^(\d{4}\/(?:0[1-9]|1[0-2]))\s*(?:-|s\/d|hingga|to)\s*(\d{4}\/(?:0[1-9]|1[0-2]))$/i', $rawPeriod, $matches)) {
@@ -1134,15 +1164,15 @@ class ArchiveController extends Controller
         $hasExplicitCustomRetention = (!empty($validated['masa_simpan_custom']) && (int)$validated['masa_simpan_custom'] > 0);
         $hasExplicitRetentionYears = (!empty($validated['retention_years']) && (int)$validated['retention_years'] > 0);
 
-        if ($hasExplicitCustomRetention) {
+        if ($isMonthsPeriod) {
+            $effectiveRetentionYears = $periodMonthsCount >= 12 ? (int)floor($periodMonthsCount / 12) : 0;
+            $retentionExpiryDate = $endDate->copy()->endOfMonth()->format('Y-m-d');
+        } elseif ($hasExplicitCustomRetention) {
             $effectiveRetentionYears = (int)$validated['masa_simpan_custom'];
             $retentionExpiryDate = $endDate->copy()->addYears($effectiveRetentionYears)->endOfMonth()->format('Y-m-d');
         } elseif ($hasExplicitRetentionYears) {
             $effectiveRetentionYears = (int)$validated['retention_years'];
             $retentionExpiryDate = $endDate->copy()->addYears($effectiveRetentionYears)->endOfMonth()->format('Y-m-d');
-        } elseif ($isMonthsPeriod) {
-            $effectiveRetentionYears = $periodMonthsCount >= 12 ? (int)floor($periodMonthsCount / 12) : 0;
-            $retentionExpiryDate = $endDate->copy()->endOfMonth()->format('Y-m-d');
         } else {
             $effectiveRetentionYears = 5;
             if ($subDepartment && $subDepartment->retention_years > 0) {
@@ -1388,16 +1418,42 @@ class ArchiveController extends Controller
 
                 $boxPeriodeRaw = trim($firstBox['periode'] ?? '');
                 $monthsCount = 1;
+                $isMonthsPeriod = false;
+                $monthsCount = 1;
                 if (!empty($boxPeriodeRaw) && preg_match('/^(\d+)\s*(?:bulan|bln|m)?$/i', $boxPeriodeRaw, $pMatches)) {
+                    $isMonthsPeriod = true;
                     $monthsCount = (int)$pMatches[1];
                     if ($monthsCount > 60) $monthsCount = 60;
                     if ($monthsCount < 1) $monthsCount = 1;
                 }
-                $startDate = $tglPenyerahan->copy()->startOfMonth();
-                $endDate = $startDate->copy()->addMonths($monthsCount - 1)->endOfMonth();
-                $boxPeriode = "{$monthsCount} Bulan";
-                $periodeDoc = $tglPenyerahan->format('Y/m');
-                $periodText = "{$monthsCount} Bulan (s/d " . $endDate->isoFormat('MMMM Y') . ")";
+
+                if ($isMonthsPeriod) {
+                    $startDate = $tglPenyerahan->copy()->addMonth()->startOfMonth();
+                    $endDate = $startDate->copy()->addMonths($monthsCount - 1)->endOfMonth();
+                    $boxPeriode = "{$monthsCount} Bulan";
+                    $periodeDoc = $startDate->format('Y/m');
+                    $periodText = "{$monthsCount} Bulan (s/d " . $endDate->isoFormat('MMMM Y') . ")";
+                    $retentionYears = $monthsCount >= 12 ? (int)floor($monthsCount / 12) : 0;
+                    $retentionExpiryDate = $endDate->format('Y-m-d');
+                } else {
+                    $startDate = $tglPenyerahan->copy()->startOfMonth();
+                    $endDate = $tglPenyerahan->copy()->endOfMonth();
+                    $boxPeriode = "1 Bulan";
+                    $periodeDoc = $tglPenyerahan->format('Y/m');
+                    $periodText = $tglPenyerahan->isoFormat('MMMM Y');
+                    $subDept = !empty($firstBox['sub_department_id']) ? SubDepartment::find($firstBox['sub_department_id']) : null;
+                    $retentionYears = !empty($firstBox['retention_years']) ? (int)$firstBox['retention_years'] : null;
+                    if (!$retentionYears) {
+                        if ($subDept && $subDept->retention_years > 0) {
+                            $retentionYears = (int)$subDept->retention_years;
+                        } elseif ($department && $department->retention_years > 0) {
+                            $retentionYears = (int)$department->retention_years;
+                        } else {
+                            $retentionYears = 5;
+                        }
+                    }
+                    $retentionExpiryDate = $endDate->copy()->addYears($retentionYears)->endOfMonth()->format('Y-m-d');
+                }
 
                 $contentDescription = json_encode([
                     'is_multi_box_draft' => true,
@@ -1417,6 +1473,8 @@ class ArchiveController extends Controller
                     'period_yy_mm' => $periodeDoc,
                     'periode_doc' => $periodeDoc,
                     'tgl_penyerahan' => $tglPenyerahan->format('Y-m-d'),
+                    'retention_years' => $retentionYears,
+                    'retention_expiry_date' => $retentionExpiryDate,
                     'content_description' => $contentDescription,
                     'physical_condition' => !empty($firstBox['physical_condition']) ? $firstBox['physical_condition'] : 'Baik / Box Karton Standar TB 30g',
                     'file_path' => $boxFilePath,
@@ -1477,6 +1535,7 @@ class ArchiveController extends Controller
                 // Box pertama meng-update $archive yang ada, box berikutnya dibuat sebagai data baru
                 $createdBoxesCount = 0;
                 $totalItemsCount = 0;
+                $totalBoxes = count($boxesList);
 
                 foreach ($boxesList as $boxIndex => $boxData) {
                     $rawItems = $boxData['items'] ?? [];
@@ -1526,11 +1585,13 @@ class ArchiveController extends Controller
 
                     $boxPeriodeRaw = trim($boxData['periode'] ?? '');
                     $monthsCount = 1;
+                    $isMonthsPeriod = false;
                     if (!empty($boxPeriodeRaw) && preg_match('/^(\d+)\s*(?:bulan|bln|m)?$/i', $boxPeriodeRaw, $pMatches)) {
+                        $isMonthsPeriod = true;
                         $monthsCount = (int)$pMatches[1];
                         if ($monthsCount > 60) $monthsCount = 60;
                         if ($monthsCount < 1) $monthsCount = 1;
-                        $startDate = $tglPenyerahan->copy()->startOfMonth();
+                        $startDate = $tglPenyerahan->copy()->addMonth()->startOfMonth();
                         $endDate = $startDate->copy()->addMonths($monthsCount - 1)->endOfMonth();
                         $boxPeriode = "{$monthsCount} Bulan";
                         $periodeDoc = $minPeriod ? ($minPeriod === $maxPeriod ? $minPeriod : "{$minPeriod} - {$maxPeriod}") : "{$monthsCount} Bulan";
@@ -1557,17 +1618,22 @@ class ArchiveController extends Controller
                     }
 
                     $subDept = !empty($boxData['sub_department_id']) ? SubDepartment::find($boxData['sub_department_id']) : null;
-                    $retentionYears = !empty($boxData['retention_years']) ? (int)$boxData['retention_years'] : null;
-                    if (!$retentionYears) {
-                        if ($subDept && $subDept->retention_years > 0) {
-                            $retentionYears = (int)$subDept->retention_years;
-                        } elseif ($department && $department->retention_years > 0) {
-                            $retentionYears = (int)$department->retention_years;
-                        } else {
-                            $retentionYears = 5;
+                    if ($isMonthsPeriod) {
+                        $retentionYears = $monthsCount >= 12 ? (int)floor($monthsCount / 12) : 0;
+                        $retentionExpiryDate = $endDate->format('Y-m-d');
+                    } else {
+                        $retentionYears = !empty($boxData['retention_years']) ? (int)$boxData['retention_years'] : null;
+                        if (!$retentionYears) {
+                            if ($subDept && $subDept->retention_years > 0) {
+                                $retentionYears = (int)$subDept->retention_years;
+                            } elseif ($department && $department->retention_years > 0) {
+                                $retentionYears = (int)$department->retention_years;
+                            } else {
+                                $retentionYears = 5;
+                            }
                         }
+                        $retentionExpiryDate = $endDate->copy()->addYears($retentionYears)->endOfMonth()->format('Y-m-d');
                     }
-                    $retentionExpiryDate = $endDate->copy()->addYears($retentionYears)->endOfMonth()->format('Y-m-d');
 
                     $boxTitle = trim($boxData['title'] ?? '');
                     if (empty($boxTitle)) {
@@ -1598,12 +1664,20 @@ class ArchiveController extends Controller
                         'status' => $archive->status === 'draft' ? 'pending_verification' : $archive->status,
                     ];
 
+                    $boxTimestamp = $now->copy()->addSeconds($boxIndex);
+
                     if ($boxIndex === 0) {
                         $targetArchive = $archive;
-                        $targetArchive->update($archiveAttributes);
+                        $targetArchive->fill($archiveAttributes);
+                        $targetArchive->created_at = $boxTimestamp;
+                        $targetArchive->updated_at = $boxTimestamp;
+                        $targetArchive->save();
                         $targetArchive->items()->delete();
                     } else {
-                        $targetArchive = Archive::create($archiveAttributes);
+                        $targetArchive = new Archive($archiveAttributes);
+                        $targetArchive->created_at = $boxTimestamp;
+                        $targetArchive->updated_at = $boxTimestamp;
+                        $targetArchive->save();
                     }
 
                     $itemsToInsert = array_map(function ($it) use ($targetArchive, $now) {
