@@ -704,6 +704,84 @@
             </div>
         </div>
 
+        <!-- MODAL KONFIRMASI PENGAJUAN ARSIP KE GUDANG -->
+        <div 
+            x-show="submitConfirmModalOpen" 
+            x-cloak 
+            class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4"
+        >
+            <div 
+                @click.outside="submitConfirmModalOpen = false" 
+                class="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl max-w-lg w-full p-4 space-y-4 shadow-xl font-mono text-xs"
+            >
+                <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2.5">
+                    <div class="flex items-center gap-2">
+                        <span class="p-1.5 bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded">
+                            <i data-lucide="help-circle" class="w-4 h-4"></i>
+                        </span>
+                        <h3 class="font-bold text-sm text-slate-900 dark:text-white">Konfirmasi Pengajuan ke Gudang</h3>
+                    </div>
+                    <button type="button" @click="submitConfirmModalOpen = false" class="text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer">✕</button>
+                </div>
+
+                <div class="space-y-3 font-sans text-xs">
+                    <p class="text-slate-700 dark:text-slate-200">
+                        Anda akan mengajukan <strong class="text-amber-600 dark:text-amber-400 font-bold" x-text="boxes.length + ' Box Arsip'"></strong> (<span x-text="getTotalItemsCount() + ' Butir Dokumen'"></span>) untuk verifikasi penerimaan fisik oleh Admin Gudang.
+                    </p>
+
+                    <!-- Card Cek & Buka Form Pengajuan -->
+                    <div class="p-3 bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-lg space-y-2.5">
+                        <div class="flex items-start gap-2.5">
+                            <span class="p-1.5 bg-amber-500/20 text-amber-700 dark:text-amber-300 rounded shrink-0 mt-0.5">
+                                <i data-lucide="printer" class="w-4 h-4"></i>
+                            </span>
+                            <div class="space-y-1">
+                                <span class="font-bold text-slate-900 dark:text-white block">Formulir Pengajuan Fisik Standar PT Indraco</span>
+                                <p class="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                                    Pastikan lembar formulir fisik telah dicetak, ditandatangani oleh pemohon dan pimpinan, serta lembar scan formulir telah diunggah.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="pt-1 flex items-center justify-end">
+                            <button 
+                                type="button" 
+                                @click="submitConfirmModalOpen = false; openFormPengajuanModal()" 
+                                class="px-3.5 py-1.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-amber-700 dark:text-amber-300 font-bold text-xs rounded border border-amber-300 dark:border-amber-700 shadow-xs flex items-center gap-1.5 transition cursor-pointer"
+                                title="Buka dan cetak formulir resmi fisik sekarang"
+                            >
+                                <i data-lucide="file-text" class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400"></i>
+                                <span>Lihat & Cetak Form Pengajuan</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <p class="text-[11px] text-slate-500 italic">
+                        Setelah diajukan, status box arsip akan berubah menjadi <strong>Pending Verification</strong> dan siap diproses oleh Admin Gudang.
+                    </p>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 border-t border-slate-200 dark:border-slate-800 pt-2.5 font-mono">
+                    <button 
+                        type="button" 
+                        @click="submitConfirmModalOpen = false" 
+                        class="px-3 py-1.5 rounded border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 cursor-pointer text-xs"
+                    >
+                        Batal
+                    </button>
+                    <button 
+                        type="button" 
+                        @click="processSubmitFinal('submit')" 
+                        :disabled="isSubmitting"
+                        class="px-4 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold rounded shadow-xs flex items-center gap-1.5 cursor-pointer text-xs disabled:opacity-50"
+                    >
+                        <i data-lucide="send" class="w-3.5 h-3.5"></i>
+                        <span x-text="isSubmitting ? 'Memproses...' : 'Ya, Ajukan ke Gudang'"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- FORM ACTION BAR -->
         <div class="pt-2 flex flex-wrap items-center justify-between gap-3 font-mono border-t border-slate-200 dark:border-slate-800">
             <div class="text-xs text-slate-600 dark:text-slate-400 flex items-center gap-2">
@@ -1332,6 +1410,7 @@ function archiveCreateApp() {
 
         // Duplicate Modal State
         duplicateModalOpen: false,
+        submitConfirmModalOpen: false,
         duplicateSourceIndex: 0,
         duplicateMode: 'full', // 'full' | 'metadata_only' | 'selected_items'
         duplicateSelectedItems: [],
@@ -1892,7 +1971,13 @@ function archiveCreateApp() {
                 }
             }
 
+            this.submitConfirmModalOpen = true;
+            this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+        },
+
+        processSubmitFinal(action = 'submit') {
             this.isSubmitting = true;
+            this.submitConfirmModalOpen = false;
             const form = document.getElementById('archiveCreateForm');
             if (form) {
                 let actionInput = form.querySelector('input[name="submit_action"]');
