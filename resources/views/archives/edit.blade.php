@@ -1841,7 +1841,8 @@ function archiveEditApp() {
                 }
                 actionInput.value = action;
                 form.submit();
-            },
+            }
+        },
 
         openFormPengajuanModal() {
             this.formPengajuanData.dept_display = this.getDeptSubDeptDisplay();
@@ -1940,7 +1941,6 @@ function archiveEditApp() {
 
         printFormPengajuan() {
             window.print();
-        }
         }
     };
 }
