@@ -18,6 +18,7 @@ class BorrowingController extends Controller
             'archive.subDepartment',
             'archive.items',
             'archive.location.warehouse',
+            'archive.rackSlot',
             'borrower',
             'picGudang',
             'departmentApprovedBy'
@@ -277,6 +278,48 @@ class BorrowingController extends Controller
             ->with('success', 'Permintaan peminjaman disetujui Gudang. Silakan persiapkan berkas fisik untuk diserahkan.');
     }
 
+    public function reject(BorrowingLog $borrowing, Request $request)
+    {
+        $user = auth()->user();
+        if (!$user->isPicGudang() && !$user->isSuperAdmin() && !$user->isPicDept()) {
+            abort(403);
+        }
+
+        if ($user->isPicDept() && $borrowing->archive && (int)$borrowing->archive->department_id !== (int)$user->department_id) {
+            abort(403);
+        }
+
+        $request->validate([
+            'reason' => 'required|string|max:500',
+        ]);
+
+        $reason = $request->input('reason');
+
+        $borrowing->update([
+            'status' => 'rejected',
+            'approval_status' => 'rejected',
+            'approval_notes' => $reason,
+            'pic_gudang_id' => $user->isPicGudang() ? $user->id : $borrowing->pic_gudang_id,
+        ]);
+
+        ActivityLogger::log(
+            'BORROW_REJECT',
+            "Penolakan pengajuan penarikan arsip '{$borrowing->archive->title}' (Box: {$borrowing->archive->box_number}) oleh {$user->name}. Alasan: {$reason}",
+            'PENARIKAN_BERKAS',
+            [
+                'borrowing_id' => $borrowing->id,
+                'archive_id' => $borrowing->archive_id,
+                'box_number' => $borrowing->archive ? $borrowing->archive->box_number : null,
+                'reason' => $reason,
+                'rejected_by' => $user->id,
+            ],
+            $borrowing->archive ? $borrowing->archive->box_number : 'Pengajuan Penarikan'
+        );
+
+        return redirect()->back()
+            ->with('success', "Pengajuan penarikan berkas arsip (Box: " . ($borrowing->archive->box_number ?? '-') . ") berhasil ditolak.");
+    }
+
     public function dispatch(BorrowingLog $borrowing, Request $request)
     {
         if (!auth()->user()->isPicGudang() && !auth()->user()->isSuperAdmin()) {
@@ -301,6 +344,9 @@ class BorrowingController extends Controller
             'pic_gudang_id' => auth()->id(),
             'approval_file' => $scanPath,
             'scan_approval_borrow' => $scanPath,
+            'approval_status' => 'approved',
+            'department_approved_at' => $borrowing->department_approved_at ?: now(),
+            'department_approval_by' => $borrowing->department_approval_by ?: auth()->id(),
         ]);
 
         $archive = $borrowing->archive;
@@ -326,6 +372,19 @@ class BorrowingController extends Controller
         if ($archive->location && $archive->location->current_box_count > 0) {
             $archive->location->decrement('current_box_count');
         }
+
+        ActivityLogger::log(
+            'BORROW_DISPATCH',
+            "Pengeluaran berkas fisik arsip '{$archive->title}' (Box: {$archive->box_number}) oleh PIC Gudang " . auth()->user()->name,
+            'PENARIKAN_BERKAS',
+            [
+                'borrowing_id' => $borrowing->id,
+                'archive_id' => $archive->id,
+                'box_number' => $archive->box_number,
+                'status' => $borrowing->status,
+            ],
+            $archive->box_number
+        );
 
         $successMsg = $isPermanent 
             ? 'Pengeluaran berkas disahkan! Status arsip diubah menjadi "Diambil (Permanen)" dan slot rak telah dikosongkan.'
