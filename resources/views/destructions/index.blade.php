@@ -24,6 +24,35 @@
     sortExpiredCol: 'retention_expiry_date',
     sortExpiredDir: 'asc',
     expiredArchives: {{ json_encode($expiredArchives) }},
+    selectedExpiredIds: [],
+
+    get isAllExpiredSelected() {
+        return this.filteredExpired.length > 0 && this.selectedExpiredIds.length >= this.filteredExpired.length;
+    },
+
+    toggleSelectAllExpired() {
+        if (this.isAllExpiredSelected) {
+            this.selectedExpiredIds = [];
+        } else {
+            this.selectedExpiredIds = this.filteredExpired.map(a => a.id);
+        }
+    },
+
+    submitBatchExtend() {
+        if (this.selectedExpiredIds.length === 0) return;
+        const params = new URLSearchParams();
+        this.selectedExpiredIds.forEach(id => params.append('archive_ids[]', id));
+        @if(request()->has('embed')) params.append('embed', '1'); @endif
+        window.location.href = '{{ route('destructions.extend_form') }}?' + params.toString();
+    },
+
+    submitBatchDestruction() {
+        if (this.selectedExpiredIds.length === 0) return;
+        const params = new URLSearchParams();
+        this.selectedExpiredIds.forEach(id => params.append('archive_ids[]', id));
+        @if(request()->has('embed')) params.append('embed', '1'); @endif
+        window.location.href = '{{ route('destructions.propose') }}?' + params.toString();
+    },
 
     // Tab 2: Log Perpanjangan
     searchExt: '',
@@ -236,18 +265,42 @@
                 </p>
             </div>
 
-            <!-- Search Input H-30 -->
-            <div class="relative w-full sm:w-64">
-                <i data-lucide="search" class="w-3.5 h-3.5 absolute left-2.5 top-2 text-slate-400"></i>
-                <input 
-                    type="text" 
-                    x-model="searchExpired" 
-                    placeholder="Cari No. Box, judul berkas..." 
-                    class="w-full pl-8 pr-7 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 transition"
-                >
-                <button x-show="searchExpired" @click="searchExpired = ''" type="button" class="absolute right-2 top-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer">
-                    <i data-lucide="x" class="w-3 h-3"></i>
-                </button>
+            <div class="flex flex-wrap items-center gap-2 justify-end">
+                <!-- Batch Actions Buttons (Show when >= 1 box selected) -->
+                <div x-show="selectedExpiredIds.length > 0" x-cloak class="flex items-center gap-1.5 animate-fadeIn">
+                    <button 
+                        type="button" 
+                        @click="submitBatchExtend()"
+                        class="px-2.5 py-1 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded border border-purple-700 shadow-sm flex items-center gap-1.5 transition cursor-pointer"
+                        title="Ajukan perpanjangan masa simpan untuk box terpilih"
+                    >
+                        <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+                        <span x-text="'Perpanjangan (' + selectedExpiredIds.length + ' Box)'"></span>
+                    </button>
+                    <button 
+                        type="button" 
+                        @click="submitBatchDestruction()"
+                        class="px-2.5 py-1 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded border border-rose-700 shadow-sm flex items-center gap-1.5 transition cursor-pointer"
+                        title="Ajukan pemusnahan untuk box terpilih"
+                    >
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        <span x-text="'Pemusnahan (' + selectedExpiredIds.length + ' Box)'"></span>
+                    </button>
+                </div>
+
+                <!-- Search Input H-30 -->
+                <div class="relative w-full sm:w-60">
+                    <i data-lucide="search" class="w-3.5 h-3.5 absolute left-2.5 top-2 text-slate-400"></i>
+                    <input 
+                        type="text" 
+                        x-model="searchExpired" 
+                        placeholder="Cari No. Box, judul berkas..." 
+                        class="w-full pl-8 pr-7 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 transition"
+                    >
+                    <button x-show="searchExpired" @click="searchExpired = ''" type="button" class="absolute right-2 top-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer">
+                        <i data-lucide="x" class="w-3 h-3"></i>
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -256,6 +309,12 @@
             <table class="w-full text-left border-collapse">
                 <thead>
                     <tr class="bg-gradient-to-b from-slate-100 to-slate-200 dark:from-slate-900 dark:to-slate-950 text-[11px] font-mono font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 select-none border-b-2 border-slate-300 dark:border-slate-700">
+                        <th class="py-2.5 px-3 border-r border-slate-300 dark:border-slate-700 w-10 text-center">
+                            <input type="checkbox" 
+                                   @change="toggleSelectAllExpired()" 
+                                   :checked="isAllExpiredSelected" 
+                                   class="rounded border-slate-300 dark:border-slate-700 text-amber-600 focus:ring-0 cursor-pointer">
+                        </th>
                         <th @click="sortExpired('box_number')" class="py-2.5 px-3 border-r border-slate-300 dark:border-slate-700 cursor-pointer hover:text-amber-500 transition">
                             <div class="flex items-center gap-1">
                                 <span>NO. BOX ARSIP</span>
@@ -287,7 +346,13 @@
                 </thead>
                 <tbody class="divide-y divide-slate-200 dark:divide-slate-800 text-xs font-mono">
                     <template x-for="arc in filteredExpired" :key="arc.id">
-                        <tr class="hover:bg-amber-500/5 dark:hover:bg-slate-900/50 transition">
+                        <tr class="hover:bg-amber-500/5 dark:hover:bg-slate-900/50 transition" :class="selectedExpiredIds.includes(arc.id) ? 'bg-amber-500/10 dark:bg-amber-500/15' : ''">
+                            <td class="py-2.5 px-3 border-r border-slate-200 dark:border-slate-800 text-center" @click.stop>
+                                <input type="checkbox" 
+                                       :value="arc.id" 
+                                       x-model="selectedExpiredIds" 
+                                       class="rounded border-slate-300 dark:border-slate-700 text-amber-600 focus:ring-0 cursor-pointer">
+                            </td>
                             <td class="py-2.5 px-3 border-r border-slate-200 dark:border-slate-800 font-bold text-amber-600 dark:text-amber-400 whitespace-nowrap" x-text="arc.box_number || '-'"></td>
                             <td class="py-2.5 px-3 border-r border-slate-200 dark:border-slate-800">
                                 <div class="space-y-0.5">
@@ -295,7 +360,7 @@
                                         <a :href="'{{ url('/archives') }}/' + arc.id" class="font-sans font-bold text-slate-900 dark:text-white hover:text-amber-600 dark:hover:text-amber-400 transition truncate max-w-sm" :title="arc.title" x-text="arc.title"></a>
                                         <!-- Tombol Preview Lampiran Berkas -->
                                         <template x-if="arc.file_path">
-                                            <button type="button" 
+                                             <button type="button" 
                                                     @click="dmsPreviewFile({
                                                         url: arc.file_path,
                                                         stream_url: arc.preview_stream_url,
@@ -353,7 +418,7 @@
 
                     <!-- EMPTY STATE JIKA TIDAK ADA DATA H-30 -->
                     <tr x-show="filteredExpired.length === 0">
-                        <td colspan="6" class="py-8 px-4 text-center text-slate-500 dark:text-slate-400">
+                        <td colspan="7" class="py-8 px-4 text-center text-slate-500 dark:text-slate-400">
                             <i data-lucide="shield-check" class="w-8 h-8 text-emerald-500 mx-auto mb-2 opacity-80"></i>
                             <div class="font-bold text-slate-800 dark:text-slate-200">Tidak Ada Berkas Mendekati Masa Expiry (H-30)</div>
                             <p class="text-[11px] text-slate-400 mt-0.5">Semua berkas arsip aktif saat ini memiliki masa simpan lebih dari 30 hari kedepan.</p>
