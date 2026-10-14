@@ -172,14 +172,13 @@
                             MASA SIMPAN YANG DIAJUKAN (BULAN)
                         </label>
                         <input 
-                            type="number" 
-                            min="1" 
-                            max="60" 
+                            type="text" 
                             x-model="{{ $stateName }}.masa_simpan" 
+                            placeholder="Contoh: 12 atau 12, 24" 
                             style="font-size: 11px;"
                             class="w-full px-2 py-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
                         >
-                        <span class="text-[9px] text-slate-400 block mt-0.5 font-sans">*Maksimal 60 bulan</span>
+                        <span class="text-[9px] text-slate-400 block mt-0.5 font-sans">*Maks. 60 bulan (bisa angka tunggal atau variasi per box: misal 12, 24)</span>
                     </div>
 
                     <!-- Catatan Fisik / Opsional -->

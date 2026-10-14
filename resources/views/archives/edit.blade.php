@@ -1312,12 +1312,27 @@ function archiveEditApp() {
 
         openFormPengajuanModal() {
             this.formPengajuanData.dept_display = this.getDeptSubDeptDisplay();
-            let maxPeriod = 1;
-            this.boxes.forEach(b => {
-                const p = parseInt(b.periode_bulan, 10);
-                if (!isNaN(p) && p > maxPeriod) maxPeriod = p;
-            });
-            this.formPengajuanData.masa_simpan = maxPeriod;
+            
+            // Deteksi periode masa simpan masing-masing box
+            const periods = this.boxes.map(b => parseInt(b.periode_bulan, 10)).filter(p => !isNaN(p) && p > 0);
+            const uniquePeriods = [...new Set(periods)].sort((a, b) => a - b);
+            
+            if (uniquePeriods.length > 1) {
+                // Jika masa simpan antar box berbeda, tampilkan daftar uniknya (misal: "12, 24")
+                this.formPengajuanData.masa_simpan = uniquePeriods.join(', ');
+                
+                // Tambahkan rincian otomatis ke catatan formulir
+                const breakdown = this.boxes.map((b, idx) => `Box #${idx + 1}: ${b.periode_bulan || 1} Bln`).join(', ');
+                const rincianText = `Rincian Masa Simpan: ${breakdown}.`;
+                if (!this.formPengajuanData.catatan || this.formPengajuanData.catatan.includes('Kondisi fisik kardus standar') || this.formPengajuanData.catatan.includes('Rincian Masa Simpan')) {
+                    this.formPengajuanData.catatan = `${rincianText} Kondisi fisik kardus standar TB 30g dalam keadaan baik.`;
+                }
+            } else if (uniquePeriods.length === 1) {
+                this.formPengajuanData.masa_simpan = uniquePeriods[0];
+            } else {
+                this.formPengajuanData.masa_simpan = 1;
+            }
+
             this.formPengajuanData.tanggal_pengajuan = this.tglPenyerahan || '{{ date('Y-m-d') }}';
             this.formPengajuanData.approval_tgl = this.tglPenyerahan || '{{ date('Y-m-d') }}';
             this.populateFormRows();
@@ -1328,12 +1343,18 @@ function archiveEditApp() {
         populateFormRows() {
             const rows = [];
             const count = Math.max(12, this.boxes.length);
+            const hasDifferentPeriods = this.boxes.some(b => b.periode_bulan && b.periode_bulan != this.boxes[0].periode_bulan);
+
             for (let i = 0; i < count; i++) {
                 if (i < this.boxes.length) {
                     const b = this.boxes[i];
+                    let boxTitle = b.title || '';
+                    if (hasDifferentPeriods && b.periode_bulan) {
+                        boxTitle = `${boxTitle} (${b.periode_bulan} Bln)`;
+                    }
                     rows.push({
                         no: i + 1,
-                        title: b.title || '',
+                        title: boxTitle,
                         label_kardus: '', // Kosongkan khusus untuk pengajuan simpan
                         period_start: this.getBoxPeriodStartFormatted(b),
                         period_end: this.getBoxPeriodEndFormatted(b)
