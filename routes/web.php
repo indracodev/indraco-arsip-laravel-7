@@ -52,6 +52,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/archives', 'ArchiveController@store')->name('archives.store');
     Route::get('/archives/{archive}/edit', 'ArchiveController@edit')->name('archives.edit');
     Route::put('/archives/{archive}', 'ArchiveController@update')->name('archives.update');
+    Route::delete('/archives/{archive}', 'ArchiveController@destroy')->name('archives.destroy');
+    Route::post('/archives/batch-delete-drafts', 'ArchiveController@batchDeleteDrafts')->name('archives.batch_delete_drafts');
     Route::get('/archives/print-labels', 'ArchiveController@printLabels')->name('archives.print_labels');
     Route::post('/archives/print-labels', 'ArchiveController@printLabels')->name('archives.print_labels_post');
     Route::get('/archives/{archive}', 'ArchiveController@show')->name('archives.show');
@@ -148,6 +150,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/settings/clear-logs', 'SettingController@clearLogs')->name('settings.clear_logs')->middleware('role:admin');
         Route::post('/settings/clear-box-allocations', 'SettingController@clearBoxAllocations')->name('settings.clear_box_allocations')->middleware('role:admin');
         Route::post('/settings/clear-archives', 'SettingController@clearArchives')->name('settings.clear_archives')->middleware('role:admin');
+        Route::post('/settings/git-pull-restart', 'SettingController@gitPullAndRestart')->name('settings.git_pull_restart')->middleware('role:admin');
+        Route::get('/settings/git-pull-log', 'SettingController@getGitPullLog')->name('settings.git_pull_log')->middleware('role:admin');
 
         Route::post('/sub-departments', 'DepartmentController@storeSubDepartment')->name('sub_departments.store')->middleware('role:admin');
         Route::put('/sub-departments/{subDepartment}', 'DepartmentController@updateSubDepartment')->name('sub_departments.update')->middleware('role:admin');

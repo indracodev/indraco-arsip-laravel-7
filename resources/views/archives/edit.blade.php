@@ -6,26 +6,26 @@
 <div class="max-w-6xl mx-auto space-y-3 font-sans pb-10 select-text" x-data="archiveEditApp()">
 
     <!-- FORM TOOLBAR HEADER -->
-    <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-3 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 font-mono">
-        <div class="flex items-center gap-2.5">
-            <span class="p-2 bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 rounded">
+    <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-2.5 sm:p-3 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-3 font-mono">
+        <div class="flex items-center gap-2.5 min-w-0">
+            <span class="p-2 bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 rounded shrink-0">
                 <i data-lucide="edit-3" class="w-4 h-4"></i>
             </span>
-            <div>
-                <div class="flex items-center gap-2">
-                    <h1 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+            <div class="min-w-0">
+                <div class="flex flex-wrap items-center gap-2">
+                    <h1 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider truncate">
                         {{ $archive->status === 'draft' ? 'Edit Draft Pengajuan Box Arsip (TB 30g)' : 'Edit Data Berkas Arsip (' . ($archive->box_number ?: 'Standar Box TB 30g') . ')' }}
                     </h1>
-                    <span class="px-1.5 py-0.5 bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-300 text-xs font-bold rounded uppercase border border-slate-300 dark:border-slate-700">Status: {{ $archive->status_label }}</span>
+                    <span class="px-1.5 py-0.5 bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-300 text-xs font-bold rounded uppercase border border-slate-300 dark:border-slate-700 whitespace-nowrap shrink-0">Status: {{ $archive->status_label }}</span>
                 </div>
-                <p class="text-[11px] text-slate-500 dark:text-slate-400">Pencatatan Master Kardus & Multi-Item Butir Dokumen Arsip • Standar Box TB 30g</p>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1">Pencatatan Master Box & Multi-Item Butir Dokumen Arsip • Standar Box TB 30g</p>
             </div>
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-end shrink-0">
             <!-- Counter Chip -->
-            <div class="px-2.5 py-1 bg-amber-500/10 border border-amber-500/30 rounded text-xs font-mono font-bold text-amber-700 dark:text-amber-300 flex items-center gap-1.5">
-                <i data-lucide="boxes" class="w-3.5 h-3.5 text-amber-500"></i>
+            <div class="px-2.5 py-1 bg-amber-500/10 border border-amber-500/30 rounded text-xs font-mono font-bold text-amber-700 dark:text-amber-300 flex items-center gap-1.5 whitespace-nowrap shrink-0">
+                <i data-lucide="boxes" class="w-3.5 h-3.5 text-amber-500 shrink-0"></i>
                 <span x-text="boxes.length + ' Box'"></span>
                 <span>•</span>
                 <span x-text="getTotalItemsCount() + ' Berkas'"></span>
@@ -35,16 +35,16 @@
             <button 
                 type="button" 
                 @click="openFormPengajuanModal()" 
-                class="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/50 dark:hover:bg-amber-900/50 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700/60 rounded text-xs font-mono font-bold transition flex items-center gap-1.5 shadow-sm shrink-0 cursor-pointer"
+                class="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/50 dark:hover:bg-amber-900/50 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700/60 rounded text-xs font-mono font-bold transition flex items-center gap-1.5 shadow-sm whitespace-nowrap shrink-0 cursor-pointer"
                 title="Buka Pratinjau & Cetak Form Pengajuan Dokumen (Standar PDF)"
             >
-                <i data-lucide="printer" class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400"></i>
+                <i data-lucide="printer" class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0"></i>
                 <span>Form Pengajuan</span>
             </button>
 
-            <a href="{{ route('archives.index', request()->has('embed') ? ['embed' => 1] : []) }}" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded text-xs font-bold transition flex items-center gap-1 shadow-sm shrink-0">
-                <i data-lucide="arrow-left" class="w-3.5 h-3.5 text-amber-500"></i>
-                <span>Kembali ke Katalog (Esc)</span>
+            <a href="{{ route('archives.index', request()->has('embed') ? ['embed' => 1] : []) }}" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded text-xs font-bold transition flex items-center gap-1 shadow-sm whitespace-nowrap shrink-0">
+                <i data-lucide="arrow-left" class="w-3.5 h-3.5 text-amber-500 shrink-0"></i>
+                <span>Kembali (Esc)</span>
             </a>
         </div>
     </div>
@@ -64,7 +64,7 @@
                 1. Identitas Unit Kerja & Penyerahan Dokumen
             </legend>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <!-- Company Entity -->
                 <div>
                     <label class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
@@ -163,6 +163,24 @@
                     @endif
                 </div>
 
+                <!-- Sub-Departemen (Induk / Default Batch) -->
+                <div>
+                    <label class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        SUB-DEPARTEMEN <span class="text-slate-400 font-normal">(Opsional)</span>
+                    </label>
+                    <select 
+                        name="sub_department_id" 
+                        x-model="selectedSubDeptId"
+                        @change="onSectionSubDeptChange()"
+                        class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition shadow-2xs"
+                    >
+                        <option value="">-- Induk Departemen --</option>
+                        <template x-for="s in subDepartments" :key="s.id">
+                            <option :value="s.id" x-text="s.code + ' - ' + s.name" :selected="selectedSubDeptId == s.id"></option>
+                        </template>
+                    </select>
+                </div>
+
                 <!-- Tgl Penyerahan -->
                 <div>
                     <label class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
@@ -177,7 +195,7 @@
                         required 
                         class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition"
                     >
-                    <span class="text-[10px] text-slate-500 dark:text-slate-400 font-sans block mt-0.5">Tanggal serah terima kardus fisik ke Gudang (maksimal hari ini)</span>
+                    <span class="text-[10px] text-slate-500 dark:text-slate-400 font-sans block mt-0.5">Tanggal serah terima box fisik ke Gudang (maksimal hari ini)</span>
                 </div>
             </div>
         </fieldset>
@@ -191,10 +209,10 @@
                     </span>
                     <div>
                         <h2 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-                            2. Pengelolaan Kardus & Butir Dokumen Arsip
+                            2. Pengelolaan Box & Butir Dokumen Arsip
                         </h2>
                         <p class="text-[10px] text-slate-500 font-sans">
-                            {{ $archive->status === 'draft' ? 'Klik tab box untuk beralih. Anda dapat menambah, menyunting, atau menduplikat box secara instan.' : 'Perbarui rincian metadata box kardus dan rincian butir dokumen di dalamnya.' }}
+                            {{ $archive->status === 'draft' ? 'Klik tab box untuk beralih. Anda dapat menambah, menyunting, atau menduplikat box secara instan.' : 'Perbarui rincian metadata box dan rincian butir dokumen di dalamnya.' }}
                         </p>
                     </div>
                 </div>
@@ -271,7 +289,7 @@
                         <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
                             <div class="flex items-center gap-2">
                                 <span class="px-2 py-0.5 bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 rounded font-black text-xs" x-text="'BOX #' + (bIdx + 1)"></span>
-                                <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Pengaturan Identitas & Wadah Kardus</span>
+                                <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Pengaturan Identitas & Wadah Box</span>
                                 
                                 @if($archive->status === 'draft')
                                 <template x-if="bIdx > 0">
@@ -293,7 +311,7 @@
                             <!-- Judul Box dengan Live Similarity Check -->
                             <div class="sm:col-span-2">
                                 <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                                    JUDUL / LABEL BOX KARDUS <span class="text-rose-500">*</span>
+                                    JUDUL / LABEL BOX <span class="text-rose-500">*</span>
                                 </label>
                                 <input 
                                     type="text" 
@@ -324,41 +342,34 @@
                                 </template>
                             </div>
 
-                            <!-- Sub-Departemen -->
-                            <div>
-                                <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                                    SUB-DEPARTEMEN <span class="text-slate-400 font-normal">(Opsional)</span>
-                                </label>
-                                <select 
-                                    :name="'boxes[' + bIdx + '][sub_department_id]'" 
-                                    x-model="box.sub_department_id"
-                                    class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition"
-                                >
-                                    <option value="">-- Induk Departemen --</option>
-                                    <template x-for="s in subDepartments" :key="s.id">
-                                        <option :value="s.id" x-text="s.code + ' - ' + s.name"></option>
-                                    </template>
-                                </select>
-                            </div>
+                            <!-- Hidden Sub-Departemen (Otomatis Mewarisi Sub-Dept Induk Batch) -->
+                            <input type="hidden" :name="'boxes[' + bIdx + '][sub_department_id]'" :value="selectedSubDeptId">
 
-                            <!-- Kategori Dokumen (Opsional) -->
-                            <div>
-                                <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                                    KATEGORI DOKUMEN <span class="text-slate-400 font-normal">(Opsional)</span>
+                            <!-- Kategori Dokumen (Terkunci Otomatis dari Master Berkas) -->
+                            <div class="sm:col-span-2">
+                                <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center justify-between">
+                                    <span>KATEGORI DOKUMEN</span>
+                                    <span class="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-0.5" title="Tipe dokumen otomatis terkunci sesuai Master Berkas">
+                                        <i data-lucide="lock" class="w-2.5 h-2.5"></i> Terkunci
+                                    </span>
                                 </label>
-                                <input 
-                                    type="text" 
-                                    :name="'boxes[' + bIdx + '][document_type]'" 
-                                    x-model="box.document_type"
-                                    placeholder="Contoh: Keuangan, Pajak, SDM" 
-                                    class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 transition"
-                                >
+                                <div class="relative flex items-center">
+                                    <input 
+                                        type="text" 
+                                        :name="'boxes[' + bIdx + '][document_type]'" 
+                                        x-model="box.document_type"
+                                        readonly
+                                        placeholder="Otomatis terkunci dari Master Berkas" 
+                                        class="w-full pl-2.5 pr-8 py-1.5 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-700 dark:text-slate-300 cursor-not-allowed select-none"
+                                    >
+                                    <i data-lucide="lock" class="w-3.5 h-3.5 text-slate-400 absolute right-2.5 pointer-events-none"></i>
+                                </div>
                             </div>
 
                             <!-- Wadah Fisik -->
                             <div class="sm:col-span-2">
                                 <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                                    KONDISI FISIK WADAH KARDUS <span class="text-rose-500">*</span>
+                                    KONDISI FISIK WADAH BOX <span class="text-rose-500">*</span>
                                 </label>
                                 <input 
                                     type="text" 
@@ -375,7 +386,7 @@
                                     <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
                                         PERIODE DOKUMEN (BULAN) <span class="text-rose-500">*</span>
                                     </label>
-                                    <span class="text-[10px] text-amber-600 dark:text-amber-400 font-normal">Maks. 60 Bulan</span>
+                                    <span class="text-[10px] text-amber-600 dark:text-amber-400 font-normal" x-text="'Maks. ' + getMaxPeriodMonths() + ' Bulan'"></span>
                                 </div>
 
                                 <div class="relative flex items-center">
@@ -384,10 +395,10 @@
                                         :id="'periode_bulan_' + bIdx"
                                         x-model="box.periode_bulan"
                                         :disabled="bIdx > 0 && box.follow_previous"
-                                        @input="if(box.periode_bulan > 60) box.periode_bulan = 60; if(box.periode_bulan !== '' && box.periode_bulan < 1) box.periode_bulan = 1;"
+                                        @input="if(box.periode_bulan > getMaxPeriodMonths()) box.periode_bulan = getMaxPeriodMonths(); if(box.periode_bulan !== '' && box.periode_bulan < 1) box.periode_bulan = 1;"
                                         min="1" 
-                                        max="60"
-                                        placeholder="Maks. 60 Bulan (5 Thn)" 
+                                        :max="getMaxPeriodMonths()"
+                                        :placeholder="'Maks. ' + getMaxPeriodMonths() + ' Bulan (' + (getMaxPeriodMonths()/12) + ' Thn)'" 
                                         class="w-full pl-2.5 pr-14 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 transition disabled:bg-slate-100 dark:disabled:bg-slate-900/50 disabled:text-slate-400 disabled:cursor-not-allowed"
                                     >
                                     <span class="absolute right-2.5 text-xs font-mono font-bold text-slate-400 pointer-events-none select-none">Bulan</span>
@@ -411,7 +422,7 @@
                                 <!-- Quick Preset Buttons -->
                                 <div class="flex flex-wrap items-center gap-1 pt-1 font-mono text-[10px]" x-show="!(bIdx > 0 && box.follow_previous)">
                                     <span class="text-slate-400 text-[9px] mr-0.5">Preset:</span>
-                                    <template x-for="preset in [1, 3, 4, 6, 12, 15, 24, 60]" :key="preset">
+                                    <template x-for="preset in getPresetMonths()" :key="preset">
                                         <button 
                                             type="button" 
                                             @click="box.periode_bulan = preset" 
@@ -419,7 +430,7 @@
                                             :class="box.periode_bulan == preset 
                                                 ? 'bg-amber-500 text-slate-950 border-amber-600 font-black' 
                                                 : 'bg-slate-100 dark:bg-slate-900 hover:bg-amber-500/20 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 font-medium'"
-                                            x-text="preset + ' Bln'"
+                                            x-text="preset + ' Bln' + (preset == 120 ? ' (10 Thn)' : (preset == 60 ? ' (5 Thn)' : ''))"
                                         ></button>
                                     </template>
                                 </div>
@@ -443,7 +454,7 @@
                                     <span>Rincian Butir Dokumen dalam Box #<span x-text="bIdx + 1"></span></span>
                                 </h3>
                                 <p class="text-[10px] text-slate-500 font-sans">
-                                    Setiap kardus/box berisi banyak butir berkas arsip. Anda dapat menyalin data baris dari Excel dan langsung menempelnya (Ctrl+V) di tabel.
+                                    Setiap box berisi banyak butir berkas arsip. Anda dapat menyalin data baris dari Excel dan langsung menempelnya (Ctrl+V) di tabel.
                                 </p>
                             </div>
 
@@ -493,15 +504,16 @@
                                                     <select 
                                                         :name="'boxes[' + bIdx + '][items][' + iIdx + '][document_name]'" 
                                                         x-model="item.document_name"
+                                                        @change="onMasterDocChange(box, item)"
                                                         x-init="$nextTick(() => { if (item.document_name && $el.value !== item.document_name) $el.value = item.document_name; })"
                                                         x-effect="$nextTick(() => { if (item.document_name && $el.value !== item.document_name) $el.value = item.document_name; })"
                                                         class="w-full px-2 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
                                                     >
                                                         <option value="">-- Pilih dari Master Berkas Arsip --</option>
-                                                        <template x-for="m in masterArchives" :key="m.id">
-                                                            <option :value="m.name" x-text="m.code ? (m.code + ' - ' + m.name) : m.name" :selected="m.name === item.document_name"></option>
+                                                        <template x-for="m in getBoxMasterArchives(box)" :key="m.id">
+                                                            <option :value="m.name" x-text="(m.code ? (m.code + ' - ') : '') + m.name + (m.document_type ? ' [' + m.document_type + ']' : '')" :selected="m.name === item.document_name"></option>
                                                         </template>
-                                                        <template x-if="item.document_name && !masterArchives.some(m => m.name === item.document_name)">
+                                                        <template x-if="item.document_name && !getBoxMasterArchives(box).some(m => m.name === item.document_name)">
                                                             <option :value="item.document_name" x-text="item.document_name" selected></option>
                                                         </template>
                                                     </select>
@@ -820,6 +832,7 @@ function archiveEditApp() {
         departments: departmentsData,
         selectedCompany: '{{ old('company_name', $archive->company_name ?? 'PT INDRACO GLOBAL INDONESIA') }}',
         selectedDeptId: initialDept ? initialDept.id : initialDeptId,
+        selectedSubDeptId: '{{ old('sub_department_id', $archive->sub_department_id ?? '') }}',
         tglPenyerahan: '{{ old('tgl_penyerahan', $archive->tgl_penyerahan ? $archive->tgl_penyerahan->format('Y-m-d') : date('Y-m-d')) }}',
         currentMonth: '{{ date('Y-m') }}',
         subDepartments: initialSubDepts,
@@ -842,15 +855,15 @@ function archiveEditApp() {
             no_form: '',
             tanggal_pengajuan: '{{ date('Y-m-d') }}',
             dept_display: '',
-            pic_pemohon: '',
+            pic_pemohon: @json(auth()->user()->name ?? ''),
             tipe: 'Simpan',
             masa_simpan: 1,
-            catatan: 'Kondisi fisik kardus standar TB 30g dalam keadaan baik.',
-            approval_pemohon: '',
+            catatan: 'Kondisi fisik box standar TB 30g dalam keadaan baik.',
+            approval_pemohon: @json(auth()->user()->name ?? ''),
             approval_atasan: '',
             approval_pimpinan: '',
             approval_admin_gudang: 'Admin Gudang',
-            approval_tgl: '{{ date('Y-m-d') }}'
+            approval_tgl: ''
         },
         formPengajuanRows: [],
 
@@ -858,11 +871,41 @@ function archiveEditApp() {
         similarityTimer: null,
 
         init() {
-            if (!this.masterArchives || this.masterArchives.length === 0) {
-                this.updateSubDepartments();
-                this.updateMasterArchives();
-            }
+            this.updateSubDepartments(false);
+            this.updateMasterArchives();
+            this.boxes.forEach(b => {
+                if (this.selectedSubDeptId && !b.sub_department_id) {
+                    b.sub_department_id = this.selectedSubDeptId;
+                }
+                this.onBoxSubDeptChange(b, true);
+            });
             this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+        },
+
+        isFatAccount() {
+            @if(auth()->check() && (
+                (auth()->user()->department && in_array(strtoupper(auth()->user()->department->code), ['FAT', 'FIN', 'FATCLM'])) ||
+                str_contains(strtoupper(auth()->user()->name ?? ''), 'FAT') ||
+                str_contains(strtoupper(auth()->user()->name ?? ''), 'FIN')
+            ))
+                return true;
+            @else
+                const currentDept = this.departments.find(d => String(d.id) === String(this.selectedDeptId));
+                if (currentDept && currentDept.code && ['FAT', 'FIN', 'FATCLM'].includes(String(currentDept.code).toUpperCase())) {
+                    return true;
+                }
+                return false;
+            @endif
+        },
+
+        getMaxPeriodMonths() {
+            return this.isFatAccount() ? 120 : 60;
+        },
+
+        getPresetMonths() {
+            return this.isFatAccount() 
+                ? [1, 3, 4, 6, 12, 15, 24, 60, 120] 
+                : [1, 3, 4, 6, 12, 15, 24, 60];
         },
 
         getTotalItemsCount() {
@@ -871,16 +914,22 @@ function archiveEditApp() {
 
         addBox() {
             const nextNum = this.boxes.length + 1;
-            const defaultDoc = this.masterArchives.length > 0 ? this.masterArchives[0].name : '';
-            const prevBox = this.boxes.length > 0 ? this.boxes[this.boxes.length - 1] : null;
+            const prevBox = this.boxes[this.activeBoxIndex] || (this.boxes.length > 0 ? this.boxes[this.boxes.length - 1] : null);
+            const inheritedSubDept = prevBox ? prevBox.sub_department_id : (this.selectedSubDeptId || '');
+            const inheritedPeriod = prevBox && prevBox.periode_bulan ? prevBox.periode_bulan : '1';
+
+            const tempBox = { sub_department_id: inheritedSubDept };
+            const available = this.getBoxMasterArchives(tempBox);
+            const defaultDoc = available.length > 0 ? available[0].name : '';
+            const defaultDocType = available.length > 0 ? (available[0].document_type || '') : (prevBox ? prevBox.document_type : '');
 
             this.boxes.push({
                 id: Date.now() + Math.random(),
                 title: 'Box ' + nextNum,
-                sub_department_id: prevBox ? prevBox.sub_department_id : '',
-                document_type: prevBox ? prevBox.document_type : '',
+                sub_department_id: inheritedSubDept,
+                document_type: defaultDocType,
                 physical_condition: 'Baik / Box Karton Standar TB 30g',
-                periode_bulan: prevBox ? prevBox.periode_bulan : '1',
+                periode_bulan: inheritedPeriod,
                 follow_previous: true,
                 similarityInfo: null,
                 items: [
@@ -957,7 +1006,7 @@ function archiveEditApp() {
                 if (window.showConfirmModal) {
                     await window.showConfirmModal({
                         title: 'Perhatian',
-                        message: 'Pengajuan minimal harus memiliki 1 box kardus arsip.',
+                        message: 'Pengajuan minimal harus memiliki 1 box arsip.',
                         type: 'warning',
                         confirmText: 'Mengerti'
                     });
@@ -1230,14 +1279,23 @@ function archiveEditApp() {
             }
         },
 
-        updateSubDepartments() {
+        updateSubDepartments(clearSelection = true) {
             const dept = this.departments.find(d => d.id == this.selectedDeptId);
             if (dept && dept.sub_departments) {
                 this.subDepartments = dept.sub_departments;
             } else {
                 this.subDepartments = [];
             }
+            if (clearSelection) {
+                this.selectedSubDeptId = '';
+            }
             this.updateMasterArchives();
+            this.boxes.forEach(b => {
+                if (clearSelection) {
+                    b.sub_department_id = '';
+                }
+                this.onBoxSubDeptChange(b);
+            });
         },
 
         updateMasterArchives() {
@@ -1245,11 +1303,17 @@ function archiveEditApp() {
             let allArchives = [];
             if (dept && dept.master_archives && dept.master_archives.length > 0) {
                 this.masterArchives = dept.master_archives;
+                this.boxes.forEach(b => {
+                    this.onBoxSubDeptChange(b, true);
+                });
             } else if (this.selectedDeptId) {
                 fetch('{{ url('/api/departments') }}/' + this.selectedDeptId + '/master-archives')
                     .then(res => res.json())
                     .then(data => {
                         this.masterArchives = data.master_archives || [];
+                        this.boxes.forEach(b => {
+                            this.onBoxSubDeptChange(b, true);
+                        });
                     })
                     .catch(err => {
                         this.masterArchives = [];
@@ -1257,6 +1321,85 @@ function archiveEditApp() {
             } else {
                 this.masterArchives = [];
             }
+        },
+
+        getBoxMasterArchives(box) {
+            const dept = this.departments.find(d => d.id == this.selectedDeptId);
+            const all = (dept && dept.master_archives && dept.master_archives.length > 0) ? dept.master_archives : (this.masterArchives || []);
+            if (!all || all.length === 0) return [];
+
+            const subId = (box && box.sub_department_id !== undefined && box.sub_department_id !== '' && box.sub_department_id !== null) 
+                ? box.sub_department_id 
+                : this.selectedSubDeptId;
+
+            if (subId) {
+                const subSpecific = all.filter(m => String(m.sub_department_id) === String(subId));
+                if (subSpecific.length > 0) {
+                    return subSpecific;
+                }
+                const induk = all.filter(m => !m.sub_department_id);
+                return induk.length > 0 ? induk : all;
+            }
+
+            const induk = all.filter(m => !m.sub_department_id);
+            return induk.length > 0 ? induk : all;
+        },
+
+        getItemDocType(box, item) {
+            if (!item || !item.document_name) return box ? (box.document_type || '') : '';
+            const dept = this.departments.find(d => d.id == this.selectedDeptId);
+            const all = (dept && dept.master_archives && dept.master_archives.length > 0) ? dept.master_archives : (this.masterArchives || []);
+            const matched = all.find(m => m.name === item.document_name);
+            if (matched && matched.document_type) {
+                return matched.document_type;
+            }
+            return box ? (box.document_type || '') : '';
+        },
+
+        onBoxSubDeptChange(box, preserveExisting = false) {
+            if (!box) return;
+            const available = this.getBoxMasterArchives(box);
+            if (available && available.length > 0) {
+                if (box.items && box.items.length > 0) {
+                    box.items.forEach(it => {
+                        if (!it.document_name || (!preserveExisting && !available.some(m => m.name === it.document_name))) {
+                            it.document_name = available[0].name;
+                            this.onMasterDocChange(box, it);
+                        } else {
+                            this.onMasterDocChange(box, it);
+                        }
+                    });
+                }
+                if (!box.document_type || (!preserveExisting && !available.some(m => m.document_type === box.document_type))) {
+                    box.document_type = available[0].document_type || '';
+                }
+                if (available[0].retention_years && !preserveExisting) {
+                    box.retention_years = available[0].retention_years;
+                }
+            }
+        },
+
+        onMasterDocChange(box, item) {
+            if (!item || !item.document_name) return;
+            const dept = this.departments.find(d => d.id == this.selectedDeptId);
+            const all = (dept && dept.master_archives && dept.master_archives.length > 0) ? dept.master_archives : (this.masterArchives || []);
+            const matched = all.find(m => m.name === item.document_name);
+            if (matched) {
+                if (matched.document_type) {
+                    box.document_type = matched.document_type;
+                }
+                if (matched.retention_years) {
+                    box.retention_years = matched.retention_years;
+                }
+            }
+        },
+
+        onSectionSubDeptChange() {
+            this.updateMasterArchives();
+            this.boxes.forEach(b => {
+                b.sub_department_id = this.selectedSubDeptId;
+                this.onBoxSubDeptChange(b);
+            });
         },
 
         submitFinal(action) {
@@ -1290,7 +1433,7 @@ function archiveEditApp() {
 
             for (let i = 0; i < this.boxes.length; i++) {
                 if (!this.boxes[i].title || !this.boxes[i].title.trim()) {
-                    alert(`⚠️ Judul / Label Kardus untuk Box #${i + 1} belum diisi. Silakan lengkapi judul kardus.`);
+                    alert(`⚠️ Nama / Judul Box untuk Box #${i + 1} belum diisi. Silakan lengkapi judul box.`);
                     this.activeBoxIndex = i;
                     return;
                 }
@@ -1312,25 +1455,8 @@ function archiveEditApp() {
 
         openFormPengajuanModal() {
             this.formPengajuanData.dept_display = this.getDeptSubDeptDisplay();
-            
-            // Deteksi periode masa simpan masing-masing box
-            const periods = this.boxes.map(b => parseInt(b.periode_bulan, 10)).filter(p => !isNaN(p) && p > 0);
-            const uniquePeriods = [...new Set(periods)].sort((a, b) => a - b);
-            
-            if (uniquePeriods.length > 1) {
-                // Jika masa simpan antar box berbeda, tampilkan daftar uniknya (misal: "12, 24")
-                this.formPengajuanData.masa_simpan = uniquePeriods.join(', ');
-                
-                // Tambahkan rincian otomatis ke catatan formulir
-                const breakdown = this.boxes.map((b, idx) => `Box #${idx + 1}: ${b.periode_bulan || 1} Bln`).join(', ');
-                const rincianText = `Rincian Masa Simpan: ${breakdown}.`;
-                if (!this.formPengajuanData.catatan || this.formPengajuanData.catatan.includes('Kondisi fisik kardus standar') || this.formPengajuanData.catatan.includes('Rincian Masa Simpan')) {
-                    this.formPengajuanData.catatan = `${rincianText} Kondisi fisik kardus standar TB 30g dalam keadaan baik.`;
-                }
-            } else if (uniquePeriods.length === 1) {
-                this.formPengajuanData.masa_simpan = uniquePeriods[0];
-            } else {
-                this.formPengajuanData.masa_simpan = 1;
+            if (!this.formPengajuanData.catatan || this.formPengajuanData.catatan.includes('Rincian Masa Simpan')) {
+                this.formPengajuanData.catatan = 'Kondisi fisik box standar TB 30g dalam keadaan baik.';
             }
 
             this.formPengajuanData.tanggal_pengajuan = this.tglPenyerahan || '{{ date('Y-m-d') }}';
@@ -1343,29 +1469,26 @@ function archiveEditApp() {
         populateFormRows() {
             const rows = [];
             const count = Math.max(12, this.boxes.length);
-            const hasDifferentPeriods = this.boxes.some(b => b.periode_bulan && b.periode_bulan != this.boxes[0].periode_bulan);
 
             for (let i = 0; i < count; i++) {
                 if (i < this.boxes.length) {
                     const b = this.boxes[i];
-                    let boxTitle = b.title || '';
-                    if (hasDifferentPeriods && b.periode_bulan) {
-                        boxTitle = `${boxTitle} (${b.periode_bulan} Bln)`;
-                    }
                     rows.push({
                         no: i + 1,
-                        title: boxTitle,
-                        label_kardus: '', // Kosongkan khusus untuk pengajuan simpan
-                        period_start: this.getBoxPeriodStartFormatted(b),
-                        period_end: this.getBoxPeriodEndFormatted(b)
+                        title: b.title || '',
+                        period_end: this.getBoxPeriodEndFormatted(b),
+                        masa_simpan: b.periode_bulan ? String(b.periode_bulan) : '1',
+                        label_box: (b.rack_label || (b.short_location && b.short_location !== 'Belum Ada Lokasi' ? b.short_location : '') || b.box_number || ''),
+                        label_kardus: (b.rack_label || (b.short_location && b.short_location !== 'Belum Ada Lokasi' ? b.short_location : '') || b.box_number || '')
                     });
                 } else {
                     rows.push({
                         no: i + 1,
                         title: '',
-                        label_kardus: '',
-                        period_start: '',
-                        period_end: ''
+                        period_end: '',
+                        masa_simpan: '',
+                        label_box: '',
+                        label_kardus: ''
                     });
                 }
             }
@@ -1397,6 +1520,12 @@ function archiveEditApp() {
         },
 
         getBoxPeriodStartFormatted(box) {
+            if (this.tglPenyerahan) {
+                const parts = this.tglPenyerahan.split('-');
+                if (parts.length >= 2) {
+                    return `${parts[1]}-${parts[0]}`;
+                }
+            }
             if (!box || !box.items || box.items.length === 0) return '';
             const starts = box.items.map(it => it.period_start).filter(Boolean).sort();
             if (starts.length === 0) return '';
@@ -1406,6 +1535,18 @@ function archiveEditApp() {
         },
 
         getBoxPeriodEndFormatted(box) {
+            if (this.tglPenyerahan && box && box.periode_bulan) {
+                const parts = this.tglPenyerahan.split('-');
+                if (parts.length >= 2) {
+                    const year = parseInt(parts[0], 10);
+                    const month = parseInt(parts[1], 10);
+                    const monthsToAdd = parseInt(box.periode_bulan, 10) || 1;
+                    const targetDate = new Date(year, month - 1 + monthsToAdd, 1);
+                    const endM = String(targetDate.getMonth() + 1).padStart(2, '0');
+                    const endY = targetDate.getFullYear();
+                    return `${endM}-${endY}`;
+                }
+            }
             if (!box || !box.items || box.items.length === 0) return '';
             const ends = box.items.map(it => it.period_end).filter(Boolean).sort();
             if (ends.length === 0) return '';

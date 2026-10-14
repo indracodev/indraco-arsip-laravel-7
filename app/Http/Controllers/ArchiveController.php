@@ -124,7 +124,7 @@ class ArchiveController extends Controller
         return view('archives.index', compact('archives', 'departments', 'pendingBorrowingRequestsCount'));
     }
 
-    public function create()
+    public function create(Request $request)
     {
         $user = auth()->user();
         $departments = Department::with(['subDepartments' => function ($q) {
@@ -133,7 +133,97 @@ class ArchiveController extends Controller
             $q->where('is_active', true)->with('subDepartment')->orderBy('name', 'asc');
         }])->where('is_active', true)->get();
 
-        return view('archives.create', compact('user', 'departments'));
+        $preloadedBoxes = [];
+        $isReStore = false;
+        $originBorrowingIds = [];
+        $targetDeptId = null;
+
+        if ($request->has('re_store') && ($request->filled('borrowing_ids') || $request->filled('borrowing_id'))) {
+            $isReStore = true;
+            $rawIds = $request->input('borrowing_ids', []);
+            if (empty($rawIds) && $request->filled('borrowing_id')) {
+                $rawIds = [$request->input('borrowing_id')];
+            }
+            if (!is_array($rawIds)) {
+                $rawIds = explode(',', $rawIds);
+            }
+            $rawIds = array_filter(array_map('intval', (array)$rawIds));
+
+            $borrowingLogs = \App\Models\BorrowingLog::with(['archive.department', 'archive.subDepartment', 'archive.items'])
+                ->whereIn('id', $rawIds)
+                ->get();
+
+            if ($borrowingLogs->isEmpty()) {
+                return redirect()->route('borrowings.index')->with('error', 'Riwayat penarikan yang dipilih tidak ditemukan.');
+            }
+
+            // Validasi keberadaan box & pencegahan pengajuan ganda
+            foreach ($borrowingLogs as $bLog) {
+                $eligibility = $bLog->restore_eligibility;
+                if (!$eligibility['eligible']) {
+                    return redirect()->route('borrowings.index')
+                        ->with('error', "Gagal mengajukan penyimpanan kembali: Box [{$bLog->effective_box_number}] {$eligibility['reason']}");
+                }
+            }
+
+            $firstLog = $borrowingLogs->first();
+            $targetDeptId = $firstLog->archive ? $firstLog->archive->department_id : null;
+
+            $preloadedBoxes = $borrowingLogs->map(function ($bLog, $idx) {
+                $arc = $bLog->archive;
+                $items = $bLog->parsed_snapshot_items;
+                $pStart = date('Y-m');
+                $pEnd = date('Y-m');
+                if ($arc && $arc->period_start_date) {
+                    $pStart = \Carbon\Carbon::parse($arc->period_start_date)->format('Y-m');
+                }
+                if ($arc && $arc->period_end_date) {
+                    $pEnd = \Carbon\Carbon::parse($arc->period_end_date)->format('Y-m');
+                }
+
+                $boxItems = [];
+                if (!empty($items)) {
+                    foreach ($items as $iIdx => $it) {
+                        $boxItems[] = [
+                            'id' => $iIdx + 1,
+                            'document_name' => $it['name'] ?? ($it['document_name'] ?? ''),
+                            'period_start' => !empty($it['period']) ? substr($it['period'], 0, 7) : $pStart,
+                            'period_end' => !empty($it['period']) ? substr($it['period'], 0, 7) : $pEnd,
+                            'notes' => $it['notes'] ?? '',
+                        ];
+                    }
+                }
+                if (empty($boxItems)) {
+                    $boxItems = [
+                        [
+                            'id' => 1,
+                            'document_name' => $bLog->effective_title,
+                            'period_start' => $pStart,
+                            'period_end' => $pEnd,
+                            'notes' => 'Penyimpanan kembali dari penarikan #' . $bLog->id
+                        ]
+                    ];
+                }
+
+                return [
+                    'id' => $idx + 1,
+                    'title' => $bLog->effective_title,
+                    'sub_department_id' => $arc ? $arc->sub_department_id : '',
+                    'document_type' => $arc ? $arc->document_type : '',
+                    'periode_bulan' => '1',
+                    'follow_previous' => false,
+                    'physical_condition' => $arc ? ($arc->physical_condition ?: 'Baik / Box Karton Standar TB 30g') : 'Baik / Box Karton Standar TB 30g',
+                    'origin_borrowing_log_id' => $bLog->id,
+                    'origin_archive_id' => $arc ? $arc->id : null,
+                    'box_number' => $bLog->effective_box_number,
+                    'items' => $boxItems
+                ];
+            })->values()->toArray();
+
+            $originBorrowingIds = $rawIds;
+        }
+
+        return view('archives.create', compact('user', 'departments', 'preloadedBoxes', 'isReStore', 'originBorrowingIds', 'targetDeptId'));
     }
 
     public function store(Request $request)
@@ -226,12 +316,13 @@ class ArchiveController extends Controller
         $periodMonthsCount = 0;
         if (preg_match('/^(\d+)\s*(?:bulan|bln|m)?$/i', $rawPeriod, $matches)) {
             $isMonthsPeriod = true;
-            $periodMonthsCount = (int) $matches[1];
-            if ($periodMonthsCount > 60) {
-                return redirect()->back()->withInput()->withErrors(['periode' => 'Periode dokumen maksimal 60 bulan.']);
+            $periodMonthsCount = (int)$matches[1];
+            $maxPeriodMonths = $this->getMaxPeriodMonths($validated['department_id'] ?? null, $user);
+            if ($periodMonthsCount > $maxPeriodMonths) {
+                return redirect()->back()->withInput()->withErrors(['periode' => "Periode dokumen maksimal {$maxPeriodMonths} bulan."]);
             }
-            $startDate = $tglPenyerahan->copy()->addMonth()->startOfMonth();
-            $endDate = $startDate->copy()->addMonths($periodMonthsCount - 1)->endOfMonth();
+            $startDate = $tglPenyerahan->copy()->startOfMonth();
+            $endDate = $startDate->copy()->addMonths($periodMonthsCount)->endOfMonth();
             $formattedPeriodDoc = "{$periodMonthsCount} Bulan";
             $periodText = !empty($validated['period_text']) ? $validated['period_text'] : "{$periodMonthsCount} Bulan (s/d " . $endDate->isoFormat('MMMM Y') . ")";
         } elseif (preg_match('/^(\d{4}\/(?:0[1-9]|1[0-2]))\s*(?:-|s\/d|hingga|to)\s*(\d{4}\/(?:0[1-9]|1[0-2]))$/i', $rawPeriod, $matches)) {
@@ -400,32 +491,113 @@ class ArchiveController extends Controller
         }
 
         $archiveStatus = $isDraft ? 'draft' : 'pending_verification';
+        $originBorrowingLogId = $request->filled('origin_borrowing_log_id') ? (int)$request->input('origin_borrowing_log_id') : null;
+        $originArchiveId = $request->filled('origin_archive_id') ? (int)$request->input('origin_archive_id') : null;
 
-        $archive = Archive::create([
-            'department_id' => $validated['department_id'],
-            'sub_department_id' => $validated['sub_department_id'] ?? null,
-            'company_name' => $validated['company_name'] ?? 'PT INDRACO GLOBAL INDONESIA',
-            'document_type' => $validated['document_type'] ?? null,
-            'created_by_user_id' => $user->id,
-            'title' => $finalTitle,
-            'is_custom_doc_name' => $isCustomDocName,
-            'custom_doc_name' => $customDocName,
-            'periode' => !empty($validated['periode']) ? $validated['periode'] : $formattedPeriodDoc,
-            'period_start_date' => $startDate->format('Y-m-d'),
-            'period_end_date' => $endDate->format('Y-m-d'),
-            'period_text' => $periodText,
-            'period_yy_mm' => $periodYyMm,
-            'periode_doc' => $validated['periode_doc'],
-            'tgl_penyerahan' => $validated['tgl_penyerahan'],
-            'content_description' => $formattedContentDescription,
-            'retention_years' => $effectiveRetentionYears,
-            'masa_simpan_custom' => $validated['masa_simpan_custom'] ?? null,
-            'retention_expiry_date' => $retentionExpiryDate,
-            'physical_condition' => $validated['physical_condition'],
-            'file_path' => $filePath,
-            'scan_input_form' => $scanInputFormPath,
-            'status' => $archiveStatus,
-        ]);
+        if ($originBorrowingLogId && $originArchiveId) {
+            $existingArchive = Archive::lockForUpdate()->find($originArchiveId);
+            if ($existingArchive) {
+                if ($existingArchive->status === 'in_warehouse') {
+                    return back()->withInput()->withErrors(['boxes' => "Box [{$existingArchive->box_number}] sudah tercatat berada di gudang."]);
+                }
+                if (in_array($existingArchive->status, ['pending_verification', 'approved_booked'])) {
+                    return back()->withInput()->withErrors(['boxes' => "Box [{$existingArchive->box_number}] sudah memiliki pengajuan penyimpanan kembali yang sedang aktif."]);
+                }
+
+                $archive = $existingArchive;
+                $archive->fill([
+                    'department_id' => $validated['department_id'],
+                    'sub_department_id' => $validated['sub_department_id'] ?? $archive->sub_department_id,
+                    'company_name' => $validated['company_name'] ?? $archive->company_name,
+                    'document_type' => $validated['document_type'] ?? $archive->document_type,
+                    'title' => $finalTitle,
+                    'is_custom_doc_name' => $isCustomDocName,
+                    'custom_doc_name' => $customDocName,
+                    'periode' => !empty($validated['periode']) ? $validated['periode'] : $formattedPeriodDoc,
+                    'period_start_date' => $startDate->format('Y-m-d'),
+                    'period_end_date' => $endDate->format('Y-m-d'),
+                    'period_text' => $periodText,
+                    'period_yy_mm' => $periodYyMm,
+                    'periode_doc' => $validated['periode_doc'],
+                    'tgl_penyerahan' => $validated['tgl_penyerahan'],
+                    'content_description' => $formattedContentDescription,
+                    'retention_years' => $effectiveRetentionYears,
+                    'masa_simpan_custom' => $validated['masa_simpan_custom'] ?? null,
+                    'retention_expiry_date' => $retentionExpiryDate,
+                    'physical_condition' => $validated['physical_condition'],
+                    'file_path' => $filePath ?: $archive->file_path,
+                    'scan_input_form' => $scanInputFormPath ?: $archive->scan_input_form,
+                    'status' => $archiveStatus,
+                    'origin_borrowing_log_id' => $originBorrowingLogId,
+                    're_store_snapshot' => json_encode([
+                        'restored_at' => now()->toDateTimeString(),
+                        'submitted_by' => $user->name,
+                        'origin_borrowing_log_id' => $originBorrowingLogId,
+                        'items' => $parsedItems,
+                    ]),
+                ]);
+                $archive->save();
+
+                ArchiveItem::where('archive_id', $archive->id)->delete();
+
+                \App\Models\BorrowingLog::where('id', $originBorrowingLogId)->update([
+                    'active_restore_archive_id' => $archive->id
+                ]);
+            } else {
+                $archive = Archive::create([
+                    'department_id' => $validated['department_id'],
+                    'sub_department_id' => $validated['sub_department_id'] ?? null,
+                    'company_name' => $validated['company_name'] ?? 'PT INDRACO GLOBAL INDONESIA',
+                    'document_type' => $validated['document_type'] ?? null,
+                    'created_by_user_id' => $user->id,
+                    'title' => $finalTitle,
+                    'is_custom_doc_name' => $isCustomDocName,
+                    'custom_doc_name' => $customDocName,
+                    'periode' => !empty($validated['periode']) ? $validated['periode'] : $formattedPeriodDoc,
+                    'period_start_date' => $startDate->format('Y-m-d'),
+                    'period_end_date' => $endDate->format('Y-m-d'),
+                    'period_text' => $periodText,
+                    'period_yy_mm' => $periodYyMm,
+                    'periode_doc' => $validated['periode_doc'],
+                    'tgl_penyerahan' => $validated['tgl_penyerahan'],
+                    'content_description' => $formattedContentDescription,
+                    'retention_years' => $effectiveRetentionYears,
+                    'masa_simpan_custom' => $validated['masa_simpan_custom'] ?? null,
+                    'retention_expiry_date' => $retentionExpiryDate,
+                    'physical_condition' => $validated['physical_condition'],
+                    'file_path' => $filePath,
+                    'scan_input_form' => $scanInputFormPath,
+                    'status' => $archiveStatus,
+                    'origin_borrowing_log_id' => $originBorrowingLogId,
+                ]);
+            }
+        } else {
+            $archive = Archive::create([
+                'department_id' => $validated['department_id'],
+                'sub_department_id' => $validated['sub_department_id'] ?? null,
+                'company_name' => $validated['company_name'] ?? 'PT INDRACO GLOBAL INDONESIA',
+                'document_type' => $validated['document_type'] ?? null,
+                'created_by_user_id' => $user->id,
+                'title' => $finalTitle,
+                'is_custom_doc_name' => $isCustomDocName,
+                'custom_doc_name' => $customDocName,
+                'periode' => !empty($validated['periode']) ? $validated['periode'] : $formattedPeriodDoc,
+                'period_start_date' => $startDate->format('Y-m-d'),
+                'period_end_date' => $endDate->format('Y-m-d'),
+                'period_text' => $periodText,
+                'period_yy_mm' => $periodYyMm,
+                'periode_doc' => $validated['periode_doc'],
+                'tgl_penyerahan' => $validated['tgl_penyerahan'],
+                'content_description' => $formattedContentDescription,
+                'retention_years' => $effectiveRetentionYears,
+                'masa_simpan_custom' => $validated['masa_simpan_custom'] ?? null,
+                'retention_expiry_date' => $retentionExpiryDate,
+                'physical_condition' => $validated['physical_condition'],
+                'file_path' => $filePath,
+                'scan_input_form' => $scanInputFormPath,
+                'status' => $archiveStatus,
+            ]);
+        }
 
         // 6. Save items in archive_items table (Batch Insert)
         if (!empty($parsedItems)) {
@@ -602,13 +774,14 @@ class ArchiveController extends Controller
             if (!empty($boxPeriodeRaw) && preg_match('/^(\d+)\s*(?:bulan|bln|m)?$/i', $boxPeriodeRaw, $pMatches)) {
                 $isMonthsPeriod = true;
                 $monthsCount = (int)$pMatches[1];
-                if ($monthsCount > 60) $monthsCount = 60;
+                $maxPeriodMonths = $this->getMaxPeriodMonths($validated['department_id'] ?? null, $user);
+                if ($monthsCount > $maxPeriodMonths) $monthsCount = $maxPeriodMonths;
                 if ($monthsCount < 1) $monthsCount = 1;
             }
 
             if ($isMonthsPeriod) {
-                $startDate = $tglPenyerahan->copy()->addMonth()->startOfMonth();
-                $endDate = $startDate->copy()->addMonths($monthsCount - 1)->endOfMonth();
+                $startDate = $tglPenyerahan->copy()->startOfMonth();
+                $endDate = $startDate->copy()->addMonths($monthsCount)->endOfMonth();
                 $boxPeriode = "{$monthsCount} Bulan";
                 $periodeDoc = $startDate->format('Y/m');
                 $periodText = "{$monthsCount} Bulan (s/d " . $endDate->isoFormat('MMMM Y') . ")";
@@ -788,22 +961,24 @@ class ArchiveController extends Controller
                 if (!empty($boxPeriodeRaw) && preg_match('/^(\d+)\s*(?:bulan|bln|m)?$/i', $boxPeriodeRaw, $pMatches)) {
                     $isMonthsPeriod = true;
                     $monthsCount = (int)$pMatches[1];
-                    if ($monthsCount > 60) $monthsCount = 60;
+                    $maxPeriodMonths = $this->getMaxPeriodMonths($validated['department_id'] ?? null, $user);
+                    if ($monthsCount > $maxPeriodMonths) $monthsCount = $maxPeriodMonths;
                     if ($monthsCount < 1) $monthsCount = 1;
-                    $startDate = $tglPenyerahan->copy()->addMonth()->startOfMonth();
-                    $endDate = $startDate->copy()->addMonths($monthsCount - 1)->endOfMonth();
+                    $startDate = $tglPenyerahan->copy()->startOfMonth();
+                    $endDate = $startDate->copy()->addMonths($monthsCount)->endOfMonth();
                     $boxPeriode = "{$monthsCount} Bulan";
                     $periodeDoc = $minPeriod ? ($minPeriod === $maxPeriod ? $minPeriod : "{$minPeriod} - {$maxPeriod}") : "{$monthsCount} Bulan";
                     $periodText = "{$monthsCount} Bulan (s/d " . $endDate->isoFormat('MMMM Y') . ")";
                 } elseif (!empty($minPeriod) && !empty($maxPeriod)) {
+                    $maxPeriodMonths = $this->getMaxPeriodMonths($validated['department_id'] ?? null, $user);
                     [$minY, $minM] = explode('-', $minPeriod);
                     [$maxY, $maxM] = explode('-', $maxPeriod);
                     $startDate = Carbon::createFromDate((int)$minY, (int)$minM, 1)->startOfDay();
                     $endDate = Carbon::createFromDate((int)$maxY, (int)$maxM, 1)->endOfMonth()->endOfDay();
                     $monthsDiff = $startDate->diffInMonths($endDate) + 1;
-                    if ($monthsDiff > 60) {
-                        $monthsDiff = 60;
-                        $endDate = $startDate->copy()->addMonths(60)->endOfMonth()->endOfDay();
+                    if ($monthsDiff > $maxPeriodMonths) {
+                        $monthsDiff = $maxPeriodMonths;
+                        $endDate = $startDate->copy()->addMonths($maxPeriodMonths)->endOfMonth()->endOfDay();
                     }
                     $boxPeriode = "{$monthsDiff} Bulan";
                     $periodeDoc = ($minPeriod === $maxPeriod) ? $minPeriod : "{$minPeriod} - {$maxPeriod}";
@@ -849,31 +1024,90 @@ class ArchiveController extends Controller
 
                 $boxTimestamp = $now->copy()->addSeconds($boxIndex);
 
-                $archive = new Archive([
-                    'department_id' => $validated['department_id'],
-                    'sub_department_id' => $boxData['sub_department_id'] ?? null,
-                    'company_name' => !empty($validated['company_name']) ? $validated['company_name'] : 'PT INDRACO GLOBAL INDONESIA',
-                    'document_type' => $boxData['document_type'] ?? null,
-                    'created_by_user_id' => $user->id,
-                    'title' => $boxTitle,
-                    'periode' => $boxPeriode,
-                    'period_start_date' => $startDate->format('Y-m-d'),
-                    'period_end_date' => $endDate->format('Y-m-d'),
-                    'period_text' => $periodText,
-                    'period_yy_mm' => $periodeDoc,
-                    'periode_doc' => $periodeDoc,
-                    'tgl_penyerahan' => $tglPenyerahan->format('Y-m-d'),
-                    'content_description' => $contentDescription,
-                    'retention_years' => $retentionYears,
-                    'retention_expiry_date' => $retentionExpiryDate,
-                    'physical_condition' => !empty($boxData['physical_condition']) ? $boxData['physical_condition'] : 'Baik / Box Karton Standar TB 30g',
-                    'file_path' => $boxFilePath,
-                    'scan_input_form' => $scanInputFormPath,
-                    'status' => $archiveStatus,
-                ]);
-                $archive->created_at = $boxTimestamp;
-                $archive->updated_at = $boxTimestamp;
-                $archive->save();
+                $originBorrowingLogId = !empty($boxData['origin_borrowing_log_id']) ? (int)$boxData['origin_borrowing_log_id'] : null;
+                $originArchiveId = !empty($boxData['origin_archive_id']) ? (int)$boxData['origin_archive_id'] : null;
+
+                if ($originBorrowingLogId && $originArchiveId) {
+                    $existingArchive = Archive::lockForUpdate()->find($originArchiveId);
+                    if ($existingArchive) {
+                        if ($existingArchive->status === 'in_warehouse') {
+                            throw new \Exception("Box [{$existingArchive->box_number}] sudah tercatat berada di gudang.");
+                        }
+                        if (in_array($existingArchive->status, ['pending_verification', 'approved_booked'])) {
+                            throw new \Exception("Box [{$existingArchive->box_number}] sudah memiliki pengajuan penyimpanan kembali yang sedang aktif.");
+                        }
+                    }
+
+                    // Poin 8 & 9: Penyimpanan kembali adalah TRANSAKSI PENGAJUAN BARU
+                    // Arsip lama tetap tersimpan utuh di riwayat (status diambil/keluar)
+                    // Arsip baru dibuat dengan status pending_verification, tanpa lokasi rak (warehouse_location_id = null)
+                    $archive = new Archive([
+                        'department_id' => $validated['department_id'],
+                        'sub_department_id' => $boxData['sub_department_id'] ?? ($existingArchive ? $existingArchive->sub_department_id : null),
+                        'company_name' => !empty($validated['company_name']) ? $validated['company_name'] : ($existingArchive ? $existingArchive->company_name : 'PT INDRACO GLOBAL INDONESIA'),
+                        'document_type' => $boxData['document_type'] ?? ($existingArchive ? $existingArchive->document_type : null),
+                        'created_by_user_id' => $user->id,
+                        'box_number' => $existingArchive ? $existingArchive->box_number : null,
+                        'title' => $boxTitle,
+                        'periode' => $boxPeriode,
+                        'period_start_date' => $startDate->format('Y-m-d'),
+                        'period_end_date' => $endDate->format('Y-m-d'),
+                        'period_text' => $periodText,
+                        'period_yy_mm' => $periodeDoc,
+                        'periode_doc' => $periodeDoc,
+                        'tgl_penyerahan' => $tglPenyerahan->format('Y-m-d'),
+                        'content_description' => $contentDescription,
+                        'retention_years' => $retentionYears,
+                        'retention_expiry_date' => $retentionExpiryDate,
+                        'physical_condition' => !empty($boxData['physical_condition']) ? $boxData['physical_condition'] : ($existingArchive ? $existingArchive->physical_condition : 'Baik / Box Karton Standar TB 30g'),
+                        'file_path' => $boxFilePath ?: ($existingArchive ? $existingArchive->file_path : null),
+                        'scan_input_form' => $scanInputFormPath ?: ($existingArchive ? $existingArchive->scan_input_form : null),
+                        'status' => $archiveStatus,
+                        'warehouse_location_id' => null,
+                        'warehouse_rack_slot_id' => null,
+                        'origin_borrowing_log_id' => $originBorrowingLogId,
+                        're_store_snapshot' => json_encode([
+                            'restored_at' => now()->toDateTimeString(),
+                            'submitted_by' => $user->name,
+                            'origin_borrowing_log_id' => $originBorrowingLogId,
+                            'origin_archive_id' => $originArchiveId,
+                            'items' => $parsedItems,
+                        ]),
+                    ]);
+                    $archive->created_at = $boxTimestamp;
+                    $archive->updated_at = $boxTimestamp;
+                    $archive->save();
+
+                    \App\Models\BorrowingLog::where('id', $originBorrowingLogId)->update([
+                        'active_restore_archive_id' => $archive->id
+                    ]);
+                } else {
+                    $archive = new Archive([
+                        'department_id' => $validated['department_id'],
+                        'sub_department_id' => $boxData['sub_department_id'] ?? null,
+                        'company_name' => !empty($validated['company_name']) ? $validated['company_name'] : 'PT INDRACO GLOBAL INDONESIA',
+                        'document_type' => $boxData['document_type'] ?? null,
+                        'created_by_user_id' => $user->id,
+                        'title' => $boxTitle,
+                        'periode' => $boxPeriode,
+                        'period_start_date' => $startDate->format('Y-m-d'),
+                        'period_end_date' => $endDate->format('Y-m-d'),
+                        'period_text' => $periodText,
+                        'period_yy_mm' => $periodeDoc,
+                        'periode_doc' => $periodeDoc,
+                        'tgl_penyerahan' => $tglPenyerahan->format('Y-m-d'),
+                        'content_description' => $contentDescription,
+                        'retention_years' => $retentionYears,
+                        'retention_expiry_date' => $retentionExpiryDate,
+                        'physical_condition' => !empty($boxData['physical_condition']) ? $boxData['physical_condition'] : 'Baik / Box Karton Standar TB 30g',
+                        'file_path' => $boxFilePath,
+                        'scan_input_form' => $scanInputFormPath,
+                        'status' => $archiveStatus,
+                    ]);
+                    $archive->created_at = $boxTimestamp;
+                    $archive->updated_at = $boxTimestamp;
+                    $archive->save();
+                }
 
                 // Insert child items
                 $itemsToInsert = array_map(function ($it) use ($archive, $now) {
@@ -1048,12 +1282,13 @@ class ArchiveController extends Controller
         $periodMonthsCount = 0;
         if (preg_match('/^(\d+)\s*(?:bulan|bln|m)?$/i', $rawPeriod, $matches)) {
             $isMonthsPeriod = true;
-            $periodMonthsCount = (int) $matches[1];
-            if ($periodMonthsCount > 60) {
-                return redirect()->back()->withInput()->withErrors(['periode' => 'Periode dokumen maksimal 60 bulan.']);
+            $periodMonthsCount = (int)$matches[1];
+            $maxPeriodMonths = $this->getMaxPeriodMonths($archive->department_id, $user);
+            if ($periodMonthsCount > $maxPeriodMonths) {
+                return redirect()->back()->withInput()->withErrors(['periode' => "Periode dokumen maksimal {$maxPeriodMonths} bulan."]);
             }
-            $startDate = $tglPenyerahan->copy()->addMonth()->startOfMonth();
-            $endDate = $startDate->copy()->addMonths($periodMonthsCount - 1)->endOfMonth();
+            $startDate = $tglPenyerahan->copy()->startOfMonth();
+            $endDate = $startDate->copy()->addMonths($periodMonthsCount)->endOfMonth();
             $formattedPeriodDoc = "{$periodMonthsCount} Bulan";
             $periodText = !empty($validated['period_text']) ? $validated['period_text'] : "{$periodMonthsCount} Bulan (s/d " . $endDate->isoFormat('MMMM Y') . ")";
         } elseif (preg_match('/^(\d{4}\/(?:0[1-9]|1[0-2]))\s*(?:-|s\/d|hingga|to)\s*(\d{4}\/(?:0[1-9]|1[0-2]))$/i', $rawPeriod, $matches)) {
@@ -1423,13 +1658,14 @@ class ArchiveController extends Controller
                 if (!empty($boxPeriodeRaw) && preg_match('/^(\d+)\s*(?:bulan|bln|m)?$/i', $boxPeriodeRaw, $pMatches)) {
                     $isMonthsPeriod = true;
                     $monthsCount = (int)$pMatches[1];
-                    if ($monthsCount > 60) $monthsCount = 60;
+                    $maxPeriodMonths = $this->getMaxPeriodMonths($archive->department_id, $user);
+                    if ($monthsCount > $maxPeriodMonths) $monthsCount = $maxPeriodMonths;
                     if ($monthsCount < 1) $monthsCount = 1;
                 }
 
                 if ($isMonthsPeriod) {
-                    $startDate = $tglPenyerahan->copy()->addMonth()->startOfMonth();
-                    $endDate = $startDate->copy()->addMonths($monthsCount - 1)->endOfMonth();
+                    $startDate = $tglPenyerahan->copy()->startOfMonth();
+                    $endDate = $startDate->copy()->addMonths($monthsCount)->endOfMonth();
                     $boxPeriode = "{$monthsCount} Bulan";
                     $periodeDoc = $startDate->format('Y/m');
                     $periodText = "{$monthsCount} Bulan (s/d " . $endDate->isoFormat('MMMM Y') . ")";
@@ -1589,22 +1825,24 @@ class ArchiveController extends Controller
                     if (!empty($boxPeriodeRaw) && preg_match('/^(\d+)\s*(?:bulan|bln|m)?$/i', $boxPeriodeRaw, $pMatches)) {
                         $isMonthsPeriod = true;
                         $monthsCount = (int)$pMatches[1];
-                        if ($monthsCount > 60) $monthsCount = 60;
+                        $maxPeriodMonths = $this->getMaxPeriodMonths($archive->department_id, $user);
+                        if ($monthsCount > $maxPeriodMonths) $monthsCount = $maxPeriodMonths;
                         if ($monthsCount < 1) $monthsCount = 1;
-                        $startDate = $tglPenyerahan->copy()->addMonth()->startOfMonth();
-                        $endDate = $startDate->copy()->addMonths($monthsCount - 1)->endOfMonth();
+                        $startDate = $tglPenyerahan->copy()->startOfMonth();
+                        $endDate = $startDate->copy()->addMonths($monthsCount)->endOfMonth();
                         $boxPeriode = "{$monthsCount} Bulan";
                         $periodeDoc = $minPeriod ? ($minPeriod === $maxPeriod ? $minPeriod : "{$minPeriod} - {$maxPeriod}") : "{$monthsCount} Bulan";
                         $periodText = "{$monthsCount} Bulan (s/d " . $endDate->isoFormat('MMMM Y') . ")";
                     } elseif (!empty($minPeriod) && !empty($maxPeriod)) {
+                        $maxPeriodMonths = $this->getMaxPeriodMonths($archive->department_id, $user);
                         [$minY, $minM] = explode('-', $minPeriod);
                         [$maxY, $maxM] = explode('-', $maxPeriod);
                         $startDate = Carbon::createFromDate((int)$minY, (int)$minM, 1)->startOfDay();
                         $endDate = Carbon::createFromDate((int)$maxY, (int)$maxM, 1)->endOfMonth()->endOfDay();
                         $monthsDiff = $startDate->diffInMonths($endDate) + 1;
-                        if ($monthsDiff > 60) {
-                            $monthsDiff = 60;
-                            $endDate = $startDate->copy()->addMonths(60)->endOfMonth()->endOfDay();
+                        if ($monthsDiff > $maxPeriodMonths) {
+                            $monthsDiff = $maxPeriodMonths;
+                            $endDate = $startDate->copy()->addMonths($maxPeriodMonths)->endOfMonth()->endOfDay();
                         }
                         $boxPeriode = "{$monthsDiff} Bulan";
                         $periodeDoc = ($minPeriod === $maxPeriod) ? $minPeriod : "{$minPeriod} - {$maxPeriod}";
@@ -1721,6 +1959,104 @@ class ArchiveController extends Controller
                 'boxes' => 'Gagal memperbarui pengajuan multi-box: ' . $e->getMessage()
             ]);
         }
+    }
+
+    /**
+     * Delete an archive draft.
+     */
+    public function destroy(Request $request, Archive $archive)
+    {
+        $user = auth()->user();
+
+        if ($user->isPicDept() && (int)$archive->department_id !== (int)$user->department_id) {
+            abort(403, 'Anda tidak memiliki hak akses untuk menghapus draft arsip ini.');
+        }
+
+        if ($archive->status !== 'draft') {
+            return redirect()->back()->with('error', 'Hanya data berstatus draft yang dapat dihapus.');
+        }
+
+        $boxTitle = $archive->title ?: 'Draft Box Arsip';
+        $archiveId = $archive->id;
+
+        // Hapus items dokumen draft
+        $archive->items()->delete();
+
+        // Hapus file draft jika ada
+        if ($archive->scan_input_form && \Illuminate\Support\Facades\Storage::disk('public')->exists($archive->scan_input_form)) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($archive->scan_input_form);
+        }
+        if ($archive->file_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($archive->file_path)) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($archive->file_path);
+        }
+
+        $archive->delete();
+
+        ActivityLogger::log(
+            'ARCHIVE_DRAFT_DELETE',
+            "Menghapus data draft arsip '{$boxTitle}' oleh {$user->name}.",
+            'DOKUMEN_ARSIP',
+            ['archive_id' => $archiveId, 'title' => $boxTitle],
+            $boxTitle,
+            $user
+        );
+
+        $redirectParams = $this->getEmbedParams($request);
+        return redirect()->route('archives.index', $redirectParams)
+            ->with('success', "Data draft arsip '{$boxTitle}' berhasil dihapus.");
+    }
+
+    /**
+     * Batch delete archive drafts.
+     */
+    public function batchDeleteDrafts(Request $request)
+    {
+        $user = auth()->user();
+        $ids = $request->input('ids', []);
+        if (is_string($ids)) {
+            $ids = explode(',', $ids);
+        }
+        $ids = array_filter(array_map('intval', (array)$ids));
+
+        if (empty($ids)) {
+            return redirect()->back()->with('error', 'Tidak ada data draft yang dipilih untuk dihapus.');
+        }
+
+        $query = Archive::whereIn('id', $ids)->where('status', 'draft');
+        if ($user->isPicDept()) {
+            $query->where('department_id', $user->department_id);
+        }
+
+        $drafts = $query->get();
+        if ($drafts->isEmpty()) {
+            return redirect()->back()->with('error', 'Tidak ada data draft valid yang dapat dihapus.');
+        }
+
+        $count = 0;
+        foreach ($drafts as $draft) {
+            $draft->items()->delete();
+            if ($draft->scan_input_form && \Illuminate\Support\Facades\Storage::disk('public')->exists($draft->scan_input_form)) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($draft->scan_input_form);
+            }
+            if ($draft->file_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($draft->file_path)) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($draft->file_path);
+            }
+            $draft->delete();
+            $count++;
+        }
+
+        ActivityLogger::log(
+            'ARCHIVE_DRAFT_BATCH_DELETE',
+            "Menghapus {$count} data draft arsip secara batch oleh {$user->name}.",
+            'DOKUMEN_ARSIP',
+            ['deleted_ids' => $ids, 'count' => $count],
+            "Batch {$count} Draft",
+            $user
+        );
+
+        $redirectParams = $this->getEmbedParams($request);
+        return redirect()->route('archives.index', $redirectParams)
+            ->with('success', "Berhasil menghapus {$count} data draft arsip.");
     }
 
     protected function getEmbedParams(Request $request)
@@ -2758,10 +3094,17 @@ class ArchiveController extends Controller
         $normalizedInput = strtolower(preg_replace('/[^\p{L}\p{N}\s]/u', '', $title));
         $normalizedInput = preg_replace('/\s+/', ' ', trim($normalizedInput));
 
+        $excludeId = $request->input('exclude_archive_id') ?: ($request->input('exclude_id') ?: $request->input('origin_archive_id'));
+
         // Query active archives in department
-        $existingArchives = Archive::where('department_id', $deptId)
-            ->where('status', '!=', 'destroyed')
-            ->select(['id', 'box_number', 'title', 'status', 'periode_doc', 'periode', 'period_text'])
+        $query = Archive::where('department_id', $deptId)
+            ->where('status', '!=', 'destroyed');
+
+        if ($excludeId) {
+            $query->where('id', '!=', (int)$excludeId);
+        }
+
+        $existingArchives = $query->select(['id', 'box_number', 'title', 'status', 'periode_doc', 'periode', 'period_text'])
             ->latest('id')
             ->take(100)
             ->get();
@@ -2828,4 +3171,29 @@ class ArchiveController extends Controller
             'similarity_percentage' => $highestSimilarity,
         ]);
     }
+
+    public function getMaxPeriodMonths($departmentId = null, $user = null): int
+    {
+        $user = $user ?: auth()->user();
+        if ($user) {
+            $userDept = $user->department;
+            if ($userDept && in_array(strtoupper($userDept->code), ['FAT', 'FIN', 'FATCLM'])) {
+                return 120;
+            }
+            $userName = strtoupper($user->name ?? '');
+            if (str_contains($userName, 'FAT') || str_contains($userName, 'FIN')) {
+                return 120;
+            }
+        }
+
+        if ($departmentId) {
+            $dept = Department::find($departmentId);
+            if ($dept && in_array(strtoupper($dept->code), ['FAT', 'FIN', 'FATCLM'])) {
+                return 120;
+            }
+        }
+
+        return 60;
+    }
 }
+

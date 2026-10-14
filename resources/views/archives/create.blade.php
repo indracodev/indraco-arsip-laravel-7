@@ -6,21 +6,21 @@
 <div class="max-w-6xl mx-auto space-y-3 font-sans pb-10 select-text" x-data="archiveCreateApp()">
 
     <!-- DELPHI FORM TOOLBAR HEADER -->
-    <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-3 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 font-mono">
-        <div class="flex items-center gap-2.5">
-            <span class="p-2 bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 rounded">
+    <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-2.5 sm:p-3 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-3 font-mono">
+        <div class="flex items-center gap-2.5 min-w-0">
+            <span class="p-2 bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 rounded shrink-0">
                 <i data-lucide="package-plus" class="w-4 h-4"></i>
             </span>
-            <div>
-                <h1 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Form Pengajuan Multi-Box Arsip (TB 30g)</h1>
-                <p class="text-[11px] text-slate-500 dark:text-slate-400">Entri kolektif banyak box kardus fisik & dense items dokumen dengan otomasi periode cerdas.</p>
+            <div class="min-w-0">
+                <h1 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider truncate">Form Pengajuan Multi-Box Arsip (TB 30g)</h1>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1">Entri kolektif banyak box fisik & dense items dokumen dengan otomasi periode cerdas.</p>
             </div>
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-end shrink-0">
             <!-- Counter Chip -->
-            <div class="px-2.5 py-1 bg-amber-500/10 border border-amber-500/30 rounded text-xs font-mono font-bold text-amber-700 dark:text-amber-300 flex items-center gap-1.5">
-                <i data-lucide="boxes" class="w-3.5 h-3.5 text-amber-500"></i>
+            <div class="px-2.5 py-1 bg-amber-500/10 border border-amber-500/30 rounded text-xs font-mono font-bold text-amber-700 dark:text-amber-300 flex items-center gap-1.5 whitespace-nowrap shrink-0">
+                <i data-lucide="boxes" class="w-3.5 h-3.5 text-amber-500 shrink-0"></i>
                 <span x-text="boxes.length + ' Box'"></span>
                 <span>•</span>
                 <span x-text="getTotalItemsCount() + ' Berkas'"></span>
@@ -30,25 +30,48 @@
             <button 
                 type="button" 
                 @click="openFormPengajuanModal()" 
-                class="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/50 dark:hover:bg-amber-900/50 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700/60 rounded text-xs font-mono font-bold transition flex items-center gap-1.5 shadow-sm shrink-0 cursor-pointer"
+                class="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/50 dark:hover:bg-amber-900/50 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700/60 rounded text-xs font-mono font-bold transition flex items-center gap-1.5 shadow-sm whitespace-nowrap shrink-0 cursor-pointer"
                 title="Buka Pratinjau & Cetak Form Pengajuan Dokumen (Standar PDF)"
             >
-                <i data-lucide="printer" class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400"></i>
+                <i data-lucide="printer" class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0"></i>
                 <span>Form Pengajuan</span>
             </button>
 
-            <a href="{{ route('archives.index', request()->has('embed') ? ['embed' => 1] : []) }}" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded text-xs font-bold transition flex items-center gap-1 shadow-sm shrink-0">
-                <i data-lucide="arrow-left" class="w-3.5 h-3.5 text-amber-500"></i>
+            <a href="{{ route('archives.index', request()->has('embed') ? ['embed' => 1] : []) }}" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded text-xs font-bold transition flex items-center gap-1 shadow-sm whitespace-nowrap shrink-0">
+                <i data-lucide="arrow-left" class="w-3.5 h-3.5 text-amber-500 shrink-0"></i>
                 <span>Kembali (Esc)</span>
             </a>
         </div>
     </div>
+
+    <!-- RE-STORE BANNER (JIKA MODE PENYIMPANAN KEMBALI) -->
+    @if(!empty($isReStore))
+    <div class="p-3 bg-purple-500/10 border border-purple-500/30 rounded text-purple-900 dark:text-purple-200 text-xs font-mono flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-xs">
+        <div class="flex items-center gap-2.5">
+            <span class="p-1.5 bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/30 rounded shrink-0">
+                <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+            </span>
+            <div>
+                <strong class="font-bold uppercase tracking-wider block">Mode Pengajuan Penyimpanan Kembali Box</strong>
+                <p class="text-[11px] text-purple-700 dark:text-purple-300 font-sans">
+                    Formulir terisi otomatis dari riwayat penarikan ({{ count($preloadedBoxes ?? []) }} Box). Anda dapat memeriksa atau melengkapi dokumen sebelum mengajukan verifikasi ke Gudang.
+                </p>
+            </div>
+        </div>
+        <span class="px-2.5 py-1 rounded text-[10px] font-bold bg-purple-600 text-white uppercase shrink-0 self-start sm:self-auto shadow-2xs">
+            Penyimpanan Kembali
+        </span>
+    </div>
+    @endif
 
     <!-- MAIN FORM WINDOW -->
     <form id="archiveCreateForm" action="{{ route('archives.store', request()->has('embed') ? ['embed' => 1] : []) }}" method="POST" enctype="multipart/form-data" class="space-y-3">
         @csrf
         @if(request()->has('embed'))
             <input type="hidden" name="embed" value="1">
+        @endif
+        @if(!empty($isReStore))
+            <input type="hidden" name="is_re_store" value="1">
         @endif
 
         <!-- SECTION 1: UNIT & TANGGAL SERAH TERIMA (BATCH HEADER) -->
@@ -58,7 +81,7 @@
                 1. Identitas Unit Kerja & Tanggal Serah Terima Pengajuan
             </legend>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <!-- Company Entity -->
                 <div>
                     <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
@@ -154,6 +177,24 @@
                     @endif
                 </div>
 
+                <!-- Sub-Departemen (Induk / Default Batch) -->
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        SUB-DEPARTEMEN <span class="text-slate-400 font-normal">(Opsional)</span>
+                    </label>
+                    <select 
+                        name="sub_department_id" 
+                        x-model="selectedSubDeptId"
+                        @change="onSectionSubDeptChange()"
+                        class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition shadow-2xs"
+                    >
+                        <option value="">-- Induk Departemen --</option>
+                        <template x-for="s in subDepartments" :key="s.id">
+                            <option :value="s.id" x-text="s.code + ' - ' + s.name" :selected="selectedSubDeptId == s.id"></option>
+                        </template>
+                    </select>
+                </div>
+
                 <!-- Tgl Penyerahan Fisik (Serah terima batch) -->
                 <div>
                     <label for="tgl_penyerahan" class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
@@ -168,7 +209,7 @@
                         required 
                         class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition"
                     >
-                    <span class="text-[10px] text-slate-500 dark:text-slate-400 font-sans block mt-0.5">Tanggal serah terima kardus fisik ke Gudang (maksimal hari ini)</span>
+                    <span class="text-[10px] text-slate-500 dark:text-slate-400 font-sans block mt-0.5">Tanggal serah terima box fisik ke Gudang (maksimal hari ini)</span>
                 </div>
             </div>
         </fieldset>
@@ -258,7 +299,18 @@
                         <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
                             <div class="flex items-center gap-2">
                                 <span class="px-2 py-0.5 bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 rounded font-black text-xs" x-text="'BOX #' + (bIdx + 1)"></span>
-                                <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Pengaturan Identitas & Wadah Kardus</span>
+                                <template x-if="box.box_number">
+                                    <span class="px-2 py-0.5 bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-500/30 rounded font-black text-xs" x-text="'[' + box.box_number + ']'"></span>
+                                </template>
+                                <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Pengaturan Identitas & Wadah Box</span>
+
+                                <!-- Hidden fields for origin borrowing reference -->
+                                <template x-if="box.origin_borrowing_log_id">
+                                    <input type="hidden" :name="'boxes[' + bIdx + '][origin_borrowing_log_id]'" :value="box.origin_borrowing_log_id">
+                                </template>
+                                <template x-if="box.origin_archive_id">
+                                    <input type="hidden" :name="'boxes[' + bIdx + '][origin_archive_id]'" :value="box.origin_archive_id">
+                                </template>
                                 
                                 <!-- Preset Pola Box Sebelumnya -->
                                 <template x-if="bIdx > 0">
@@ -279,7 +331,7 @@
                             <!-- Judul Box dengan Live Similarity Check -->
                             <div class="sm:col-span-2">
                                 <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center justify-between">
-                                    <span>JUDUL / LABEL KARDUS <span class="text-rose-500">*</span></span>
+                                    <span>NAMA / JUDUL BOX <span class="text-rose-500">*</span></span>
                                     <span class="text-[10px] text-slate-400 font-normal">Cek kemiripan aktif otomatis</span>
                                 </label>
                                 <input 
@@ -310,48 +362,41 @@
                                                     <span class="text-emerald-600 dark:text-emerald-400 font-bold" x-text="box.similarityInfo.diff.unique_in_input.join(', ') || '-'"></span>
                                                 </div>
                                             </template>
-                                            <p class="text-[10px] text-slate-500 italic">Peringatan ini informatif agar Anda dapat memeriksa potensi duplikasi. Anda tetap bebas menyimpan jika kardus ini sah.</p>
+                                            <p class="text-[10px] text-slate-500 italic">Peringatan ini informatif agar Anda dapat memeriksa potensi duplikasi. Anda tetap bebas menyimpan jika box ini sah.</p>
                                         </div>
                                         <button type="button" @click="box.similarityInfo = null" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 shrink-0 text-xs px-1 cursor-pointer">✕</button>
                                     </div>
                                 </template>
                             </div>
 
-                            <!-- Sub-Departemen (Opsional per box) -->
-                            <div>
-                                <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                                    SUB-DEPARTEMEN <span class="text-slate-400 font-normal">(Opsional)</span>
-                                </label>
-                                <select 
-                                    :name="'boxes[' + bIdx + '][sub_department_id]'" 
-                                    x-model="box.sub_department_id"
-                                    class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition"
-                                >
-                                    <option value="">-- Induk Departemen --</option>
-                                    <template x-for="s in subDepartments" :key="s.id">
-                                        <option :value="s.id" x-text="s.code + ' - ' + s.name"></option>
-                                    </template>
-                                </select>
-                            </div>
+                            <!-- Hidden Sub-Departemen (Otomatis Mewarisi Sub-Dept Induk Batch) -->
+                            <input type="hidden" :name="'boxes[' + bIdx + '][sub_department_id]'" :value="selectedSubDeptId">
 
-                            <!-- Kategori Dokumen (Opsional) -->
-                            <div>
-                                <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                                    KATEGORI DOKUMEN <span class="text-slate-400 font-normal">(Opsional)</span>
+                            <!-- Kategori Dokumen (Terkunci Otomatis dari Master Berkas) -->
+                            <div class="sm:col-span-2">
+                                <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center justify-between">
+                                    <span>KATEGORI DOKUMEN</span>
+                                    <span class="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-0.5" title="Tipe dokumen otomatis terkunci sesuai Master Berkas">
+                                        <i data-lucide="lock" class="w-2.5 h-2.5"></i> Terkunci
+                                    </span>
                                 </label>
-                                <input 
-                                    type="text" 
-                                    :name="'boxes[' + bIdx + '][document_type]'" 
-                                    x-model="box.document_type"
-                                    placeholder="Contoh: Keuangan, Pajak, SDM" 
-                                    class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 transition"
-                                >
+                                <div class="relative flex items-center">
+                                    <input 
+                                        type="text" 
+                                        :name="'boxes[' + bIdx + '][document_type]'" 
+                                        x-model="box.document_type"
+                                        readonly
+                                        placeholder="Otomatis terkunci dari Master Berkas" 
+                                        class="w-full pl-2.5 pr-8 py-1.5 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-700 dark:text-slate-300 cursor-not-allowed select-none"
+                                    >
+                                    <i data-lucide="lock" class="w-3.5 h-3.5 text-slate-400 absolute right-2.5 pointer-events-none"></i>
+                                </div>
                             </div>
 
                             <!-- Wadah Fisik -->
                             <div class="sm:col-span-2">
                                 <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                                    KONDISI FISIK WADAH KARDUS <span class="text-rose-500">*</span>
+                                    KONDISI FISIK WADAH BOX <span class="text-rose-500">*</span>
                                 </label>
                                 <input 
                                     type="text" 
@@ -368,7 +413,7 @@
                                     <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
                                         PERIODE DOKUMEN (BULAN) <span class="text-rose-500">*</span>
                                     </label>
-                                    <span class="text-[10px] text-amber-600 dark:text-amber-400 font-normal">Maks. 60 Bulan</span>
+                                    <span class="text-[10px] text-amber-600 dark:text-amber-400 font-normal" x-text="'Maks. ' + getMaxPeriodMonths() + ' Bulan'"></span>
                                 </div>
 
                                 <div class="relative flex items-center">
@@ -377,10 +422,10 @@
                                         :id="'periode_bulan_' + bIdx"
                                         x-model="box.periode_bulan"
                                         :disabled="bIdx > 0 && box.follow_previous"
-                                        @input="if(box.periode_bulan > 60) box.periode_bulan = 60; if(box.periode_bulan !== '' && box.periode_bulan < 1) box.periode_bulan = 1;"
+                                        @input="if(box.periode_bulan > getMaxPeriodMonths()) box.periode_bulan = getMaxPeriodMonths(); if(box.periode_bulan !== '' && box.periode_bulan < 1) box.periode_bulan = 1;"
                                         min="1" 
-                                        max="60"
-                                        placeholder="Maks. 60 Bulan (5 Thn)" 
+                                        :max="getMaxPeriodMonths()"
+                                        :placeholder="'Maks. ' + getMaxPeriodMonths() + ' Bulan (' + (getMaxPeriodMonths()/12) + ' Thn)'" 
                                         class="w-full pl-2.5 pr-14 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 transition disabled:bg-slate-100 dark:disabled:bg-slate-900/50 disabled:text-slate-400 disabled:cursor-not-allowed"
                                     >
                                     <span class="absolute right-2.5 text-xs font-mono font-bold text-slate-400 pointer-events-none select-none">Bulan</span>
@@ -403,7 +448,7 @@
                                 <!-- Quick Preset Buttons -->
                                 <div class="flex flex-wrap items-center gap-1 pt-1 font-mono text-[10px]" x-show="!(bIdx > 0 && box.follow_previous)">
                                     <span class="text-slate-400 text-[9px] mr-0.5">Preset:</span>
-                                    <template x-for="preset in [1, 3, 4, 6, 12, 15, 24, 60]" :key="preset">
+                                    <template x-for="preset in getPresetMonths()" :key="preset">
                                         <button 
                                             type="button" 
                                             @click="box.periode_bulan = preset" 
@@ -411,7 +456,7 @@
                                             :class="box.periode_bulan == preset 
                                                 ? 'bg-amber-500 text-slate-950 border-amber-600 font-black' 
                                                 : 'bg-slate-100 dark:bg-slate-900 hover:bg-amber-500/20 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 font-medium'"
-                                            x-text="preset + ' Bln'"
+                                            x-text="preset + ' Bln' + (preset == 120 ? ' (10 Thn)' : (preset == 60 ? ' (5 Thn)' : ''))"
                                         ></button>
                                     </template>
                                 </div>
@@ -435,7 +480,7 @@
                                     <span>Rincian Butir Dokumen dalam Box #<span x-text="bIdx + 1"></span></span>
                                 </h3>
                                 <p class="text-[10px] text-slate-500 font-sans">
-                                    Masukkan butir berkas fisik di dalam kardus ini. Periode kardus dihitung otomatis dari rentang butir di bawah.
+                                    Masukkan butir berkas fisik di dalam box ini. Periode box dihitung otomatis dari rentang butir di bawah.
                                 </p>
                             </div>
 
@@ -485,16 +530,17 @@
                                                     <select 
                                                         :name="'boxes[' + bIdx + '][items][' + iIdx + '][document_name]'" 
                                                         x-model="item.document_name"
+                                                        @change="onMasterDocChange(box, item)"
                                                         x-init="$nextTick(() => { if (item.document_name && $el.value !== item.document_name) $el.value = item.document_name; })"
                                                         x-effect="$nextTick(() => { if (item.document_name && $el.value !== item.document_name) $el.value = item.document_name; })"
                                                         class="w-full px-2 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
                                                     >
                                                         <option value="">-- Pilih dari Master Berkas Arsip --</option>
-                                                        <template x-for="m in masterArchives" :key="m.id">
-                                                            <option :value="m.name" x-text="m.code ? (m.code + ' - ' + m.name) : m.name" :selected="m.name === item.document_name"></option>
+                                                        <template x-for="m in getBoxMasterArchives(box)" :key="m.id">
+                                                            <option :value="m.name" x-text="(m.code ? (m.code + ' - ') : '') + m.name + (m.document_type ? ' [' + m.document_type + ']' : '')" :selected="m.name === item.document_name"></option>
                                                         </template>
-                                                        <!-- Jika nama dokumen hasil paste/duplikasi/kustom tidak ada di masterArchives, tetap tampil sebagai opsi terpilih di dropdown -->
-                                                        <template x-if="item.document_name && !masterArchives.some(m => m.name === item.document_name)">
+                                                        <!-- Jika nama dokumen hasil paste/duplikasi/kustom tidak ada di daftar, tetap tampil sebagai opsi terpilih di dropdown -->
+                                                        <template x-if="item.document_name && !getBoxMasterArchives(box).some(m => m.name === item.document_name)">
                                                             <option :value="item.document_name" x-text="item.document_name" selected></option>
                                                         </template>
                                                     </select>
@@ -607,17 +653,17 @@
                     helperText="Cukup unggah 1 lembar berkas formulir serah terima bertanda tangan untuk seluruh box di atas (Maksimal 500 KB, PDF/JPG/PNG)."
                 />
 
-                <!-- 2. Foto Fisik Kardus Box / Lampiran Digital (Opsional) -->
+                <!-- 2. Foto Fisik Box / Lampiran Digital (Opsional) -->
                 <x-file-uploader 
                     name="file" 
                     id="file" 
-                    label="2. Foto Fisik Kardus Box / Lampiran Digital" 
+                    label="2. Foto Fisik Box / Lampiran Digital" 
                     :required="false" 
                     badge="OPSIONAL" 
                     accept=".pdf,.jpg,.jpeg,.png"
                     :maxSizeKB="500"
                     :maxSizeMB="0.5"
-                    helperText="Foto fisik kardus / box arsip atau lampiran digital (Maksimal 500 KB, PDF/JPG/PNG). Otomatis terhubung ke seluruh box."
+                    helperText="Foto fisik box arsip atau lampiran digital (Maksimal 500 KB, PDF/JPG/PNG). Otomatis terhubung ke seluruh box."
                 />
             </div>
 
@@ -660,7 +706,7 @@
                             <input type="radio" value="full" x-model="duplicateMode" class="mt-0.5 text-amber-500">
                             <div>
                                 <span class="font-bold text-slate-800 dark:text-slate-100">Salin Lengkap (Wadah & Seluruh Butir Berkas)</span>
-                                <p class="text-[11px] text-slate-500">Menduplikasi seluruh identitas kardus dan menyalin semua <span x-text="boxes[duplicateSourceIndex] ? boxes[duplicateSourceIndex].items.length : 0"></span> butir berkas dokumen.</p>
+                                <p class="text-[11px] text-slate-500">Menduplikasi seluruh identitas box dan menyalin semua <span x-text="boxes[duplicateSourceIndex] ? boxes[duplicateSourceIndex].items.length : 0"></span> butir berkas dokumen.</p>
                             </div>
                         </label>
 
@@ -678,7 +724,7 @@
                             <input type="radio" value="selected_items" x-model="duplicateMode" class="mt-0.5 text-amber-500">
                             <div>
                                 <span class="font-bold text-slate-800 dark:text-slate-100">Pilih Butir Berkas Tertentu</span>
-                                <p class="text-[11px] text-slate-500">Pilih checklist berkas mana saja yang ingin disertakan ke kardus baru.</p>
+                                <p class="text-[11px] text-slate-500">Pilih checklist berkas mana saja yang ingin disertakan ke box baru.</p>
                             </div>
                         </label>
                     </div>
@@ -755,14 +801,32 @@
 <script>
 function archiveCreateApp() {
     const initialMonth = '{{ date('Y-m') }}';
-    const sub2Months = '{{ date('Y-m', strtotime('-2 months')) }}';
-    const sub1Month = '{{ date('Y-m', strtotime('-1 month')) }}';
 
     const departmentsData = @json($departments);
-    const initialDeptId = '{{ old('department_id', auth()->user()->isPicDept() ? auth()->user()->department_id : ($departments->first()->id ?? '')) }}';
+    const initialDeptId = '{{ $targetDeptId ?? old('department_id', auth()->user()->isPicDept() ? auth()->user()->department_id : ($departments->first()->id ?? '')) }}';
     const initialDept = departmentsData.find(d => String(d.id) === String(initialDeptId)) || departmentsData[0] || null;
     const initialSubDepts = (initialDept && initialDept.sub_departments) ? initialDept.sub_departments : [];
     const initialMaster = (initialDept && initialDept.master_archives) ? initialDept.master_archives : [];
+
+    const defaultBoxes = [
+        {
+            id: 1,
+            title: @json(old('title', '')),
+            sub_department_id: '{{ old('sub_department_id', '') }}',
+            document_type: @json(old('document_type', '')),
+            periode_bulan: '{{ old('periode_bulan', '1') }}',
+            follow_previous: false,
+            physical_condition: 'Baik / Box Karton Standar TB 30g',
+            similarityInfo: null,
+            items: [
+                { id: 1, document_name: '', period_start: initialMonth, period_end: initialMonth, notes: '' },
+                { id: 2, document_name: '', period_start: initialMonth, period_end: initialMonth, notes: '' },
+                { id: 3, document_name: '', period_start: initialMonth, period_end: initialMonth, notes: '' }
+            ]
+        }
+    ];
+
+    const initialBoxes = @json(!empty($preloadedBoxes) ? $preloadedBoxes : null) || defaultBoxes;
 
     return {
         isSubmitting: false,
@@ -778,23 +842,7 @@ function archiveCreateApp() {
 
         // Multi-Box Workstation State
         activeBoxIndex: 0,
-        boxes: [
-            {
-                id: 1,
-                title: @json(old('title', '')),
-                sub_department_id: '{{ old('sub_department_id', '') }}',
-                document_type: @json(old('document_type', '')),
-                periode_bulan: '{{ old('periode_bulan', '1') }}',
-                follow_previous: false,
-                physical_condition: 'Baik / Box Karton Standar TB 30g',
-                similarityInfo: null,
-                items: [
-                    { id: 1, document_name: '', period_start: sub2Months, period_end: initialMonth, notes: '' },
-                    { id: 2, document_name: '', period_start: sub1Month, period_end: initialMonth, notes: '' },
-                    { id: 3, document_name: '', period_start: initialMonth, period_end: initialMonth, notes: '' }
-                ]
-            }
-        ],
+        boxes: initialBoxes,
 
         // Duplicate Modal State
         duplicateModalOpen: false,
@@ -808,15 +856,15 @@ function archiveCreateApp() {
             no_form: '',
             tanggal_pengajuan: '{{ date('Y-m-d') }}',
             dept_display: '',
-            pic_pemohon: '',
+            pic_pemohon: @json(auth()->user()->name ?? ''),
             tipe: 'Simpan',
             masa_simpan: 1,
-            catatan: 'Kondisi fisik kardus standar TB 30g dalam keadaan baik.',
-            approval_pemohon: '',
+            catatan: 'Kondisi fisik box standar TB 30g dalam keadaan baik.',
+            approval_pemohon: @json(auth()->user()->name ?? ''),
             approval_atasan: '',
             approval_pimpinan: '',
             approval_admin_gudang: 'Admin Gudang',
-            approval_tgl: '{{ date('Y-m-d') }}'
+            approval_tgl: ''
         },
         formPengajuanRows: [],
 
@@ -824,11 +872,41 @@ function archiveCreateApp() {
         similarityTimer: null,
 
         init() {
-            if (!this.masterArchives || this.masterArchives.length === 0) {
-                this.updateSubDepartments();
-                this.updateMasterArchives();
-            }
+            this.updateSubDepartments(false);
+            this.updateMasterArchives();
+            this.boxes.forEach(b => {
+                if (this.selectedSubDeptId && !b.sub_department_id) {
+                    b.sub_department_id = this.selectedSubDeptId;
+                }
+                this.onBoxSubDeptChange(b);
+            });
             this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+        },
+
+        isFatAccount() {
+            @if(auth()->check() && (
+                (auth()->user()->department && in_array(strtoupper(auth()->user()->department->code), ['FAT', 'FIN', 'FATCLM'])) ||
+                str_contains(strtoupper(auth()->user()->name ?? ''), 'FAT') ||
+                str_contains(strtoupper(auth()->user()->name ?? ''), 'FIN')
+            ))
+                return true;
+            @else
+                const currentDept = this.departments.find(d => String(d.id) === String(this.selectedDeptId));
+                if (currentDept && currentDept.code && ['FAT', 'FIN', 'FATCLM'].includes(String(currentDept.code).toUpperCase())) {
+                    return true;
+                }
+                return false;
+            @endif
+        },
+
+        getMaxPeriodMonths() {
+            return this.isFatAccount() ? 120 : 60;
+        },
+
+        getPresetMonths() {
+            return this.isFatAccount() 
+                ? [1, 3, 4, 6, 12, 15, 24, 60, 120] 
+                : [1, 3, 4, 6, 12, 15, 24, 60];
         },
 
         getTotalItemsCount() {
@@ -837,17 +915,21 @@ function archiveCreateApp() {
 
         addBox() {
             const nextNum = this.boxes.length + 1;
-            const defaultDoc = this.masterArchives.length > 0 ? this.masterArchives[0].name : '';
             // Auto inherit sub-dept from active box if set
             const prevBox = this.boxes[this.activeBoxIndex] || this.boxes[this.boxes.length - 1];
             const inheritedSubDept = prevBox ? prevBox.sub_department_id : (this.selectedSubDeptId || '');
             const inheritedPeriod = prevBox && prevBox.periode_bulan ? prevBox.periode_bulan : '1';
 
+            const tempBox = { sub_department_id: inheritedSubDept };
+            const available = this.getBoxMasterArchives(tempBox);
+            const defaultDoc = available.length > 0 ? available[0].name : '';
+            const defaultDocType = available.length > 0 ? (available[0].document_type || '') : (prevBox ? prevBox.document_type : '');
+
             this.boxes.push({
                 id: Date.now() + Math.random(),
                 title: '',
                 sub_department_id: inheritedSubDept,
-                document_type: prevBox ? prevBox.document_type : '',
+                document_type: defaultDocType,
                 periode_bulan: inheritedPeriod,
                 follow_previous: true,
                 physical_condition: 'Baik / Box Karton Standar TB 30g',
@@ -950,7 +1032,7 @@ function archiveCreateApp() {
                 if (window.showConfirmModal) {
                     await window.showConfirmModal({
                         title: 'Perhatian',
-                        message: 'Pengajuan minimal harus memiliki 1 box kardus arsip.',
+                        message: 'Pengajuan minimal harus memiliki 1 box arsip.',
                         type: 'warning',
                         confirmText: 'Mengerti'
                     });
@@ -1235,7 +1317,7 @@ function archiveCreateApp() {
             const [y2, m2] = max.split('-').map(Number);
             let months = (y2 - y1) * 12 + (m2 - m1) + 1;
 
-            if (months > 60) months = 60;
+            if (months > this.getMaxPeriodMonths()) months = this.getMaxPeriodMonths();
             if (months < 1) months = 1;
 
             return {
@@ -1257,15 +1339,23 @@ function archiveCreateApp() {
             }
         },
 
-        updateSubDepartments() {
+        updateSubDepartments(clearSelection = true) {
             const dept = this.departments.find(d => d.id == this.selectedDeptId);
             if (dept && dept.sub_departments) {
                 this.subDepartments = dept.sub_departments;
             } else {
                 this.subDepartments = [];
             }
-            this.selectedSubDeptId = '';
+            if (clearSelection) {
+                this.selectedSubDeptId = '';
+            }
             this.updateMasterArchives();
+            this.boxes.forEach(b => {
+                if (clearSelection) {
+                    b.sub_department_id = '';
+                }
+                this.onBoxSubDeptChange(b);
+            });
         },
 
         updateMasterArchives() {
@@ -1295,24 +1385,87 @@ function archiveCreateApp() {
         },
 
         filterAndSetArchives(allArchives) {
-            if (this.selectedSubDeptId) {
-                this.masterArchives = allArchives.filter(m => {
-                    return m.sub_department_id == this.selectedSubDeptId || !m.sub_department_id;
-                });
-            } else {
-                this.masterArchives = allArchives;
+            this.masterArchives = allArchives;
+            this.boxes.forEach(b => {
+                this.onBoxSubDeptChange(b);
+            });
+        },
+
+        getBoxMasterArchives(box) {
+            const dept = this.departments.find(d => d.id == this.selectedDeptId);
+            const all = (dept && dept.master_archives && dept.master_archives.length > 0) ? dept.master_archives : (this.masterArchives || []);
+            if (!all || all.length === 0) return [];
+
+            const subId = (box && box.sub_department_id !== undefined && box.sub_department_id !== '' && box.sub_department_id !== null) 
+                ? box.sub_department_id 
+                : this.selectedSubDeptId;
+
+            if (subId) {
+                const subSpecific = all.filter(m => String(m.sub_department_id) === String(subId));
+                if (subSpecific.length > 0) {
+                    return subSpecific;
+                }
+                const induk = all.filter(m => !m.sub_department_id);
+                return induk.length > 0 ? induk : all;
             }
 
-            // Set default document_name for initial items if empty
-            if (this.masterArchives.length > 0) {
-                this.boxes.forEach(box => {
-                    box.items.forEach((it, idx) => {
-                        if (!it.document_name) {
-                            it.document_name = this.masterArchives[idx % this.masterArchives.length].name;
+            const induk = all.filter(m => !m.sub_department_id);
+            return induk.length > 0 ? induk : all;
+        },
+
+        getItemDocType(box, item) {
+            if (!item || !item.document_name) return box ? (box.document_type || '') : '';
+            const dept = this.departments.find(d => d.id == this.selectedDeptId);
+            const all = (dept && dept.master_archives && dept.master_archives.length > 0) ? dept.master_archives : (this.masterArchives || []);
+            const matched = all.find(m => m.name === item.document_name);
+            if (matched && matched.document_type) {
+                return matched.document_type;
+            }
+            return box ? (box.document_type || '') : '';
+        },
+
+        onBoxSubDeptChange(box) {
+            if (!box) return;
+            const available = this.getBoxMasterArchives(box);
+            if (available && available.length > 0) {
+                if (box.items && box.items.length > 0) {
+                    box.items.forEach(it => {
+                        if (!it.document_name || !available.some(m => m.name === it.document_name)) {
+                            it.document_name = available[0].name;
+                            this.onMasterDocChange(box, it);
+                        } else {
+                            this.onMasterDocChange(box, it);
                         }
                     });
-                });
+                }
+                box.document_type = available[0].document_type || '';
+                if (available[0].retention_years) {
+                    box.retention_years = available[0].retention_years;
+                }
             }
+        },
+
+        onMasterDocChange(box, item) {
+            if (!item || !item.document_name) return;
+            const dept = this.departments.find(d => d.id == this.selectedDeptId);
+            const all = (dept && dept.master_archives && dept.master_archives.length > 0) ? dept.master_archives : (this.masterArchives || []);
+            const matched = all.find(m => m.name === item.document_name);
+            if (matched) {
+                if (matched.document_type) {
+                    box.document_type = matched.document_type;
+                }
+                if (matched.retention_years) {
+                    box.retention_years = matched.retention_years;
+                }
+            }
+        },
+
+        onSectionSubDeptChange() {
+            this.updateMasterArchives();
+            this.boxes.forEach(b => {
+                b.sub_department_id = this.selectedSubDeptId;
+                this.onBoxSubDeptChange(b);
+            });
         },
 
         submitDraft() {
@@ -1352,7 +1505,7 @@ function archiveCreateApp() {
             // Check that all boxes have titles
             for (let i = 0; i < this.boxes.length; i++) {
                 if (!this.boxes[i].title || !this.boxes[i].title.trim()) {
-                    alert(`⚠️ Judul / Label Kardus untuk Box #${i + 1} belum diisi. Silakan lengkapi judul kardus.`);
+                    alert(`⚠️ Nama / Judul Box untuk Box #${i + 1} belum diisi. Silakan lengkapi judul box.`);
                     this.activeBoxIndex = i;
                     return;
                 }
@@ -1375,25 +1528,8 @@ function archiveCreateApp() {
 
         openFormPengajuanModal() {
             this.formPengajuanData.dept_display = this.getDeptSubDeptDisplay();
-            
-            // Deteksi periode masa simpan masing-masing box
-            const periods = this.boxes.map(b => parseInt(b.periode_bulan, 10)).filter(p => !isNaN(p) && p > 0);
-            const uniquePeriods = [...new Set(periods)].sort((a, b) => a - b);
-            
-            if (uniquePeriods.length > 1) {
-                // Jika masa simpan antar box berbeda, tampilkan daftar uniknya (misal: "12, 24")
-                this.formPengajuanData.masa_simpan = uniquePeriods.join(', ');
-                
-                // Tambahkan rincian otomatis ke catatan formulir
-                const breakdown = this.boxes.map((b, idx) => `Box #${idx + 1}: ${b.periode_bulan || 1} Bln`).join(', ');
-                const rincianText = `Rincian Masa Simpan: ${breakdown}.`;
-                if (!this.formPengajuanData.catatan || this.formPengajuanData.catatan.includes('Kondisi fisik kardus standar') || this.formPengajuanData.catatan.includes('Rincian Masa Simpan')) {
-                    this.formPengajuanData.catatan = `${rincianText} Kondisi fisik kardus standar TB 30g dalam keadaan baik.`;
-                }
-            } else if (uniquePeriods.length === 1) {
-                this.formPengajuanData.masa_simpan = uniquePeriods[0];
-            } else {
-                this.formPengajuanData.masa_simpan = 1;
+            if (!this.formPengajuanData.catatan || this.formPengajuanData.catatan.includes('Rincian Masa Simpan')) {
+                this.formPengajuanData.catatan = 'Kondisi fisik box standar TB 30g dalam keadaan baik.';
             }
 
             this.formPengajuanData.tanggal_pengajuan = this.tglPenyerahan || '{{ date('Y-m-d') }}';
@@ -1406,29 +1542,26 @@ function archiveCreateApp() {
         populateFormRows() {
             const rows = [];
             const count = Math.max(12, this.boxes.length);
-            const hasDifferentPeriods = this.boxes.some(b => b.periode_bulan && b.periode_bulan != this.boxes[0].periode_bulan);
 
             for (let i = 0; i < count; i++) {
                 if (i < this.boxes.length) {
                     const b = this.boxes[i];
-                    let boxTitle = b.title || '';
-                    if (hasDifferentPeriods && b.periode_bulan) {
-                        boxTitle = `${boxTitle} (${b.periode_bulan} Bln)`;
-                    }
                     rows.push({
                         no: i + 1,
-                        title: boxTitle,
-                        label_kardus: '', // Kosongkan khusus untuk pengajuan simpan
-                        period_start: this.getBoxPeriodStartFormatted(b),
-                        period_end: this.getBoxPeriodEndFormatted(b)
+                        title: b.title || '',
+                        period_end: this.getBoxPeriodEndFormatted(b),
+                        masa_simpan: b.periode_bulan ? String(b.periode_bulan) : '1',
+                        label_kardus: '',
+                        label_box: ''
                     });
                 } else {
                     rows.push({
                         no: i + 1,
                         title: '',
+                        period_end: '',
+                        masa_simpan: '',
                         label_kardus: '',
-                        period_start: '',
-                        period_end: ''
+                        label_box: ''
                     });
                 }
             }
@@ -1460,6 +1593,12 @@ function archiveCreateApp() {
         },
 
         getBoxPeriodStartFormatted(box) {
+            if (this.tglPenyerahan) {
+                const parts = this.tglPenyerahan.split('-');
+                if (parts.length >= 2) {
+                    return `${parts[1]}-${parts[0]}`;
+                }
+            }
             if (!box || !box.items || box.items.length === 0) return '';
             const starts = box.items.map(it => it.period_start).filter(Boolean).sort();
             if (starts.length === 0) return '';
@@ -1469,6 +1608,18 @@ function archiveCreateApp() {
         },
 
         getBoxPeriodEndFormatted(box) {
+            if (this.tglPenyerahan && box && box.periode_bulan) {
+                const parts = this.tglPenyerahan.split('-');
+                if (parts.length >= 2) {
+                    const year = parseInt(parts[0], 10);
+                    const month = parseInt(parts[1], 10);
+                    const monthsToAdd = parseInt(box.periode_bulan, 10) || 1;
+                    const targetDate = new Date(year, month - 1 + monthsToAdd, 1);
+                    const endM = String(targetDate.getMonth() + 1).padStart(2, '0');
+                    const endY = targetDate.getFullYear();
+                    return `${endM}-${endY}`;
+                }
+            }
             if (!box || !box.items || box.items.length === 0) return '';
             const ends = box.items.map(it => it.period_end).filter(Boolean).sort();
             if (ends.length === 0) return '';
