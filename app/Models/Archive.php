@@ -41,11 +41,14 @@ class Archive extends Model
         'rejection_note',
         'extension_reason',
         'scan_extension_form',
+        'origin_borrowing_log_id',
+        're_store_snapshot',
     ];
 
     protected $appends = [
         'full_slot_location',
         'short_location',
+        'rack_label',
         'display_location',
         'formatted_expiry_date',
         'formatted_tgl_penyerahan',
@@ -139,6 +142,11 @@ class Archive extends Model
         return $this->hasOne(BorrowingLog::class)->orderBy('id', 'desc');
     }
 
+    public function originBorrowingLog(): BelongsTo
+    {
+        return $this->belongsTo(BorrowingLog::class, 'origin_borrowing_log_id');
+    }
+
     public function destructionLog(): HasOne
     {
         return $this->hasOne(DestructionLog::class);
@@ -212,6 +220,43 @@ class Archive extends Model
         return "{$whName} - {$sector}{$rackCode} / {$this->location->shelf_code}";
     }
 
+    public function getRackLabelAttribute(): string
+    {
+        if (!$this->location && !$this->rackSlot) {
+            return '';
+        }
+
+        // Kolom / Huruf Rak (e.g. BW, BK, CB, AS, B, dll)
+        $rackCol = '';
+        if ($this->rackSlot && !empty($this->rackSlot->slot_code)) {
+            if (preg_match('/^([A-Za-z]+)/', $this->rackSlot->slot_code, $m)) {
+                $rackCol = strtoupper($m[1]);
+            }
+        }
+        if (!$rackCol && $this->location && !empty($this->location->rack_code)) {
+            $clean = preg_replace('/^(?:RAK-)?(?:R\d+-)?/i', '', $this->location->rack_code);
+            if (preg_match('/([A-Za-z]+)/', $clean, $m)) {
+                $rackCol = strtoupper($m[1]);
+            }
+        }
+
+        // Slot / Nomor Urut Box (2 digit: 01, 02, ..., 12, etc.)
+        $slotNumStr = '';
+        if ($this->rackSlot && $this->rackSlot->slot_number !== null) {
+            $slotNumStr = str_pad($this->rackSlot->slot_number, 2, '0', STR_PAD_LEFT);
+        } elseif ($this->location && !empty($this->location->shelf_code) && preg_match('/(\d+)/', $this->location->shelf_code, $m)) {
+            $slotNumStr = str_pad($m[1], 2, '0', STR_PAD_LEFT);
+        }
+
+        if ($rackCol && $slotNumStr) {
+            return "{$rackCol} {$slotNumStr}";
+        } elseif ($rackCol) {
+            return $rackCol;
+        }
+
+        return $slotNumStr;
+    }
+
     public function getShortLocationAttribute(): string
     {
         if (!$this->location) {
@@ -230,24 +275,12 @@ class Archive extends Model
             $sector = 'R1';
         }
 
-        $rackCode = $this->location->rack_code ?? '';
-        $rackLetter = '';
-        if (preg_match('/([A-Za-z])$/i', $rackCode, $matches)) {
-            $rackLetter = strtoupper($matches[1]);
-        } elseif (!empty($rackCode)) {
-            $rackLetter = strtoupper(substr($rackCode, 0, 1));
+        $rackLabel = $this->rack_label;
+        if (!empty($rackLabel)) {
+            return "{$sector} - {$rackLabel}";
         }
 
-        $slotNumStr = '';
-        if ($this->rackSlot) {
-            $slotNumStr = str_pad($this->rackSlot->slot_number, 2, '0', STR_PAD_LEFT);
-        } elseif (!empty($this->location->shelf_code) && preg_match('/(\d+)/', $this->location->shelf_code, $matches)) {
-            $slotNumStr = str_pad($matches[1], 2, '0', STR_PAD_LEFT);
-        } else {
-            $slotNumStr = '01';
-        }
-
-        return "{$sector} - {$rackLetter}{$slotNumStr}";
+        return $sector;
     }
 
     public function getFormattedExpiryDateAttribute(): string
