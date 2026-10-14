@@ -469,4 +469,67 @@ class SettingController extends Controller
             return redirect()->back()->with('error', 'Gagal membuat backup database: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Trigger Git Pull & Server Restart in the background (Option A).
+     */
+    public function gitPullAndRestart(Request $request)
+    {
+        try {
+            $scriptPath = base_path('UPDATE-AND-RESTART.bat');
+
+            if (!file_exists($scriptPath)) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'File UPDATE-AND-RESTART.bat tidak ditemukan di root project.',
+                ], 404);
+            }
+
+            ActivityLogger::log(
+                'SYSTEM_GIT_PULL_RESTART',
+                'Memicu proses Git Pull dan Restart Server di background (Opsi A).',
+                'SETTINGS',
+                ['user' => auth()->user() ? auth()->user()->name : 'Super Admin']
+            );
+
+            // Execute batch file detached in background
+            if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+                $cmd = 'cmd /c start "" "' . $scriptPath . '"';
+                pclose(popen($cmd, 'r'));
+            } else {
+                pclose(popen('bash "' . base_path('UPDATE-AND-RESTART.sh') . '" > /dev/null 2>&1 &', 'r'));
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Perintah Git Pull & Restart Server telah berhasil dipicu. Server sedang memperbarui kode dan akan restart otomatis dalam 5-10 detik.',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal memicu Git Pull & Restart: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get the log content of the last Git Pull & Restart operation.
+     */
+    public function getGitPullLog()
+    {
+        $logPath = storage_path('logs/git-update.log');
+        if (!file_exists($logPath)) {
+            return response()->json([
+                'status' => 'success',
+                'log' => 'Belum ada log git-update yang tercatat.',
+            ]);
+        }
+
+        $content = file_get_contents($logPath);
+        return response()->json([
+            'status' => 'success',
+            'log' => $content,
+        ]);
+    }
 }
+

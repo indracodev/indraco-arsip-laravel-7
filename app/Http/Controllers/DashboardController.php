@@ -169,7 +169,7 @@ class DashboardController extends Controller
 
         $hasFilter = !empty($search) || !empty($deptId && !$user->isPicDept()) || !empty($subDeptId) || !empty($periodFilter);
 
-        // KHUSUS PIC GUDANG: Fokus hanya pada pencarian Rak Gudang dan Box/Kardus Arsip (Judul Utama & Label Box, bukan isi item)
+        // KHUSUS PIC GUDANG: Fokus hanya pada pencarian Rak Gudang dan Box Arsip (Judul Utama & Label Box, bukan isi item)
         if ($user->isPicGudang()) {
             if (!$hasFilter && empty($search)) {
                 // 1. Suggestions: Racks

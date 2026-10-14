@@ -632,7 +632,7 @@ class WarehouseLayoutController extends Controller
 
         ActivityLogger::log(
             'SLOT_ASSIGN',
-            "Penempatan kardus box '{$archive->box_number}' di slot {$slot->slot_code} pada rak '{$location->rack_code}'.",
+            "Penempatan box '{$archive->box_number}' di slot {$slot->slot_code} pada rak '{$location->rack_code}'.",
             'LAYOUT_GUDANG',
             [
                 'location_id' => $location->id,
@@ -647,7 +647,7 @@ class WarehouseLayoutController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => "Kardus arsip '{$archive->box_number}' berhasil ditempatkan di slot {$slot->slot_code}.",
+            'message' => "Box arsip '{$archive->box_number}' berhasil ditempatkan di slot {$slot->slot_code}.",
             'display_location' => $archive->display_location,
             'location_full' => $archive->display_location,
             'slot' => [

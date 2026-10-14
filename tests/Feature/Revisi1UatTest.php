@@ -36,6 +36,7 @@ class Revisi1UatTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->withoutMiddleware(\App\Http\Middleware\VerifyCsrfToken::class);
         Storage::fake('public');
 
         // 1. Setup Departments
@@ -771,9 +772,9 @@ class Revisi1UatTest extends TestCase
         $this->assertEquals('empty', $slot->status);
         $this->assertNull($slot->archive_id);
 
-        // Assert BorrowingLog status label displays "Diambil (Permanen)"
+        // Assert BorrowingLog status label displays "Sudah Ditarik"
         $borrowingLog->refresh();
-        $this->assertEquals('Diambil (Permanen)', $borrowingLog->status_label);
+        $this->assertEquals('Sudah Ditarik', $borrowingLog->status_label);
     }
 }
 

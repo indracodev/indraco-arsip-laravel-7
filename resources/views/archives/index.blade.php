@@ -124,6 +124,34 @@
                 @endif
             </div>
 
+            <!-- Sub-Department Filter -->
+            @php
+                $availableSubDepts = collect();
+                if (auth()->user()->isPicDept()) {
+                    $myDept = $departments->first();
+                    $availableSubDepts = $myDept && $myDept->subDepartments ? $myDept->subDepartments : collect();
+                } else {
+                    foreach($departments as $dept) {
+                        if ($dept->subDepartments) {
+                            $availableSubDepts = $availableSubDepts->concat($dept->subDepartments);
+                        }
+                    }
+                }
+            @endphp
+            @if($availableSubDepts->isNotEmpty())
+            <div class="space-y-1">
+                <label class="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 block">SUB-DEPARTEMEN</label>
+                <select name="sub_department_id" class="w-full py-1 px-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition">
+                    <option value="">-- Semua Sub-Bagian --</option>
+                    @foreach($availableSubDepts as $sdept)
+                    <option value="{{ $sdept->id }}" {{ request('sub_department_id') == $sdept->id ? 'selected' : '' }}>
+                        {{ $sdept->name }} ({{ $sdept->code }})
+                    </option>
+                    @endforeach
+                </select>
+            </div>
+            @endif
+
             <!-- Status Filter -->
             <div class="space-y-1">
                 <label class="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 block">STATUS WORKFLOW</label>
@@ -157,7 +185,7 @@
                     <span x-text="submitting ? 'Memuat...' : 'Filter'"></span>
                 </button>
 
-                @if(request()->hasAny(['search', 'department_id', 'status', 'expiry_filter']))
+                @if(request()->hasAny(['search', 'department_id', 'sub_department_id', 'status', 'expiry_filter']))
                 <a href="{{ route('archives.index') }}" class="py-1 px-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded text-xs font-mono font-bold border border-slate-300 dark:border-slate-700 transition flex items-center justify-center h-[30px]" title="Reset Filter">
                     <i data-lucide="x" class="w-3.5 h-3.5"></i>
                 </a>
@@ -166,7 +194,6 @@
         </form>
     </fieldset>
 
-    @if(!auth()->user()->isPicDept())
     <!-- BATCH ACTIONS RIBBON (When items checked) -->
     <div x-show="selected.length > 0" x-transition class="bg-amber-500/10 border border-amber-500/40 rounded p-2.5 flex flex-wrap items-center justify-between gap-2 font-mono text-xs shadow-sm">
         <div class="flex items-center gap-2">
@@ -174,19 +201,47 @@
                 <i data-lucide="check-square" class="w-4 h-4"></i>
             </span>
             <span class="text-slate-800 dark:text-slate-200">
-                Terpilih: <strong class="text-amber-600 dark:text-amber-400 font-extrabold" x-text="selected.length"></strong> berkas arsip untuk pencetakan label box.
+                Terpilih: <strong class="text-amber-600 dark:text-amber-400 font-extrabold" x-text="selected.length"></strong> box berkas arsip.
             </span>
         </div>
 
-        <form action="{{ route('archives.print_labels') }}" method="GET" target="_blank" class="inline">
-            <input type="hidden" name="ids" :value="selected.join(',')">
-            <button type="submit" class="px-3 py-1 bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black text-xs rounded border border-amber-600 shadow transition flex items-center gap-1.5">
-                <i data-lucide="printer" class="w-3.5 h-3.5 text-slate-950"></i>
-                <span>Cetak Label Terpilih (<span x-text="selected.length"></span>)</span>
+        <div class="flex items-center flex-wrap gap-2">
+            <!-- Batch Borrowing Action (Tarik Berkas Bersamaan) -->
+            <button 
+                type="button" 
+                @click="window.location.href = '{{ route('borrowings.create') }}?archive_ids=' + selected.join(',') + '{{ request()->has('embed') ? '&embed=1' : '' }}'"
+                class="px-3 py-1 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded border border-purple-700 shadow transition flex items-center gap-1.5 cursor-pointer"
+                title="Ajukan penarikan untuk box arsip yang dipilih"
+            >
+                <i data-lucide="corner-up-right" class="w-3.5 h-3.5 text-white"></i>
+                <span>Tarik Berkas (<span x-text="selected.length"></span> Box)</span>
             </button>
-        </form>
+
+            <!-- Batch Delete Drafts Action -->
+            <form action="{{ route('archives.batch_delete_drafts') }}" method="POST" class="inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus ' + selected.length + ' data draft arsip yang dipilih?')">
+                @csrf
+                <input type="hidden" name="ids" :value="selected.join(',')">
+                @if(request()->has('embed'))
+                    <input type="hidden" name="embed" value="1">
+                @endif
+                <button type="submit" class="px-3 py-1 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded border border-rose-700 shadow transition flex items-center gap-1.5 cursor-pointer" title="Hapus draft yang dipilih">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5 text-white"></i>
+                    <span>Hapus Draft (<span x-text="selected.length"></span>)</span>
+                </button>
+            </form>
+
+            @if(!auth()->user()->isPicDept())
+            <!-- Batch Print Labels (Warehouse / Admin) -->
+            <form action="{{ route('archives.print_labels') }}" method="GET" target="_blank" class="inline">
+                <input type="hidden" name="ids" :value="selected.join(',')">
+                <button type="submit" class="px-3 py-1 bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black text-xs rounded border border-amber-600 shadow transition flex items-center gap-1.5 cursor-pointer">
+                    <i data-lucide="printer" class="w-3.5 h-3.5 text-slate-950"></i>
+                    <span>Cetak Label (<span x-text="selected.length"></span>)</span>
+                </button>
+            </form>
+            @endif
+        </div>
     </div>
-    @endif
 
     <!-- DELPHI TDBGRID SPREADSHEET TABLE CONTAINER -->
     <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded shadow-sm relative overflow-hidden font-sans">
@@ -316,10 +371,20 @@
                                 <a href="{{ route('archives.show', $archive) }}" class="font-bold text-slate-900 dark:text-white hover:text-amber-600 dark:hover:text-amber-400 transition block font-mono">
                                     {{ $archive->title }}
                                 </a>
-                                <div class="flex items-center gap-1.5 text-[11px] text-slate-500 font-mono">
+                                <div class="flex items-center gap-1.5 text-[11px] text-slate-500 font-mono flex-wrap">
                                     <span class="px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-bold">
                                         {{ $archive->department->code ?? 'GEN' }}
                                     </span>
+                                    @if($archive->subDepartment)
+                                        <span class="px-1.5 py-0.2 rounded bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 font-bold text-[10px]" title="Sub-Departemen: {{ $archive->subDepartment->name }}">
+                                            {{ $archive->subDepartment->code ?? $archive->subDepartment->name }}
+                                        </span>
+                                    @endif
+                                    @if($archive->document_type)
+                                        <span class="px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30 font-bold text-[10px]" title="Tipe Dokumen">
+                                            {{ $archive->document_type }}
+                                        </span>
+                                    @endif
                                     <span>by {{ $archive->creator->name ?? 'User' }}</span>
                                 </div>
                             </div>
@@ -334,7 +399,12 @@
                         </td>
 
                         <td class="py-2.5 px-3 font-mono text-[11px] border-r border-slate-200 dark:border-slate-800 whitespace-nowrap">
-                            @if($archive->location)
+                            @if(in_array($archive->status, ['taken', 'borrowed', 'out']))
+                                <div class="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 font-bold text-left">
+                                    <i data-lucide="log-out" class="w-3.5 h-3.5 text-purple-500 shrink-0"></i>
+                                    <span>- (Sudah Ditarik)</span>
+                                </div>
+                            @elseif($archive->location)
                                 @if(auth()->user()->isPicGudang() || auth()->user()->isSuperAdmin())
                                 <button 
                                     type="button"
@@ -624,11 +694,29 @@
                                     </button>
                                 @endif
 
+                                {{-- Tombol Penarikan Box di Gudang (Poin 4) --}}
+                                @if($archive->status === 'in_warehouse' && (auth()->user()->isSuperAdmin() || auth()->user()->isAdmin() || (auth()->user()->isPicDept() && (int)$archive->department_id === (int)auth()->user()->department_id)))
+                                <a href="{{ route('borrowings.create', array_merge(['archive_ids' => $archive->id], request()->has('embed') ? ['embed' => 1] : [])) }}" class="px-2 py-0.5 rounded bg-purple-500/15 hover:bg-purple-500/25 text-purple-700 dark:text-purple-300 border border-purple-500/40 font-bold text-[11px] transition inline-flex items-center gap-1 shadow-xs" title="Ajukan Penarikan Box Ini">
+                                    <i data-lucide="corner-up-right" class="w-3 h-3 text-purple-600 dark:text-purple-400"></i>
+                                    <span>Tarik</span>
+                                </a>
+                                @endif
+
                                 @if(!auth()->user()->isPicGudang() && (auth()->user()->isSuperAdmin() || auth()->user()->isAdmin() || (auth()->user()->isPicDept() && (int)$archive->department_id === (int)auth()->user()->department_id && $archive->status === 'draft')))
                                 <a href="{{ route('archives.edit', array_merge(['archive' => $archive->id], request()->has('embed') ? ['embed' => 1] : [])) }}" class="px-2 py-0.5 rounded bg-amber-500 hover:bg-amber-400 text-slate-950 border border-amber-600 font-bold text-[11px] transition inline-flex items-center gap-1 shadow-xs" title="Edit Data Berkas Arsip">
                                     <i data-lucide="edit-3" class="w-3 h-3 text-slate-950"></i>
                                     <span>Edit</span>
                                 </a>
+
+                                {{-- Tombol Hapus Draft Arsip (Poin 3) --}}
+                                <form action="{{ route('archives.destroy', array_merge(['archive' => $archive->id], request()->has('embed') ? ['embed' => 1] : [])) }}" method="POST" class="inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus data draft arsip [{{ $archive->title }}]?')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="px-2 py-0.5 rounded bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30 font-bold text-[11px] transition inline-flex items-center gap-1 shadow-xs cursor-pointer" title="Hapus Draft Berkas Arsip">
+                                        <i data-lucide="trash-2" class="w-3 h-3 text-rose-500"></i>
+                                        <span>Hapus</span>
+                                    </button>
+                                </form>
                                 @endif
 
                                 @if(!auth()->user()->isPicDept())
