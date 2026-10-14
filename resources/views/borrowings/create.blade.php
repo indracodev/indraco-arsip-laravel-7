@@ -112,6 +112,111 @@
          },
          get canSubmit() {
              return this.allBoxesFilled && this.hasApprovalFile;
+         },
+
+         // Form Pengajuan Dokumen (Penarikan) State
+         formModalOpen: false,
+         formPengajuanData: {
+             no_form: '',
+             tanggal_pengajuan: '{{ date("Y-m-d") }}',
+             dept_display: @json(auth()->user()->department ? auth()->user()->department->name : ''),
+             pic_pemohon: @json(auth()->user()->name ?? ''),
+             tipe: 'Penarikan',
+             masa_simpan: 1,
+             catatan: 'Penarikan fisik kardus dan dokumen arsip untuk keperluan unit kerja.',
+             approval_pemohon: @json(auth()->user()->name ?? ''),
+             approval_atasan: '',
+             approval_pimpinan: '',
+             approval_admin_gudang: 'Admin Gudang',
+             approval_tgl: '{{ date("Y-m-d") }}'
+         },
+         formPengajuanRows: [],
+
+         openFormPengajuanModal() {
+             const selected = this.boxes.filter(b => b.selectedArchive !== null);
+             if (selected.length > 0 && selected[0].selectedArchive && selected[0].selectedArchive.department) {
+                 const dept = selected[0].selectedArchive.department;
+                 const subDept = selected[0].selectedArchive.sub_department;
+                 if (subDept && subDept.name) {
+                     this.formPengajuanData.dept_display = `${dept.name || dept.code} / ${subDept.name}`;
+                 } else {
+                     this.formPengajuanData.dept_display = dept.name || dept.code || '';
+                 }
+             } else if (!this.formPengajuanData.dept_display) {
+                 this.formPengajuanData.dept_display = @json(auth()->user()->department ? auth()->user()->department->name : '');
+             }
+
+             const purposeEl = document.getElementById('purpose');
+             if (purposeEl && purposeEl.value && purposeEl.value.trim()) {
+                 this.formPengajuanData.catatan = purposeEl.value.trim();
+             }
+
+             this.populateFormRows();
+             this.formModalOpen = true;
+             this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+         },
+
+         populateFormRows() {
+             const rows = [];
+             const selected = this.boxes.filter(b => b.selectedArchive !== null);
+             const count = Math.max(12, selected.length);
+
+             for (let i = 0; i < count; i++) {
+                 if (i < selected.length) {
+                     const arc = selected[i].selectedArchive;
+                     let start = '';
+                     let end = '';
+                     if (arc.period_start_date) {
+                         const parts = arc.period_start_date.split('-');
+                         start = parts.length >= 2 ? `${parts[1]}-${parts[0]}` : arc.period_start_date;
+                     } else if (arc.period_text) {
+                         start = arc.period_text;
+                     }
+                     if (arc.period_end_date) {
+                         const parts = arc.period_end_date.split('-');
+                         end = parts.length >= 2 ? `${parts[1]}-${parts[0]}` : arc.period_end_date;
+                     } else if (arc.period_text) {
+                         end = arc.period_text;
+                     }
+
+                     rows.push({
+                         no: i + 1,
+                         title: arc.title || '',
+                         label_kardus: arc.box_number || arc.archive_code || '',
+                         period_start: start,
+                         period_end: end
+                     });
+                 } else {
+                     rows.push({
+                         no: i + 1,
+                         title: '',
+                         label_kardus: '',
+                         period_start: '',
+                         period_end: ''
+                     });
+                 }
+             }
+             this.formPengajuanRows = rows;
+         },
+
+         getDeptSubDeptDisplay() {
+             return this.formPengajuanData.dept_display || '';
+         },
+
+         formatDateDisplay(dateStr) {
+             if (!dateStr) return '';
+             if (typeof dateStr !== 'string') return '';
+             try {
+                 const parts = dateStr.split('-');
+                 if (parts.length === 3) {
+                     return `${parts[2]}-${parts[1]}-${parts[0]}`;
+                 }
+             } catch (e) {}
+             return dateStr;
+         },
+
+         printFormPengajuan() {
+             window.print();
          }
      }">
 
@@ -127,10 +232,29 @@
             </div>
         </div>
 
-        <a href="{{ route('borrowings.index', request()->has('embed') ? ['embed' => 1] : []) }}" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded text-xs font-bold transition flex items-center gap-1 shadow-sm shrink-0">
-            <i data-lucide="arrow-left" class="w-3.5 h-3.5 text-amber-500"></i>
-            <span>Kembali ke Log Penarikan (Esc)</span>
-        </a>
+        <div class="flex items-center gap-2">
+            <!-- Counter Chip -->
+            <div class="px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/30 rounded text-xs font-mono font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
+                <i data-lucide="boxes" class="w-3.5 h-3.5 text-emerald-500"></i>
+                <span x-text="selectedBoxesCount + ' Box Dipilih'"></span>
+            </div>
+
+            <!-- Tombol Cetak Form Pengajuan Penarikan -->
+            <button 
+                type="button" 
+                @click="openFormPengajuanModal()" 
+                class="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/50 dark:hover:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700/60 rounded text-xs font-mono font-bold transition flex items-center gap-1.5 shadow-sm shrink-0 cursor-pointer"
+                title="Buka Pratinjau & Cetak Form Pengajuan Dokumen Penarikan (Standar PDF/A4)"
+            >
+                <i data-lucide="printer" class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400"></i>
+                <span>Form Penarikan</span>
+            </button>
+
+            <a href="{{ route('borrowings.index', request()->has('embed') ? ['embed' => 1] : []) }}" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded text-xs font-bold transition flex items-center gap-1 shadow-sm shrink-0">
+                <i data-lucide="arrow-left" class="w-3.5 h-3.5 text-amber-500"></i>
+                <span>Kembali (Esc)</span>
+            </a>
+        </div>
     </div>
 
     <!-- Pass archives data safely via JavaScript -->
@@ -413,6 +537,22 @@
                 3. Upload Dokumen Persetujuan (Approval) Penarikan
             </legend>
 
+            <!-- Fast Print Action Banner -->
+            <div class="p-2.5 rounded-lg bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs font-mono">
+                <div class="flex items-center gap-2 text-emerald-800 dark:text-emerald-300">
+                    <i data-lucide="info" class="w-4 h-4 text-emerald-600 shrink-0"></i>
+                    <span>Belum memiliki lembar formulir fisik resmi untuk ditandatangani sebelum diunggah?</span>
+                </div>
+                <button 
+                    type="button" 
+                    @click="openFormPengajuanModal()" 
+                    class="px-3 py-1 bg-white dark:bg-slate-900 hover:bg-emerald-50 text-emerald-700 dark:text-emerald-300 font-bold text-xs rounded border border-emerald-300 dark:border-emerald-700 shadow-2xs flex items-center gap-1.5 transition cursor-pointer shrink-0"
+                >
+                    <i data-lucide="printer" class="w-3.5 h-3.5 text-emerald-600"></i>
+                    <span>Cetak Form Penarikan</span>
+                </button>
+            </div>
+
             <div @file-change="hasApprovalFile = $event.detail.hasFile && !$event.detail.isOverLimit">
                 <x-file-uploader 
                     name="approval_file" 
@@ -458,5 +598,8 @@
             </div>
         </div>
     </form>
+
+    {{-- Komponen Modal Pratinjau & Cetak Form Pengajuan Dokumen Standar PT Indraco --}}
+    <x-form-pengajuan-modal />
 </div>
 @endsection
