@@ -25,7 +25,12 @@ class BorrowingController extends Controller
         ]);
 
         if ($user->isPicDept()) {
-            $query->where('borrower_user_id', $user->id);
+            $query->where(function ($q) use ($user) {
+                $q->where('borrower_user_id', $user->id)
+                  ->orWhereHas('archive', function ($q2) use ($user) {
+                      $q2->where('department_id', $user->department_id);
+                  });
+            });
         }
 
         if ($request->filled('search')) {

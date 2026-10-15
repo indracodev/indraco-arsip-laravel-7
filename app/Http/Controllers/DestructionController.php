@@ -17,7 +17,7 @@ class DestructionController extends Controller
         $user = auth()->user();
 
         // 1. Data berkas H-30: dihitung dari akhir bulan bulan terakhir periode + masa retensi
-        $archivesQuery = Archive::where('status', '!=', 'destroyed')
+        $archivesQuery = Archive::whereNotIn('status', ['destroyed', 'draft'])
             ->when($user->isPicDept(), function ($q) use ($user) {
                 return $q->where('department_id', $user->department_id);
             })
@@ -323,7 +323,7 @@ class DestructionController extends Controller
             'location.warehouse:id,name,code',
             'rackSlot:id,warehouse_location_id,sap_level,layer,slot_number,slot_code',
             'items:id,archive_id,item_number,document_name,period_start,period_end,period_text,notes'
-        ])->where('status', '!=', 'destroyed');
+        ])->whereNotIn('status', ['destroyed', 'draft']);
 
         if ($user->isPicDept()) {
             $archivesQuery->where('department_id', $user->department_id);
@@ -680,7 +680,7 @@ class DestructionController extends Controller
             'location.warehouse:id,name,code',
             'rackSlot:id,warehouse_location_id,sap_level,layer,slot_number,slot_code',
             'items:id,archive_id,item_number,document_name,period_start,period_end,period_text,notes'
-        ])->where('status', '!=', 'destroyed');
+        ])->whereNotIn('status', ['destroyed', 'draft']);
 
         if ($user->isPicDept()) {
             $archivesQuery->where('department_id', $user->department_id);

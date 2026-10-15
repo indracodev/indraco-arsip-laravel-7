@@ -44,22 +44,42 @@ class BorrowingLog extends Model
     protected static function booted()
     {
         static::created(function ($log) {
+            $arc = $log->archive;
+            $borrower = $log->borrower;
             \App\Services\SystemEventStream::emit(
                 'borrowing_created',
                 'BorrowingLog',
                 $log->id,
-                $log->archive ? $log->archive->department_id : null,
-                ['status' => $log->status]
+                $arc ? $arc->department_id : null,
+                [
+                    'status' => $log->status,
+                    'box_number' => $arc ? $arc->box_number : '',
+                    'title' => $arc ? $arc->title : '',
+                    'dept_code' => $arc && $arc->department ? $arc->department->code : '',
+                    'borrower' => $borrower ? $borrower->name : '',
+                    'borrower_user_id' => (int) $log->borrower_user_id,
+                    'action_by_user_id' => auth()->id() ?? (int) $log->borrower_user_id,
+                ]
             );
         });
 
         static::updated(function ($log) {
+            $arc = $log->archive;
+            $borrower = $log->borrower;
             \App\Services\SystemEventStream::emit(
                 'borrowing_updated',
                 'BorrowingLog',
                 $log->id,
-                $log->archive ? $log->archive->department_id : null,
-                ['status' => $log->status]
+                $arc ? $arc->department_id : null,
+                [
+                    'status' => $log->status,
+                    'box_number' => $arc ? $arc->box_number : '',
+                    'title' => $arc ? $arc->title : '',
+                    'dept_code' => $arc && $arc->department ? $arc->department->code : '',
+                    'borrower' => $borrower ? $borrower->name : '',
+                    'borrower_user_id' => (int) $log->borrower_user_id,
+                    'action_by_user_id' => auth()->id() ?? (int) $log->borrower_user_id,
+                ]
             );
         });
     }

@@ -185,14 +185,14 @@ class WarehouseLocation extends Model
         }
 
         if ($this->relationLoaded('archives')) {
-            return $this->archives->where('status', '!=', 'destroyed')->count();
+            return $this->archives->whereNotIn('status', ['destroyed', 'draft'])->count();
         }
 
         $filledSlots = $this->slots()->where(function ($q) {
             $q->whereNotNull('archive_id')->orWhere('status', 'filled');
         })->count();
 
-        $actualArchives = $this->archives()->where('status', '!=', 'destroyed')->count();
+        $actualArchives = $this->archives()->whereNotIn('status', ['destroyed', 'draft'])->count();
 
         return max($filledSlots, $actualArchives);
     }

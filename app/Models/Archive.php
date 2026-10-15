@@ -73,22 +73,41 @@ class Archive extends Model
     protected static function booted()
     {
         static::created(function ($archive) {
+            $isDraft = $archive->status === 'draft';
             \App\Services\SystemEventStream::emit(
-                'archive_created',
+                $isDraft ? 'archive_draft_created' : 'archive_submitted',
                 'Archive',
                 $archive->id,
                 $archive->department_id,
-                ['box_number' => $archive->box_number, 'status' => $archive->status, 'title' => $archive->title]
+                [
+                    'box_number' => $archive->box_number,
+                    'status' => $archive->status,
+                    'title' => $archive->title,
+                    'created_by_user_id' => $archive->created_by_user_id,
+                    'dept_code' => $archive->department->code ?? 'GEN',
+                    'dept_name' => $archive->department->name ?? 'Departemen',
+                ]
             );
         });
 
         static::updated(function ($archive) {
+            $isSubmittedFromDraft = $archive->wasChanged('status') && $archive->status === 'pending_verification';
+            $eventType = $isSubmittedFromDraft ? 'archive_submitted' : 'archive_updated';
+
             \App\Services\SystemEventStream::emit(
-                'archive_updated',
+                $eventType,
                 'Archive',
                 $archive->id,
                 $archive->department_id,
-                ['box_number' => $archive->box_number, 'status' => $archive->status, 'changes' => array_keys($archive->getChanges())]
+                [
+                    'box_number' => $archive->box_number,
+                    'status' => $archive->status,
+                    'title' => $archive->title,
+                    'created_by_user_id' => $archive->created_by_user_id,
+                    'dept_code' => $archive->department->code ?? 'GEN',
+                    'dept_name' => $archive->department->name ?? 'Departemen',
+                    'changes' => array_keys($archive->getChanges())
+                ]
             );
         });
 
@@ -522,7 +541,7 @@ class Archive extends Model
 
         return static::query()
             ->select('id', 'retention_expiry_date', 'status', 'department_id')
-            ->where('status', '!=', 'destroyed')
+            ->whereNotIn('status', ['destroyed', 'draft'])
             ->whereNotNull('retention_expiry_date')
             ->when($user->isPicDept(), function ($q) use ($user) {
                 return $q->where('department_id', $user->department_id);

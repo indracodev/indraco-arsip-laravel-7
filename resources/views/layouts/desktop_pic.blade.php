@@ -1461,6 +1461,8 @@
                 maintenanceLoading: false,
 
                 // Real-time Notification & Audio State
+                currentUserId: {{ auth()->id() ?? 0 }},
+                isPicGudangOrAdmin: {{ (auth()->check() && (auth()->user()->isPicGudang() || auth()->user()->isSuperAdmin())) ? 'true' : 'false' }},
                 soundEnabled: localStorage.getItem('sound_enabled') !== 'false',
                 lastArchiveId: 0,
                 lastEventSeq: 0,
@@ -1472,17 +1474,27 @@
                 audioUnlocked: false,
                 pollTimer: null,
 
+                @php
+                    $uPic = auth()->user();
+                    $uPicDeptId = $uPic ? $uPic->department_id : 0;
+                    $initialBorrowBadgePic = (int) \App\Models\BorrowingLog::whereHas('archive', function($q) use ($uPicDeptId) {
+                        $q->where('department_id', $uPicDeptId);
+                    })->whereIn('status', ['requested', 'approved'])->count();
+                    $initialArchiveBadgePic = (int) \App\Models\Archive::where('department_id', $uPicDeptId)->where('status', 'pending_verification')->count();
+                @endphp
                 availableForms: [
                     { 
                         id: 'archives', 
                         title: '[Form 1] Katalog Arsip {{ auth()->user()->department->code ?? "" }}', 
                         icon: 'folder-archive', 
+                        badgeCount: {{ $initialArchiveBadgePic }},
                         url: '{{ route("archives.index") }}?embed=1' 
                     },
                     { 
                         id: 'borrowings', 
                         title: '[Form 2] Penarikan Berkas', 
                         icon: 'file-symlink', 
+                        badgeCount: {{ $initialBorrowBadgePic }},
                         url: '{{ route("borrowings.index") }}?embed=1' 
                     },
                     { 
@@ -1634,88 +1646,166 @@
                     }
                 },
 
-                async initRealtimePoller() {
-                    try {
-                        const res = await fetch('{{ route("api.realtime.check") }}?initial=1');
-                        if (res.ok) {
-                            const data = await res.json();
-                            this.lastArchiveId = data.latest_id || 0;
-                            this.lastEventSeq = data.latest_seq || 0;
+                    updateBadges(badges) {
+                        if (!badges) return;
+                        if (badges.borrowings !== undefined) {
+                            const b = this.availableForms.find(f => f.id === 'borrowings');
+                            if (b) b.badgeCount = badges.borrowings;
                         }
-                    } catch (e) {
-                        console.warn('Realtime init poller error:', e);
-                    }
+                        if (badges.submissions !== undefined) {
+                            const a = this.availableForms.find(f => f.id === 'archives');
+                            if (a) a.badgeCount = badges.submissions;
+                        }
+                        if (badges.destructions !== undefined) {
+                            const d = this.availableForms.find(f => f.id === 'destructions');
+                            if (d) d.badgeCount = badges.destructions;
+                        }
+                    },
 
-                    const unlockHandler = () => {
-                        this.unlockAudio();
-                        document.removeEventListener('click', unlockHandler);
-                        document.removeEventListener('keydown', unlockHandler);
-                    };
-                    document.addEventListener('click', unlockHandler);
-                    document.addEventListener('keydown', unlockHandler);
-
-                    // Polling every 5 seconds with Page Visibility support
-                    const startPolling = () => {
-                        if (this.pollTimer) clearInterval(this.pollTimer);
-                        this.pollTimer = setInterval(() => this.pollNewArchives(), 5000);
-                    };
-                    startPolling();
-
-                    document.addEventListener('visibilitychange', () => {
-                        if (document.hidden) {
-                            if (this.pollTimer) {
-                                clearInterval(this.pollTimer);
-                                this.pollTimer = null;
+                    async initRealtimePoller() {
+                        try {
+                            const res = await fetch('{{ route("api.realtime.check") }}?initial=1');
+                            if (res.ok) {
+                                const data = await res.json();
+                                this.lastArchiveId = data.latest_id || 0;
+                                this.lastEventSeq = data.latest_seq || 0;
+                                if (data.badges) {
+                                    this.updateBadges(data.badges);
+                                }
                             }
-                        } else {
-                            this.pollNewArchives();
-                            startPolling();
-                        }
-                    });
-                },
-
-                async pollNewArchives() {
-                    if (document.hidden || this.lastArchiveId === undefined || this.lastArchiveId === null) return;
-                    try {
-                        const res = await fetch(`{{ route("api.realtime.check") }}?last_id=${this.lastArchiveId}&since_seq=${this.lastEventSeq || 0}`);
-                        if (!res.ok) return;
-                        const data = await res.json();
-
-                        if (data.latest_seq) {
-                            this.lastEventSeq = data.latest_seq;
+                        } catch (e) {
+                            console.warn('Realtime init poller error:', e);
                         }
 
-                        if (data.has_changes) {
-                            window.dispatchEvent(new CustomEvent('dms:realtime-sync', { detail: data }));
-                        }
+                        const unlockHandler = () => {
+                            this.unlockAudio();
+                            document.removeEventListener('click', unlockHandler);
+                            document.removeEventListener('keydown', unlockHandler);
+                        };
+                        document.addEventListener('click', unlockHandler);
+                        document.addEventListener('keydown', unlockHandler);
+
+                        // Polling every 5 seconds with Page Visibility support
+                        const startPolling = () => {
+                            if (this.pollTimer) clearInterval(this.pollTimer);
+                            this.pollTimer = setInterval(() => this.pollNewArchives(), 5000);
+                        };
+                        startPolling();
+
+                        document.addEventListener('visibilitychange', () => {
+                            if (document.hidden) {
+                                if (this.pollTimer) {
+                                    clearInterval(this.pollTimer);
+                                    this.pollTimer = null;
+                                }
+                            } else {
+                                this.pollNewArchives();
+                                startPolling();
+                            }
+                        });
+                    },
+
+                    async pollNewArchives() {
+                        if (document.hidden || this.lastArchiveId === undefined || this.lastArchiveId === null) return;
+                        try {
+                            const res = await fetch(`{{ route("api.realtime.check") }}?last_id=${this.lastArchiveId}&since_seq=${this.lastEventSeq || 0}`);
+                            if (!res.ok) return;
+                            const data = await res.json();
+
+                            if (data.latest_seq) {
+                                this.lastEventSeq = data.latest_seq;
+                            }
+
+                            if (data.badges) {
+                                this.updateBadges(data.badges);
+                            }
+
+                            if (data.has_changes) {
+                                window.dispatchEvent(new CustomEvent('dms:realtime-sync', { detail: data }));
+                            }
+
+                            if (data.events && data.events.length > 0) {
+                                data.events.forEach(ev => {
+                                    let payload = {};
+                                    try {
+                                        payload = typeof ev.payload === 'string' ? JSON.parse(ev.payload) : (ev.payload || {});
+                                    } catch(e) {}
+
+                                    if (ev.event_type === 'borrowing_created' || ev.event_type === 'borrowing_updated') {
+                                        const isCreated = ev.event_type === 'borrowing_created';
+
+                                        // 1. Never alert the user who initiated or updated this action themselves
+                                        if (this.currentUserId && (
+                                            (payload.action_by_user_id && Number(payload.action_by_user_id) === Number(this.currentUserId)) ||
+                                            (isCreated && payload.borrower_user_id && Number(payload.borrower_user_id) === Number(this.currentUserId))
+                                        )) {
+                                            return;
+                                        }
+
+                                        // 2. Role Scoping: New borrowing requests are meant for PIC Gudang & Admin
+                                        if (isCreated && !this.isPicGudangOrAdmin) {
+                                            return;
+                                        }
+
+                                        const toast = {
+                                            id: 'toast_ev_' + ev.id + '_' + Date.now(),
+                                            archiveId: null,
+                                            title: isCreated ? 'Permohonan Penarikan Berkas' : 'Status Penarikan Berkas Berubah',
+                                            boxNumber: payload.box_number || 'Box Arsip',
+                                            deptCode: payload.dept_code || 'DEPT',
+                                            deptName: payload.borrower || 'User',
+                                            creatorName: payload.borrower || 'User',
+                                            statusLabel: payload.status === 'requested' ? 'Menunggu Approval' : (payload.status === 'approved' ? 'Disetujui / Siap Ambil' : (payload.status === 'dispatched' ? 'Sudah Ditarik' : payload.status)),
+                                            time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+                                            url: '{{ route("borrowings.index") }}?embed=1'
+                                        };
+                                        this.activeToasts.unshift(toast);
+                                        this.realtimeNotifications.unshift(toast);
+                                        this.unreadNotificationsCount++;
+                                        this.playChime();
+                                        setTimeout(() => this.dismissToast(toast.id), 9000);
+                                    }
+                                });
+                            }
 
                         if (data.has_new && data.new_archives && data.new_archives.length > 0) {
                             this.lastArchiveId = data.latest_id;
 
-                            this.playChime();
-
-                            data.new_archives.forEach(item => {
-                                const toast = {
-                                    id: 'toast_' + item.id + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-                                    archiveId: item.id,
-                                    title: item.title,
-                                    boxNumber: item.box_number,
-                                    deptCode: item.dept_code,
-                                    deptName: item.dept_name,
-                                    creatorName: item.creator_name,
-                                    statusLabel: item.status_label,
-                                    time: item.created_at_time || new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-                                    url: item.url
-                                };
-
-                                this.activeToasts.unshift(toast);
-                                this.realtimeNotifications.unshift(toast);
-                                this.unreadNotificationsCount++;
-
-                                setTimeout(() => {
-                                    this.dismissToast(toast.id);
-                                }, 9000);
+                            // Filter alerts: Never alert on drafts, and do not alert creator on their own submissions
+                            const eligibleAlerts = data.new_archives.filter(item => {
+                                if (item.status === 'draft') return false;
+                                if (this.currentUserId && Number(item.created_by_user_id) === Number(this.currentUserId)) {
+                                    return false;
+                                }
+                                return true;
                             });
+
+                            if (eligibleAlerts.length > 0) {
+                                this.playChime();
+
+                                eligibleAlerts.forEach(item => {
+                                    const toast = {
+                                        id: 'toast_' + item.id + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                                        archiveId: item.id,
+                                        title: item.title,
+                                        boxNumber: item.box_number,
+                                        deptCode: item.dept_code,
+                                        deptName: item.dept_name,
+                                        creatorName: item.creator_name,
+                                        statusLabel: item.status_label,
+                                        time: item.created_at_time || new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+                                        url: item.url
+                                    };
+
+                                    this.activeToasts.unshift(toast);
+                                    this.realtimeNotifications.unshift(toast);
+                                    this.unreadNotificationsCount++;
+
+                                    setTimeout(() => {
+                                        this.dismissToast(toast.id);
+                                    }, 9000);
+                                });
+                            }
 
                             if (this.realtimeNotifications.length > 25) {
                                 this.realtimeNotifications = this.realtimeNotifications.slice(0, 25);
