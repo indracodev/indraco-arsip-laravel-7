@@ -168,13 +168,14 @@
                     <label class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
                         SUB-DEPARTEMEN <span class="text-slate-400 font-normal">(Opsional)</span>
                     </label>
+                    <input type="hidden" name="sub_department_id" :value="selectedSubDeptId === 'inti' ? '' : selectedSubDeptId">
                     <select 
-                        name="sub_department_id" 
                         x-model="selectedSubDeptId"
                         @change="onSectionSubDeptChange()"
                         class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition shadow-2xs"
                     >
                         <option value="">-- Pilih Sub-Departemen --</option>
+                        <option value="inti">Inti Departemen</option>
                         <template x-for="s in subDepartments" :key="s.id">
                             <option :value="s.id" x-text="s.code + ' - ' + s.name" :selected="selectedSubDeptId == s.id"></option>
                         </template>
@@ -343,7 +344,7 @@
                             </div>
 
                             <!-- Hidden Sub-Departemen (Otomatis Mewarisi Sub-Dept Induk Batch) -->
-                            <input type="hidden" :name="'boxes[' + bIdx + '][sub_department_id]'" :value="selectedSubDeptId">
+                            <input type="hidden" :name="'boxes[' + bIdx + '][sub_department_id]'" :value="box.sub_department_id === 'inti' ? '' : (box.sub_department_id || (selectedSubDeptId === 'inti' ? '' : selectedSubDeptId))">
 
                             <!-- Kategori Dokumen (Terkunci Otomatis dari Master Berkas) -->
                             <div class="sm:col-span-2">
@@ -509,7 +510,7 @@
                                                         x-effect="$nextTick(() => { if (item.document_name && $el.value !== item.document_name) $el.value = item.document_name; })"
                                                         class="w-full px-2 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
                                                     >
-                                                        <option value="">-- Pilih dari Master Berkas Arsip --</option>
+                                                        <option value="" x-text="selectedSubDeptId ? (getBoxMasterArchives(box).length > 0 ? '-- Pilih dari Master Berkas Arsip --' : '-- Tidak ada master berkas untuk sub-departemen ini --') : '-- Pilih Sub-Departemen terlebih dahulu --'">-- Pilih dari Master Berkas Arsip --</option>
                                                         <template x-for="m in getBoxMasterArchives(box)" :key="m.id">
                                                             <option :value="m.name" x-text="(m.code ? (m.code + ' - ') : '') + m.name + (m.document_type ? ' [' + m.document_type + ']' : '')" :selected="m.name === item.document_name"></option>
                                                         </template>
@@ -1097,7 +1098,8 @@ function archiveEditApp() {
         addItem(boxIndex) {
             const box = this.boxes[boxIndex];
             if (!box) return;
-            const defaultDoc = this.masterArchives.length > 0 ? this.masterArchives[0].name : '';
+            const available = this.getBoxMasterArchives(box);
+            const defaultDoc = available.length > 0 ? available[0].name : '';
             
             const prevItem = box.items.length > 0 ? box.items[box.items.length - 1] : null;
             const pStart = prevItem ? prevItem.period_start : this.currentMonth;
@@ -1138,7 +1140,8 @@ function archiveEditApp() {
         addBulkItems(boxIndex, count = 5) {
             const box = this.boxes[boxIndex];
             if (!box) return;
-            const defaultDoc = this.masterArchives.length > 0 ? this.masterArchives[0].name : '';
+            const available = this.getBoxMasterArchives(box);
+            const defaultDoc = available.length > 0 ? available[0].name : '';
             const prevItem = box.items.length > 0 ? box.items[box.items.length - 1] : null;
             const pStart = prevItem ? prevItem.period_start : this.currentMonth;
             const pEnd = prevItem ? prevItem.period_end : this.currentMonth;
@@ -1332,14 +1335,22 @@ function archiveEditApp() {
                 ? box.sub_department_id 
                 : this.selectedSubDeptId;
 
-            if (subId) {
-                const subSpecific = all.filter(m => String(m.sub_department_id) === String(subId));
-                if (subSpecific.length > 0) {
-                    return subSpecific;
-                }
+            // Jika memilih Inti Departemen
+            if (subId === 'inti') {
+                return all.filter(m => !m.sub_department_id);
             }
 
-            // Tampilkan semua dokumen departemen jika belum/tidak memilih sub-departemen spesifik
+            // Jika memilih sub-departemen spesifik
+            if (subId && subId !== '') {
+                return all.filter(m => String(m.sub_department_id) === String(subId));
+            }
+
+            // Jika belum memilih sub-departemen ('-- Pilih Sub-Departemen --')
+            const hasSubDepts = (dept && dept.sub_departments && dept.sub_departments.length > 0) || (this.subDepartments && this.subDepartments.length > 0);
+            if (hasSubDepts) {
+                return [];
+            }
+
             return all;
         },
 
@@ -1373,6 +1384,20 @@ function archiveEditApp() {
                 }
                 if (available[0].retention_years && !preserveExisting) {
                     box.retention_years = available[0].retention_years;
+                }
+            } else if (!preserveExisting) {
+                box.document_type = '';
+                if (box.items && box.items.length > 0) {
+                    box.items.forEach(it => {
+                        it.document_name = '';
+                    });
+                }
+                const subId = (box && box.sub_department_id !== undefined && box.sub_department_id !== '' && box.sub_department_id !== null)
+                    ? box.sub_department_id 
+                    : this.selectedSubDeptId;
+                const currentSub = this.subDepartments.find(s => String(s.id) === String(subId));
+                if (currentSub && currentSub.retention_years) {
+                    box.retention_years = currentSub.retention_years;
                 }
             }
         },

@@ -262,6 +262,19 @@ class ArchiveController extends Controller
     {
         $user = auth()->user();
 
+        if ($request->input('sub_department_id') === 'inti') {
+            $request->merge(['sub_department_id' => null]);
+        }
+        if ($request->has('boxes') && is_array($request->input('boxes'))) {
+            $boxes = $request->input('boxes');
+            foreach ($boxes as $k => $b) {
+                if (isset($b['sub_department_id']) && $b['sub_department_id'] === 'inti') {
+                    $boxes[$k]['sub_department_id'] = null;
+                }
+            }
+            $request->merge(['boxes' => $boxes]);
+        }
+
         // Check if multi-box batch format is present
         if ($request->has('boxes') && is_array($request->input('boxes')) && count($request->input('boxes')) > 0) {
             return $this->storeMultiBox($request, $user);
@@ -1223,6 +1236,19 @@ class ArchiveController extends Controller
     public function update(Request $request, Archive $archive)
     {
         $user = auth()->user();
+
+        if ($request->input('sub_department_id') === 'inti') {
+            $request->merge(['sub_department_id' => null]);
+        }
+        if ($request->has('boxes') && is_array($request->input('boxes'))) {
+            $boxes = $request->input('boxes');
+            foreach ($boxes as $k => $b) {
+                if (isset($b['sub_department_id']) && $b['sub_department_id'] === 'inti') {
+                    $boxes[$k]['sub_department_id'] = null;
+                }
+            }
+            $request->merge(['boxes' => $boxes]);
+        }
 
         if ($user->isPicDept() && (int)$archive->department_id !== (int)$user->department_id) {
             abort(403, 'Anda tidak memiliki hak akses untuk mengedit arsip departemen ini.');
