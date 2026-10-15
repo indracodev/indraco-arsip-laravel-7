@@ -134,6 +134,30 @@ class MultiBoxDestructionAndExtensionTest extends TestCase
         $arc1->refresh();
         $arc2->refresh();
 
+        $this->assertEquals('pending_extension', $arc1->status);
+        $this->assertEquals('pending_extension', $arc2->status);
+
+        $gudang = User::create([
+            'name' => 'Petugas Gudang ' . rand(100, 999),
+            'email' => 'gudang_' . uniqid() . '@indraco.com',
+            'password' => bcrypt('password'),
+            'role' => 'pic_gudang',
+        ]);
+        $this->actingAs($gudang);
+
+        $logs = \App\Models\ArchiveExtensionLog::whereIn('archive_id', [$arc1->id, $arc2->id])->get();
+        $this->assertCount(2, $logs);
+        foreach ($logs as $log) {
+            $this->assertEquals('pending', $log->approval_status);
+            $appr = $this->post(route('destructions.extensions.approve', $log->id));
+            $appr->assertRedirect();
+        }
+
+        $arc1->refresh();
+        $arc2->refresh();
+
+        $this->assertEquals('in_warehouse', $arc1->status);
+        $this->assertEquals('in_warehouse', $arc2->status);
         $this->assertEquals(7, $arc1->retention_years); // 5 + 2
         $this->assertEquals(7, $arc2->retention_years);
         $this->assertEquals('Pemeriksaan lanjutan kantor pajak daerah.', $arc1->extension_reason);

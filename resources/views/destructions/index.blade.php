@@ -83,6 +83,38 @@
         this.selectedLogToComplete = null;
     },
 
+    // Modal Upload BAP Susulan (Post-Completion)
+    uploadBapModalOpen: false,
+    selectedLogToUploadBap: null,
+
+    openUploadBapModal(dLog) {
+        this.selectedLogToUploadBap = dLog;
+        this.uploadBapModalOpen = true;
+        this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+    },
+
+    closeUploadBapModal() {
+        this.uploadBapModalOpen = false;
+        this.selectedLogToUploadBap = null;
+    },
+
+    // Modal Tolak Pengajuan Perpanjangan
+    rejectModalOpen: false,
+    selectedLogToReject: null,
+    rejectReason: '',
+
+    openRejectModal(ext) {
+        this.selectedLogToReject = ext;
+        this.rejectReason = '';
+        this.rejectModalOpen = true;
+        this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+    },
+
+    closeRejectModal() {
+        this.rejectModalOpen = false;
+        this.selectedLogToReject = null;
+    },
+
     get filteredExpired() {
         let res = [...this.expiredArchives];
         if (this.searchExpired.trim() !== '') {
@@ -471,7 +503,8 @@
                         <th class="py-2.5 px-3 border-r border-slate-300 dark:border-slate-700">EXPIRY BARU</th>
                         <th class="py-2.5 px-3 border-r border-slate-300 dark:border-slate-700">ALASAN PERPANJANGAN</th>
                         <th class="py-2.5 px-3 border-r border-slate-300 dark:border-slate-700">PEMOHON</th>
-                        <th class="py-2.5 px-3 text-right whitespace-nowrap">DOKUMEN BUKTI</th>
+                        <th class="py-2.5 px-3 border-r border-slate-300 dark:border-slate-700 text-center">STATUS</th>
+                        <th class="py-2.5 px-3 text-right whitespace-nowrap">DOKUMEN & AKSI</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-200 dark:divide-slate-800 text-xs font-mono">
@@ -484,39 +517,71 @@
                             </td>
                             <td class="py-2.5 px-3 border-r border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 text-[11px] whitespace-nowrap" x-text="ext.date"></td>
                             <td class="py-2.5 px-3 border-r border-slate-200 dark:border-slate-800 font-bold text-purple-600 dark:text-purple-400 whitespace-nowrap">
-                                <span class="px-2 py-0.5 rounded bg-purple-500/10 border border-purple-500/30 text-[10px]" x-text="'+' + ext.additional_years + ' Thn'"></span>
+                                <span class="px-2 py-0.5 rounded bg-purple-500/10 border border-purple-500/30 text-[10px]" x-text="ext.duration_label || ('+' + (ext.additional_months ? ext.additional_months + ' Bulan' : ext.additional_years + ' Tahun'))"></span>
                             </td>
                             <td class="py-2.5 px-3 border-r border-slate-200 dark:border-slate-800 font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap" x-text="ext.new_expiry_date"></td>
                             <td class="py-2.5 px-3 border-r border-slate-200 dark:border-slate-800 max-w-xs truncate font-sans text-slate-600 dark:text-slate-400 text-[11px]" :title="ext.reason" x-text="ext.reason"></td>
                             <td class="py-2.5 px-3 border-r border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 whitespace-nowrap text-[11px]" x-text="ext.user_name"></td>
+                            <td class="py-2.5 px-3 border-r border-slate-200 dark:border-slate-800 text-center whitespace-nowrap">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border" :class="ext.status_badge || 'bg-slate-100 text-slate-800 border-slate-300'" x-text="ext.status_label || 'Disetujui'"></span>
+                                <template x-if="ext.rejection_note">
+                                    <p class="text-[9px] text-rose-500 max-w-[120px] truncate mt-0.5" :title="ext.rejection_note" x-text="'Alasan: ' + ext.rejection_note"></p>
+                                </template>
+                            </td>
                             <td class="py-2.5 px-3 text-right whitespace-nowrap">
-                                <template x-if="ext.scan_file">
-                                    <button type="button" 
-                                            @click="dmsPreviewFile({
-                                                url: ext.scan_file,
-                                                stream_url: ext.scan_file_stream,
-                                                raw_path: ext.scan_file_raw,
-                                                name: 'Form Perpanjangan - ' + (ext.box_number || ext.archive_title),
-                                                ext: (ext.scan_file_raw || ext.scan_file || '').split('.').pop().toLowerCase()
-                                            })"
-                                            class="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-purple-600 dark:text-purple-400 border border-slate-300 dark:border-slate-700 text-[10px] font-bold inline-flex items-center gap-1 cursor-pointer">
-                                        <i data-lucide="file-text" class="w-3 h-3"></i>
-                                        <span>Lihat Bukti</span>
-                                    </button>
-                                </template>
-                                <template x-if="!ext.scan_file && ext.archive_id">
-                                    <a :href="'{{ url('/destructions/extend-print') }}/' + ext.archive_id" target="_blank" class="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700 text-[10px] font-bold inline-flex items-center gap-1 cursor-pointer">
-                                        <i data-lucide="printer" class="w-3 h-3"></i>
-                                        <span>Cetak Form</span>
-                                    </a>
-                                </template>
+                                <div class="flex items-center justify-end gap-1.5">
+                                    <template x-if="ext.scan_file">
+                                        <button type="button" 
+                                                @click="dmsPreviewFile({
+                                                    url: ext.scan_file,
+                                                    stream_url: ext.scan_file_stream,
+                                                    raw_path: ext.scan_file_raw,
+                                                    name: 'Form Perpanjangan - ' + (ext.box_number || ext.archive_title),
+                                                    ext: (ext.scan_file_raw || ext.scan_file || '').split('.').pop().toLowerCase()
+                                                })"
+                                                class="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-purple-600 dark:text-purple-400 border border-slate-300 dark:border-slate-700 text-[10px] font-bold inline-flex items-center gap-1 cursor-pointer">
+                                            <i data-lucide="file-text" class="w-3 h-3"></i>
+                                            <span>Lihat Bukti</span>
+                                        </button>
+                                    </template>
+                                    <template x-if="!ext.scan_file && ext.archive_id">
+                                        <a :href="'{{ url('/destructions/extend-print') }}/' + ext.archive_id" target="_blank" class="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700 text-[10px] font-bold inline-flex items-center gap-1 cursor-pointer">
+                                            <i data-lucide="printer" class="w-3 h-3"></i>
+                                            <span>Cetak Form</span>
+                                        </a>
+                                    </template>
+
+                                    @if(auth()->check() && (auth()->user()->isPicGudang() || auth()->user()->isSuperAdmin()))
+                                        <template x-if="ext.can_approve">
+                                            <div class="inline-flex items-center gap-1">
+                                                <form :action="'{{ url('/destructions/extensions') }}/' + ext.id + '/approve'" method="POST" class="inline">
+                                                    @csrf
+                                                    <button type="button" 
+                                                            @click="async () => { const ok = window.showConfirmModal ? await window.showConfirmModal({ title: 'ACC Perpanjangan', message: 'Setujui perpanjangan masa retensi (' + (ext.duration_label || 'perpanjangan') + ') untuk Box ' + (ext.box_number || ext.archive_title) + '?', type: 'primary', confirmText: 'Ya, Setujui ACC' }) : true; if (ok) $el.closest('form').submit(); }"
+                                                            class="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] border border-emerald-700 shadow-sm inline-flex items-center gap-1 cursor-pointer" 
+                                                            title="ACC / Setujui perpanjangan masa retensi berkas">
+                                                        <i data-lucide="check" class="w-3 h-3"></i>
+                                                        <span>ACC</span>
+                                                    </button>
+                                                </form>
+                                                <button type="button" 
+                                                        @click="openRejectModal(ext)"
+                                                        class="px-2 py-0.5 rounded bg-rose-600 hover:bg-rose-500 text-white font-bold text-[10px] border border-rose-700 shadow-sm inline-flex items-center gap-1 cursor-pointer" 
+                                                        title="Tolak perpanjangan masa retensi berkas">
+                                                    <i data-lucide="x" class="w-3 h-3"></i>
+                                                    <span>Tolak</span>
+                                                </button>
+                                            </div>
+                                        </template>
+                                    @endif
+                                </div>
                             </td>
                         </tr>
                     </template>
 
                     <!-- EMPTY STATE JIKA BELUM ADA LOG PERPANJANGAN -->
                     <tr x-show="filteredExtLogs.length === 0">
-                        <td colspan="8" class="py-8 px-4 text-center text-slate-500 dark:text-slate-400">
+                        <td colspan="9" class="py-8 px-4 text-center text-slate-500 dark:text-slate-400">
                             <i data-lucide="clock" class="w-8 h-8 text-purple-400 mx-auto mb-2 opacity-60"></i>
                             <div class="font-bold text-slate-800 dark:text-slate-200">Belum Ada Riwayat Perpanjangan</div>
                             <p class="text-[11px] text-slate-400 mt-0.5">Belum ada berkas arsip yang diajukan atau disetujui perpanjangan masa simpannya.</p>
@@ -667,6 +732,19 @@
                                             <span>Cetak BAP</span>
                                         </button>
                                     </template>
+
+                                    <!-- Tombol Upload BAP Susulan (Khusus Gudang / Super Admin) jika berkas belum diunggah saat eksekusi -->
+                                    @if(auth()->check() && (auth()->user()->isPicGudang() || auth()->user()->isSuperAdmin()))
+                                        <template x-if="dLog.approval_status === 'completed'">
+                                            <button type="button" 
+                                                    @click="openUploadBapModal(dLog)"
+                                                    class="px-2 py-0.5 rounded bg-purple-600 hover:bg-purple-500 text-white font-bold text-[10px] border border-purple-700 shadow-sm inline-flex items-center gap-1 cursor-pointer"
+                                                    :title="dLog.certificate_file ? 'Upload ulang file BAP' : 'Upload scan berkas BAP fisik bertandatangan'">
+                                                <i data-lucide="upload" class="w-3 h-3"></i>
+                                                <span x-text="dLog.certificate_file ? 'Re-upload BAP' : 'Upload BAP'"></span>
+                                            </button>
+                                        </template>
+                                    @endif
 
                                     <!-- 4. Tombol Aksi Workflow Khusus PIC Gudang / Super Admin -->
                                     @if(auth()->check() && (auth()->user()->isPicGudang() || auth()->user()->isSuperAdmin()))
@@ -855,6 +933,145 @@
                     <button type="submit" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded shadow transition flex items-center gap-1.5 cursor-pointer">
                         <i data-lucide="check" class="w-3.5 h-3.5"></i>
                         <span>Sahkan Pemusnahan & Terbitkan BAP</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL UPLOAD BAP SUSULAN (PASCA EKSEKUSI PEMUSNAHAN) -->
+    <div x-show="uploadBapModalOpen" 
+         x-cloak 
+         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs font-mono"
+         @keydown.escape.window="closeUploadBapModal()">
+        <div @click.away="closeUploadBapModal()" 
+             class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg shadow-2xl w-full max-w-lg space-y-4 p-5">
+            
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                <div class="flex items-center gap-2">
+                    <span class="p-1.5 bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/30 rounded">
+                        <i data-lucide="upload" class="w-4 h-4"></i>
+                    </span>
+                    <div>
+                        <h3 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                            Upload Berita Acara Pemusnahan (BAP)
+                        </h3>
+                        <p class="text-[10px] text-slate-500 font-sans">
+                            Unggah scan fisik dokumen BAP resmi bertandatangan agar departemen dapat mencetak dan mengunduh berkas.
+                        </p>
+                    </div>
+                </div>
+                <button type="button" @click="closeUploadBapModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded cursor-pointer">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <div class="p-2.5 bg-slate-50 dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-800 text-xs space-y-1">
+                <div class="flex items-center justify-between">
+                    <span class="text-[10px] font-bold text-slate-500">NO. BAP:</span>
+                    <span class="font-bold text-rose-600 dark:text-rose-400" x-text="selectedLogToUploadBap?.bap_number || '-'"></span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-[10px] font-bold text-slate-500">BERKAS ARSIP:</span>
+                    <span class="font-bold text-slate-800 dark:text-white truncate max-w-[280px]" x-text="selectedLogToUploadBap?.archive_title || '-'"></span>
+                </div>
+            </div>
+
+            <form :action="selectedLogToUploadBap ? '{{ url('/destructions') }}/' + selectedLogToUploadBap.id + '/upload-bap' : '#'" 
+                  method="POST" 
+                  enctype="multipart/form-data" 
+                  class="space-y-3.5 text-xs">
+                @csrf
+
+                <div>
+                    <x-file-uploader 
+                        name="certificate_file" 
+                        id="post_certificate_file" 
+                        label="Pilih Berkas Scan BAP Resmi Bertandatangan" 
+                        :required="true" 
+                        badge="WAJIB" 
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        :maxSizeKB="500"
+                        :maxSizeMB="0.5"
+                        helperText="Scan surat berita acara fisik bertandatangan (Format: PDF, JPG, PNG Maks. 500 KB)."
+                    />
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+                    <button type="button" @click="closeUploadBapModal()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded font-bold transition cursor-pointer">
+                        Batal
+                    </button>
+                    <button type="submit" class="px-4 py-1.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded shadow transition flex items-center gap-1.5 cursor-pointer">
+                        <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                        <span>Simpan & Upload BAP</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL TOLAK PENGAJUAN PERPANJANGAN (GUDANG / SUPERADMIN) -->
+    <div x-show="rejectModalOpen" 
+         x-cloak 
+         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs font-mono"
+         @keydown.escape.window="closeRejectModal()">
+        <div @click.away="closeRejectModal()" 
+             class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg shadow-2xl w-full max-w-md space-y-4 p-5">
+            
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                <div class="flex items-center gap-2">
+                    <span class="p-1.5 bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30 rounded">
+                        <i data-lucide="x-circle" class="w-4 h-4"></i>
+                    </span>
+                    <div>
+                        <h3 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                            Tolak Pengajuan Perpanjangan
+                        </h3>
+                        <p class="text-[10px] text-slate-500 font-sans">
+                            Berikan alasan penolakan perpanjangan masa retensi berkas arsip.
+                        </p>
+                    </div>
+                </div>
+                <button type="button" @click="closeRejectModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded cursor-pointer">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <div class="p-2.5 bg-slate-50 dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-800 text-xs space-y-1">
+                <div class="flex items-center justify-between">
+                    <span class="text-[10px] font-bold text-slate-500">NO. BOX:</span>
+                    <span class="font-bold text-purple-600 dark:text-purple-400" x-text="selectedLogToReject?.box_number || '-'"></span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-[10px] font-bold text-slate-500">BERKAS ARSIP:</span>
+                    <span class="font-bold text-slate-800 dark:text-white truncate max-w-[240px]" x-text="selectedLogToReject?.archive_title || '-'"></span>
+                </div>
+            </div>
+
+            <form :action="selectedLogToReject ? '{{ url('/destructions/extensions') }}/' + selectedLogToReject.id + '/reject' : '#'" 
+                  method="POST" 
+                  class="space-y-3.5 text-xs">
+                @csrf
+
+                <div>
+                    <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        ALASAN PENOLAKAN <span class="text-rose-500">*</span>
+                    </label>
+                    <textarea name="rejection_note" 
+                              x-model="rejectReason" 
+                              rows="3" 
+                              required
+                              placeholder="Jelaskan alasan pengajuan perpanjangan ditolak..."
+                              class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-rose-500 transition"></textarea>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+                    <button type="button" @click="closeRejectModal()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded font-bold transition cursor-pointer">
+                        Batal
+                    </button>
+                    <button type="submit" class="px-4 py-1.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded shadow transition flex items-center gap-1.5 cursor-pointer">
+                        <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                        <span>Tolak Pengajuan</span>
                     </button>
                 </div>
             </form>

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Archive;
+use App\Models\ArchiveExtensionLog;
 use App\Models\Department;
 use App\Models\DestructionLog;
 use App\Services\ActivityLogger;
@@ -115,61 +116,134 @@ class DestructionController extends Controller
             ];
         })->sortBy('diff_days')->values();
 
-        // 2. Log Riwayat Perpanjangan (Tabel Perpanjangan - default kosong jika belum ada)
-        $extensionLogsQuery = \App\Models\ActivityLog::where('action', 'RETENTION_EXTEND');
+        // 2. Log Riwayat & Antrean Perpanjangan (ArchiveExtensionLog)
+        $extQuery = ArchiveExtensionLog::with(['archive.department', 'proposedBy', 'approvedBy']);
         if ($user->isPicDept()) {
-            $extensionLogsQuery->where('department_id', $user->department_id);
+            $extQuery->whereHas('archive', function ($q) use ($user) {
+                $q->where('department_id', $user->department_id);
+            });
         }
-        $extensionLogs = $extensionLogsQuery->latest()->get()->map(function ($log) {
-            $props = is_array($log->properties) ? $log->properties : (json_decode($log->properties, true) ?? []);
-            $archive = null;
-            if (!empty($props['archive_id'])) {
-                $archive = Archive::with('department')->find($props['archive_id']);
-            }
-            return [
-                'id' => $log->id,
-                'box_number' => $log->reference_id ?? ($archive->box_number ?? '-'),
-                'archive_title' => $archive ? ($archive->effective_title ?? $archive->title) : ($log->description),
-                'department_code' => $archive && $archive->department ? $archive->department->code : ($log->user_role ?? '-'),
-                'additional_years' => $props['additional_years'] ?? ($props['additional_months'] ? ($props['additional_months'] . ' Bulan') : '-'),
-                'new_expiry_date' => !empty($props['new_expiry_date']) ? Carbon::parse($props['new_expiry_date'])->format('M Y') : '-',
-                'reason' => $props['extension_reason'] ?? '-',
-                'user_name' => $log->user_name ?? ($log->user ? $log->user->name : 'PIC'),
-                'date' => $log->created_at ? $log->created_at->format('d M Y H:i') : '-',
-                'scan_file' => !empty($props['scan_extension_form']) ? app_storage_url($props['scan_extension_form']) : ($archive && $archive->scan_extension_form ? app_storage_url($archive->scan_extension_form) : null),
-                'scan_file_stream' => !empty($props['scan_extension_form']) ? app_preview_stream_url($props['scan_extension_form']) : ($archive && $archive->scan_extension_form ? app_preview_stream_url($archive->scan_extension_form) : null),
-                'scan_file_raw' => !empty($props['scan_extension_form']) ? $props['scan_extension_form'] : ($archive && $archive->scan_extension_form ? $archive->scan_extension_form : null),
-                'archive_id' => $props['archive_id'] ?? null,
-            ];
-        });
+        $dbExtLogs = $extQuery->latest()->get();
 
-        if ($extensionLogs->isEmpty()) {
-            $extendedArchives = Archive::whereNotNull('extension_reason')
-                ->when($user->isPicDept(), function ($q) use ($user) {
-                    return $q->where('department_id', $user->department_id);
-                })
-                ->with('department')
-                ->latest('updated_at')
-                ->get()
-                ->map(function ($arc) {
-                    return [
-                        'id' => $arc->id,
-                        'box_number' => $arc->box_number,
-                        'archive_title' => $arc->effective_title ?? $arc->title,
-                        'department_code' => $arc->department ? $arc->department->code : '-',
-                        'additional_years' => ($arc->retention_display ?: ($arc->retention_years ? $arc->retention_years . ' Tahun' : '-')),
-                        'new_expiry_date' => $arc->retention_expiry_date ? Carbon::parse($arc->retention_expiry_date)->format('M Y') : '-',
-                        'reason' => $arc->extension_reason ?: '-',
-                        'user_name' => 'PIC Dept',
-                        'date' => $arc->updated_at ? $arc->updated_at->format('d M Y H:i') : '-',
-                        'scan_file' => $arc->scan_extension_form ? app_storage_url($arc->scan_extension_form) : null,
-                        'scan_file_stream' => $arc->scan_extension_form ? app_preview_stream_url($arc->scan_extension_form) : null,
-                        'scan_file_raw' => $arc->scan_extension_form,
-                        'archive_id' => $arc->id,
-                    ];
-                });
-            if ($extendedArchives->isNotEmpty()) {
-                $extensionLogs = $extendedArchives;
+        if ($dbExtLogs->isNotEmpty()) {
+            $extensionLogs = $dbExtLogs->map(function ($log) use ($user) {
+                $arc = $log->archive;
+                $months = (int) $log->additional_months;
+                $durationLabel = ($months % 12 === 0 && $months > 0)
+                    ? ('+' . ($months / 12) . ' Tahun')
+                    : ('+' . $months . ' Bulan');
+
+                return [
+                    'id' => $log->id,
+                    'box_number' => $arc ? $arc->box_number : ($log->archive_id ?? '-'),
+                    'archive_title' => $arc ? ($arc->effective_title ?? $arc->title) : "Arsip ID {$log->archive_id}",
+                    'department_code' => $arc && $arc->department ? $arc->department->code : '-',
+                    'additional_months' => $months,
+                    'additional_years' => $log->additional_years,
+                    'duration_label' => $durationLabel,
+                    'new_expiry_date' => $log->new_expiry_date ? $log->new_expiry_date->format('M Y') : '-',
+                    'reason' => $log->extension_reason ?: '-',
+                    'user_name' => $log->proposedBy ? $log->proposedBy->name : 'PIC Dept',
+                    'date' => $log->created_at ? $log->created_at->format('d M Y H:i') : '-',
+                    'scan_file' => $log->scan_extension_form ? app_storage_url($log->scan_extension_form) : null,
+                    'scan_file_stream' => $log->scan_extension_form ? app_preview_stream_url($log->scan_extension_form) : null,
+                    'scan_file_raw' => $log->scan_extension_form,
+                    'archive_id' => $log->archive_id,
+                    'approval_status' => $log->approval_status,
+                    'status_label' => $log->status_label,
+                    'status_badge' => $log->status_badge,
+                    'approver_name' => $log->approvedBy ? $log->approvedBy->name : null,
+                    'rejection_note' => $log->rejection_note,
+                    'can_approve' => ($user->isPicGudang() || $user->isSuperAdmin()) && $log->approval_status === 'pending',
+                ];
+            });
+        } else {
+            // Fallback for legacy logs in ActivityLog
+            $extensionLogsQuery = \App\Models\ActivityLog::where('action', 'like', '%EXTEND%');
+            if ($user->isPicDept()) {
+                $extensionLogsQuery->where('department_id', $user->department_id);
+            }
+            $rawLogs = $extensionLogsQuery->latest()->get();
+            $targetArchiveIds = [];
+            foreach ($rawLogs as $log) {
+                $props = is_array($log->properties) ? $log->properties : (json_decode($log->properties, true) ?? []);
+                if (!empty($props['archive_id'])) {
+                    $targetArchiveIds[] = (int)$props['archive_id'];
+                }
+            }
+            $archivesMap = !empty($targetArchiveIds)
+                ? Archive::with('department')->whereIn('id', array_unique($targetArchiveIds))->get()->keyBy('id')
+                : collect();
+
+            $extensionLogs = $rawLogs->map(function ($log) use ($archivesMap) {
+                $props = is_array($log->properties) ? $log->properties : (json_decode($log->properties, true) ?? []);
+                $archive = !empty($props['archive_id']) ? $archivesMap->get($props['archive_id']) : null;
+                $months = isset($props['additional_months']) ? (int)$props['additional_months'] : 0;
+                $durationLabel = ($months > 0)
+                    ? (($months % 12 === 0) ? ('+' . ($months / 12) . ' Tahun') : ('+' . $months . ' Bulan'))
+                    : (!empty($props['additional_years']) ? ('+' . $props['additional_years'] . ' Tahun') : '-');
+
+                return [
+                    'id' => $log->id,
+                    'box_number' => $log->reference_id ?? ($archive->box_number ?? '-'),
+                    'archive_title' => $archive ? ($archive->effective_title ?? $archive->title) : ($log->description),
+                    'department_code' => $archive && $archive->department ? $archive->department->code : ($log->user_role ?? '-'),
+                    'additional_months' => $months,
+                    'additional_years' => $props['additional_years'] ?? null,
+                    'duration_label' => $durationLabel,
+                    'new_expiry_date' => !empty($props['new_expiry_date']) ? Carbon::parse($props['new_expiry_date'])->format('M Y') : '-',
+                    'reason' => $props['extension_reason'] ?? '-',
+                    'user_name' => $log->user_name ?? ($log->user ? $log->user->name : 'PIC'),
+                    'date' => $log->created_at ? $log->created_at->format('d M Y H:i') : '-',
+                    'scan_file' => !empty($props['scan_extension_form']) ? app_storage_url($props['scan_extension_form']) : ($archive && $archive->scan_extension_form ? app_storage_url($archive->scan_extension_form) : null),
+                    'scan_file_stream' => !empty($props['scan_extension_form']) ? app_preview_stream_url($props['scan_extension_form']) : ($archive && $archive->scan_extension_form ? app_preview_stream_url($archive->scan_extension_form) : null),
+                    'scan_file_raw' => !empty($props['scan_extension_form']) ? $props['scan_extension_form'] : ($archive && $archive->scan_extension_form ? $archive->scan_extension_form : null),
+                    'archive_id' => $props['archive_id'] ?? null,
+                    'approval_status' => 'approved',
+                    'status_label' => 'Disetujui Gudang',
+                    'status_badge' => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700',
+                    'approver_name' => null,
+                    'rejection_note' => null,
+                    'can_approve' => false,
+                ];
+            });
+
+            if ($extensionLogs->isEmpty()) {
+                $extendedArchives = Archive::whereNotNull('extension_reason')
+                    ->when($user->isPicDept(), function ($q) use ($user) {
+                        return $q->where('department_id', $user->department_id);
+                    })
+                    ->with('department')
+                    ->latest('updated_at')
+                    ->get()
+                    ->map(function ($arc) {
+                        return [
+                            'id' => $arc->id,
+                            'box_number' => $arc->box_number,
+                            'archive_title' => $arc->effective_title ?? $arc->title,
+                            'department_code' => $arc->department ? $arc->department->code : '-',
+                            'additional_months' => 0,
+                            'additional_years' => $arc->retention_years,
+                            'duration_label' => ($arc->retention_display ?: ($arc->retention_years ? $arc->retention_years . ' Tahun' : '-')),
+                            'new_expiry_date' => $arc->retention_expiry_date ? Carbon::parse($arc->retention_expiry_date)->format('M Y') : '-',
+                            'reason' => $arc->extension_reason ?: '-',
+                            'user_name' => 'PIC Dept',
+                            'date' => $arc->updated_at ? $arc->updated_at->format('d M Y H:i') : '-',
+                            'scan_file' => $arc->scan_extension_form ? app_storage_url($arc->scan_extension_form) : null,
+                            'scan_file_stream' => $arc->scan_extension_form ? app_preview_stream_url($arc->scan_extension_form) : null,
+                            'scan_file_raw' => $arc->scan_extension_form,
+                            'archive_id' => $arc->id,
+                            'approval_status' => 'approved',
+                            'status_label' => 'Disetujui Gudang',
+                            'status_badge' => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700',
+                            'approver_name' => null,
+                            'rejection_note' => null,
+                            'can_approve' => false,
+                        ];
+                    });
+                if ($extendedArchives->isNotEmpty()) {
+                    $extensionLogs = $extendedArchives;
+                }
             }
         }
 
@@ -690,7 +764,10 @@ class DestructionController extends Controller
             return back()->withErrors(['additional_months' => "Tambahan masa simpan harus antara 1 sampai {$maxMonths} bulan."])->withInput();
         }
 
-        $addedYears = max(1, (int)round($months / 12));
+        $addedYears = round($months / 12, 1);
+        $durationLabel = ($months % 12 === 0 && $months > 0)
+            ? ($months / 12 . ' Tahun')
+            : ($months . ' Bulan');
 
         $archives = Archive::whereIn('id', $archiveIds)->get();
 
@@ -707,28 +784,38 @@ class DestructionController extends Controller
             $scanExtensionPath = $request->file('scan_extension_form')->store('archive_extensions', 'public');
         }
 
-        \Illuminate\Support\Facades\DB::transaction(function () use ($archives, $months, $addedYears, $validated, $scanExtensionPath) {
+        \Illuminate\Support\Facades\DB::transaction(function () use ($archives, $months, $addedYears, $durationLabel, $validated, $scanExtensionPath, $user) {
             foreach ($archives as $arc) {
                 $baseDate = $arc->retention_expiry_date 
                     ? Carbon::parse($arc->retention_expiry_date) 
                     : ($arc->period_end_date ? Carbon::parse($arc->period_end_date) : Carbon::now());
 
                 $newExpiryDate = $baseDate->copy()->addMonths($months)->endOfMonth();
-                $newRetentionYears = ($arc->retention_years ?: 5) + $addedYears;
-
                 $filePath = $scanExtensionPath ?: $arc->scan_extension_form;
 
-                $arc->update([
-                    'retention_years' => $newRetentionYears,
-                    'retention_expiry_date' => $newExpiryDate,
+                // 1. Simpan pengajuan ke ArchiveExtensionLog (Status Pending)
+                ArchiveExtensionLog::create([
+                    'archive_id' => $arc->id,
+                    'proposed_by_user_id' => $user->id,
+                    'additional_months' => $months,
+                    'additional_years' => $addedYears,
+                    'previous_expiry_date' => $baseDate->format('Y-m-d'),
+                    'new_expiry_date' => $newExpiryDate->format('Y-m-d'),
                     'extension_reason' => $validated['extension_reason'],
                     'scan_extension_form' => $filePath,
-                    'status' => $arc->status === 'pending_destruction' ? 'in_warehouse' : $arc->status,
+                    'approval_status' => 'pending',
+                ]);
+
+                // 2. Tandai status arsip sebagai 'pending_extension'
+                $arc->update([
+                    'extension_reason' => $validated['extension_reason'],
+                    'scan_extension_form' => $filePath,
+                    'status' => 'pending_extension',
                 ]);
 
                 ActivityLogger::log(
-                    'RETENTION_EXTEND',
-                    "Perpanjangan masa retensi berkas '{$arc->title}' (Box: {$arc->box_number}) sebanyak +{$months} bulan (+{$addedYears} tahun) hingga {$newExpiryDate->format('d M Y')}.",
+                    'RETENTION_EXTEND_PROPOSED',
+                    "Pengajuan perpanjangan masa retensi berkas '{$arc->title}' (Box: {$arc->box_number}) sebanyak +{$durationLabel} diajukan oleh {$user->name} dan menunggu verifikasi/ACC Gudang.",
                     'PEMUSNAHAN_RETENSI',
                     [
                         'archive_id' => $arc->id,
@@ -737,8 +824,9 @@ class DestructionController extends Controller
                         'new_expiry_date' => $newExpiryDate->format('Y-m-d'),
                         'extension_reason' => $validated['extension_reason'],
                         'scan_extension_form' => $filePath,
+                        'approval_status' => 'pending',
                     ],
-                    $arc->box_number
+                    $arc->box_number ?: "Arsip ID: {$arc->id}"
                 );
             }
         });
@@ -756,7 +844,172 @@ class DestructionController extends Controller
 
         return redirect()->route('destructions.index', $redirectParams)
             ->with('active_tab', 'extensions')
-            ->with('success', "Masa simpan {$count} box berkas ({$boxTitles}) berhasil diperpanjang (+{$months} bulan / +{$addedYears} tahun).");
+            ->with('success', "Pengajuan perpanjangan masa simpan {$count} box berkas ({$boxTitles}) sebanyak +{$durationLabel} berhasil dikirim. Menunggu pengecekan dokumen & persetujuan (ACC) dari Admin Gudang.");
+    }
+
+    /**
+     * ACC / Persetujuan Perpanjangan Masa Simpan oleh Gudang / Super Admin
+     */
+    public function approveExtension(ArchiveExtensionLog $extensionLog, Request $request)
+    {
+        $user = auth()->user();
+        if (!$user->isPicGudang() && !$user->isSuperAdmin()) {
+            abort(403, 'Hanya PIC Gudang atau Super Admin yang berwenang menyetujui (ACC) perpanjangan masa simpan.');
+        }
+
+        $archive = $extensionLog->archive;
+        if (!$archive) {
+            return back()->with('error', 'Data arsip perpanjangan tidak ditemukan.');
+        }
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($extensionLog, $archive, $user) {
+            $months = (int) $extensionLog->additional_months;
+            $newExpiry = $extensionLog->new_expiry_date ? Carbon::parse($extensionLog->new_expiry_date) : now();
+
+            // Hitung total masa simpan baru (akumulasi periode awal + perpanjangan)
+            $currentPeriodStr = $archive->periode ?? $archive->periode_doc ?? '';
+            $baseMonths = 0;
+            if (preg_match('/^(\d+)\s*(?:bulan|bln)/i', trim($currentPeriodStr), $matches)) {
+                $baseMonths = (int) $matches[1];
+            } elseif (!empty($archive->masa_simpan_custom) && (int)$archive->masa_simpan_custom > 0) {
+                $baseMonths = (int)$archive->masa_simpan_custom * 12;
+            } elseif (isset($archive->retention_years) && (int)$archive->retention_years > 0) {
+                $baseMonths = (int)$archive->retention_years * 12;
+            } else {
+                $baseMonths = 60; // 5 tahun default
+            }
+
+            $totalMonths = $baseMonths + $months;
+            $newRetentionYears = (int) floor($totalMonths / 12);
+            $newPeriode = ($totalMonths % 12 === 0 && $totalMonths >= 12)
+                ? (($totalMonths / 12) . ' Tahun')
+                : ($totalMonths . ' Bulan');
+
+            $archive->update([
+                'retention_expiry_date' => $newExpiry,
+                'retention_years' => $newRetentionYears,
+                'periode' => $newPeriode,
+                'extension_reason' => $extensionLog->extension_reason,
+                'scan_extension_form' => $extensionLog->scan_extension_form ?: $archive->scan_extension_form,
+                'status' => 'in_warehouse', // Status kembali aktif normal di gudang
+            ]);
+
+            $extensionLog->update([
+                'approval_status' => 'approved',
+                'approved_by_user_id' => $user->id,
+                'approved_at' => now(),
+            ]);
+
+            $durationLabel = ($months % 12 === 0 && $months > 0)
+                ? ($months / 12 . ' Tahun')
+                : ($months . ' Bulan');
+
+            ActivityLogger::log(
+                'RETENTION_EXTEND_APPROVED',
+                "Perpanjangan masa retensi berkas '{$archive->title}' (Box: {$archive->box_number}) sebanyak +{$durationLabel} disetujui (ACC) oleh {$user->name}. Masa simpan baru: {$newExpiry->format('M Y')}.",
+                'PEMUSNAHAN_RETENSI',
+                [
+                    'extension_log_id' => $extensionLog->id,
+                    'archive_id' => $archive->id,
+                    'additional_months' => $months,
+                    'new_expiry_date' => $newExpiry->format('Y-m-d'),
+                ],
+                $archive->box_number ?: "ID: {$archive->id}"
+            );
+        });
+
+        return redirect()->back()
+            ->with('active_tab', 'extensions')
+            ->with('success', "Pengajuan perpanjangan berkas '{$archive->title}' berhasil di-ACC oleh Gudang. Masa simpan resmi diperpanjang hingga " . ($extensionLog->new_expiry_date ? $extensionLog->new_expiry_date->format('M Y') : '') . " dan status berkas kembali aktif di gudang.");
+    }
+
+    /**
+     * Penolakan Perpanjangan Masa Simpan oleh Gudang / Super Admin
+     */
+    public function rejectExtension(ArchiveExtensionLog $extensionLog, Request $request)
+    {
+        $user = auth()->user();
+        if (!$user->isPicGudang() && !$user->isSuperAdmin()) {
+            abort(403, 'Hanya PIC Gudang atau Super Admin yang berwenang menolak perpanjangan masa simpan.');
+        }
+
+        $archive = $extensionLog->archive;
+        $reason = $request->input('rejection_note', 'Dokumen / surat permohonan perpanjangan tidak memenuhi syarat.');
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($extensionLog, $archive, $user, $reason) {
+            if ($archive && $archive->status === 'pending_extension') {
+                $archive->update([
+                    'status' => 'in_warehouse',
+                ]);
+            }
+
+            $extensionLog->update([
+                'approval_status' => 'rejected',
+                'approved_by_user_id' => $user->id,
+                'approved_at' => now(),
+                'rejection_note' => $reason,
+            ]);
+
+            ActivityLogger::log(
+                'RETENTION_EXTEND_REJECTED',
+                "Pengajuan perpanjangan masa retensi berkas '{$archive->title}' ditolak oleh {$user->name}. Alasan: {$reason}",
+                'PEMUSNAHAN_RETENSI',
+                [
+                    'extension_log_id' => $extensionLog->id,
+                    'archive_id' => $archive ? $archive->id : null,
+                    'rejection_note' => $reason,
+                ],
+                $archive ? $archive->box_number : '-'
+            );
+        });
+
+        return redirect()->back()
+            ->with('active_tab', 'extensions')
+            ->with('info', "Pengajuan perpanjangan berkas ditolak. Status berkas kembali normal di gudang.");
+    }
+
+    /**
+     * Upload / Perbarui Berkas Sertifikat BAP Resmi setelah Pemusnahan Selesai
+     */
+    public function uploadBap(DestructionLog $destructionLog, Request $request)
+    {
+        $user = auth()->user();
+        if (!$user->isPicGudang() && !$user->isSuperAdmin()) {
+            abort(403, 'Hanya PIC Gudang atau Super Admin yang berwenang mengunggah berkas sertifikat BAP resmi.');
+        }
+
+        $request->validate([
+            'certificate_file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:500',
+        ], [
+            'certificate_file.required' => 'Wajib memilih file sertifikat BAP resmi.',
+            'certificate_file.max' => 'Ukuran file sertifikat BAP maksimal 500 KB.',
+            'certificate_file.mimes' => 'Format file sertifikat BAP harus berupa PDF, JPG, JPEG, atau PNG.',
+        ]);
+
+        $certPath = $request->file('certificate_file')->store('bap_certificates', 'public');
+
+        $destructionLog->update([
+            'certificate_file' => $certPath,
+        ]);
+
+        $archive = $destructionLog->archive;
+
+        ActivityLogger::log(
+            'DESTRUCTION_BAP_UPLOADED',
+            "Berkas fisik sertifikat BAP resmi (No: {$destructionLog->bap_number}) untuk arsip '" . ($archive->title ?? '-') . "' berhasil diunggah oleh {$user->name}.",
+            'PEMUSNAHAN_RETENSI',
+            [
+                'destruction_log_id' => $destructionLog->id,
+                'archive_id' => $destructionLog->archive_id,
+                'bap_number' => $destructionLog->bap_number,
+                'certificate_file' => $certPath,
+            ],
+            $destructionLog->bap_number
+        );
+
+        return redirect()->back()
+            ->with('active_tab', 'destructions')
+            ->with('success', "Berkas sertifikat BAP resmi (No: {$destructionLog->bap_number}) berhasil diunggah. Departemen kini dapat mengunduh dan mencetak dokumen BAP.");
     }
 
     public function extendPrint(Archive $archive)
@@ -765,3 +1018,4 @@ class DestructionController extends Controller
         return view('destructions.print_extension', compact('archive'));
     }
 }
+

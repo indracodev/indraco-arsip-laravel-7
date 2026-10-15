@@ -157,6 +157,16 @@ class Archive extends Model
         return $this->hasMany(DestructionLog::class);
     }
 
+    public function extensionLog(): HasOne
+    {
+        return $this->hasOne(ArchiveExtensionLog::class, 'archive_id')->latest('id');
+    }
+
+    public function extensionLogs(): HasMany
+    {
+        return $this->hasMany(ArchiveExtensionLog::class, 'archive_id');
+    }
+
     public function items(): HasMany
     {
         return $this->hasMany(ArchiveItem::class)->orderBy('item_number', 'asc');
@@ -292,7 +302,11 @@ class Archive extends Model
     {
         $periodStr = $this->periode ?? $this->periode_doc ?? '';
         if (preg_match('/^(\d+)\s*(?:bulan|bln)/i', trim($periodStr), $matches)) {
-            return $matches[1] . ' Bulan';
+            $months = (int) $matches[1];
+            if ($months % 12 === 0 && $months >= 12) {
+                return ($months / 12) . ' Thn';
+            }
+            return $months . ' Bulan';
         }
 
         if (!empty($this->masa_simpan_custom) && (int)$this->masa_simpan_custom > 0) {
@@ -310,7 +324,11 @@ class Archive extends Model
     {
         $periodStr = $this->periode ?? $this->periode_doc ?? '';
         if (preg_match('/^(\d+)\s*(?:bulan|bln)/i', trim($periodStr), $matches)) {
-            return $matches[1] . ' Bulan';
+            $months = (int) $matches[1];
+            if ($months % 12 === 0 && $months >= 12) {
+                return ($months / 12) . ' Tahun';
+            }
+            return $months . ' Bulan';
         }
 
         if (!empty($this->masa_simpan_custom) && (int)$this->masa_simpan_custom > 0) {
@@ -322,6 +340,15 @@ class Archive extends Model
         }
 
         return '-';
+    }
+
+    public function getLatestApprovedExtensionAttribute(): ?ArchiveExtensionLog
+    {
+        if ($this->relationLoaded('extensionLogs')) {
+            return $this->extensionLogs->where('approval_status', 'approved')->sortByDesc('id')->first();
+        }
+
+        return $this->extensionLogs()->where('approval_status', 'approved')->latest('id')->first();
     }
 
     public function getFormattedTglPenyerahanAttribute(): string
@@ -409,6 +436,8 @@ class Archive extends Model
                     return $this->destructionLog->approval_status === 'approved' ? 'Antrean Pemusnahan' : 'Pengajuan Pemusnahan';
                 }
                 return 'Pengajuan Pemusnahan';
+            case 'pending_extension':
+                return 'Pengajuan Perpanjangan';
             case 'destroyed':
                 return 'Telah Dimusnahkan';
             default:
@@ -436,6 +465,8 @@ class Archive extends Model
                     return 'bg-blue-100 text-blue-800 border-blue-300';
                 }
                 return 'bg-amber-100 text-amber-800 border-amber-300';
+            case 'pending_extension':
+                return 'bg-purple-100 text-purple-800 dark:bg-purple-950/40 dark:text-purple-300 border-purple-300 dark:border-purple-700 animate-pulse';
             case 'destroyed':
                 return 'bg-rose-100 text-rose-800 border-rose-200';
             default:
