@@ -776,6 +776,173 @@ class Revisi1UatTest extends TestCase
         $borrowingLog->refresh();
         $this->assertEquals('Sudah Ditarik', $borrowingLog->status_label);
     }
+
+    /**
+     * Test Filter Tipe Dokumen per Subdepartemen (Point 5)
+     */
+    public function test_filter_document_type_per_sub_department()
+    {
+        $archiveA = Archive::create([
+            'department_id' => $this->hrDepartment->id,
+            'sub_department_id' => $this->hrSubDepartment->id,
+            'box_number' => 'BOX-DOC-TYPE-A',
+            'title' => 'Berkas PKWT Batch 1',
+            'document_type' => 'PKWT',
+            'periode_doc' => '2026/01',
+            'tgl_penyerahan' => '2026-01-10',
+            'period_start_date' => '2026-01-01',
+            'period_end_date' => '2026-01-31',
+            'retention_years' => 5,
+            'retention_expiry_date' => Carbon::parse('2031-01-31'),
+            'content_description' => 'Isi PKWT',
+            'physical_condition' => 'Baik',
+            'status' => 'in_warehouse',
+            'created_by_user_id' => $this->picDeptHrUser->id,
+        ]);
+
+        $archiveB = Archive::create([
+            'department_id' => $this->hrDepartment->id,
+            'sub_department_id' => $this->hrSubDepartment->id,
+            'box_number' => 'BOX-DOC-TYPE-B',
+            'title' => 'Berkas SP Karyawan',
+            'document_type' => 'SURAT_PERINGATAN',
+            'periode_doc' => '2026/01',
+            'tgl_penyerahan' => '2026-01-10',
+            'period_start_date' => '2026-01-01',
+            'period_end_date' => '2026-01-31',
+            'retention_years' => 3,
+            'retention_expiry_date' => Carbon::parse('2029-01-31'),
+            'content_description' => 'Isi SP',
+            'physical_condition' => 'Baik',
+            'status' => 'in_warehouse',
+            'created_by_user_id' => $this->picDeptHrUser->id,
+        ]);
+
+        $this->actingAs($this->picDeptHrUser);
+
+        // Filter by PKWT
+        $responseA = $this->get(route('archives.index', [
+            'sub_department_id' => $this->hrSubDepartment->id,
+            'document_type' => 'PKWT',
+        ]));
+        $archivesInView = $responseA->original->getData()['archives'];
+        $first = $archivesInView->first();
+        $this->assertNotNull($first);
+        $this->assertEquals('BOX-DOC-TYPE-A', $first->box_number);
+        $this->assertEquals('PKWT', $first->document_type);
+
+        // Filter by SURAT_PERINGATAN
+        $responseB = $this->get(route('archives.index', [
+            'sub_department_id' => $this->hrSubDepartment->id,
+            'document_type' => 'SURAT_PERINGATAN',
+        ]));
+        $responseB->assertOk();
+        $archivesInViewB = $responseB->original->getData()['archives'];
+        $firstB = $archivesInViewB->first();
+        $this->assertNotNull($firstB);
+        $this->assertEquals('BOX-DOC-TYPE-B', $firstB->box_number);
+        $this->assertEquals('SURAT_PERINGATAN', $firstB->document_type);
+        $this->assertCount(1, $archivesInViewB);
+    }
+
+    /**
+     * Test Point 1, 2, 3: Realtime poller returns role-aware badges & enriched new_archives
+     */
+    public function test_realtime_check_returns_role_badges_and_new_archives_payload()
+    {
+        // 1. Create an archive in pending_verification for HR
+        $archive = Archive::create([
+            'department_id' => $this->hrDepartment->id,
+            'sub_department_id' => $this->hrSubDepartment->id,
+            'box_number' => 'BOX-REALTIME-TEST',
+            'title' => 'Berkas Realtime UAT Test',
+            'document_type' => 'KONTRAK',
+            'periode_doc' => '2026/02',
+            'tgl_penyerahan' => '2026-02-10',
+            'period_start_date' => '2026-02-01',
+            'period_end_date' => '2026-02-28',
+            'retention_years' => 5,
+            'retention_expiry_date' => Carbon::parse('2031-02-28'),
+            'content_description' => 'Realtime Payload Verification',
+            'physical_condition' => 'Baik',
+            'status' => 'pending_verification',
+            'created_by_user_id' => $this->picDeptHrUser->id,
+        ]);
+
+        // 2. Query as PIC Gudang
+        $this->actingAs($this->picGudangUser);
+        $response = $this->getJson(route('api.realtime.check', [
+            'last_id' => $archive->id - 1,
+            'initial' => 0,
+        ]));
+
+        $response->assertOk();
+        $data = $response->json();
+
+        // Assert badges exist
+        $this->assertArrayHasKey('badges', $data);
+        $this->assertArrayHasKey('borrowings', $data['badges']);
+        $this->assertArrayHasKey('submissions', $data['badges']);
+        $this->assertArrayHasKey('destructions', $data['badges']);
+        $this->assertGreaterThanOrEqual(1, $data['badges']['submissions']);
+
+        // Assert new_archives payload
+        $this->assertArrayHasKey('new_archives', $data);
+        $newArchiveItem = collect($data['new_archives'])->firstWhere('id', $archive->id);
+        $this->assertNotNull($newArchiveItem);
+        $this->assertEquals('BOX-REALTIME-TEST', $newArchiveItem['box_number']);
+        $this->assertEquals('KONTRAK', $newArchiveItem['document_type']);
+        $this->assertEquals($this->hrDepartment->id, $newArchiveItem['department_id']);
+        $this->assertEquals($this->hrSubDepartment->id, $newArchiveItem['sub_department_id']);
+        $this->assertEquals('pending_verification', $newArchiveItem['status']);
+    }
+
+    /**
+     * Test Point 1: BorrowingLog emits system event stream with enriched payload
+     */
+    public function test_borrowing_log_realtime_stream_event()
+    {
+        $archive = Archive::create([
+            'department_id' => $this->hrDepartment->id,
+            'box_number' => 'BOX-BORROW-STREAM',
+            'title' => 'Berkas Borrow Stream Test',
+            'periode_doc' => '2026/02',
+            'tgl_penyerahan' => '2026-02-10',
+            'period_start_date' => '2026-02-01',
+            'period_end_date' => '2026-02-28',
+            'retention_years' => 5,
+            'retention_expiry_date' => Carbon::parse('2031-02-28'),
+            'content_description' => 'Stream Verification',
+            'physical_condition' => 'Baik',
+            'status' => 'in_warehouse',
+            'created_by_user_id' => $this->picDeptHrUser->id,
+        ]);
+
+        $borrowLog = BorrowingLog::create([
+            'archive_id' => $archive->id,
+            'borrower_user_id' => $this->picDeptHrUser->id,
+            'request_date' => now(),
+            'purpose' => 'Audit Test UAT',
+            'status' => 'requested',
+            'borrow_date' => now()->toDateString(),
+        ]);
+
+        $this->assertNotNull($borrowLog->id);
+
+        // Check system_events table
+        $event = \Illuminate\Support\Facades\DB::table('system_events')
+            ->where('event_type', 'borrowing_created')
+            ->where('entity_id', $borrowLog->id)
+            ->latest('id')
+            ->first();
+
+        $this->assertNotNull($event);
+        $payload = json_decode($event->payload, true);
+        $this->assertEquals('requested', $payload['status']);
+        $this->assertEquals('BOX-BORROW-STREAM', $payload['box_number']);
+        $this->assertEquals($this->hrDepartment->code, $payload['dept_code']);
+    }
 }
+
 
 

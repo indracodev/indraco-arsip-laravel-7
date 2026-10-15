@@ -174,7 +174,7 @@
                         @change="onSectionSubDeptChange()"
                         class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition shadow-2xs"
                     >
-                        <option value="">-- Induk Departemen --</option>
+                        <option value="">-- Pilih Sub-Departemen --</option>
                         <template x-for="s in subDepartments" :key="s.id">
                             <option :value="s.id" x-text="s.code + ' - ' + s.name" :selected="selectedSubDeptId == s.id"></option>
                         </template>
@@ -1337,12 +1337,10 @@ function archiveEditApp() {
                 if (subSpecific.length > 0) {
                     return subSpecific;
                 }
-                const induk = all.filter(m => !m.sub_department_id);
-                return induk.length > 0 ? induk : all;
             }
 
-            const induk = all.filter(m => !m.sub_department_id);
-            return induk.length > 0 ? induk : all;
+            // Tampilkan semua dokumen departemen jika belum/tidak memilih sub-departemen spesifik
+            return all;
         },
 
         getItemDocType(box, item) {

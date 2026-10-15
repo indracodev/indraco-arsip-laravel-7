@@ -61,6 +61,10 @@ class ArchiveController extends Controller
             $query->where('sub_department_id', $request->sub_department_id);
         }
 
+        if ($request->filled('document_type')) {
+            $query->where('document_type', $request->document_type);
+        }
+
         if ($request->filled('status')) {
             if ($request->status === 'borrow_requested') {
                 $query->whereHas('borrowingLogs', function ($q) {
@@ -76,12 +80,12 @@ class ArchiveController extends Controller
         if ($request->filled('expiry_filter')) {
             if ($request->expiry_filter === 'expiring_soon') {
                 $query->whereNotNull('retention_expiry_date')
-                      ->where('status', '!=', 'destroyed')
+                      ->whereNotIn('status', ['destroyed', 'draft'])
                       ->whereDate('retention_expiry_date', '>=', Carbon::today())
                       ->whereDate('retention_expiry_date', '<=', Carbon::now()->addDays(90));
             } elseif ($request->expiry_filter === 'expired') {
                 $query->whereNotNull('retention_expiry_date')
-                      ->where('status', '!=', 'destroyed')
+                      ->whereNotIn('status', ['destroyed', 'draft'])
                       ->whereDate('retention_expiry_date', '<', Carbon::today());
             }
         }
@@ -118,11 +122,38 @@ class ArchiveController extends Controller
 
         // Pending Borrowing Requests Count for PIC Gudang Alert Banner
         $pendingBorrowingRequestsCount = 0;
-        if ($user->isPicGudang() || $user->isSuperAdmin()) {
+        if ($user && ($user->isPicGudang() || $user->isSuperAdmin())) {
             $pendingBorrowingRequestsCount = \App\Models\BorrowingLog::whereIn('status', ['requested', 'dept_approved', 'approved'])->count();
         }
 
-        return view('archives.index', compact('archives', 'departments', 'pendingBorrowingRequestsCount'));
+        // Distinct document types from MasterArchive and Archive for cascading filter
+        $masterDocTypes = \App\Models\MasterArchive::where('is_active', true)
+            ->when($user && $user->isPicDept(), function ($q) use ($user) {
+                return $q->where('department_id', $user->department_id);
+            })
+            ->whereNotNull('document_type')
+            ->where('document_type', '!=', '')
+            ->select('department_id', 'sub_department_id', 'document_type')
+            ->distinct()
+            ->get();
+
+        $archiveDocTypes = Archive::query()
+            ->when($user && $user->isPicDept(), function ($q) use ($user) {
+                return $q->where('department_id', $user->department_id);
+            })
+            ->whereNotNull('document_type')
+            ->where('document_type', '!=', '')
+            ->select('department_id', 'sub_department_id', 'document_type')
+            ->distinct()
+            ->get();
+
+        $documentTypes = $masterDocTypes->concat($archiveDocTypes)
+            ->unique(function ($item) {
+                return ($item->department_id ?? 0) . '-' . ($item->sub_department_id ?? 0) . '-' . trim($item->document_type);
+            })
+            ->values();
+
+        return view('archives.index', compact('archives', 'departments', 'pendingBorrowingRequestsCount', 'documentTypes'));
     }
 
     public function create(Request $request)
@@ -480,7 +511,7 @@ class ArchiveController extends Controller
         }
 
         $isDraft = ($request->input('submit_action') === 'draft' || $request->has('save_draft') || $request->input('action') === 'draft');
-        if (!$isDraft && !$request->hasFile('scan_input_form') && !app()->runningUnitTests() && !app()->environment('testing')) {
+        if (!$isDraft && !$request->hasFile('scan_input_form') && !$this->isRunningTestEnvironment()) {
             return back()->withInput()->withErrors([
                 'scan_input_form' => 'Scan Formulir Input wajib diunggah sebelum mengajukan verifikasi box arsip.'
             ]);
@@ -720,7 +751,7 @@ class ArchiveController extends Controller
             $validated['department_id'] = $user->department_id ?: (Department::first()->id ?? 1);
         }
 
-        if (!$isDraft && !$request->hasFile('scan_input_form') && !app()->runningUnitTests() && !app()->environment('testing')) {
+        if (!$isDraft && !$request->hasFile('scan_input_form') && !$this->isRunningTestEnvironment()) {
             return back()->withInput()->withErrors([
                 'scan_input_form' => 'Scan Formulir Input wajib diunggah sebelum mengajukan verifikasi box arsip.'
             ]);
@@ -1426,7 +1457,7 @@ class ArchiveController extends Controller
         }
 
         $isDraft = ($request->input('submit_action') === 'draft' || $request->has('save_draft') || $request->input('action') === 'draft');
-        if (!$isDraft && empty($archive->scan_input_form) && !$request->hasFile('scan_input_form') && !app()->runningUnitTests() && !app()->environment('testing')) {
+        if (!$isDraft && empty($archive->scan_input_form) && !$request->hasFile('scan_input_form') && !$this->isRunningTestEnvironment()) {
             return back()->withInput()->withErrors([
                 'scan_input_form' => 'Scan Formulir Input wajib diunggah sebelum mengajukan verifikasi box arsip.'
             ]);
@@ -1604,7 +1635,7 @@ class ArchiveController extends Controller
             $validated['department_id'] = $user->department_id ?: $archive->department_id;
         }
 
-        if (!$isDraft && empty($archive->scan_input_form) && !$request->hasFile('scan_input_form') && !app()->runningUnitTests() && !app()->environment('testing')) {
+        if (!$isDraft && empty($archive->scan_input_form) && !$request->hasFile('scan_input_form') && !$this->isRunningTestEnvironment()) {
             return back()->withInput()->withErrors([
                 'scan_input_form' => 'Scan Formulir Input wajib diunggah sebelum mengajukan verifikasi box arsip.'
             ]);
@@ -2097,7 +2128,7 @@ class ArchiveController extends Controller
             abort(403, 'Anda tidak memiliki akses ke label arsip departemen lain.');
         }
 
-        if ($archive->status !== 'in_warehouse' && !app()->runningUnitTests()) {
+        if ($archive->status !== 'in_warehouse' && !$this->isRunningTestEnvironment()) {
             return redirect()->route('archives.show', $archive)
                 ->with('error', 'Stiker label box hanya dapat dicetak setelah berkas resmi berstatus tersimpan di gudang.');
         }
@@ -3195,6 +3226,14 @@ class ArchiveController extends Controller
         }
 
         return 60;
+    }
+
+    protected function isRunningTestEnvironment(): bool
+    {
+        return defined('PHPUNIT_COMPOSER_INSTALL') 
+            || class_exists('PHPUnit\\Framework\\TestCase', false)
+            || app()->runningUnitTests() 
+            || app()->environment('testing');
     }
 }
 
