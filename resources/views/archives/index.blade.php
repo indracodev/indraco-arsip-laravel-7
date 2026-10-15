@@ -74,7 +74,7 @@
             Filter & Pencarian Data Katalog
         </legend>
 
-        <form action="{{ route('archives.index') }}" method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 pt-1" @submit="submitting = true">
+        <form action="{{ route('archives.index') }}" method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 pt-1" @submit="submitting = true">
             <input type="hidden" name="sort" value="{{ request('sort', 'created_at') }}">
             <input type="hidden" name="direction" value="{{ request('direction', 'desc') }}">
 
@@ -141,7 +141,7 @@
             @if($availableSubDepts->isNotEmpty())
             <div class="space-y-1">
                 <label class="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 block">SUB-DEPARTEMEN</label>
-                <select name="sub_department_id" class="w-full py-1 px-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition">
+                <select name="sub_department_id" x-model="filterSubDept" @change="onFilterSubDeptChange()" class="w-full py-1 px-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition">
                     <option value="">-- Semua Sub-Bagian --</option>
                     @foreach($availableSubDepts as $sdept)
                     <option value="{{ $sdept->id }}" {{ request('sub_department_id') == $sdept->id ? 'selected' : '' }}>
@@ -151,6 +151,20 @@
                 </select>
             </div>
             @endif
+
+            <!-- Document Type Filter (Cascading by Sub-Department) -->
+            <div class="space-y-1">
+                <label class="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 block flex items-center justify-between">
+                    <span>TIPE DOKUMEN</span>
+                    <span x-show="filterSubDept" class="text-amber-500 text-[9px] font-mono font-bold" style="display:none;">Filtered</span>
+                </label>
+                <select name="document_type" x-model="filterDocType" class="w-full py-1 px-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition">
+                    <option value="">-- Semua Tipe Dokumen --</option>
+                    <template x-for="t in availableDocTypes" :key="t">
+                        <option :value="t" x-text="t" :selected="t === filterDocType"></option>
+                    </template>
+                </select>
+            </div>
 
             <!-- Status Filter -->
             <div class="space-y-1">
@@ -186,7 +200,7 @@
                     <span x-text="submitting ? 'Memuat...' : 'Filter'"></span>
                 </button>
 
-                @if(request()->hasAny(['search', 'department_id', 'sub_department_id', 'status', 'expiry_filter']))
+                @if(request()->hasAny(['search', 'department_id', 'sub_department_id', 'document_type', 'status', 'expiry_filter']))
                 <a href="{{ route('archives.index') }}" class="py-1 px-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded text-xs font-mono font-bold border border-slate-300 dark:border-slate-700 transition flex items-center justify-center h-[30px]" title="Reset Filter">
                     <i data-lucide="x" class="w-3.5 h-3.5"></i>
                 </a>
@@ -203,41 +217,51 @@
             </span>
             <span class="text-slate-800 dark:text-slate-200">
                 Terpilih: <strong class="text-amber-600 dark:text-amber-400 font-extrabold" x-text="selected.length"></strong> box berkas arsip.
+                <template x-if="selectedDrafts.length > 0 && selectedNonDrafts.length > 0">
+                    <span class="text-slate-500 dark:text-slate-400">
+                        (<span x-text="selectedDrafts.length"></span> draft, <span x-text="selectedNonDrafts.length"></span> non-draft)
+                    </span>
+                </template>
             </span>
         </div>
 
         <div class="flex items-center flex-wrap gap-2">
-            <!-- Batch Borrowing Action (Tarik Berkas Bersamaan) -->
-            <button 
-                type="button" 
-                @click="window.location.href = '{{ route('borrowings.create') }}?archive_ids=' + selected.join(',') + '{{ request()->has('embed') ? '&embed=1' : '' }}'"
-                class="px-3 py-1 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded border border-purple-700 shadow transition flex items-center gap-1.5 cursor-pointer"
-                title="Ajukan penarikan untuk box arsip yang dipilih"
-            >
-                <i data-lucide="corner-up-right" class="w-3.5 h-3.5 text-white"></i>
-                <span>Tarik Berkas (<span x-text="selected.length"></span> Box)</span>
-            </button>
-
-            <!-- Batch Delete Drafts Action -->
-            <form action="{{ route('archives.batch_delete_drafts') }}" method="POST" class="inline" @submit.prevent="
-                const ok = await window.showConfirmModal({
-                    title: 'Hapus Draft Arsip Terpilih',
-                    message: 'Apakah Anda yakin ingin menghapus ' + selected.length + ' data draft arsip yang dipilih?',
-                    type: 'danger',
-                    confirmText: 'Ya, Hapus Draft'
-                });
-                if (ok) $el.submit();
-            ">
-                @csrf
-                <input type="hidden" name="ids" :value="selected.join(',')">
-                @if(request()->has('embed'))
-                    <input type="hidden" name="embed" value="1">
-                @endif
-                <button type="submit" class="px-3 py-1 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded border border-rose-700 shadow transition flex items-center gap-1.5 cursor-pointer" title="Hapus draft yang dipilih">
-                    <i data-lucide="trash-2" class="w-3.5 h-3.5 text-white"></i>
-                    <span>Hapus Draft (<span x-text="selected.length"></span>)</span>
+            <!-- Batch Borrowing Action (Tarik Berkas) — hanya muncul jika ada non-draft terpilih -->
+            <template x-if="selectedNonDrafts.length > 0">
+                <button 
+                    type="button" 
+                    @click="window.location.href = '{{ route('borrowings.create') }}?archive_ids=' + selectedNonDrafts.join(',') + '{{ request()->has('embed') ? '&embed=1' : '' }}'"
+                    class="px-3 py-1 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded border border-purple-700 shadow transition flex items-center gap-1.5 cursor-pointer"
+                    title="Ajukan penarikan untuk box arsip non-draft yang dipilih"
+                >
+                    <i data-lucide="corner-up-right" class="w-3.5 h-3.5 text-white"></i>
+                    <span>Tarik Berkas (<span x-text="selectedNonDrafts.length"></span> Box)</span>
                 </button>
-            </form>
+            </template>
+
+            <!-- Batch Delete Drafts Action — hanya muncul jika ada draft terpilih -->
+            <template x-if="selectedDrafts.length > 0">
+                <form action="{{ route('archives.batch_delete_drafts') }}" method="POST" class="inline" @submit.prevent="
+                    const draftCount = selectedDrafts.length;
+                    const ok = await window.showConfirmModal({
+                        title: 'Hapus Draft Arsip Terpilih',
+                        message: 'Apakah Anda yakin ingin menghapus ' + draftCount + ' data draft arsip yang dipilih?' + (selectedNonDrafts.length > 0 ? ' (' + selectedNonDrafts.length + ' berkas non-draft akan diabaikan)' : ''),
+                        type: 'danger',
+                        confirmText: 'Ya, Hapus ' + draftCount + ' Draft'
+                    });
+                    if (ok) $el.submit();
+                ">
+                    @csrf
+                    <input type="hidden" name="ids" :value="selectedDrafts.join(',')">
+                    @if(request()->has('embed'))
+                        <input type="hidden" name="embed" value="1">
+                    @endif
+                    <button type="submit" class="px-3 py-1 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded border border-rose-700 shadow transition flex items-center gap-1.5 cursor-pointer" title="Hapus draft yang dipilih">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5 text-white"></i>
+                        <span>Hapus Draft (<span x-text="selectedDrafts.length"></span>)</span>
+                    </button>
+                </form>
+            </template>
 
             @if(!auth()->user()->isPicDept())
             <!-- Batch Print Labels (Warehouse / Admin) -->
@@ -250,6 +274,32 @@
             </form>
             @endif
         </div>
+    </div>
+
+    <!-- GLOBAL WORKFLOW COLOR LEGEND BAR -->
+    <div class="flex items-center flex-wrap gap-2 text-[11px] font-mono py-1.5 px-3 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded select-none shadow-xs">
+        <span class="text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mr-1 text-[10px] flex items-center gap-1">
+            <i data-lucide="palette" class="w-3.5 h-3.5 text-slate-400"></i>
+            <span>Pembeda Workflow:</span>
+        </span>
+        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-amber-500/15 text-amber-800 dark:text-amber-300 border-l-4 border-l-amber-500 font-bold">
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span> Pengajuan (Data Baru)
+        </span>
+        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-purple-500/15 text-purple-800 dark:text-purple-300 border-l-4 border-l-purple-500 font-bold">
+            <span class="w-1.5 h-1.5 rounded-full bg-purple-500"></span> Penarikan (Out)
+        </span>
+        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-blue-500/15 text-blue-800 dark:text-blue-300 border-l-4 border-l-blue-500 font-bold">
+            <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span> Perpanjangan
+        </span>
+        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-rose-500/15 text-rose-800 dark:text-rose-300 border-l-4 border-l-rose-500 font-bold">
+            <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Pemusnahan
+        </span>
+        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-l-2 border-l-emerald-500 font-bold">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Di Gudang
+        </span>
+        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-l-2 border-l-slate-400 font-medium">
+            <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span> Draft (Netral)
+        </span>
     </div>
 
     <!-- DELPHI TDBGRID SPREADSHEET TABLE CONTAINER -->
@@ -309,6 +359,81 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-200 dark:divide-slate-800/80 text-xs">
+                    <!-- LIVE REALTIME PREPENDED ARCHIVES (Point 4: Auto-sorted to top) -->
+                    <template x-for="item in liveNewArchives" :key="'live-arc-' + item.id">
+                        <tr class="bg-amber-500/10 dark:bg-amber-500/15 hover:bg-amber-500/20 transition duration-300 border-l-4 border-l-amber-500">
+                            <td class="py-2.5 px-3 text-center border-r border-slate-200 dark:border-slate-800">
+                                <input type="checkbox" :value="item.id" x-model="selected" class="rounded border-slate-300 dark:border-slate-700 text-amber-500 focus:ring-0">
+                            </td>
+
+                            <td class="py-2.5 px-3 font-mono text-amber-700 dark:text-amber-400 font-extrabold border-r border-slate-200 dark:border-slate-800 whitespace-nowrap">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="px-1.5 py-0.2 rounded bg-amber-500 text-slate-950 font-black text-[9px] uppercase tracking-wider animate-pulse">BARU</span>
+                                    <span x-text="item.box_number || '- Belum ada code -'"></span>
+                                </div>
+                            </td>
+
+                            <td class="py-2.5 px-3 border-r border-slate-200 dark:border-slate-800">
+                                <div class="space-y-0.5">
+                                    <a :href="item.url" class="font-bold text-slate-900 dark:text-white hover:text-amber-600 dark:hover:text-amber-400 transition block font-mono" x-text="item.title"></a>
+                                    <div class="flex items-center gap-1.5 text-[11px] text-slate-500 font-mono flex-wrap">
+                                        <span class="px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-bold" x-text="item.dept_code || 'GEN'"></span>
+                                        <template x-if="item.sub_dept_name">
+                                            <span class="px-1.5 py-0.2 rounded bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 font-bold text-[10px]" x-text="item.sub_dept_name"></span>
+                                        </template>
+                                        <template x-if="item.document_type">
+                                            <span class="px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30 font-bold text-[10px]" x-text="item.document_type"></span>
+                                        </template>
+                                        <span x-text="'by ' + (item.creator_name || 'User')"></span>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <td class="py-2.5 px-3 font-mono text-[11px] text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800 whitespace-nowrap" x-text="item.periode_doc || '-'"></td>
+
+                            <td class="py-2.5 px-3 font-mono text-[11px] text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800 whitespace-nowrap">Baik / Terawat</td>
+
+                            <td class="py-2.5 px-3 font-mono text-[11px] border-r border-slate-200 dark:border-slate-800 whitespace-nowrap">
+                                <span class="text-slate-600 dark:text-slate-300 font-bold" x-text="item.location || 'Belum Ditentukan'"></span>
+                            </td>
+
+                            <td class="py-2.5 px-3 font-mono text-[11px] border-r border-slate-200 dark:border-slate-800 whitespace-nowrap" x-text="item.retention_expiry || '-'"></td>
+
+                            <td class="py-2.5 px-3 font-mono border-r border-slate-200 dark:border-slate-800 whitespace-nowrap">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold border"
+                                      :class="{
+                                          'bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-300 border-slate-300': item.status === 'draft',
+                                          'bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-500/50': item.status === 'pending_verification',
+                                          'bg-blue-500/20 text-blue-800 dark:text-blue-300 border-blue-500/50': item.status === 'approved_booked',
+                                          'bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border-emerald-500/50': item.status === 'in_warehouse'
+                                      }"
+                                      x-text="item.status_label || item.status">
+                                </span>
+                            </td>
+
+                            <td class="py-2.5 px-3 font-mono text-center border-r border-slate-200 dark:border-slate-800 whitespace-nowrap">
+                                <template x-if="item.has_files">
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[11px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40">
+                                        <i data-lucide="paperclip" class="w-3 h-3 text-emerald-600 dark:text-emerald-400"></i>
+                                        <span>Ada</span>
+                                    </span>
+                                </template>
+                                <template x-if="!item.has_files">
+                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-slate-900 text-slate-400 border border-slate-200 dark:border-slate-800">
+                                        <span>-</span>
+                                    </span>
+                                </template>
+                            </td>
+
+                            <td class="py-2.5 px-3 text-right font-mono whitespace-nowrap">
+                                <a :href="item.url" class="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-amber-500 text-[11px] font-bold transition inline-flex items-center gap-1 shadow-xs">
+                                    <span>Detail</span>
+                                    <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                                </a>
+                            </td>
+                        </tr>
+                    </template>
+
                     @forelse($archives as $archive)
                     @php
                         $activeBorrowing = $archive->borrowingLogs ? $archive->borrowingLogs->whereIn('status', ['requested', 'dept_approved', 'approved'])->first() : null;
@@ -358,21 +483,54 @@
                             ];
                         }
                         $hasFiles = count($archiveFiles) > 0;
+
+                        // Determine Global Workflow Row Styles & Badges
+                        $rowColorClass = '';
+                        $isNewSubmission = false;
+
+                        if ($archive->status === 'draft') {
+                            $rowColorClass = 'border-l-2 border-l-slate-300 dark:border-l-slate-700 bg-slate-50/40 dark:bg-slate-900/20 hover:bg-slate-100/60';
+                        } elseif ($archive->status === 'pending_verification') {
+                            $rowColorClass = 'border-l-4 border-l-amber-500 bg-amber-500/[0.07] dark:bg-amber-500/15 hover:bg-amber-500/20';
+                            $isNewSubmission = true;
+                        } elseif ($activeBorrowing || in_array($archive->status, ['borrowed', 'taken', 'out'])) {
+                            $rowColorClass = 'border-l-4 border-l-purple-500 bg-purple-500/[0.07] dark:bg-purple-500/15 hover:bg-purple-500/20';
+                        } elseif ($archive->status === 'pending_extension') {
+                            $rowColorClass = 'border-l-4 border-l-blue-500 bg-blue-500/[0.07] dark:bg-blue-500/15 hover:bg-blue-500/20';
+                        } elseif (in_array($archive->status, ['pending_destruction', 'destroyed'])) {
+                            $rowColorClass = 'border-l-4 border-l-rose-500 bg-rose-500/[0.07] dark:bg-rose-500/15 hover:bg-rose-500/20';
+                        } elseif ($archive->status === 'in_warehouse') {
+                            $rowColorClass = 'border-l-2 border-l-emerald-500/50 hover:bg-emerald-500/5';
+                        } else {
+                            $rowColorClass = 'hover:bg-slate-50 dark:hover:bg-slate-900/30';
+                        }
                     @endphp
-                    <tr class="hover:bg-amber-500/5 dark:hover:bg-amber-500/10 transition {{ $activeBorrowing ? 'bg-purple-500/5 dark:bg-purple-500/10' : '' }}">
+                    <tr class="transition duration-150 {{ $rowColorClass }}">
                         <td class="py-2.5 px-3 text-center border-r border-slate-200 dark:border-slate-800">
                             <input type="checkbox" :value="{{ $archive->id }}" x-model="selected" class="rounded border-slate-300 dark:border-slate-700 text-amber-500 focus:ring-0">
                         </td>
 
                         <td class="py-2.5 px-3 font-mono text-amber-700 dark:text-amber-400 font-extrabold border-r border-slate-200 dark:border-slate-800 whitespace-nowrap">
-                            @if($archive->box_number)
-                                <div class="flex items-center gap-1">
-                                    <i data-lucide="qr-code" class="w-3.5 h-3.5 text-amber-500"></i>
-                                    <span>{{ $archive->box_number }}</span>
-                                </div>
-                            @else
-                                <span class="text-slate-400 dark:text-slate-500 italic font-normal text-[11px]">- Belum ada box code -</span>
-                            @endif
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                @if($isNewSubmission)
+                                    <span class="px-1.5 py-0.2 rounded bg-amber-500 text-slate-950 font-black text-[9px] uppercase tracking-wider animate-pulse shadow-xs" title="Pengajuan Arsip Baru Menunggu Verifikasi">BARU</span>
+                                @elseif($activeBorrowing || in_array($archive->status, ['borrowed', 'taken', 'out']))
+                                    <span class="px-1.5 py-0.2 rounded bg-purple-500 text-white font-black text-[9px] uppercase tracking-wider shadow-xs" title="Berkas Sedang Ditarik">DITARIK</span>
+                                @elseif($archive->status === 'pending_extension')
+                                    <span class="px-1.5 py-0.2 rounded bg-blue-500 text-white font-black text-[9px] uppercase tracking-wider shadow-xs" title="Menunggu Konfirmasi Perpanjangan">PERPANJANG</span>
+                                @elseif(in_array($archive->status, ['pending_destruction', 'destroyed']))
+                                    <span class="px-1.5 py-0.2 rounded bg-rose-500 text-white font-black text-[9px] uppercase tracking-wider shadow-xs" title="Pemusnahan Berkas">MUSNAH</span>
+                                @endif
+
+                                @if($archive->box_number)
+                                    <div class="flex items-center gap-1">
+                                        <i data-lucide="qr-code" class="w-3.5 h-3.5 text-amber-500"></i>
+                                        <span>{{ $archive->box_number }}</span>
+                                    </div>
+                                @else
+                                    <span class="text-slate-400 dark:text-slate-500 italic font-normal text-[11px]">- Belum ada box code -</span>
+                                @endif
+                            </div>
                         </td>
 
                         <td class="py-2.5 px-3 border-r border-slate-200 dark:border-slate-800">
@@ -2606,9 +2764,93 @@
 function archiveCatalog() {
     return {
         departments: @json($departments ?? []),
+
+        // Cascading Document Types Filter
+        documentTypes: @json($documentTypes ?? []),
+        filterSubDept: '{{ request('sub_department_id', '') }}',
+        filterDocType: '{{ request('document_type', '') }}',
+
+        get availableDocTypes() {
+            let list = this.documentTypes;
+            if (this.filterSubDept) {
+                list = list.filter(d => String(d.sub_department_id) === String(this.filterSubDept) || !d.sub_department_id);
+            }
+            return [...new Set(list.map(d => d.document_type))].filter(Boolean).sort();
+        },
+
+        onFilterSubDeptChange() {
+            if (this.filterDocType && !this.availableDocTypes.includes(this.filterDocType)) {
+                this.filterDocType = '';
+            }
+        },
         selected: [],
         selectAll: false,
         dispatchModalLog: null,
+
+        // Live Realtime State (Point 4: Auto-sorting Data Baru)
+        liveNewArchives: [],
+        currentFilters: {
+            deptId: '{{ request('department_id', '') }}',
+            subDeptId: '{{ request('sub_department_id', '') }}',
+            docType: '{{ request('document_type', '') }}',
+            status: '{{ request('status', '') }}',
+        },
+
+        init() {
+            window.addEventListener('dms:realtime-sync', (e) => {
+                if (e.detail && e.detail.new_archives && e.detail.new_archives.length > 0) {
+                    this.handleIncomingArchives(e.detail.new_archives);
+                }
+            });
+        },
+
+        handleIncomingArchives(newItems) {
+            let addedCount = 0;
+            newItems.forEach(item => {
+                // Draft items must never be auto-sorted to top (only real submissions)
+                if (item.status === 'draft') {
+                    return;
+                }
+                // If item already rendered in server table or live list, skip
+                if (this.archiveStatuses[item.id] !== undefined) {
+                    return;
+                }
+                // Check if active filter excludes this item
+                if (this.currentFilters.deptId && String(item.department_id) !== String(this.currentFilters.deptId)) {
+                    return;
+                }
+                if (this.currentFilters.subDeptId && String(item.sub_department_id) !== String(this.currentFilters.subDeptId)) {
+                    return;
+                }
+                if (this.currentFilters.docType && String(item.document_type) !== String(this.currentFilters.docType)) {
+                    return;
+                }
+                if (this.currentFilters.status && String(item.status) !== String(this.currentFilters.status)) {
+                    return;
+                }
+
+                // Auto-sort to top
+                this.liveNewArchives.unshift(item);
+                this.archiveStatuses[item.id] = item.status;
+                addedCount++;
+            });
+
+            if (addedCount > 0) {
+                this.$nextTick(() => {
+                    if (window.lucide) window.lucide.createIcons();
+                });
+            }
+        },
+
+        // Archive status map for batch action filtering (id -> status)
+        archiveStatuses: @json($archives->pluck('status', 'id')),
+
+        get selectedDrafts() {
+            return this.selected.filter(id => this.archiveStatuses[id] === 'draft');
+        },
+        get selectedNonDrafts() {
+            return this.selected.filter(id => this.archiveStatuses[id] !== 'draft');
+        },
 
         // Super Admin Status Override State
         superAdminStatusModalOpen: false,
