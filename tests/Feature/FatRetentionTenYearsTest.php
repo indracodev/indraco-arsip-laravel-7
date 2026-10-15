@@ -182,6 +182,24 @@ class FatRetentionTenYearsTest extends TestCase
         $response->assertSessionHasNoErrors();
 
         $arc->refresh();
+        $this->assertEquals('pending_extension', $arc->status);
+
+        $log = \App\Models\ArchiveExtensionLog::where('archive_id', $arc->id)->latest()->first();
+        $this->assertNotNull($log);
+        $this->assertEquals('pending', $log->approval_status);
+
+        // Gudang melakukan ACC persetujuan
+        $gudangUser = User::firstOrCreate(['email' => 'gudang_fat_test@indraco.com'], [
+            'name' => 'PIC Gudang FAT Test',
+            'password' => bcrypt('password'),
+            'role' => 'pic_gudang',
+            'department_id' => $fatDept->id,
+        ]);
+        $this->actingAs($gudangUser);
+        $this->post(route('destructions.extensions.approve', $log->id));
+
+        $arc->refresh();
+        $this->assertEquals('in_warehouse', $arc->status);
         $this->assertEquals(20, $arc->retention_years); // 10 original + 10 added
     }
 

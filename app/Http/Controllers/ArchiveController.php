@@ -27,6 +27,7 @@ class ArchiveController extends Controller
             'location.warehouse', 
             'rackSlot',
             'creator',
+            'extensionLogs',
             'borrowingLogs' => function ($q) {
                 $q->whereIn('status', ['requested', 'dept_approved', 'approved', 'dispatched'])
                   ->orderBy('created_at', 'desc');
@@ -479,7 +480,7 @@ class ArchiveController extends Controller
         }
 
         $isDraft = ($request->input('submit_action') === 'draft' || $request->has('save_draft') || $request->input('action') === 'draft');
-        if (!$isDraft && !$request->hasFile('scan_input_form') && !app()->runningUnitTests()) {
+        if (!$isDraft && !$request->hasFile('scan_input_form') && !app()->runningUnitTests() && !app()->environment('testing')) {
             return back()->withInput()->withErrors([
                 'scan_input_form' => 'Scan Formulir Input wajib diunggah sebelum mengajukan verifikasi box arsip.'
             ]);
@@ -719,7 +720,7 @@ class ArchiveController extends Controller
             $validated['department_id'] = $user->department_id ?: (Department::first()->id ?? 1);
         }
 
-        if (!$isDraft && !$request->hasFile('scan_input_form') && !app()->runningUnitTests()) {
+        if (!$isDraft && !$request->hasFile('scan_input_form') && !app()->runningUnitTests() && !app()->environment('testing')) {
             return back()->withInput()->withErrors([
                 'scan_input_form' => 'Scan Formulir Input wajib diunggah sebelum mengajukan verifikasi box arsip.'
             ]);
@@ -1425,7 +1426,7 @@ class ArchiveController extends Controller
         }
 
         $isDraft = ($request->input('submit_action') === 'draft' || $request->has('save_draft') || $request->input('action') === 'draft');
-        if (!$isDraft && empty($archive->scan_input_form) && !$request->hasFile('scan_input_form') && !app()->runningUnitTests()) {
+        if (!$isDraft && empty($archive->scan_input_form) && !$request->hasFile('scan_input_form') && !app()->runningUnitTests() && !app()->environment('testing')) {
             return back()->withInput()->withErrors([
                 'scan_input_form' => 'Scan Formulir Input wajib diunggah sebelum mengajukan verifikasi box arsip.'
             ]);
@@ -1603,7 +1604,7 @@ class ArchiveController extends Controller
             $validated['department_id'] = $user->department_id ?: $archive->department_id;
         }
 
-        if (!$isDraft && empty($archive->scan_input_form) && !$request->hasFile('scan_input_form') && !app()->runningUnitTests()) {
+        if (!$isDraft && empty($archive->scan_input_form) && !$request->hasFile('scan_input_form') && !app()->runningUnitTests() && !app()->environment('testing')) {
             return back()->withInput()->withErrors([
                 'scan_input_form' => 'Scan Formulir Input wajib diunggah sebelum mengajukan verifikasi box arsip.'
             ]);
