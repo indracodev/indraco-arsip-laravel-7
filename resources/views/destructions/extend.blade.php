@@ -364,6 +364,15 @@
                 <span class="text-[10px] text-slate-500 dark:text-slate-400 font-mono block">
                     * Maksimal perpanjangan masa simpan adalah <span x-text="getMaxMonths() + ' Bulan (' + (getMaxMonths() / 12) + ' Tahun)'"></span>. Penambahan dihitung dari akhir bulan expiry sebelumnya.
                 </span>
+
+                <!-- Live Estimasi Expiry Baru -->
+                <div x-show="selectedArchives.length > 0 && additionalMonths" class="p-2.5 rounded bg-purple-500/10 border border-purple-500/30 text-[11px] text-purple-900 dark:text-purple-300 flex items-center justify-between gap-2 shadow-2xs font-mono">
+                    <span class="flex items-center gap-1.5">
+                        <i data-lucide="calendar-check" class="w-3.5 h-3.5 text-purple-600 dark:text-purple-400 shrink-0"></i>
+                        <span>Estimasi Periode Akhir Baru: <strong class="font-bold underline text-purple-700 dark:text-purple-300" x-text="getExtendedPeriodEndFormatted(selectedArchives[0])"></strong> <span class="text-slate-500 text-[10px]" x-show="selectedArchives.length > 1" x-text="'(untuk ' + selectedArchives.length + ' box terpilih)'"></span></span>
+                    </span>
+                    <span class="px-2 py-0.5 rounded bg-purple-600 text-white font-bold text-[10px] shrink-0" x-text="'+' + additionalMonths + ' Bulan'"></span>
+                </div>
             </div>
 
             <!-- Extension Reason -->
@@ -650,17 +659,75 @@ function extendCreateApp() {
             });
         },
 
+        getExtendedPeriodEndFormatted(arc) {
+            if (!arc) return '-';
+            const monthsToAdd = parseInt(this.additionalMonths, 10) || 0;
+            let baseYear = null;
+            let baseMonth = null;
+
+            // 1. Try parsing retention_expiry_date (e.g. "2026-10-31" or "2026-10-31T...")
+            if (arc.retention_expiry_date && typeof arc.retention_expiry_date === 'string') {
+                const match = arc.retention_expiry_date.match(/^(\d{4})-(\d{1,2})/);
+                if (match) {
+                    baseYear = parseInt(match[1], 10);
+                    baseMonth = parseInt(match[2], 10);
+                }
+            }
+
+            // 2. Try parsing period_end_date (e.g. "2026-10-31")
+            if ((!baseYear || !baseMonth) && arc.period_end_date && typeof arc.period_end_date === 'string') {
+                const match = arc.period_end_date.match(/^(\d{4})-(\d{1,2})/);
+                if (match) {
+                    baseYear = parseInt(match[1], 10);
+                    baseMonth = parseInt(match[2], 10);
+                }
+            }
+
+            // 3. Try parsing formatted_expiry_date (e.g. "Oct 2026" or "10-2026")
+            if ((!baseYear || !baseMonth) && arc.formatted_expiry_date && typeof arc.formatted_expiry_date === 'string') {
+                const mYMatch = arc.formatted_expiry_date.match(/^([A-Za-z]+)\s+(\d{4})$/);
+                if (mYMatch) {
+                    const monthNames = {
+                        jan: 1, feb: 2, mar: 3, apr: 4, may: 5, mei: 5, jun: 6,
+                        jul: 7, aug: 8, agu: 8, ags: 8, sep: 9, oct: 10, okt: 10, nov: 11, dec: 12, des: 12
+                    };
+                    const mKey = mYMatch[1].toLowerCase().slice(0, 3);
+                    if (monthNames[mKey]) {
+                        baseMonth = monthNames[mKey];
+                        baseYear = parseInt(mYMatch[2], 10);
+                    }
+                }
+            }
+
+            // 4. Fallback to current date
+            if (!baseYear || !baseMonth) {
+                const now = new Date();
+                baseYear = now.getFullYear();
+                baseMonth = now.getMonth() + 1;
+            }
+
+            // Target extended date (month is 0-indexed in JS Date)
+            const targetDate = new Date(baseYear, (baseMonth - 1) + monthsToAdd, 1);
+            const endM = String(targetDate.getMonth() + 1).padStart(2, '0');
+            const endY = targetDate.getFullYear();
+            return `${endM}-${endY}`;
+        },
+
         populateFormRows() {
             const rows = [];
             const padTo = 12;
 
             this.selectedArchives.forEach((arc, idx) => {
+                const rackLoc = arc.rack_label || (arc.short_location && arc.short_location !== 'Belum Ada Lokasi' ? arc.short_location : '') || '';
+                const boxLabel = rackLoc || arc.box_number || arc.archive_code || '';
+
                 rows.push({
                     no: idx + 1,
                     title: arc.title || ('Box ' + (arc.box_number || (idx + 1))),
                     masa_simpan: this.additionalMonths ? (this.additionalMonths + ' Bln') : (this.getMaxMonths() + ' Bln'),
-                    period_end: arc.formatted_expiry_date || arc.retention_expiry_date || '-',
-                    label_box: arc.box_number || '-'
+                    period_end: this.getExtendedPeriodEndFormatted(arc),
+                    label_kardus: boxLabel,
+                    label_box: boxLabel
                 });
             });
 

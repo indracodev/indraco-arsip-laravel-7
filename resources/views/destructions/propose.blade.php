@@ -676,12 +676,16 @@ function proposeCreateApp() {
             const padTo = 12;
 
             this.selectedArchives.forEach((arc, idx) => {
+                const rackLoc = arc.rack_label || (arc.short_location && arc.short_location !== 'Belum Ada Lokasi' ? arc.short_location : '') || '';
+                const boxLabel = rackLoc || arc.box_number || arc.archive_code || '';
+
                 rows.push({
                     no: idx + 1,
                     title: arc.title || ('Box ' + (arc.box_number || (idx + 1))),
                     masa_simpan: 'Habis',
                     period_end: arc.formatted_expiry_date || arc.retention_expiry_date || '-',
-                    label_box: arc.box_number || '-'
+                    label_kardus: boxLabel,
+                    label_box: boxLabel
                 });
             });
 

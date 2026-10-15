@@ -386,7 +386,7 @@
                                             (&nbsp;<span style="display: inline-block; min-width: 65px; border-bottom: 1px solid #000; text-align: center; vertical-align: bottom; padding: 0 4px; outline: none;" contenteditable="true" @blur="{{ $stateName }}.approval_pemohon = $el.innerText; {{ $stateName }}.pic_pemohon = $el.innerText" x-text="{{ $stateName }}.approval_pemohon || {{ $stateName }}.pic_pemohon || ''"></span>&nbsp;)
                                         </div>
                                         <div style="font-size: 9.5pt; text-align: left; margin-top: 3px;">
-                                            Tgl. <span x-text="{{ $stateName }}.approval_tgl ? {{ $dateFormatter }}({{ $stateName }}.approval_tgl) : '....................'"></span>
+                                            Tgl. ....................
                                         </div>
                                     </td>
                                     <!-- Disetujui oleh (Atasan Langsung) -->
@@ -397,7 +397,7 @@
                                             (&nbsp;<span style="display: inline-block; min-width: 65px; border-bottom: 1px solid #000; text-align: center; vertical-align: bottom; padding: 0 4px; outline: none;" contenteditable="true" @blur="{{ $stateName }}.approval_atasan = $el.innerText" x-text="{{ $stateName }}.approval_atasan || ''"></span>&nbsp;)
                                         </div>
                                         <div style="font-size: 9.5pt; text-align: left; margin-top: 3px;">
-                                            Tgl. <span x-text="{{ $stateName }}.approval_tgl ? {{ $dateFormatter }}({{ $stateName }}.approval_tgl) : '....................'"></span>
+                                            Tgl. ....................
                                         </div>
                                     </td>
                                     <!-- Diketahui oleh (Pimpinan Departemen) -->
@@ -408,7 +408,7 @@
                                             (&nbsp;<span style="display: inline-block; min-width: 65px; border-bottom: 1px solid #000; text-align: center; vertical-align: bottom; padding: 0 4px; outline: none;" contenteditable="true" @blur="{{ $stateName }}.approval_pimpinan = $el.innerText" x-text="{{ $stateName }}.approval_pimpinan || ''"></span>&nbsp;)
                                         </div>
                                         <div style="font-size: 9.5pt; text-align: left; margin-top: 3px;">
-                                            Tgl. <span x-text="{{ $stateName }}.approval_tgl ? {{ $dateFormatter }}({{ $stateName }}.approval_tgl) : '....................'"></span>
+                                            Tgl. ....................
                                         </div>
                                     </td>
                                     <!-- Diterima oleh (Admin Gudang) -->
@@ -419,7 +419,7 @@
                                             (&nbsp;<span style="display: inline-block; min-width: 65px; border-bottom: 1px solid #000; text-align: center; vertical-align: bottom; padding: 0 4px; outline: none;" contenteditable="true" @blur="{{ $stateName }}.approval_admin_gudang = $el.innerText" x-text="{{ $stateName }}.approval_admin_gudang || ''"></span>&nbsp;)
                                         </div>
                                         <div style="font-size: 9.5pt; text-align: left; margin-top: 3px;">
-                                            Tgl. <span x-text="{{ $stateName }}.approval_tgl ? {{ $dateFormatter }}({{ $stateName }}.approval_tgl) : '....................'"></span>
+                                            Tgl. ....................
                                         </div>
                                     </td>
                                 </tr>

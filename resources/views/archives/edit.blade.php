@@ -1460,7 +1460,7 @@ function archiveEditApp() {
             }
 
             this.formPengajuanData.tanggal_pengajuan = this.tglPenyerahan || '{{ date('Y-m-d') }}';
-            this.formPengajuanData.approval_tgl = this.tglPenyerahan || '{{ date('Y-m-d') }}';
+            this.formPengajuanData.approval_tgl = '';
             this.populateFormRows();
             this.formModalOpen = true;
             this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
