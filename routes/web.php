@@ -92,6 +92,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/destructions/extend/{archive?}', 'DestructionController@extendStore')->name('destructions.extend_store');
     Route::post('/destructions/extend/{archive}', 'DestructionController@extendStore')->name('destructions.extend_store.archive');
     Route::get('/destructions/extend-print/{archive}', 'DestructionController@extendPrint')->name('destructions.extend_print');
+    Route::post('/destructions/extensions/{extensionLog}/approve', 'DestructionController@approveExtension')->name('destructions.extensions.approve');
+    Route::post('/destructions/extensions/{extensionLog}/reject', 'DestructionController@rejectExtension')->name('destructions.extensions.reject');
+    Route::post('/destructions/{destructionLog}/upload-bap', 'DestructionController@uploadBap')->name('destructions.upload_bap');
 
     // Global Audit Trail Logs (Super Admin Only)
     Route::get('/logs', 'AuditLogController@index')->name('logs.index')->middleware('role:admin');
@@ -123,6 +126,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/api/departments/{department}/manage-data', 'DepartmentController@apiGetManageData')->name('api.departments.manage_data');
     Route::get('/api/departments/{department}/master-archives', 'MasterArchiveController@apiGetByDepartment')->name('api.departments.master_archives');
     Route::get('/api/settings/current', 'SettingController@getSettings')->name('api.settings.current');
+    Route::post('/settings/update', 'SettingController@updateSettings')->name('master.settings.update');
+    Route::post('/settings/reset-logo', 'SettingController@resetLogo')->name('master.settings.reset_logo');
 
     // Master Data Management (Admin & PIC Gudang)
     Route::middleware('role:admin,pic_gudang')->prefix('master')->name('master.')->group(function () {
@@ -142,9 +147,7 @@ Route::middleware('auth')->group(function () {
         Route::put('/departments/{department}/master-archives/{masterArchive}', 'MasterArchiveController@update')->name('departments.master_archives.update')->middleware('role:admin');
         Route::delete('/departments/{department}/master-archives/{masterArchive}', 'MasterArchiveController@destroy')->name('departments.master_archives.destroy')->middleware('role:admin');
 
-        // System Settings & Appearance & Database Maintenance
-        Route::post('/settings/update', 'SettingController@updateSettings')->name('settings.update');
-        Route::post('/settings/reset-logo', 'SettingController@resetLogo')->name('settings.reset_logo');
+        // System Settings & Database Maintenance (Super Admin Only)
         Route::get('/settings/backup-database', 'SettingController@backupDatabase')->name('settings.backup_database')->middleware('role:admin');
         Route::post('/settings/backup-database', 'SettingController@backupDatabase')->middleware('role:admin');
         Route::post('/settings/clear-logs', 'SettingController@clearLogs')->name('settings.clear_logs')->middleware('role:admin');

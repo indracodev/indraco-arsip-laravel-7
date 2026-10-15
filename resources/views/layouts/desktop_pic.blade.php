@@ -2066,9 +2066,18 @@
                         },
                         body: formData
                     })
-                    .then(res => res.json())
-                    .then(data => {
+                    .then(async res => {
+                        const data = await res.json().catch(() => ({}));
                         this.settingsSaving = false;
+                        if (!res.ok) {
+                            const errMsg = data.message || 'Gagal menyimpan pengaturan sistem.';
+                            if (window.showAlertModal) {
+                                window.showAlertModal(errMsg, 'Akses Dibatasi', 'danger');
+                            } else {
+                                console.error(errMsg);
+                            }
+                            return;
+                        }
                         if (data.settings && data.settings.app_logo) {
                             this.appLogoUrl = data.settings.app_logo;
                         }
@@ -2088,12 +2097,16 @@
                         localStorage.setItem('app_font_size', this.currentFontSize);
                         this.applyFontSizeLive(this.currentFontSize);
                         this.openSettingsModal = false;
-                        alert(data.message || 'Pengaturan sistem berhasil disimpan.');
+                        if (window.showAlertModal) {
+                            window.showAlertModal(data.message || 'Pengaturan sistem berhasil disimpan.', 'Berhasil Disimpan', 'success');
+                        }
                     })
                     .catch(err => {
                         console.error(err);
                         this.settingsSaving = false;
-                        alert('Gagal menyimpan pengaturan.');
+                        if (window.showAlertModal) {
+                            window.showAlertModal('Gagal menyimpan pengaturan. Silakan periksa koneksi Anda.', 'Gagal Menyimpan', 'danger');
+                        }
                     });
                 },
 

@@ -47,10 +47,13 @@ class SettingController extends Controller
             'ping_alert_threshold_ms' => 'nullable|integer|min:50|max:10000',
         ]);
 
+        $user = auth()->user();
+        $isPrivileged = $user && ($user->isSuperAdmin() || $user->isPicGudang());
+
         $updated = [];
 
-        // Handle Logo Upload
-        if ($request->hasFile('logo')) {
+        // Handle Logo Upload (Admin/PIC Gudang only)
+        if ($request->hasFile('logo') && $isPrivileged) {
             $file = $request->file('logo');
             $filename = 'logo_' . time() . '.' . $file->getClientOriginalExtension();
             
@@ -73,21 +76,21 @@ class SettingController extends Controller
             $updated['app_font_size'] = $fontSize;
         }
 
-        // Handle App Name
-        if ($request->filled('app_name')) {
+        // Handle App Name (Admin only)
+        if ($request->filled('app_name') && $isPrivileged) {
             $appName = trim($request->input('app_name'));
             AppSetting::set('app_name', $appName, 'general', 'string', 'Nama aplikasi');
             $updated['app_name'] = $appName;
         }
 
-        // Handle LAN Ping Alert Notification Settings
-        if ($request->has('ping_alert_enabled')) {
+        // Handle LAN Ping Alert Notification Settings (Admin only)
+        if ($request->has('ping_alert_enabled') && $isPrivileged) {
             $pingAlertVal = in_array($request->input('ping_alert_enabled'), [1, '1', true, 'true'], true) ? '1' : '0';
             AppSetting::set('ping_alert_enabled', $pingAlertVal, 'system', 'boolean', 'Status aktifkan notifikasi peringatan latensi LAN');
             $updated['ping_alert_enabled'] = $pingAlertVal === '1';
         }
 
-        if ($request->filled('ping_alert_threshold_ms')) {
+        if ($request->filled('ping_alert_threshold_ms') && $isPrivileged) {
             $threshold = (int) $request->input('ping_alert_threshold_ms');
             AppSetting::set('ping_alert_threshold_ms', (string) $threshold, 'system', 'integer', 'Ambang batas latensi LAN (ms) untuk memicu peringatan');
             $updated['ping_alert_threshold_ms'] = $threshold;
