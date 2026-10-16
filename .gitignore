@@ -14,12 +14,15 @@ yarn-error.log
 public/images/images.zip
 /public/images/*
 !/public/images/logo-*.png
+!/public/images/icon*
 *.zip
 
 # Graphify
 /graphify-out/
 .graphify*
 /storage/framework/lsp-*.php
+/scratch/
+
 
 # Grafana k6 Local Benchmarks (Local only, do not push to GitHub)
 /tests/k6/
@@ -32,5 +35,5 @@ benchmark_results.json
 # Desktop Client (Tauri & Rust Build Artifacts)
 /desktop/src-tauri/target/
 /desktop/node_modules/
-/desktop/*.exe
 /desktop/src-tauri/gen/
+
