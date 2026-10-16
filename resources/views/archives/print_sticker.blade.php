@@ -13,7 +13,6 @@
         {{ $isSingle && $singleArchive ? (!empty($singleArchive->box_number) ? $singleArchive->box_number : ($singleArchive->title ?? 'Arsip')) : (isset($archives) ? count($archives) . ' Arsip' : 'Arsip') }}
     </title>
     <script src="{{ asset('js/vendor/qrcode.min.js') }}"></script>
-    @include('layouts.partials.head_assets')
     <style>
         @page {
             size: 100mm 100mm;

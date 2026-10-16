@@ -6,7 +6,6 @@
     <title>Formulir Perpanjangan Masa Simpan - {{ $archive->box_number }}</title>
     <link rel="stylesheet" href="{{ asset('css/fonts.css') }}">
     <script src="{{ asset('js/vendor/tailwindcss.js') }}"></script>
-    @include('layouts.partials.head_assets')
     <style>
         @media print {
             .no-print { display: none !important; }

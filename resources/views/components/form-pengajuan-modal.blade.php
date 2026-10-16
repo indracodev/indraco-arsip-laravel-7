@@ -21,45 +21,63 @@
     @keydown.escape.window="{{ $openState }} = false"
 >
     <div 
-        class="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg shadow-2xl max-w-6xl w-full max-h-[95vh] flex flex-col overflow-hidden text-slate-800 dark:text-slate-100"
-        @click.outside="{{ $openState }} = false"
+        class="bg-white dark:bg-slate-900 border-2 border-amber-500/60 dark:border-amber-500/40 rounded-lg shadow-2xl max-w-6xl w-full max-h-[96vh] flex flex-col overflow-hidden text-slate-800 dark:text-slate-100"
     >
         <!-- Modal Header Toolbar -->
-        <div class="px-4 py-2.5 bg-slate-100 dark:bg-slate-950 border-b border-slate-300 dark:border-slate-800 flex items-center justify-between shrink-0 font-mono">
-            <div class="flex items-center gap-2">
-                <span class="p-1.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded">
+        <div class="px-4 py-2 bg-gradient-to-r from-slate-900 via-slate-850 to-indigo-950 text-white border-b border-amber-500/40 flex items-center justify-between shrink-0 font-mono">
+            <div class="flex items-center gap-2.5">
+                <span class="p-1.5 bg-amber-500/20 text-amber-400 border border-amber-500/40 rounded">
                     <i data-lucide="printer" class="w-4 h-4"></i>
                 </span>
                 <div>
-                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
-                        {{ $title }}
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-2">
+                        <span>{{ $title }}</span>
+                        <span class="px-1.5 py-0.2 bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[9px] font-normal rounded">Modal Pratinjau</span>
                     </h3>
-                    <p class="text-[10px] text-slate-500 font-sans">
+                    <p class="text-[10px] text-slate-300 font-sans">
                         {{ $subtitle }}
                     </p>
                 </div>
             </div>
 
+            <!-- Header Action Buttons (Jelas & Kontras untuk Menghindari Salah Klik Close Window) -->
             <div class="flex items-center gap-2">
                 <button 
                     type="button" 
                     @click="{{ $printMethod }}()" 
-                    class="px-3.5 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs rounded border border-amber-600 shadow-sm flex items-center gap-1.5 transition cursor-pointer"
+                    class="px-3.5 py-1.5 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black text-xs rounded border border-amber-600 shadow-md flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
                     title="Cetak langsung ke printer atau simpan sebagai PDF"
                 >
-                    <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+                    <i data-lucide="printer" class="w-3.5 h-3.5 text-slate-950"></i>
                     <span>Cetak Dokumen (Print / PDF)</span>
                 </button>
 
+                <!-- Tombol Tutup Modal yang Jelas Berlabel (Kontras dengan Tombol Close Window MDI) -->
                 <button 
                     type="button" 
                     @click="{{ $openState }} = false" 
-                    class="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 rounded transition cursor-pointer"
-                    title="Tutup (Esc)"
+                    class="px-3 py-1.5 bg-slate-800 hover:bg-rose-600/90 text-slate-200 hover:text-white font-bold text-xs rounded border border-slate-600 hover:border-rose-500 flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-sm"
+                    title="Tutup Modal Pratinjau dan Kembali Mengedit Form"
                 >
-                    <i data-lucide="x" class="w-4 h-4"></i>
+                    <i data-lucide="x" class="w-4 h-4 text-rose-400"></i>
+                    <span>Tutup Pratinjau (Kembali ke Form)</span>
                 </button>
             </div>
+        </div>
+
+        <!-- Banner Panduan Pengguna (Mencegah Salah Tutup Halaman Utama) -->
+        <div class="px-4 py-1.5 bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-900/40 text-amber-900 dark:text-amber-200 text-[11px] font-sans flex items-center justify-between gap-3 shrink-0">
+            <div class="flex items-center gap-2">
+                <i data-lucide="info" class="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0"></i>
+                <span><strong>Mode Pratinjau Form Cetak:</strong> Semua input data form utama Anda tetap aman tersimpan. Gunakan tombol <strong>"Tutup Pratinjau"</strong> di toolbar atas atau bawah (bukan tombol silang merah jendela aplikasi) untuk kembali mengedit data.</span>
+            </div>
+            <button 
+                type="button" 
+                @click="{{ $openState }} = false" 
+                class="text-[11px] font-bold text-amber-800 dark:text-amber-300 hover:text-rose-600 hover:underline shrink-0 cursor-pointer"
+            >
+                ✕ Kembali ke Editor
+            </button>
         </div>
 
         <!-- Modal Body: Left Inputs Panel + Right Paper Preview -->
@@ -254,6 +272,26 @@
                                 style="font-size: 11px;"
                                 class="w-full px-2 py-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
                             >
+                        </div>
+
+                        <!-- Tombol Aksi Bawah Panel (Akses Cepat Menutup/Mencetak) -->
+                        <div class="pt-3 border-t border-slate-200 dark:border-slate-800 space-y-2">
+                            <button 
+                                type="button" 
+                                @click="{{ $printMethod }}()" 
+                                class="w-full py-2 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black text-xs rounded border border-amber-600 shadow-md flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer"
+                            >
+                                <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+                                <span>Cetak Dokumen Sekarang</span>
+                            </button>
+                            <button 
+                                type="button" 
+                                @click="{{ $openState }} = false" 
+                                class="w-full py-1.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs rounded border border-slate-300 dark:border-slate-700 flex items-center justify-center gap-1.5 transition cursor-pointer"
+                            >
+                                <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+                                <span>Tutup & Kembali ke Form</span>
+                            </button>
                         </div>
                     </div>
                 </div>

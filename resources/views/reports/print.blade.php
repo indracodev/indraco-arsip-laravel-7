@@ -9,7 +9,6 @@
     <link href="{{ asset('css/app.css') }}" rel="stylesheet">
     <!-- Lucide Icons -->
     <script src="{{ asset('js/vendor/lucide.min.js') }}"></script>
-    @include('layouts.partials.head_assets')
 
     <style>
         @page {

@@ -1219,7 +1219,7 @@
                             </button>
 
                             <!-- 3. CLOSE BUTTON [✕] (Red Delphi / Windows Standard) -->
-                            <button @click="closeWindow(win.id)" type="button" title="Tutup Jendela Form Ini"
+                            <button @click="closeWindow(win.id)" type="button" title="Tutup Seluruh Jendela Halaman Ini (✕)"
                                 class="w-6 h-6 flex items-center justify-center bg-rose-600 hover:bg-rose-500 border border-rose-500 rounded text-white text-xs font-black transition active:scale-95 cursor-pointer shadow-xs">
                                 ✕
                             </button>
@@ -2131,25 +2131,6 @@
                             const size = this.tempFontSize || this.currentFontSize || '19px';
                             if (ifr && ifr.contentDocument && ifr.contentDocument.documentElement) {
                                 ifr.contentDocument.documentElement.style.fontSize = size;
-
-                                // Intercept target="_blank" inside desktop iframe to open as MDI window
-                                if (!ifr.__hasTargetBlankHook) {
-                                    ifr.__hasTargetBlankHook = true;
-                                    ifr.contentDocument.addEventListener('click', (e) => {
-                                        const link = e.target.closest('a[target="_blank"]');
-                                        if (link && link.href) {
-                                            e.preventDefault();
-                                            const title = link.getAttribute('title') || link.innerText.trim() || 'Pratinjau Dokumen';
-                                            const cleanUrl = link.href + (link.href.includes('?') ? '&embed=1' : '?embed=1');
-                                            this.openFormWindowWithCustom(
-                                                'print_win_' + Date.now(),
-                                                title,
-                                                'printer',
-                                                cleanUrl
-                                            );
-                                        }
-                                    });
-                                }
                             }
                             if (ifr && ifr.contentWindow) {
                                 ifr.contentWindow.postMessage({
@@ -2845,7 +2826,24 @@
                         setTimeout(() => lucide.createIcons(), 50);
                     },
 
-                    closeWindow(formId) {
+                    async closeWindow(formId) {
+                        const win = this.openWindows.find(w => w.id === formId);
+                        
+                        // Konfirmasi pengamanan agar user tidak kehilangan form input atau salah klik tombol close window saat modal cetak terbuka
+                        if (window.showConfirmModal) {
+                            const isCriticalForm = !formId.includes('dashboard') && !formId.includes('diagnostics') && !formId.includes('logs');
+                            if (isCriticalForm) {
+                                const ok = await window.showConfirmModal({
+                                    title: 'Tutup Jendela Halaman?',
+                                    message: `PERINGATAN: Apakah Anda yakin ingin menutup jendela "${win ? win.title : 'Halaman Ini'}"?\nJika Anda sedang mengisi form pengajuan atau membuka pratinjau cetak, data yang belum disimpan ke sistem akan hilang.`,
+                                    type: 'warning',
+                                    confirmText: 'Ya, Tutup Jendela',
+                                    cancelText: 'Batal (Tetap Buka)'
+                                });
+                                if (!ok) return;
+                            }
+                        }
+
                         this.openWindows = this.openWindows.filter(w => w.id !== formId);
                         if (this.activeWinId === formId) {
                             const remaining = this.openWindows.filter(w => !w.minimized);
