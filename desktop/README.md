@@ -32,19 +32,41 @@ Aplikasi desktop native Windows (.exe) berbasis **Tauri v2** untuk mengakses Sis
 
 ## 📂 Menjalankan Aplikasi
 
-File executable siap pakai:
-```
-desktop/DMS-Indraco-Client.exe
-```
+### A. Di Komputer Windows:
+1. **Aplikasi Native (.exe):**
+   Cukup klik 2x:
+   ```
+   desktop/DMS-Indraco-Client.exe
+   ```
+   *(Bisa juga diletakkan shortcut di Desktop komputer).*
 
-Untuk mode development:
-```bash
-cd desktop
-npm run dev
-```
+2. **Launcher Skrip Cadangan (.bat):**
+   ```
+   START-CLIENT-WORKSTATION.bat
+   ```
 
-Untuk build installer release (.msi / .exe):
-```bash
-cd desktop
-npm run build
-```
+---
+
+### B. Di Komputer Linux (Ubuntu, Debian, Fedora, Mint, Arch):
+1. **Launcher Skrip Portabel (Langsung Jalan Tanpa Compile):**
+   Jalankan skrip bash:
+   ```bash
+   chmod +x START-CLIENT-WORKSTATION.sh
+   ./START-CLIENT-WORKSTATION.sh
+   ```
+   *Skrip ini otomatis mendeteksi Chrome/Chromium/Brave/Edge/Firefox dan membukanya dalam **Standalone App Window** (tanpa address bar/tab, seperti native app), serta menyediakan opsi pembuatan shortcut `.desktop` ke menu aplikasi Linux.*
+
+2. **Native Standalone Linux (AppImage / .deb):**
+   Untuk mengompilasi binary native Linux dari source code ini:
+   ```bash
+   # Di komputer Linux:
+   sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+   cd desktop
+   npm install
+   npm run build
+   ```
+   Hasil build `.AppImage` dan `.deb` akan terbentuk di direktori `desktop/src-tauri/target/release/bundle/`.
+
+3. **Build Otomatis via GitHub Actions:**
+   Alur CI telah disiapkan di `.github/workflows/build-clients.yml`. Setiap pembuatan tag rilis di GitHub, installer Windows (.exe) dan Linux (.AppImage & .deb) akan di-build dan siap diunduh otomatis.
+
