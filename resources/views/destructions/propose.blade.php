@@ -679,9 +679,12 @@ function proposeCreateApp() {
                 const rackLoc = arc.rack_label || (arc.short_location && arc.short_location !== 'Belum Ada Lokasi' ? arc.short_location : '') || '';
                 const boxLabel = rackLoc || arc.box_number || arc.archive_code || '';
 
+                const subDeptName = arc.sub_department ? (arc.sub_department.code || arc.sub_department.name) : (arc.sub_department_id ? 'Inti Dept' : '-');
+
                 rows.push({
                     no: idx + 1,
                     title: arc.title || ('Box ' + (arc.box_number || (idx + 1))),
+                    sub_dept: subDeptName,
                     masa_simpan: 'Habis',
                     period_end: arc.formatted_expiry_date || arc.retention_expiry_date || '-',
                     label_kardus: boxLabel,
@@ -694,9 +697,11 @@ function proposeCreateApp() {
                 rows.push({
                     no: i,
                     title: '',
+                    sub_dept: '',
                     masa_simpan: '',
                     period_end: '',
-                    label_box: ''
+                    label_box: '',
+                    label_kardus: ''
                 });
             }
 
@@ -704,7 +709,11 @@ function proposeCreateApp() {
         },
 
         printFormPengajuan() {
-            window.print();
+            if (window.dmsPrint) {
+                window.dmsPrint('form-pengajuan-print-document');
+            } else {
+                window.print();
+            }
         },
 
         formatDateDisplay(dateStr) {

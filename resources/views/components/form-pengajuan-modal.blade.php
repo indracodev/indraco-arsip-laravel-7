@@ -330,13 +330,16 @@
                                     <th style="border: 1px solid #000; padding: 4px 6px; font-size: 9.5pt; text-align: center; line-height: 1.2; overflow: hidden; word-break: break-word;">
                                         Nama / Judul Box
                                     </th>
-                                    <th style="border: 1px solid #000; width: 105px; padding: 4px 4px; font-size: 9.5pt; text-align: center; line-height: 1.2; overflow: hidden;">
+                                    <th style="border: 1px solid #000; width: 85px; padding: 4px 4px; font-size: 9.5pt; text-align: center; line-height: 1.2; overflow: hidden; word-break: break-word;">
+                                        Sub-Dept
+                                    </th>
+                                    <th style="border: 1px solid #000; width: 95px; padding: 4px 4px; font-size: 9.5pt; text-align: center; line-height: 1.2; overflow: hidden;">
                                         Masa Simpan<br>(Bulan)
                                     </th>
-                                    <th style="border: 1px solid #000; width: 120px; padding: 4px 4px; font-size: 9.5pt; text-align: center; line-height: 1.2; overflow: hidden;">
+                                    <th style="border: 1px solid #000; width: 110px; padding: 4px 4px; font-size: 9.5pt; text-align: center; line-height: 1.2; overflow: hidden;">
                                         Periode Akhir<br>(MM-YYYY)
                                     </th>
-                                    <th style="border: 1px solid #000; width: 115px; padding: 4px 4px; font-size: 9.5pt; text-align: center; line-height: 1.2; overflow: hidden; word-break: break-word;">
+                                    <th style="border: 1px solid #000; width: 105px; padding: 4px 4px; font-size: 9.5pt; text-align: center; line-height: 1.2; overflow: hidden; word-break: break-word;">
                                         Label Box
                                     </th>
                                 </tr>
@@ -346,6 +349,7 @@
                                     <tr style="height: 24px;">
                                         <td style="border: 1px solid #000; padding: 2px 2px; text-align: center; font-size: 9.5pt; overflow: hidden;" x-text="row.no"></td>
                                         <td style="border: 1px solid #000; padding: 2px 6px; text-align: left; font-size: 9.5pt; outline: none; overflow: hidden; word-break: break-word;" contenteditable="true" @blur="row.title = $el.innerText" x-text="row.title"></td>
+                                        <td style="border: 1px solid #000; padding: 2px 4px; text-align: center; font-size: 9.5pt; outline: none; overflow: hidden; word-break: break-word;" contenteditable="true" @blur="row.sub_dept = $el.innerText" x-text="row.title ? (row.sub_dept || '-') : (row.sub_dept || '')"></td>
                                         <td style="border: 1px solid #000; padding: 2px 2px; text-align: center; font-size: 9.5pt; outline: none; overflow: hidden; white-space: nowrap;" contenteditable="true" @blur="row.masa_simpan = $el.innerText" x-text="row.masa_simpan"></td>
                                         <td style="border: 1px solid #000; padding: 2px 2px; text-align: center; font-size: 9.5pt; font-family: monospace; outline: none; overflow: hidden; white-space: nowrap;" contenteditable="true" @blur="row.period_end = $el.innerText" x-text="row.period_end"></td>
                                         <td style="border: 1px solid #000; padding: 2px 4px; text-align: center; font-size: 9.5pt; outline: none; overflow: hidden; word-break: break-word;" contenteditable="true" @blur="row.label_box = $el.innerText; row.label_kardus = $el.innerText" x-text="row.label_box || row.label_kardus"></td>

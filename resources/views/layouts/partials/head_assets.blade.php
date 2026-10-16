@@ -193,4 +193,95 @@
         checkTimer = setInterval(runHeartbeat, 3000);
         window.addEventListener('offline', handleDisconnect);
     })();
+
+    // PT INDRACO DMS - Cross-Frame & Desktop Client Unified Print Engine
+    (function() {
+        window.dmsPrint = function(elementOrId) {
+            var el = null;
+            if (typeof elementOrId === 'string') {
+                el = document.getElementById(elementOrId);
+            } else if (elementOrId instanceof HTMLElement) {
+                el = elementOrId;
+            }
+
+            // In desktop client or MDI shell, forms are hosted in an iframe
+            if (window.parent && window.parent !== window) {
+                var printDoc = el || document.getElementById('form-pengajuan-print-document') || document.body;
+                var styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]')).map(function(s) {
+                    return s.outerHTML;
+                }).join('\n');
+
+                try {
+                    window.parent.postMessage({
+                        type: 'DMS_EXECUTE_PRINT',
+                        html: printDoc.outerHTML,
+                        title: document.title,
+                        styles: styles
+                    }, '*');
+                    return;
+                } catch (e) {
+                    console.warn('Cross-frame print dispatch failed:', e);
+                }
+            }
+
+            // Normal browser window context
+            window.print();
+        };
+
+        // If top-level shell window, receive and fulfill print requests from child iframes
+        if (window === window.top) {
+            window.addEventListener('message', function(event) {
+                if (event.data && event.data.type === 'DMS_EXECUTE_PRINT') {
+                    var portal = document.getElementById('dms-global-print-portal');
+                    if (!portal) {
+                        portal = document.createElement('div');
+                        portal.id = 'dms-global-print-portal';
+                        document.body.appendChild(portal);
+                    }
+                    portal.innerHTML = (event.data.styles || '') + '<div class="dms-print-container">' + event.data.html + '</div>';
+                    document.body.classList.add('has-dms-print-portal');
+                    window.focus();
+                    setTimeout(function() {
+                        window.print();
+                    }, 150);
+                }
+            });
+
+            window.addEventListener('afterprint', function() {
+                document.body.classList.remove('has-dms-print-portal');
+                var portal = document.getElementById('dms-global-print-portal');
+                if (portal) portal.innerHTML = '';
+            });
+        }
+
+        // Wrap default window.print so any direct call (even third-party) routes cleanly
+        var nativePrint = window.print;
+        window.print = function() {
+            if (window.parent && window.parent !== window) {
+                window.dmsPrint();
+                return;
+            }
+            nativePrint.call(window);
+        };
+    })();
 </script>
+
+<style>
+@media print {
+    body.has-dms-print-portal > *:not(#dms-global-print-portal) {
+        display: none !important;
+    }
+    #dms-global-print-portal {
+        display: block !important;
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #ffffff !important;
+        color: #000000 !important;
+        z-index: 99999999 !important;
+    }
+}
+</style>

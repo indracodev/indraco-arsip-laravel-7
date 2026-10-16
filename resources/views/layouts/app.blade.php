@@ -2131,6 +2131,25 @@
                             const size = this.tempFontSize || this.currentFontSize || '19px';
                             if (ifr && ifr.contentDocument && ifr.contentDocument.documentElement) {
                                 ifr.contentDocument.documentElement.style.fontSize = size;
+
+                                // Intercept target="_blank" inside desktop iframe to open as MDI window
+                                if (!ifr.__hasTargetBlankHook) {
+                                    ifr.__hasTargetBlankHook = true;
+                                    ifr.contentDocument.addEventListener('click', (e) => {
+                                        const link = e.target.closest('a[target="_blank"]');
+                                        if (link && link.href) {
+                                            e.preventDefault();
+                                            const title = link.getAttribute('title') || link.innerText.trim() || 'Pratinjau Dokumen';
+                                            const cleanUrl = link.href + (link.href.includes('?') ? '&embed=1' : '?embed=1');
+                                            this.openFormWindowWithCustom(
+                                                'print_win_' + Date.now(),
+                                                title,
+                                                'printer',
+                                                cleanUrl
+                                            );
+                                        }
+                                    });
+                                }
                             }
                             if (ifr && ifr.contentWindow) {
                                 ifr.contentWindow.postMessage({

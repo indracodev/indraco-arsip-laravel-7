@@ -639,9 +639,12 @@ function borrowingCreateApp() {
 
                     const rackLoc = arc.rack_label || (arc.short_location && arc.short_location !== 'Belum Ada Lokasi' ? arc.short_location : '') || '';
 
+                    const subDeptName = arc.sub_department ? (arc.sub_department.code || arc.sub_department.name) : (arc.sub_department_id ? 'Inti Dept' : '-');
+
                     rows.push({
                         no: i + 1,
                         title: arc.title || '',
+                        sub_dept: subDeptName,
                         period_end: end,
                         masa_simpan: masaSimpan,
                         label_kardus: rackLoc || arc.box_number || arc.archive_code || '',
@@ -651,6 +654,7 @@ function borrowingCreateApp() {
                     rows.push({
                         no: i + 1,
                         title: '',
+                        sub_dept: '',
                         period_end: '',
                         masa_simpan: '',
                         label_kardus: '',
@@ -678,7 +682,11 @@ function borrowingCreateApp() {
         },
 
         printFormPengajuan() {
-            window.print();
+            if (window.dmsPrint) {
+                window.dmsPrint('form-pengajuan-print-document');
+            } else {
+                window.print();
+            }
         }
     };
 }

@@ -343,8 +343,25 @@
                                 </template>
                             </div>
 
-                            <!-- Hidden Sub-Departemen (Otomatis Mewarisi Sub-Dept Induk Batch) -->
-                            <input type="hidden" :name="'boxes[' + bIdx + '][sub_department_id]'" :value="box.sub_department_id === 'inti' ? '' : (box.sub_department_id || (selectedSubDeptId === 'inti' ? '' : selectedSubDeptId))">
+                            <!-- Sub-Departemen Box (1 Box Bisa 1 Sub-Departemen) -->
+                            <div class="sm:col-span-2">
+                                <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center justify-between">
+                                    <span>SUB-DEPARTEMEN <span class="text-slate-400 font-normal">(Opsional)</span></span>
+                                    <span class="text-[10px] text-slate-400 font-normal" x-text="box.sub_department_id ? (box.sub_department_id === 'inti' ? 'Inti Dept' : 'Khusus Box Ini') : 'Mewarisi Dept Induk'"></span>
+                                </label>
+                                <select 
+                                    :name="'boxes[' + bIdx + '][sub_department_id]'" 
+                                    x-model="box.sub_department_id"
+                                    @change="onBoxSubDeptChange(box)"
+                                    class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 transition shadow-2xs"
+                                >
+                                    <option value="">-- Ikuti Sub-Dept Induk / Semua --</option>
+                                    <option value="inti">Inti Departemen</option>
+                                    <template x-for="s in subDepartments" :key="s.id">
+                                        <option :value="s.id" x-text="s.code + ' - ' + s.name" :selected="box.sub_department_id == s.id"></option>
+                                    </template>
+                                </select>
+                            </div>
 
                             <!-- Kategori Dokumen (Terkunci Otomatis dari Master Berkas) -->
                             <div class="sm:col-span-2">
@@ -368,7 +385,7 @@
                             </div>
 
                             <!-- Wadah Fisik -->
-                            <div class="sm:col-span-2">
+                            <div class="sm:col-span-1">
                                 <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
                                     KONDISI FISIK WADAH BOX <span class="text-rose-500">*</span>
                                 </label>
@@ -382,7 +399,7 @@
                             </div>
 
                             <!-- Periode Dokumen (Bulan) -->
-                            <div class="sm:col-span-2 space-y-1">
+                            <div class="sm:col-span-1 space-y-1">
                                 <div class="flex items-center justify-between">
                                     <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
                                         PERIODE DOKUMEN (BULAN) <span class="text-rose-500">*</span>
@@ -1490,6 +1507,17 @@ function archiveEditApp() {
             this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
         },
 
+        getBoxSubDeptName(box) {
+            if (!box) return '-';
+            const subId = (box.sub_department_id !== undefined && box.sub_department_id !== '' && box.sub_department_id !== null)
+                ? box.sub_department_id
+                : this.selectedSubDeptId;
+            if (subId === 'inti') return 'Inti Dept';
+            if (!subId) return '-';
+            const sub = (this.subDepartments || []).find(s => String(s.id) === String(subId));
+            return sub ? (sub.code || sub.name) : '-';
+        },
+
         populateFormRows() {
             const rows = [];
             const count = Math.max(12, this.boxes.length);
@@ -1500,6 +1528,7 @@ function archiveEditApp() {
                     rows.push({
                         no: i + 1,
                         title: b.title || '',
+                        sub_dept: this.getBoxSubDeptName(b),
                         period_end: this.getBoxPeriodEndFormatted(b),
                         masa_simpan: b.periode_bulan ? String(b.periode_bulan) : '1',
                         label_box: (b.rack_label || (b.short_location && b.short_location !== 'Belum Ada Lokasi' ? b.short_location : '') || b.box_number || ''),
@@ -1509,6 +1538,7 @@ function archiveEditApp() {
                     rows.push({
                         no: i + 1,
                         title: '',
+                        sub_dept: '',
                         period_end: '',
                         masa_simpan: '',
                         label_box: '',
@@ -1592,7 +1622,11 @@ function archiveEditApp() {
         },
 
         printFormPengajuan() {
-            window.print();
+            if (window.dmsPrint) {
+                window.dmsPrint('form-pengajuan-print-document');
+            } else {
+                window.print();
+            }
         }
     };
 }
