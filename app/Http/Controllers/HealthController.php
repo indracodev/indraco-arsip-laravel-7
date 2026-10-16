@@ -30,6 +30,8 @@ class HealthController extends Controller
             'app' => 'DMS PT INDRACO',
             'version' => '3.0.0-offline',
         ])->withHeaders([
+            'Access-Control-Allow-Origin' => '*',
+            'Access-Control-Allow-Methods' => 'GET, OPTIONS',
             'Cache-Control' => 'no-cache, no-store, must-revalidate',
             'Pragma' => 'no-cache',
             'Expires' => '0',
