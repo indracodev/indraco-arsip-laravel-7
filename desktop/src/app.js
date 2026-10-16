@@ -72,8 +72,13 @@ function init() {
     });
   });
 
-  // Start initial connection check
-  connectToServer();
+  // Start initial connection check or immediately enter disconnected reconnect state
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get("offline") === "1") {
+    showOfflineState(true);
+  } else {
+    connectToServer();
+  }
 }
 
 function updateBadges() {
@@ -133,10 +138,16 @@ async function connectToServer() {
 
     // Short pause for smooth visual transition
     setTimeout(() => {
-      window.location.replace(currentServerUrl);
+      try {
+        const dest = new URL(currentServerUrl);
+        dest.searchParams.set("dms_client", "desktop");
+        window.location.replace(dest.toString());
+      } catch (e) {
+        window.location.replace(currentServerUrl);
+      }
     }, 350);
   } else {
-    showOfflineState();
+    showOfflineState(false);
   }
 }
 
@@ -150,14 +161,18 @@ function showConnectingState() {
   activeRouteBadge.style.backgroundColor = "";
 }
 
-function showOfflineState() {
+function showOfflineState(isDisconnected = false) {
   stateConnecting.classList.remove("active");
   stateOffline.classList.add("active");
   updateBadges();
 
   const reasonEl = document.getElementById("offlineErrorReason");
   const label = getRouteLabel(currentServerUrl);
-  reasonEl.textContent = `Sistem belum mendeteksi layanan arsip aktif pada ${label}. Pastikan komputer terhubung ke jaringan kantor atau server lokal workstation sudah berjalan.`;
+  if (isDisconnected) {
+    reasonEl.textContent = `Koneksi ke ${label} terputus (server mati atau kabel jaringan terlepas). Sistem sedang mencoba menghubungkan kembali secara berkala...`;
+  } else {
+    reasonEl.textContent = `Sistem belum mendeteksi layanan arsip aktif pada ${label}. Pastikan komputer terhubung ke jaringan kantor atau server lokal workstation sudah berjalan.`;
+  }
 
   startRetryCountdown();
 }

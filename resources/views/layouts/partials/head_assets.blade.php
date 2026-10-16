@@ -53,4 +53,49 @@
         }
         console.warn('DMS Global Exception Caught:', event.reason);
     });
+
+    // PT INDRACO DMS - Desktop Client Watchdog
+    // Jika aplikasi .exe terputus dari server, otomatis kembalikan ke layar reconnect awal
+    (function() {
+        var isDesktop = window.__TAURI__ || 
+                        window.__TAURI_INTERNALS__ || 
+                        window.location.search.indexOf('dms_client=desktop') !== -1 ||
+                        document.cookie.indexOf('dms_client=desktop') !== -1;
+
+        if (window.location.search.indexOf('dms_client=desktop') !== -1) {
+            document.cookie = "dms_client=desktop; path=/; max-age=86400; SameSite=Lax";
+        }
+
+        if (isDesktop) {
+            var failedHeartbeats = 0;
+            var heartbeatInterval = setInterval(function() {
+                var controller = new AbortController();
+                var timeout = setTimeout(function() { controller.abort(); }, 2500);
+                fetch('/api/health/ping?_t=' + Date.now(), {
+                    method: 'GET',
+                    cache: 'no-store',
+                    headers: { 'Accept': 'application/json' },
+                    signal: controller.signal
+                }).then(function(res) {
+                    clearTimeout(timeout);
+                    if (res.ok) {
+                        failedHeartbeats = 0;
+                    } else {
+                        failedHeartbeats++;
+                    }
+                }).catch(function() {
+                    clearTimeout(timeout);
+                    failedHeartbeats++;
+                    if (failedHeartbeats >= 2) {
+                        clearInterval(heartbeatInterval);
+                        window.location.replace('http://tauri.localhost/index.html?offline=1');
+                    }
+                });
+            }, 3000);
+
+            window.addEventListener('offline', function() {
+                window.location.replace('http://tauri.localhost/index.html?offline=1');
+            });
+        }
+    })();
 </script>
