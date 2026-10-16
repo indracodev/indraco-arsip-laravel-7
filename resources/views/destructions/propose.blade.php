@@ -673,7 +673,7 @@ function proposeCreateApp() {
 
         populateFormRows() {
             const rows = [];
-            const padTo = 12;
+            const padTo = 10;
 
             this.selectedArchives.forEach((arc, idx) => {
                 const rackLoc = arc.rack_label || (arc.short_location && arc.short_location !== 'Belum Ada Lokasi' ? arc.short_location : '') || '';

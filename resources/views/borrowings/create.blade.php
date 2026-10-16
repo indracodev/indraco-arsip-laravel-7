@@ -631,7 +631,7 @@ function borrowingCreateApp() {
         populateFormRows() {
             const rows = [];
             const selected = this.selectedArchives;
-            const count = Math.max(12, selected.length);
+            const count = Math.max(10, selected.length);
 
             for (let i = 0; i < count; i++) {
                 if (i < selected.length) {

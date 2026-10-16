@@ -210,12 +210,14 @@
                 
                 // Optimal lightweight print styling: pure vector, zero-bloat, standard Arial font (no embedded TTF/WOFF)
                 var cleanStyles = '<style>' +
-                    '@page { size: A4 portrait; margin: 8mm 10mm; } ' +
+                    '@page { size: A4 portrait; margin: 5mm 8mm 5mm 8mm; } ' +
                     '* { box-sizing: border-box !important; box-shadow: none !important; text-shadow: none !important; filter: none !important; } ' +
                     'html, body { margin: 0 !important; padding: 0 !important; background: #ffffff !important; color: #000000 !important; font-family: Arial, "Helvetica Neue", Helvetica, sans-serif !important; } ' +
-                    '#form-pengajuan-print-document { width: 100% !important; max-width: 100% !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; border: none !important; background: #ffffff !important; color: #000000 !important; font-family: Arial, "Helvetica Neue", Helvetica, sans-serif !important; font-size: 9.5pt !important; display: block !important; } ' +
-                    '#form-pengajuan-print-document table { border-collapse: collapse !important; } ' +
+                    '#form-pengajuan-print-document { width: 100% !important; max-width: 100% !important; min-height: 0 !important; height: auto !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; border: none !important; background: #ffffff !important; color: #000000 !important; font-family: Arial, "Helvetica Neue", Helvetica, sans-serif !important; font-size: 9pt !important; display: block !important; page-break-inside: avoid !important; break-inside: avoid !important; page-break-after: avoid !important; break-after: avoid !important; } ' +
+                    '#form-pengajuan-print-document table { border-collapse: collapse !important; page-break-inside: avoid !important; break-inside: avoid !important; } ' +
+                    '#form-pengajuan-print-document tr { page-break-inside: avoid !important; break-inside: avoid !important; } ' +
                     '#form-pengajuan-print-document th, #form-pengajuan-print-document td { border-color: #000000 !important; } ' +
+                    '.dms-print-container { width: 100% !important; margin: 0 !important; padding: 0 !important; page-break-after: avoid !important; break-after: avoid !important; } ' +
                     '</style>';
 
                 try {

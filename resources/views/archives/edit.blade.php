@@ -1520,7 +1520,7 @@ function archiveEditApp() {
 
         populateFormRows() {
             const rows = [];
-            const count = Math.max(12, this.boxes.length);
+            const count = Math.max(10, this.boxes.length);
 
             for (let i = 0; i < count; i++) {
                 if (i < this.boxes.length) {
