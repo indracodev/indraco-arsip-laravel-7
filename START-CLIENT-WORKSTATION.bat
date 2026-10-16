@@ -80,11 +80,19 @@ goto :LAUNCH_APP
 :CREATE_SHORTCUT
 cls
 echo [*] Membuat shortcut desktop "DMS PT Indraco"...
-set "ICO_PATH=%~dp0indraco.ico"
-if not exist "!ICO_PATH!" set "ICO_PATH=%~dp0desktop\src\indraco.ico"
+set "EXE_TARGET=%~dp0DMS-Indraco-Client.exe"
+set "BAT_TARGET=%~f0"
+set "ICO_FILE=%~dp0indraco.ico"
 
-powershell -NoProfile -Command "$ws = New-Object -ComObject WScript.Shell; $s = $ws.CreateShortcut([Environment]::GetFolderPath('Desktop') + '\DMS PT Indraco.lnk'); $s.TargetPath = '%~f0'; $s.WorkingDirectory = '%~dp0'; if (Test-Path '!ICO_PATH!') { $s.IconLocation = '!ICO_PATH!' }; $s.Save()" >nul 2>&1
-echo [OK] Shortcut desktop "DMS PT Indraco" berhasil dibuat di Desktop Anda!
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+    "$ws = New-Object -ComObject WScript.Shell;" ^
+    "$lnk = $ws.CreateShortcut([Environment]::GetFolderPath('Desktop') + '\DMS PT Indraco.lnk');" ^
+    "if (Test-Path '%EXE_TARGET%') { $lnk.TargetPath = '%EXE_TARGET%' } else { $lnk.TargetPath = '%BAT_TARGET%' };" ^
+    "$lnk.WorkingDirectory = '%~dp0';" ^
+    "$lnk.Description = 'Sistem Manajemen Dokumen & Arsip Digital - PT Indraco';" ^
+    "if (Test-Path '%ICO_FILE%') { $lnk.IconLocation = '%ICO_FILE%,0' };" ^
+    "$lnk.Save()" >nul 2>&1
+echo [OK] Shortcut desktop "DMS PT Indraco" dengan ikon resmi berhasil dibuat di Desktop Anda!
 echo.
 pause
 goto :LAUNCH_APP
