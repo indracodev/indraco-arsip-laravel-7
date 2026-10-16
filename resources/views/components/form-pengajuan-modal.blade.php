@@ -52,15 +52,15 @@
                     <span>Cetak Dokumen (Print / PDF)</span>
                 </button>
 
-                <!-- Tombol Tutup Modal yang Jelas Berlabel (Kontras dengan Tombol Close Window MDI) -->
+                <!-- Tombol Tutup Modal Merah Ringkas -->
                 <button 
                     type="button" 
                     @click="{{ $openState }} = false" 
-                    class="px-3 py-1.5 bg-slate-800 hover:bg-rose-600/90 text-slate-200 hover:text-white font-bold text-xs rounded border border-slate-600 hover:border-rose-500 flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-sm"
-                    title="Tutup Modal Pratinjau dan Kembali Mengedit Form"
+                    class="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded border border-rose-700 shadow-sm flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
+                    title="Tutup Modal Pratinjau (Kembali ke Form)"
                 >
-                    <i data-lucide="x" class="w-4 h-4 text-rose-400"></i>
-                    <span>Tutup Pratinjau (Kembali ke Form)</span>
+                    <i data-lucide="x" class="w-4 h-4 text-white"></i>
+                    <span>Tutup</span>
                 </button>
             </div>
         </div>
@@ -69,14 +69,15 @@
         <div class="px-4 py-1.5 bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-900/40 text-amber-900 dark:text-amber-200 text-[11px] font-sans flex items-center justify-between gap-3 shrink-0">
             <div class="flex items-center gap-2">
                 <i data-lucide="info" class="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0"></i>
-                <span><strong>Mode Pratinjau Form Cetak:</strong> Semua input data form utama Anda tetap aman tersimpan. Gunakan tombol <strong>"Tutup Pratinjau"</strong> di toolbar atas atau bawah (bukan tombol silang merah jendela aplikasi) untuk kembali mengedit data.</span>
+                <span><strong>Mode Pratinjau Form Cetak:</strong> Semua input data form utama Anda tetap aman tersimpan. Gunakan tombol <strong>"Tutup"</strong> merah di toolbar (bukan tombol silang merah di sudut kanan atas jendela) untuk kembali mengedit data.</span>
             </div>
             <button 
                 type="button" 
                 @click="{{ $openState }} = false" 
-                class="text-[11px] font-bold text-amber-800 dark:text-amber-300 hover:text-rose-600 hover:underline shrink-0 cursor-pointer"
+                class="text-[11px] font-bold text-rose-600 dark:text-rose-400 hover:underline shrink-0 cursor-pointer flex items-center gap-1"
             >
-                ✕ Kembali ke Editor
+                <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                <span>Tutup</span>
             </button>
         </div>
 
@@ -287,10 +288,10 @@
                             <button 
                                 type="button" 
                                 @click="{{ $openState }} = false" 
-                                class="w-full py-1.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs rounded border border-slate-300 dark:border-slate-700 flex items-center justify-center gap-1.5 transition cursor-pointer"
+                                class="w-full py-1.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded border border-rose-700 flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shadow-sm"
                             >
-                                <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
-                                <span>Tutup & Kembali ke Form</span>
+                                <i data-lucide="x" class="w-3.5 h-3.5 text-white"></i>
+                                <span>Tutup</span>
                             </button>
                         </div>
                     </div>
