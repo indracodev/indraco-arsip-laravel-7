@@ -1,0 +1,9 @@
+# Rust / Cargo
+/src-tauri/target/
+/src-tauri/gen/
+
+# Node
+/node_modules/
+
+# Executables
+*.exe
