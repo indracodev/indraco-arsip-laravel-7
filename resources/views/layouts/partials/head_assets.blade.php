@@ -207,16 +207,23 @@
             // In desktop client or MDI shell, forms are hosted in an iframe
             if (window.parent && window.parent !== window) {
                 var printDoc = el || document.getElementById('form-pengajuan-print-document') || document.body;
-                var styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]')).map(function(s) {
-                    return s.outerHTML;
-                }).join('\n');
+                
+                // Optimal lightweight print styling: pure vector, zero-bloat, standard Arial font (no embedded TTF/WOFF)
+                var cleanStyles = '<style>' +
+                    '@page { size: A4 portrait; margin: 8mm 10mm; } ' +
+                    '* { box-sizing: border-box !important; box-shadow: none !important; text-shadow: none !important; filter: none !important; } ' +
+                    'html, body { margin: 0 !important; padding: 0 !important; background: #ffffff !important; color: #000000 !important; font-family: Arial, "Helvetica Neue", Helvetica, sans-serif !important; } ' +
+                    '#form-pengajuan-print-document { width: 100% !important; max-width: 100% !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; border: none !important; background: #ffffff !important; color: #000000 !important; font-family: Arial, "Helvetica Neue", Helvetica, sans-serif !important; font-size: 9.5pt !important; display: block !important; } ' +
+                    '#form-pengajuan-print-document table { border-collapse: collapse !important; } ' +
+                    '#form-pengajuan-print-document th, #form-pengajuan-print-document td { border-color: #000000 !important; } ' +
+                    '</style>';
 
                 try {
                     window.parent.postMessage({
                         type: 'DMS_EXECUTE_PRINT',
                         html: printDoc.outerHTML,
                         title: document.title,
-                        styles: styles
+                        styles: cleanStyles
                     }, '*');
                     return;
                 } catch (e) {

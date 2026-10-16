@@ -543,12 +543,22 @@ select,
     font-family: Arial, "Helvetica Neue", Helvetica, sans-serif !important;
 }
 @media print {
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        box-shadow: none !important;
+        text-shadow: none !important;
+        filter: none !important;
+    }
     body * {
         visibility: hidden !important;
     }
     #form-pengajuan-print-document, 
     #form-pengajuan-print-document * {
         visibility: visible !important;
+        box-shadow: none !important;
+        text-shadow: none !important;
+        filter: none !important;
     }
     #form-pengajuan-print-document {
         position: absolute !important;
@@ -559,7 +569,7 @@ select,
         min-height: 0 !important;
         height: auto !important;
         margin: 0 !important;
-        padding: 8mm 12mm !important;
+        padding: 4mm 8mm !important;
         box-shadow: none !important;
         border: none !important;
         background: #ffffff !important;
@@ -571,7 +581,7 @@ select,
     }
     @page {
         size: A4 portrait;
-        margin: 0;
+        margin: 6mm 10mm;
     }
 }
 </style>
