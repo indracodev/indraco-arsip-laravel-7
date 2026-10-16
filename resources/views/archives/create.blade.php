@@ -536,7 +536,7 @@
                                                         x-effect="$nextTick(() => { if (item.document_name && $el.value !== item.document_name) $el.value = item.document_name; })"
                                                         class="w-full px-2 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
                                                     >
-                                                        <option value="" x-text="selectedSubDeptId ? (getBoxMasterArchives(box).length > 0 ? '-- Pilih dari Master Berkas Arsip --' : '-- Tidak ada master berkas untuk sub-departemen ini --') : '-- Pilih Sub-Departemen terlebih dahulu --'">-- Pilih dari Master Berkas Arsip --</option>
+                                                        <option value="" x-text="getBoxMasterArchives(box).length > 0 ? '-- Pilih dari Master Berkas Arsip --' : '-- Tidak ada master berkas untuk sub-departemen ini --'">-- Pilih dari Master Berkas Arsip --</option>
                                                         <template x-for="m in getBoxMasterArchives(box)" :key="m.id">
                                                             <option :value="m.name" x-text="(m.code ? (m.code + ' - ') : '') + m.name + (m.document_type ? ' [' + m.document_type + ']' : '')" :selected="m.name === item.document_name"></option>
                                                         </template>
@@ -923,8 +923,8 @@ function archiveCreateApp() {
 
             const tempBox = { sub_department_id: inheritedSubDept };
             const available = this.getBoxMasterArchives(tempBox);
-            const defaultDoc = available.length > 0 ? available[0].name : '';
-            const defaultDocType = available.length > 0 ? (available[0].document_type || '') : '';
+            const defaultDoc = '';
+            const defaultDocType = (inheritedSubDept && available.length > 0) ? (available[0].document_type || '') : '';
 
             this.boxes.push({
                 id: Date.now() + Math.random(),
@@ -1126,11 +1126,10 @@ function archiveCreateApp() {
         addItem(boxIndex) {
             const box = this.boxes[boxIndex];
             if (!box) return;
-            const available = this.getBoxMasterArchives(box);
-            const defaultDoc = available.length > 0 ? available[0].name : '';
             
             // Auto-fill from previous item if present
             const prevItem = box.items.length > 0 ? box.items[box.items.length - 1] : null;
+            const defaultDoc = prevItem ? (prevItem.document_name || '') : '';
             const pStart = prevItem ? prevItem.period_start : this.currentMonth;
             const pEnd = prevItem ? prevItem.period_end : this.currentMonth;
             const pNotes = prevItem ? prevItem.notes : '';
@@ -1169,10 +1168,9 @@ function archiveCreateApp() {
         addBulkItems(boxIndex, count = 5) {
             const box = this.boxes[boxIndex];
             if (!box) return;
-            const available = this.getBoxMasterArchives(box);
-            const defaultDoc = available.length > 0 ? available[0].name : '';
             
             const prevItem = box.items.length > 0 ? box.items[box.items.length - 1] : null;
+            const defaultDoc = prevItem ? (prevItem.document_name || '') : '';
             const pStart = prevItem ? prevItem.period_start : this.currentMonth;
             const pEnd = prevItem ? prevItem.period_end : this.currentMonth;
             const pNotes = prevItem ? prevItem.notes : '';
@@ -1414,12 +1412,7 @@ function archiveCreateApp() {
                 return all.filter(m => String(m.sub_department_id) === String(subId));
             }
 
-            // Jika belum memilih sub-departemen ('-- Pilih Sub-Departemen --')
-            const hasSubDepts = (dept && dept.sub_departments && dept.sub_departments.length > 0) || (this.subDepartments && this.subDepartments.length > 0);
-            if (hasSubDepts) {
-                return [];
-            }
-
+            // Saat mode pilih sub-departemen (belum memilih sub-dept / default), langsung muncul semua
             return all;
         },
 
@@ -1440,17 +1433,25 @@ function archiveCreateApp() {
             if (available && available.length > 0) {
                 if (box.items && box.items.length > 0) {
                     box.items.forEach(it => {
-                        if (!it.document_name || !available.some(m => m.name === it.document_name)) {
-                            it.document_name = available[0].name;
-                            this.onMasterDocChange(box, it);
-                        } else {
+                        // Jika dokumen terpilih sebelumnya tidak valid di daftar baru, kosongkan
+                        if (it.document_name && !available.some(m => m.name === it.document_name)) {
+                            it.document_name = '';
+                        }
+                        if (it.document_name) {
                             this.onMasterDocChange(box, it);
                         }
                     });
                 }
-                box.document_type = available[0].document_type || '';
-                if (available[0].retention_years) {
-                    box.retention_years = available[0].retention_years;
+                const firstValidItem = box.items ? box.items.find(it => it.document_name) : null;
+                if (firstValidItem) {
+                    this.onMasterDocChange(box, firstValidItem);
+                } else if (box.sub_department_id === 'inti' || (box.sub_department_id && box.sub_department_id !== '')) {
+                    box.document_type = available[0].document_type || '';
+                    if (available[0].retention_years) {
+                        box.retention_years = available[0].retention_years;
+                    }
+                } else {
+                    box.document_type = '';
                 }
             } else {
                 // Jika tidak ada master berkas untuk sub-departemen ini, kosongkan tipe dokumen dan butir dokumen
@@ -1463,9 +1464,11 @@ function archiveCreateApp() {
                 const subId = (box && box.sub_department_id !== undefined && box.sub_department_id !== '' && box.sub_department_id !== null)
                     ? box.sub_department_id 
                     : this.selectedSubDeptId;
-                const currentSub = this.subDepartments.find(s => String(s.id) === String(subId));
-                if (currentSub && currentSub.retention_years) {
-                    box.retention_years = currentSub.retention_years;
+                if (subId && subId !== 'inti') {
+                    const currentSub = this.subDepartments.find(s => String(s.id) === String(subId));
+                    if (currentSub && currentSub.retention_years) {
+                        box.retention_years = currentSub.retention_years;
+                    }
                 }
             }
         },
