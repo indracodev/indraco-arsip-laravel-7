@@ -158,7 +158,6 @@
         });
     };
 
-    // Global Javascript Helper for Alert/Notifications (PROJECT_RULES 6.3)
     window.showNotificationModal = function(optionsOrMsg, title, type) {
         var opts = {};
         if (typeof optionsOrMsg === 'string') {
@@ -180,6 +179,14 @@
         return window.showConfirmModal(opts);
     };
     window.showAlertModal = window.showNotificationModal;
+
+    // Global override for window.alert to prevent exiting fullscreen mode
+    window.alert = function(msg) {
+        if (typeof window.showNotificationModal === 'function') {
+            return window.showNotificationModal(String(msg), 'Pemberitahuan Sistem', 'warning');
+        }
+        console.warn('Alert intercepted:', msg);
+    };
 
     // Unobtrusive Global Click Delegator for data-confirm attributes
     document.addEventListener('click', function(e) {

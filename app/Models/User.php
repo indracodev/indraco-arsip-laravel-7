@@ -27,6 +27,7 @@ class User extends Authenticatable
 
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'department_id' => 'integer',
     ];
 
     public function department(): BelongsTo

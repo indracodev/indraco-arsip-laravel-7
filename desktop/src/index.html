@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DMS PT Indraco - Workstation</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" type="image/x-icon" href="indraco.ico">
+</head>
+<body>
+  <div class="app-container">
+    <div class="top-accent"></div>
+
+    <main class="main-card">
+      <!-- Header with Logo -->
+      <div class="brand-section">
+        <div class="logo-wrapper">
+          <img src="logo-indraco-est.png" alt="PT Indraco Logo" class="brand-logo" onerror="this.style.display='none'">
+        </div>
+        <h1 class="brand-title">DMS PT INDRACO</h1>
+        <p class="brand-subtitle">Sistem Manajemen Dokumen & Arsip Digital</p>
+      </div>
+
+      <!-- STATE 1: CONNECTING -->
+      <section id="stateConnecting" class="state-view active">
+        <div class="pulse-container">
+          <div class="pulse-ring"></div>
+          <div class="pulse-core">
+            <svg class="icon-server" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+              <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+              <line x1="6" y1="6" x2="6.01" y2="6"></line>
+              <line x1="6" y1="18" x2="6.01" y2="18"></line>
+            </svg>
+          </div>
+        </div>
+        <h2 class="status-heading" id="connectingText">Menyambungkan ke Pusat Arsip...</h2>
+        <div class="badge-route" id="activeRouteBadge">Jalur Utama Kantor</div>
+        
+        <div class="progress-bar-container">
+          <div class="progress-bar-indeterminate"></div>
+        </div>
+        <p class="status-subtext">Menyiapkan sesi kerja dan menyelaraskan katalog berkas...</p>
+      </section>
+
+      <!-- STATE 2: OFFLINE / DISCONNECTED -->
+      <section id="stateOffline" class="state-view">
+        <div class="offline-icon-wrapper">
+          <svg class="icon-offline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="1" y1="1" x2="23" y2="23"></line>
+            <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path>
+            <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path>
+            <path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path>
+            <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path>
+            <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+            <line x1="12" y1="20" x2="12.01" y2="20"></line>
+          </svg>
+        </div>
+
+        <h2 class="offline-heading">Layanan Dokumen Belum Aktif</h2>
+        <p class="offline-desc" id="offlineErrorReason">
+          Aplikasi belum dapat terhubung ke sistem arsip. Pastikan komputer terhubung ke jaringan kantor atau server lokal workstation sudah berjalan.
+        </p>
+        <div class="badge-route badge-offline" id="offlineRouteBadge">Jalur: Server Utama Kantor</div>
+
+        <div class="retry-countdown" id="retryBox">
+          Mencoba menyambungkan kembali dalam <span id="countdownSec" class="highlight-number">5</span> detik...
+        </div>
+
+        <div class="actions-group">
+          <button id="btnRetryNow" class="btn btn-primary">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+            </svg>
+            Sambungkan Sekarang
+          </button>
+          <button id="btnOpenSettings" class="btn btn-secondary">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+            Pilih Jalur Server
+          </button>
+        </div>
+      </section>
+
+      <!-- Footer Info & GitHub Update Checker -->
+      <footer class="app-footer">
+        <div class="footer-left">
+          <span class="version-tag">DMS Workstation v1.0</span>
+          <span class="dot-separator">•</span>
+          <button id="btnCheckUpdate" class="btn-link">
+            <svg class="link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Periksa Pembaruan
+          </button>
+        </div>
+        <div id="updateStatusText" class="update-status"></div>
+      </footer>
+    </main>
+
+    <!-- SETTINGS MODAL (PILIH JALUR SERVER) -->
+    <div id="settingsModal" class="modal-backdrop">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 class="modal-title">Pilih Jalur Server Arsip</h3>
+          <button id="btnCloseModal" class="btn-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-desc">
+            Pilih pusat server dokumen yang akan diakses oleh stasiun kerja ini:
+          </p>
+
+          <!-- Clean Enterprise Presets (No raw IPs visible) -->
+          <div class="presets-section">
+            <div class="presets-buttons">
+              <button type="button" class="btn-preset active" data-url="http://192.168.2.180:8000" data-label="Server Pusat Kantor (Default)">
+                <div class="preset-name">🏢 Server Pusat Kantor</div>
+                <div class="preset-desc">Jalur utama operasional dokumen kantor & gudang</div>
+              </button>
+              <button type="button" class="btn-preset" data-url="http://192.168.3.199:8000" data-label="Stasiun Kerja Komputer Ini">
+                <div class="preset-name">💻 Stasiun Kerja Ini</div>
+                <div class="preset-desc">Jalur layanan yang berjalan di komputer workstation ini</div>
+              </button>
+              <button type="button" class="btn-preset" data-url="http://127.0.0.1:8000" data-label="Pengujian Lokal (Stand-Alone)">
+                <div class="preset-name">⚙️ Pengujian Mandiri</div>
+                <div class="preset-desc">Mode pengujian internal pengembang (localhost)</div>
+              </button>
+            </div>
+          </div>
+
+          <!-- Collapsible Advanced Settings (Disimpan rapi untuk IT Support) -->
+          <details class="advanced-details">
+            <summary class="advanced-summary">Setelan Tambahan / Khusus (Teknisi IT)</summary>
+            <div class="form-group advanced-input-group">
+              <label for="inputServerUrl" class="form-label">Tujuan Layanan Host:</label>
+              <input type="text" id="inputServerUrl" class="form-control" placeholder="http://192.168.2.180:8000">
+            </div>
+          </details>
+
+          <div id="pingTestResult" class="ping-result"></div>
+        </div>
+
+        <div class="modal-footer">
+          <button id="btnTestPing" class="btn btn-secondary">
+            Uji Jalur
+          </button>
+          <button id="btnSaveSettings" class="btn btn-primary">
+            Terapkan & Sambungkan
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

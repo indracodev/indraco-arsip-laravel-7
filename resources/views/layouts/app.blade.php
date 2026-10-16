@@ -1799,6 +1799,36 @@
                                         <span>Kosongkan Semua Arsip</span>
                                     </button>
                                 </div>
+
+                                <!-- Action 4: Git Pull & Restart Server (Opsi A) -->
+                                <div
+                                    class="p-2.5 bg-indigo-50/60 dark:bg-indigo-950/30 rounded border border-indigo-200 dark:border-indigo-800/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs">
+                                    <div class="space-y-0.5">
+                                        <div
+                                            class="flex items-center gap-1.5 font-bold text-indigo-900 dark:text-indigo-300">
+                                            <i data-lucide="git-pull-request" class="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400"></i>
+                                            <span>Git Pull & Restart Server</span>
+                                            <span class="px-1.5 py-0.2 bg-indigo-200 dark:bg-indigo-800 text-[10px] text-indigo-900 dark:text-indigo-100 rounded font-mono font-normal">Opsi A</span>
+                                        </div>
+                                        <p class="text-[11px] text-slate-500 dark:text-slate-400 font-sans">
+                                            Mengambil kode terbaru dari Git (<code class="text-indigo-600 dark:text-indigo-400 font-mono">git pull</code>), membersihkan cache Laravel, dan me-restart server otomatis.
+                                        </p>
+                                    </div>
+                                    <div class="flex items-center gap-1.5 shrink-0">
+                                        <button @click="viewGitPullLogAction()" type="button"
+                                            class="px-2.5 py-1.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs rounded border border-slate-300 dark:border-slate-700 shadow-xs transition flex items-center gap-1 cursor-pointer"
+                                            title="Lihat riwayat log proses git pull terakhir">
+                                            <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+                                            <span>Log</span>
+                                        </button>
+                                        <button @click="gitPullRestartAction()" type="button"
+                                            :disabled="maintenanceLoading"
+                                            class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold text-xs rounded border border-indigo-700 shadow-xs transition flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer">
+                                            <i data-lucide="refresh-cw" class="w-3.5 h-3.5" :class="maintenanceLoading ? 'animate-spin' : ''"></i>
+                                            <span>Pull & Restart</span>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </fieldset>
                     @endif
@@ -1849,6 +1879,8 @@
                     maintenanceLoading: false,
 
                     // Real-time Notification & Audio State
+                    currentUserId: {{ auth()->id() ?? 0 }},
+                    isPicGudangOrAdmin: {{ (auth()->check() && (auth()->user()->isPicGudang() || auth()->user()->isSuperAdmin())) ? 'true' : 'false' }},
                     soundEnabled: localStorage.getItem('sound_enabled') !== 'false',
                     lastArchiveId: 0,
                     lastEventSeq: 0,
@@ -1859,6 +1891,22 @@
                     audioContext: null,
                     audioUnlocked: false,
                     pollTimer: null,
+
+                    @php
+                        $uAuth = auth()->user();
+                        $isPicGudangOrAdmin = $uAuth && ($uAuth->isPicGudang() || $uAuth->isSuperAdmin());
+                        if ($isPicGudangOrAdmin) {
+                            $initBorrowBadge = (int) \App\Models\BorrowingLog::whereIn('status', ['requested', 'dept_approved', 'approved'])->count();
+                            $initArchiveBadge = (int) \App\Models\Archive::where('status', 'pending_verification')->count();
+                        } else {
+                            $uDeptId = $uAuth ? $uAuth->department_id : 0;
+                            $initBorrowBadge = (int) \App\Models\BorrowingLog::whereHas('archive', function($q) use ($uDeptId) {
+                                $q->where('department_id', $uDeptId);
+                            })->whereIn('status', ['requested', 'approved'])->count();
+                            $initArchiveBadge = (int) \App\Models\Archive::where('department_id', $uDeptId)->where('status', 'pending_verification')->count();
+                        }
+                        $initDestructBadge = (int) \App\Models\Archive::getForm3PendingCount($uAuth);
+                    @endphp
 
                     availableForms: [{
                             id: 'dashboard',
@@ -1901,19 +1949,21 @@
                             id: 'archives',
                             title: 'Katalog Arsip',
                             icon: 'folder-archive',
+                            badgeCount: {{ $initArchiveBadge }},
                             url: '{{ route('archives.index') }}?embed=1'
                         },
                         {
                             id: 'borrowings',
                             title: 'Penarikan Berkas',
                             icon: 'file-symlink',
+                            badgeCount: {{ $initBorrowBadge }},
                             url: '{{ route('borrowings.index') }}?embed=1'
                         },
                         {
                             id: 'destructions',
                             title: 'Pemusnahan & Retensi',
                             icon: 'shield-alert',
-                            badgeCount: {{ (int) \App\Models\Archive::getForm3PendingCount() }},
+                            badgeCount: {{ $initDestructBadge }},
                             url: '{{ route('destructions.index') }}?embed=1'
                         },
                         @if (auth()->check() && auth()->user()->isSuperAdmin())
@@ -2101,9 +2151,18 @@
                                 },
                                 body: formData
                             })
-                            .then(res => res.json())
-                            .then(data => {
+                            .then(async res => {
+                                const data = await res.json().catch(() => ({}));
                                 this.settingsSaving = false;
+                                if (!res.ok) {
+                                    const errMsg = data.message || 'Gagal menyimpan pengaturan sistem.';
+                                    if (window.showAlertModal) {
+                                        window.showAlertModal(errMsg, 'Akses Dibatasi', 'danger');
+                                    } else {
+                                        console.error(errMsg);
+                                    }
+                                    return;
+                                }
                                 if (data.settings && data.settings.app_logo) {
                                     this.appLogoUrl = data.settings.app_logo;
                                 }
@@ -2123,12 +2182,16 @@
                                 localStorage.setItem('app_font_size', this.currentFontSize);
                                 this.applyFontSizeLive(this.currentFontSize);
                                 this.openSettingsModal = false;
-                                alert(data.message || 'Pengaturan sistem berhasil disimpan.');
+                                if (window.showAlertModal) {
+                                    window.showAlertModal(data.message || 'Pengaturan sistem berhasil disimpan.', 'Berhasil Disimpan', 'success');
+                                }
                             })
                             .catch(err => {
                                 console.error(err);
                                 this.settingsSaving = false;
-                                alert('Gagal menyimpan pengaturan.');
+                                if (window.showAlertModal) {
+                                    window.showAlertModal('Gagal menyimpan pengaturan. Silakan periksa koneksi Anda.', 'Gagal Menyimpan', 'danger');
+                                }
                             });
                     },
 
@@ -2257,6 +2320,63 @@
                             });
                     },
 
+                    async gitPullRestartAction() {
+                        const ok = await window.showConfirmModal({
+                            title: 'Git Pull & Restart Server (Opsi A)',
+                            message: 'Apakah Anda yakin ingin menjalankan "Git Pull" dan me-restart server otomatis? Proses ini akan mengambil pembaruan kode Git, membersihkan cache Laravel, dan me-restart server dalam 5-10 detik.',
+                            type: 'danger',
+                            confirmText: 'Ya, Jalankan Pull & Restart'
+                        });
+                        if (!ok) return;
+
+                        this.maintenanceLoading = true;
+                        try {
+                            const res = await fetch('{{ route('master.settings.git_pull_restart') }}', {
+                                method: 'POST',
+                                headers: {
+                                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                    'Accept': 'application/json'
+                                }
+                            });
+                            const data = await res.json();
+
+                            if (data.status === 'success') {
+                                alert(data.message || 'Perintah berhasil dipicu.');
+
+                                // Auto-reload browser countdown
+                                let countdown = 8;
+                                const timer = setInterval(() => {
+                                    countdown--;
+                                    if (countdown <= 0) {
+                                        clearInterval(timer);
+                                        window.location.reload();
+                                    }
+                                }, 1000);
+                            } else {
+                                this.maintenanceLoading = false;
+                                alert(data.message || 'Gagal memicu restart server.');
+                            }
+                        } catch (err) {
+                            console.error(err);
+                            // Server might already be restarting, so reload automatically after 8s
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 8000);
+                        }
+                    },
+
+                    async viewGitPullLogAction() {
+                        try {
+                            const res = await fetch('{{ route('master.settings.git_pull_log') }}', {
+                                headers: { 'Accept': 'application/json' }
+                            });
+                            const data = await res.json();
+                            alert("=== LOG RIWAYAT GIT PULL & RESTART TERAKHIR ===\n\n" + (data.log || 'Belum ada log update.'));
+                        } catch (err) {
+                            alert('Gagal mengambil log: ' + err.message);
+                        }
+                    },
+
                     refreshActiveIframe() {
                         try {
                             const activeWin = this.openWindows.find(w => w.id === this.activeWinId);
@@ -2341,6 +2461,22 @@
                         }
                     },
 
+                    updateBadges(badges) {
+                        if (!badges) return;
+                        if (badges.borrowings !== undefined) {
+                            const b = this.availableForms.find(f => f.id === 'borrowings');
+                            if (b) b.badgeCount = badges.borrowings;
+                        }
+                        if (badges.submissions !== undefined) {
+                            const a = this.availableForms.find(f => f.id === 'archives');
+                            if (a) a.badgeCount = badges.submissions;
+                        }
+                        if (badges.destructions !== undefined) {
+                            const d = this.availableForms.find(f => f.id === 'destructions');
+                            if (d) d.badgeCount = badges.destructions;
+                        }
+                    },
+
                     async initRealtimePoller() {
                         // Initial baseline fetch to get latest ID and sequence without sounding alert
                         try {
@@ -2349,6 +2485,9 @@
                                 const data = await res.json();
                                 this.lastArchiveId = data.latest_id || 0;
                                 this.lastEventSeq = data.latest_seq || 0;
+                                if (data.badges) {
+                                    this.updateBadges(data.badges);
+                                }
                             }
                         } catch (e) {
                             console.warn('Realtime init poller error:', e);
@@ -2396,47 +2535,102 @@
                                 this.lastEventSeq = data.latest_seq;
                             }
 
+                            if (data.badges) {
+                                this.updateBadges(data.badges);
+                            }
+
                             if (data.has_changes) {
                                 window.dispatchEvent(new CustomEvent('dms:realtime-sync', {
                                     detail: data
                                 }));
                             }
 
+                            if (data.events && data.events.length > 0) {
+                                data.events.forEach(ev => {
+                                    let payload = {};
+                                    try {
+                                        payload = typeof ev.payload === 'string' ? JSON.parse(ev.payload) : (ev.payload || {});
+                                    } catch(e) {}
+
+                                    if (ev.event_type === 'borrowing_created' || ev.event_type === 'borrowing_updated') {
+                                        const isCreated = ev.event_type === 'borrowing_created';
+                                        
+                                        // 1. Never alert the user who initiated or updated this action themselves
+                                        if (this.currentUserId && (
+                                            (payload.action_by_user_id && Number(payload.action_by_user_id) === Number(this.currentUserId)) ||
+                                            (isCreated && payload.borrower_user_id && Number(payload.borrower_user_id) === Number(this.currentUserId))
+                                        )) {
+                                            return;
+                                        }
+
+                                        // 2. Role Scoping: New borrowing requests are meant for PIC Gudang & Admin
+                                        if (isCreated && !this.isPicGudangOrAdmin) {
+                                            return;
+                                        }
+
+                                        const toast = {
+                                            id: 'toast_ev_' + ev.id + '_' + Date.now(),
+                                            archiveId: null,
+                                            title: isCreated ? 'Permohonan Penarikan Berkas Masuk' : 'Status Penarikan Berkas Berubah',
+                                            boxNumber: payload.box_number || 'Box Arsip',
+                                            deptCode: payload.dept_code || 'DEPT',
+                                            deptName: payload.borrower || 'User',
+                                            creatorName: payload.borrower || 'User',
+                                            statusLabel: payload.status === 'requested' ? 'Menunggu Approval' : (payload.status === 'approved' ? 'Disetujui / Siap Ambil' : (payload.status === 'dispatched' ? 'Sudah Ditarik' : payload.status)),
+                                            time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+                                            url: '{{ route("borrowings.index") }}?embed=1'
+                                        };
+                                        this.activeToasts.unshift(toast);
+                                        this.realtimeNotifications.unshift(toast);
+                                        this.unreadNotificationsCount++;
+                                        this.playChime();
+                                        setTimeout(() => this.dismissToast(toast.id), 9000);
+                                    }
+                                });
+                            }
+
                             if (data.has_new && data.new_archives && data.new_archives.length > 0) {
                                 this.lastArchiveId = data.latest_id;
 
-                                // Play Audio Chime
-                                this.playChime();
-
-                                // Add each new archive to active toasts and dropdown list
-                                data.new_archives.forEach(item => {
-                                    const toast = {
-                                        id: 'toast_' + item.id + '_' + Date.now() + '_' + Math.random()
-                                            .toString(36).substr(2, 4),
-                                        archiveId: item.id,
-                                        title: item.title,
-                                        boxNumber: item.box_number,
-                                        deptCode: item.dept_code,
-                                        deptName: item.dept_name,
-                                        creatorName: item.creator_name,
-                                        statusLabel: item.status_label,
-                                        time: item.created_at_time || new Date().toLocaleTimeString('id-ID', {
-                                            hour: '2-digit',
-                                            minute: '2-digit',
-                                            second: '2-digit'
-                                        }),
-                                        url: item.url
-                                    };
-
-                                    this.activeToasts.unshift(toast);
-                                    this.realtimeNotifications.unshift(toast);
-                                    this.unreadNotificationsCount++;
-
-                                    // Auto dismiss toast after 9 seconds
-                                    setTimeout(() => {
-                                        this.dismissToast(toast.id);
-                                    }, 9000);
+                                // Filter alerts: Never alert on drafts, and do not alert creator on their own submissions
+                                const eligibleAlerts = data.new_archives.filter(item => {
+                                    if (item.status === 'draft') return false;
+                                    if (this.currentUserId && Number(item.created_by_user_id) === Number(this.currentUserId)) {
+                                        return false;
+                                    }
+                                    return true;
                                 });
+
+                                if (eligibleAlerts.length > 0) {
+                                    this.playChime();
+
+                                    eligibleAlerts.forEach(item => {
+                                        const toast = {
+                                            id: 'toast_' + item.id + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                                            archiveId: item.id,
+                                            title: this.isPicGudangOrAdmin ? 'Pengajuan Box Arsip Masuk' : 'Pengajuan Berkas Baru',
+                                            boxNumber: item.box_number,
+                                            deptCode: item.dept_code,
+                                            deptName: item.dept_name,
+                                            creatorName: item.creator_name,
+                                            statusLabel: item.status_label || 'Antrean Verifikasi',
+                                            time: item.created_at_time || new Date().toLocaleTimeString('id-ID', {
+                                                hour: '2-digit',
+                                                minute: '2-digit',
+                                                second: '2-digit'
+                                            }),
+                                            url: item.url
+                                        };
+
+                                        this.activeToasts.unshift(toast);
+                                        this.realtimeNotifications.unshift(toast);
+                                        this.unreadNotificationsCount++;
+
+                                        setTimeout(() => {
+                                            this.dismissToast(toast.id);
+                                        }, 9000);
+                                    });
+                                }
 
                                 if (this.realtimeNotifications.length > 25) {
                                     this.realtimeNotifications = this.realtimeNotifications.slice(0, 25);

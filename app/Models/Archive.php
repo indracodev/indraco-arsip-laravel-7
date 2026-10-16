@@ -41,11 +41,14 @@ class Archive extends Model
         'rejection_note',
         'extension_reason',
         'scan_extension_form',
+        'origin_borrowing_log_id',
+        're_store_snapshot',
     ];
 
     protected $appends = [
         'full_slot_location',
         'short_location',
+        'rack_label',
         'display_location',
         'formatted_expiry_date',
         'formatted_tgl_penyerahan',
@@ -58,6 +61,7 @@ class Archive extends Model
     ];
 
     protected $casts = [
+        'department_id' => 'integer',
         'period_start_date' => 'date',
         'period_end_date' => 'date',
         'tgl_penyerahan' => 'date',
@@ -70,22 +74,41 @@ class Archive extends Model
     protected static function booted()
     {
         static::created(function ($archive) {
+            $isDraft = $archive->status === 'draft';
             \App\Services\SystemEventStream::emit(
-                'archive_created',
+                $isDraft ? 'archive_draft_created' : 'archive_submitted',
                 'Archive',
                 $archive->id,
                 $archive->department_id,
-                ['box_number' => $archive->box_number, 'status' => $archive->status, 'title' => $archive->title]
+                [
+                    'box_number' => $archive->box_number,
+                    'status' => $archive->status,
+                    'title' => $archive->title,
+                    'created_by_user_id' => $archive->created_by_user_id,
+                    'dept_code' => $archive->department->code ?? 'GEN',
+                    'dept_name' => $archive->department->name ?? 'Departemen',
+                ]
             );
         });
 
         static::updated(function ($archive) {
+            $isSubmittedFromDraft = $archive->wasChanged('status') && $archive->status === 'pending_verification';
+            $eventType = $isSubmittedFromDraft ? 'archive_submitted' : 'archive_updated';
+
             \App\Services\SystemEventStream::emit(
-                'archive_updated',
+                $eventType,
                 'Archive',
                 $archive->id,
                 $archive->department_id,
-                ['box_number' => $archive->box_number, 'status' => $archive->status, 'changes' => array_keys($archive->getChanges())]
+                [
+                    'box_number' => $archive->box_number,
+                    'status' => $archive->status,
+                    'title' => $archive->title,
+                    'created_by_user_id' => $archive->created_by_user_id,
+                    'dept_code' => $archive->department->code ?? 'GEN',
+                    'dept_name' => $archive->department->name ?? 'Departemen',
+                    'changes' => array_keys($archive->getChanges())
+                ]
             );
         });
 
@@ -139,6 +162,11 @@ class Archive extends Model
         return $this->hasOne(BorrowingLog::class)->orderBy('id', 'desc');
     }
 
+    public function originBorrowingLog(): BelongsTo
+    {
+        return $this->belongsTo(BorrowingLog::class, 'origin_borrowing_log_id');
+    }
+
     public function destructionLog(): HasOne
     {
         return $this->hasOne(DestructionLog::class);
@@ -147,6 +175,16 @@ class Archive extends Model
     public function destructionLogs(): HasMany
     {
         return $this->hasMany(DestructionLog::class);
+    }
+
+    public function extensionLog(): HasOne
+    {
+        return $this->hasOne(ArchiveExtensionLog::class, 'archive_id')->latest('id');
+    }
+
+    public function extensionLogs(): HasMany
+    {
+        return $this->hasMany(ArchiveExtensionLog::class, 'archive_id');
     }
 
     public function items(): HasMany
@@ -212,6 +250,43 @@ class Archive extends Model
         return "{$whName} - {$sector}{$rackCode} / {$this->location->shelf_code}";
     }
 
+    public function getRackLabelAttribute(): string
+    {
+        if (!$this->location && !$this->rackSlot) {
+            return '';
+        }
+
+        // Kolom / Huruf Rak (e.g. BW, BK, CB, AS, B, dll)
+        $rackCol = '';
+        if ($this->rackSlot && !empty($this->rackSlot->slot_code)) {
+            if (preg_match('/^([A-Za-z]+)/', $this->rackSlot->slot_code, $m)) {
+                $rackCol = strtoupper($m[1]);
+            }
+        }
+        if (!$rackCol && $this->location && !empty($this->location->rack_code)) {
+            $clean = preg_replace('/^(?:RAK-)?(?:R\d+-)?/i', '', $this->location->rack_code);
+            if (preg_match('/([A-Za-z]+)/', $clean, $m)) {
+                $rackCol = strtoupper($m[1]);
+            }
+        }
+
+        // Slot / Nomor Urut Box (2 digit: 01, 02, ..., 12, etc.)
+        $slotNumStr = '';
+        if ($this->rackSlot && $this->rackSlot->slot_number !== null) {
+            $slotNumStr = str_pad($this->rackSlot->slot_number, 2, '0', STR_PAD_LEFT);
+        } elseif ($this->location && !empty($this->location->shelf_code) && preg_match('/(\d+)/', $this->location->shelf_code, $m)) {
+            $slotNumStr = str_pad($m[1], 2, '0', STR_PAD_LEFT);
+        }
+
+        if ($rackCol && $slotNumStr) {
+            return "{$rackCol} {$slotNumStr}";
+        } elseif ($rackCol) {
+            return $rackCol;
+        }
+
+        return $slotNumStr;
+    }
+
     public function getShortLocationAttribute(): string
     {
         if (!$this->location) {
@@ -230,24 +305,12 @@ class Archive extends Model
             $sector = 'R1';
         }
 
-        $rackCode = $this->location->rack_code ?? '';
-        $rackLetter = '';
-        if (preg_match('/([A-Za-z])$/i', $rackCode, $matches)) {
-            $rackLetter = strtoupper($matches[1]);
-        } elseif (!empty($rackCode)) {
-            $rackLetter = strtoupper(substr($rackCode, 0, 1));
+        $rackLabel = $this->rack_label;
+        if (!empty($rackLabel)) {
+            return "{$sector} - {$rackLabel}";
         }
 
-        $slotNumStr = '';
-        if ($this->rackSlot) {
-            $slotNumStr = str_pad($this->rackSlot->slot_number, 2, '0', STR_PAD_LEFT);
-        } elseif (!empty($this->location->shelf_code) && preg_match('/(\d+)/', $this->location->shelf_code, $matches)) {
-            $slotNumStr = str_pad($matches[1], 2, '0', STR_PAD_LEFT);
-        } else {
-            $slotNumStr = '01';
-        }
-
-        return "{$sector} - {$rackLetter}{$slotNumStr}";
+        return $sector;
     }
 
     public function getFormattedExpiryDateAttribute(): string
@@ -259,7 +322,11 @@ class Archive extends Model
     {
         $periodStr = $this->periode ?? $this->periode_doc ?? '';
         if (preg_match('/^(\d+)\s*(?:bulan|bln)/i', trim($periodStr), $matches)) {
-            return $matches[1] . ' Bulan';
+            $months = (int) $matches[1];
+            if ($months % 12 === 0 && $months >= 12) {
+                return ($months / 12) . ' Thn';
+            }
+            return $months . ' Bulan';
         }
 
         if (!empty($this->masa_simpan_custom) && (int)$this->masa_simpan_custom > 0) {
@@ -277,7 +344,11 @@ class Archive extends Model
     {
         $periodStr = $this->periode ?? $this->periode_doc ?? '';
         if (preg_match('/^(\d+)\s*(?:bulan|bln)/i', trim($periodStr), $matches)) {
-            return $matches[1] . ' Bulan';
+            $months = (int) $matches[1];
+            if ($months % 12 === 0 && $months >= 12) {
+                return ($months / 12) . ' Tahun';
+            }
+            return $months . ' Bulan';
         }
 
         if (!empty($this->masa_simpan_custom) && (int)$this->masa_simpan_custom > 0) {
@@ -289,6 +360,15 @@ class Archive extends Model
         }
 
         return '-';
+    }
+
+    public function getLatestApprovedExtensionAttribute(): ?ArchiveExtensionLog
+    {
+        if ($this->relationLoaded('extensionLogs')) {
+            return $this->extensionLogs->where('approval_status', 'approved')->sortByDesc('id')->first();
+        }
+
+        return $this->extensionLogs()->where('approval_status', 'approved')->latest('id')->first();
     }
 
     public function getFormattedTglPenyerahanAttribute(): string
@@ -376,6 +456,8 @@ class Archive extends Model
                     return $this->destructionLog->approval_status === 'approved' ? 'Antrean Pemusnahan' : 'Pengajuan Pemusnahan';
                 }
                 return 'Pengajuan Pemusnahan';
+            case 'pending_extension':
+                return 'Pengajuan Perpanjangan';
             case 'destroyed':
                 return 'Telah Dimusnahkan';
             default:
@@ -403,6 +485,8 @@ class Archive extends Model
                     return 'bg-blue-100 text-blue-800 border-blue-300';
                 }
                 return 'bg-amber-100 text-amber-800 border-amber-300';
+            case 'pending_extension':
+                return 'bg-purple-100 text-purple-800 dark:bg-purple-950/40 dark:text-purple-300 border-purple-300 dark:border-purple-700 animate-pulse';
             case 'destroyed':
                 return 'bg-rose-100 text-rose-800 border-rose-200';
             default:
@@ -458,7 +542,7 @@ class Archive extends Model
 
         return static::query()
             ->select('id', 'retention_expiry_date', 'status', 'department_id')
-            ->where('status', '!=', 'destroyed')
+            ->whereNotIn('status', ['destroyed', 'draft'])
             ->whereNotNull('retention_expiry_date')
             ->when($user->isPicDept(), function ($q) use ($user) {
                 return $q->where('department_id', $user->department_id);

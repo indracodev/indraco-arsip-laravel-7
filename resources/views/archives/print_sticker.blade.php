@@ -9,7 +9,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Label Kardus Gudang 10x10cm -
+    <title>Label Box Gudang 10x10cm -
         {{ $isSingle && $singleArchive ? (!empty($singleArchive->box_number) ? $singleArchive->box_number : ($singleArchive->title ?? 'Arsip')) : (isset($archives) ? count($archives) . ' Arsip' : 'Arsip') }}
     </title>
     <script src="{{ asset('js/vendor/qrcode.min.js') }}"></script>

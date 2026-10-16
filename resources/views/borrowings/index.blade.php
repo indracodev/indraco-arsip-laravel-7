@@ -35,6 +35,25 @@
          },
          closeBorrowingReject() {
              this.rejectModalData = null;
+         },
+         selectedBorrowingIds: [],
+         toggleSelectAll() {
+             const eligible = @json($borrowings->filter(fn($b) => $b->restore_eligibility['eligible'])->pluck('id')->values()->toArray());
+             if (this.selectedBorrowingIds.length === eligible.length) {
+                 this.selectedBorrowingIds = [];
+             } else {
+                 this.selectedBorrowingIds = [...eligible];
+             }
+         },
+         submitRestoring() {
+             if (this.selectedBorrowingIds.length === 0) return;
+             const params = new URLSearchParams();
+             params.append('re_store', '1');
+             this.selectedBorrowingIds.forEach(id => params.append('borrowing_ids[]', id));
+             @if(request()->has('embed'))
+                 params.append('embed', '1');
+             @endif
+             window.location.href = '{{ route('archives.create') }}?' + params.toString();
          }
      }"
      @open-borrowing-detail-modal.window="openBorrowingDetail($event.detail)"
@@ -60,6 +79,19 @@
             <button onclick="window.location.reload()" type="button" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 rounded text-xs font-mono font-bold transition flex items-center gap-1 shadow-sm shrink-0" title="Refresh Data (F5)">
                 <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-blue-500"></i>
                 <span>Refresh (F5)</span>
+            </button>
+
+            <!-- Tombol Aksi Simpan Kembali (Multi-Select) -->
+            <button 
+                type="button" 
+                x-show="selectedBorrowingIds.length > 0"
+                x-transition
+                @click="submitRestoring()"
+                class="px-3 py-1 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white font-mono font-bold text-xs rounded border border-purple-700 shadow-sm transition flex items-center gap-1.5 shrink-0 cursor-pointer animate-pulse"
+                title="Ajukan penyimpanan kembali untuk seluruh box yang dipilih"
+            >
+                <i data-lucide="package-plus" class="w-3.5 h-3.5 text-white"></i>
+                <span>Ajukan Penyimpanan Kembali (<span x-text="selectedBorrowingIds.length"></span> Box)</span>
             </button>
 
             <!-- Pengajuan Penarikan Berkas (F2) -->
@@ -117,7 +149,7 @@
                     <option value="requested" {{ request('status') == 'requested' ? 'selected' : '' }}>Diajukan User</option>
                     <option value="dept_approved" {{ request('status') == 'dept_approved' ? 'selected' : '' }}>Disetujui Dept</option>
                     <option value="approved" {{ request('status') == 'approved' ? 'selected' : '' }}>Disetujui Gudang</option>
-                    <option value="dispatched" {{ request('status') == 'dispatched' ? 'selected' : '' }}>Sedang Ditarik / Keluar</option>
+                    <option value="dispatched" {{ request('status') == 'dispatched' ? 'selected' : '' }}>Sudah Ditarik</option>
                     <option value="returned" {{ request('status') == 'returned' ? 'selected' : '' }}>Dikembalikan ke Gudang</option>
                     <option value="rejected" {{ request('status') == 'rejected' ? 'selected' : '' }}>Ditolak</option>
                 </select>
@@ -140,6 +172,40 @@
         </form>
     </fieldset>
 
+    <!-- WORKFLOW COLOR LEGEND BAR (PENARIKAN BERKAS) -->
+    <div class="flex items-center flex-wrap gap-2 text-[11px] font-mono py-1.5 px-3 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded select-none shadow-xs">
+        <span class="text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mr-1 text-[10px] flex items-center gap-1">
+            <i data-lucide="palette" class="w-3.5 h-3.5 text-slate-400"></i>
+            <span>Pembeda Workflow:</span>
+        </span>
+        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-amber-500/15 text-amber-800 dark:text-amber-300 border-l-4 border-l-amber-500 font-bold">
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span> Diajukan User (Data Baru)
+        </span>
+        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-blue-500/15 text-blue-800 dark:text-blue-300 border-l-4 border-l-blue-500 font-bold">
+            <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span> Disetujui Gudang (Siap Ambil)
+        </span>
+        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-purple-500/15 text-purple-800 dark:text-purple-300 border-l-4 border-l-purple-500 font-bold">
+            <span class="w-1.5 h-1.5 rounded-full bg-purple-500"></span> Sudah Ditarik (Fisik Berkas Out)
+        </span>
+        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-l-2 border-l-emerald-500 font-bold">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Dikembalikan (Selesai)
+        </span>
+        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-rose-500/15 text-rose-800 dark:text-rose-300 border-l-2 border-l-rose-500 font-medium">
+            <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Ditolak
+        </span>
+    </div>
+
+    <!-- REALTIME NOTIFICATION BANNER (PENARIKAN BERKAS) -->
+    <div id="borrowing_realtime_alert" style="display:none;" class="bg-amber-500/15 border border-amber-500/40 rounded p-2.5 flex items-center justify-between gap-2 text-xs font-mono text-amber-900 dark:text-amber-300 shadow-sm animate-pulse">
+        <div class="flex items-center gap-2">
+            <i data-lucide="bell-ring" class="w-4 h-4 text-amber-500 shrink-0"></i>
+            <span>Ada permohonan penarikan berkas baru masuk atau status penarikan telah diperbarui.</span>
+        </div>
+        <button type="button" onclick="window.location.reload()" class="px-2.5 py-1 bg-amber-500 text-slate-950 font-bold rounded hover:bg-amber-400 transition cursor-pointer shrink-0">
+            Muat Ulang
+        </button>
+    </div>
+
     <!-- DELPHI TDBGRID SPREADSHEET TABLE CONTAINER -->
     <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded shadow-sm relative overflow-hidden font-sans">
         <div class="overflow-x-auto">
@@ -151,6 +217,22 @@
                             $curDir = request('direction', 'desc');
                             $nextDir = $curDir === 'asc' ? 'desc' : 'asc';
                         @endphp
+                        @php
+                            $eligibleBorrowingIds = $borrowings->filter(fn($b) => $b->restore_eligibility['eligible'])->pluck('id')->values()->toArray();
+                        @endphp
+                        <th class="py-2.5 px-2.5 border-r border-slate-300 dark:border-slate-700 w-10 text-center">
+                            @if(count($eligibleBorrowingIds) > 0)
+                                <input 
+                                    type="checkbox" 
+                                    :checked="selectedBorrowingIds.length > 0 && selectedBorrowingIds.length === {{ count($eligibleBorrowingIds) }}"
+                                    @change="toggleSelectAll()"
+                                    class="w-3.5 h-3.5 rounded border-slate-300 text-purple-600 focus:ring-purple-500 cursor-pointer"
+                                    title="Pilih Semua Box Berstatus Sudah Ditarik"
+                                >
+                            @else
+                                <span class="text-slate-400 dark:text-slate-600 font-normal text-xs">&bull;</span>
+                            @endif
+                        </th>
                         <th class="py-2.5 px-3 border-r border-slate-300 dark:border-slate-700">
                             <span>NO. BOX & JUDUL BERKAS</span>
                         </th>
@@ -276,14 +358,74 @@
                             })->values()->toArray() : []
                         ];
                         $borrowingDetailsMap[$bLog->id] = $detailPayload;
+                        // Determine Borrowing Workflow Row Styles & Badges
+                        $rowColorClass = '';
+                        $isNewRequest = false;
+
+                        if ($bLog->status === 'requested') {
+                            $rowColorClass = 'border-l-4 border-l-amber-500 bg-amber-500/[0.07] dark:bg-amber-500/15 hover:bg-amber-500/20';
+                            $isNewRequest = true;
+                        } elseif ($bLog->status === 'dept_approved') {
+                            $rowColorClass = 'border-l-4 border-l-cyan-500 bg-cyan-500/[0.07] dark:bg-cyan-500/15 hover:bg-cyan-500/20';
+                        } elseif ($bLog->status === 'approved') {
+                            $rowColorClass = 'border-l-4 border-l-blue-500 bg-blue-500/[0.07] dark:bg-blue-500/15 hover:bg-blue-500/20';
+                        } elseif ($bLog->status === 'dispatched') {
+                            $rowColorClass = 'border-l-4 border-l-purple-500 bg-purple-500/[0.07] dark:bg-purple-500/15 hover:bg-purple-500/20';
+                        } elseif ($bLog->status === 'returned') {
+                            $rowColorClass = 'border-l-2 border-l-emerald-500/50 hover:bg-emerald-500/5';
+                        } elseif ($bLog->status === 'rejected') {
+                            $rowColorClass = 'border-l-2 border-l-rose-500/50 hover:bg-rose-500/5 opacity-80';
+                        } else {
+                            $rowColorClass = 'hover:bg-slate-50 dark:hover:bg-slate-900/30';
+                        }
                     @endphp
-                    <tr class="hover:bg-amber-500/5 dark:hover:bg-slate-900/50 transition">
+                    <tr class="transition duration-150 {{ $rowColorClass }}">
+                        @php
+                            $eligibility = $bLog->restore_eligibility;
+                        @endphp
+                        <!-- Kolom Checkbox Simpan Kembali -->
+                        <td class="py-2.5 px-2.5 border-r border-slate-200 dark:border-slate-800 text-center">
+                            @if($bLog->status === 'dispatched')
+                                @if($eligibility['eligible'])
+                                    <input 
+                                        type="checkbox" 
+                                        value="{{ $bLog->id }}" 
+                                        x-model="selectedBorrowingIds" 
+                                        class="w-3.5 h-3.5 rounded border-slate-300 text-purple-600 focus:ring-purple-500 cursor-pointer"
+                                        title="Centang untuk simpan kembali box ini"
+                                    >
+                                @else
+                                    <span class="inline-block" title="{{ $eligibility['reason'] }}">
+                                        <input type="checkbox" disabled class="w-3.5 h-3.5 rounded border-slate-200 opacity-25 cursor-not-allowed">
+                                    </span>
+                                @endif
+                            @else
+                                <span class="text-slate-300 dark:text-slate-700 text-xs font-mono">&bull;</span>
+                            @endif
+                        </td>
+
                         <!-- Kolom No Box & Judul -->
                         <td class="py-2.5 px-3 border-r border-slate-200 dark:border-slate-800">
                             <div class="space-y-0.5">
-                                <span class="font-mono text-xs text-amber-600 dark:text-amber-400 font-extrabold block">{{ $bLog->archive->box_number }}</span>
-                                <a href="{{ route('archives.show', array_merge(['archive' => $bLog->archive->id], request()->has('embed') ? ['embed' => 1] : [])) }}" class="font-sans font-bold text-slate-900 dark:text-white hover:text-amber-600 dark:hover:text-amber-400 transition block truncate max-w-sm" title="{{ $bLog->archive->title }}">
-                                    {{ $bLog->archive->title }}
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    @if($isNewRequest)
+                                        <span class="px-1.5 py-0.2 rounded bg-amber-500 text-slate-950 font-black text-[9px] uppercase tracking-wider animate-pulse shadow-xs" title="Permohonan Penarikan Baru Menunggu Persetujuan">BARU</span>
+                                    @elseif($bLog->status === 'dept_approved')
+                                        <span class="px-1.5 py-0.2 rounded bg-cyan-500 text-slate-950 font-black text-[9px] uppercase tracking-wider shadow-xs" title="Telah Disetujui Departemen">VERIF DEPT</span>
+                                    @elseif($bLog->status === 'approved')
+                                        <span class="px-1.5 py-0.2 rounded bg-blue-500 text-white font-black text-[9px] uppercase tracking-wider shadow-xs" title="Disetujui Gudang, Siap Diambil">SIAP AMBIL</span>
+                                    @elseif($bLog->status === 'dispatched')
+                                        <span class="px-1.5 py-0.2 rounded bg-purple-500 text-white font-black text-[9px] uppercase tracking-wider shadow-xs" title="Berkas Sudah Ditarik Fisik">DITARIK</span>
+                                    @elseif($bLog->status === 'returned')
+                                        <span class="px-1.5 py-0.2 rounded bg-emerald-500 text-white font-black text-[9px] uppercase tracking-wider shadow-xs" title="Telah Dikembalikan ke Gudang">KEMBALI</span>
+                                    @elseif($bLog->status === 'rejected')
+                                        <span class="px-1.5 py-0.2 rounded bg-rose-500 text-white font-black text-[9px] uppercase tracking-wider shadow-xs" title="Permohonan Ditolak">DITOLAK</span>
+                                    @endif
+
+                                    <span class="font-mono text-xs text-amber-600 dark:text-amber-400 font-extrabold">{{ $bLog->effective_box_number }}</span>
+                                </div>
+                                <a href="{{ route('archives.show', array_merge(['archive' => $bLog->archive ? $bLog->archive->id : '#'], request()->has('embed') ? ['embed' => 1] : [])) }}" class="font-sans font-bold text-slate-900 dark:text-white hover:text-amber-600 dark:hover:text-amber-400 transition block truncate max-w-sm" title="{{ $bLog->effective_title }}">
+                                    {{ $bLog->effective_title }}
                                 </a>
                             </div>
                         </td>
@@ -309,7 +451,7 @@
                         <!-- Kolom Pemohon -->
                         <td class="py-2.5 px-3 border-r border-slate-200 dark:border-slate-800">
                             <span class="font-bold text-slate-900 dark:text-slate-200 block">{{ $bLog->borrower->name ?? 'User' }}</span>
-                            <span class="text-[10px] text-slate-500 dark:text-slate-400 font-semibold uppercase">{{ $bLog->archive->department->code ?? 'DEPT' }}</span>
+                            <span class="text-[10px] text-slate-500 dark:text-slate-400 font-semibold uppercase">{{ $bLog->effective_department_code }}</span>
                         </td>
 
                         <!-- Kolom Tanggal Penarikan -->
@@ -334,7 +476,14 @@
                             @elseif($bLog->status === 'approved')
                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/30">Disetujui Gudang</span>
                             @elseif($bLog->status === 'dispatched')
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/30">Ditarik / Keluar</span>
+                                <div class="space-y-0.5">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/30">Sudah Ditarik</span>
+                                    @if($bLog->archive && $bLog->archive->status === 'in_warehouse')
+                                        <span class="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold block leading-tight">&bull; Sudah di Gudang</span>
+                                    @elseif($bLog->archive && in_array($bLog->archive->status, ['pending_verification', 'approved_booked']))
+                                        <span class="text-[9px] text-amber-600 dark:text-amber-400 font-bold block leading-tight animate-pulse">&bull; Menunggu Simpan</span>
+                                    @endif
+                                </div>
                             @elseif($bLog->status === 'returned')
                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">Dikembalikan</span>
                             @elseif($bLog->status === 'rejected')
@@ -435,21 +584,6 @@
                                             <i data-lucide="ban" class="w-3.5 h-3.5"></i>
                                             <span>Tolak</span>
                                         </button>
-                                    @elseif($bLog->status === 'dispatched')
-                                        <form action="{{ route('borrowings.return', $bLog) }}" method="POST" class="inline" @submit="submitting = true">
-                                            @csrf
-                                            <button type="submit" 
-                                                    data-confirm="Konfirmasi pengembalian berkas fisik ke gudang?" 
-                                                    data-confirm-title="Pengembalian Berkas Fisik"
-                                                    data-confirm-type="success"
-                                                    data-confirm-btn="Ya, Konfirmasi Kembali"
-                                                    :disabled="submitting" 
-                                                    class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold rounded border border-emerald-700 transition shadow-sm inline-flex items-center gap-1 disabled:opacity-50 cursor-pointer">
-                                                <i data-lucide="loader-2" class="w-3 h-3 animate-spin" x-show="submitting"></i>
-                                                <i data-lucide="rotate-ccw" class="w-3 h-3" x-show="!submitting"></i>
-                                                <span>Konfirmasi Kembali</span>
-                                            </button>
-                                        </form>
                                     @endif
                                 @endif
 
@@ -467,7 +601,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="8" class="py-8 px-4 text-center font-mono text-xs text-slate-500 dark:text-slate-400">
+                        <td colspan="9" class="py-8 px-4 text-center font-mono text-xs text-slate-500 dark:text-slate-400">
                             <i data-lucide="inbox" class="w-8 h-8 text-slate-400 mx-auto mb-2 opacity-50"></i>
                             Belum ada riwayat pengajuan penarikan berkas arsip.
                         </td>
@@ -1005,6 +1139,20 @@
             window.dmsPreviewFile(window.borrowingFilesMap[id]);
         }
     };
+
+    window.addEventListener('dms:realtime-sync', function(e) {
+        if (!e.detail || !e.detail.events) return;
+        const hasBorrowingEvents = e.detail.events.some(ev => 
+            ev.event_type === 'borrowing_created' || ev.event_type === 'borrowing_updated'
+        );
+        if (hasBorrowingEvents) {
+            const banner = document.getElementById('borrowing_realtime_alert');
+            if (banner) {
+                banner.style.display = 'flex';
+                if (window.lucide) window.lucide.createIcons();
+            }
+        }
+    });
 </script>
 @endsection
 

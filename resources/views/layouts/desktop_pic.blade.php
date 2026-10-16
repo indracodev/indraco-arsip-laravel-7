@@ -1606,9 +1606,37 @@
                               <span>Kosongkan Semua Arsip</span>
                            </button>
                         </div>
-                     </div>
-                  </fieldset>
-               @endif
+
+                        <!-- Action 4: Git Pull & Restart Server (Opsi A) -->
+                        <div class="p-2.5 bg-indigo-50/60 dark:bg-indigo-950/30 rounded border border-indigo-200 dark:border-indigo-800/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs">
+                            <div class="space-y-0.5">
+                                <div class="flex items-center gap-1.5 font-bold text-indigo-900 dark:text-indigo-300">
+                                    <i data-lucide="git-pull-request" class="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400"></i>
+                                    <span>Git Pull & Restart Server</span>
+                                    <span class="px-1.5 py-0.2 bg-indigo-200 dark:bg-indigo-800 text-[10px] text-indigo-900 dark:text-indigo-100 rounded font-mono font-normal">Opsi A</span>
+                                </div>
+                                <p class="text-[11px] text-slate-500 dark:text-slate-400 font-sans">
+                                    Mengambil kode terbaru dari Git (<code class="text-indigo-600 dark:text-indigo-400 font-mono">git pull</code>), membersihkan cache Laravel, dan me-restart server otomatis.
+                                </p>
+                            </div>
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                <button @click="viewGitPullLogAction()" type="button"
+                                    class="px-2.5 py-1.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs rounded border border-slate-300 dark:border-slate-700 shadow-xs transition flex items-center gap-1 cursor-pointer"
+                                    title="Lihat riwayat log proses git pull terakhir">
+                                    <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+                                    <span>Log</span>
+                                </button>
+                                <button @click="gitPullRestartAction()" type="button"
+                                    :disabled="maintenanceLoading"
+                                    class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold text-xs rounded border border-indigo-700 shadow-xs transition flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer">
+                                    <i data-lucide="refresh-cw" class="w-3.5 h-3.5" :class="maintenanceLoading ? 'animate-spin' : ''"></i>
+                                    <span>Pull & Restart</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </fieldset>
+                @endif
             </div>
 
             <!-- Modal Footer Actions -->
@@ -1653,45 +1681,58 @@
                settingsSaving: false,
                maintenanceLoading: false,
 
-               // Real-time Notification & Audio State
-               soundEnabled: localStorage.getItem('sound_enabled') !== 'false',
-               lastArchiveId: 0,
-               lastEventSeq: 0,
-               realtimeNotifications: [],
-               activeToasts: [],
-               unreadNotificationsCount: 0,
-               showNotificationDropdown: false,
-               audioContext: null,
-               audioUnlocked: false,
-               pollTimer: null,
+                // Real-time Notification & Audio State
+                currentUserId: {{ auth()->id() ?? 0 }},
+                isPicGudangOrAdmin: {{ (auth()->check() && (auth()->user()->isPicGudang() || auth()->user()->isSuperAdmin())) ? 'true' : 'false' }},
+                soundEnabled: localStorage.getItem('sound_enabled') !== 'false',
+                lastArchiveId: 0,
+                lastEventSeq: 0,
+                realtimeNotifications: [],
+                activeToasts: [],
+                unreadNotificationsCount: 0,
+                showNotificationDropdown: false,
+                audioContext: null,
+                audioUnlocked: false,
+                pollTimer: null,
 
-               availableForms: [{
-                     id: 'archives',
-                     title: '[Form 1] Katalog Arsip {{ auth()->user()->department->code ?? '' }}',
-                     icon: 'folder-archive',
-                     url: '{{ route('archives.index') }}?embed=1'
-                  },
-                  {
-                     id: 'borrowings',
-                     title: '[Form 2] Penarikan Berkas',
-                     icon: 'file-symlink',
-                     url: '{{ route('borrowings.index') }}?embed=1'
-                  },
-                  {
-                     id: 'destructions',
-                     title: '[Form 3] Pengajuan Perpanjangan & Pemusnahan',
-                     icon: 'shield-alert',
-                     badgeCount: {{ (int) $form3BadgeCount }},
-                     url: '{{ route('destructions.index') }}?embed=1'
-                  },
-                  {
-                     id: 'archives_create',
-                     title: 'Draft Pengajuan Box Baru',
-                     icon: 'plus-circle',
-                     url: '{{ route('archives.create') }}?embed=1',
-                     hideInTabBar: true
-                  }
-               ],
+                @php
+                    $uPic = auth()->user();
+                    $uPicDeptId = $uPic ? $uPic->department_id : 0;
+                    $initialBorrowBadgePic = (int) \App\Models\BorrowingLog::whereHas('archive', function($q) use ($uPicDeptId) {
+                        $q->where('department_id', $uPicDeptId);
+                    })->whereIn('status', ['requested', 'approved'])->count();
+                    $initialArchiveBadgePic = (int) \App\Models\Archive::where('department_id', $uPicDeptId)->where('status', 'pending_verification')->count();
+                @endphp
+                availableForms: [
+                    {
+                        id: 'archives',
+                        title: '[Form 1] Katalog Arsip {{ auth()->user()->department->code ?? "" }}',
+                        icon: 'folder-archive',
+                        badgeCount: {{ $initialArchiveBadgePic }},
+                        url: '{{ route("archives.index") }}?embed=1'
+                    },
+                    {
+                        id: 'borrowings',
+                        title: '[Form 2] Penarikan Berkas',
+                        icon: 'file-symlink',
+                        badgeCount: {{ $initialBorrowBadgePic }},
+                        url: '{{ route("borrowings.index") }}?embed=1'
+                    },
+                    {
+                        id: 'destructions',
+                        title: '[Form 3] Pengajuan Perpanjangan & Pemusnahan',
+                        icon: 'shield-alert',
+                        badgeCount: {{ (int) $form3BadgeCount }},
+                        url: '{{ route("destructions.index") }}?embed=1'
+                    },
+                    {
+                        id: 'archives_create',
+                        title: 'Draft Pengajuan Box Baru',
+                        icon: 'plus-circle',
+                        url: '{{ route("archives.create") }}?embed=1',
+                        hideInTabBar: true
+                    }
+                ],
 
                initMdi() {
                   let initialId = 'archives';
@@ -1735,9 +1776,9 @@
                            type: d.level || 'success',
                            title: d.message,
                            boxNumber: d.boxNumber || '',
-                           deptCode: '{{ auth()->user()->department->code ?? 'DMS' }}',
-                           deptName: '{{ auth()->user()->department->name ?? '' }}',
-                           creatorName: '{{ auth()->user()->name }}',
+                           deptCode: {!! json_encode(auth()->user()->department->code ?? 'DMS') !!},
+                           deptName: {!! json_encode(auth()->user()->department->name ?? '') !!},
+                           creatorName: {!! json_encode(auth()->user()->name ?? '') !!},
                            statusLabel: d.statusLabel || 'Tersimpan',
                            time: new Date().toLocaleTimeString('id-ID', {
                               hour: '2-digit',
@@ -2296,10 +2337,19 @@
                            'Accept': 'application/json'
                         },
                         body: formData
-                     })
-                     .then(res => res.json())
-                     .then(data => {
+                    })
+                    .then(async res => {
+                        const data = await res.json().catch(() => ({}));
                         this.settingsSaving = false;
+                        if (!res.ok) {
+                            const errMsg = data.message || 'Gagal menyimpan pengaturan sistem.';
+                            if (window.showAlertModal) {
+                                window.showAlertModal(errMsg, 'Akses Dibatasi', 'danger');
+                            } else {
+                                console.error(errMsg);
+                            }
+                            return;
+                        }
                         if (data.settings && data.settings.app_logo) {
                            this.appLogoUrl = data.settings.app_logo;
                         }
@@ -2319,14 +2369,18 @@
                         localStorage.setItem('app_font_size', this.currentFontSize);
                         this.applyFontSizeLive(this.currentFontSize);
                         this.openSettingsModal = false;
-                        alert(data.message || 'Pengaturan sistem berhasil disimpan.');
-                     })
-                     .catch(err => {
+                        if (window.showAlertModal) {
+                            window.showAlertModal(data.message || 'Pengaturan sistem berhasil disimpan.', 'Berhasil Disimpan', 'success');
+                        }
+                    })
+                    .catch(err => {
                         console.error(err);
                         this.settingsSaving = false;
-                        alert('Gagal menyimpan pengaturan.');
-                     });
-               },
+                        if (window.showAlertModal) {
+                            window.showAlertModal('Gagal menyimpan pengaturan. Silakan periksa koneksi Anda.', 'Gagal Menyimpan', 'danger');
+                        }
+                    });
+                },
 
                async resetLogo() {
                   const ok = await window.showConfirmModal({
@@ -2452,13 +2506,70 @@
                      });
                },
 
-               refreshActiveIframe() {
-                  try {
-                     const activeWin = this.openWindows.find(w => w.id === this.activeWinId);
-                     if (activeWin) {
-                        const ifr = document.getElementById('iframe-' + activeWin.id);
-                        if (ifr && ifr.contentWindow) {
-                           ifr.contentWindow.location.reload();
+                async gitPullRestartAction() {
+                    const ok = await window.showConfirmModal({
+                        title: 'Git Pull & Restart Server (Opsi A)',
+                        message: 'Apakah Anda yakin ingin menjalankan "Git Pull" dan me-restart server otomatis? Proses ini akan mengambil pembaruan kode Git, membersihkan cache Laravel, dan me-restart server dalam 5-10 detik.',
+                        type: 'danger',
+                        confirmText: 'Ya, Jalankan Pull & Restart'
+                    });
+                    if (!ok) return;
+
+                    this.maintenanceLoading = true;
+                    try {
+                        const res = await fetch('{{ route("master.settings.git_pull_restart") }}', {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Accept': 'application/json'
+                            }
+                        });
+                        const data = await res.json();
+
+                        if (data.status === 'success') {
+                            alert(data.message || 'Perintah berhasil dipicu.');
+
+                            // Auto-reload browser countdown
+                            let countdown = 8;
+                            const timer = setInterval(() => {
+                                countdown--;
+                                if (countdown <= 0) {
+                                    clearInterval(timer);
+                                    window.location.reload();
+                                }
+                            }, 1000);
+                        } else {
+                            this.maintenanceLoading = false;
+                            alert(data.message || 'Gagal memicu restart server.');
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 8000);
+                    }
+                },
+
+                async viewGitPullLogAction() {
+                    try {
+                        const res = await fetch('{{ route("master.settings.git_pull_log") }}', {
+                            headers: { 'Accept': 'application/json' }
+                        });
+                        const data = await res.json();
+                        alert("=== LOG RIWAYAT GIT PULL & RESTART TERAKHIR ===\n\n" + (data.log || 'Belum ada log update.'));
+                    } catch (err) {
+                        alert('Gagal mengambil log: ' + err.message);
+                    }
+                },
+
+                refreshActiveIframe() {
+                    try {
+                        const activeWin = this.openWindows.find(w => w.id === this.activeWinId);
+                        if (activeWin) {
+                            const ifr = document.getElementById('iframe-' + activeWin.id);
+                            if (ifr && ifr.contentWindow) {
+                                ifr.contentWindow.location.reload();
+                            }
                         }
                      }
                   } catch (e) {}

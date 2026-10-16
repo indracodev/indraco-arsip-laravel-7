@@ -25,6 +25,11 @@ class BorrowingLog extends Model
         'is_approval_uploaded',
         'approval_status',
         'approval_notes',
+        'snapshot_box_number',
+        'snapshot_title',
+        'snapshot_department',
+        'snapshot_items',
+        'active_restore_archive_id',
     ];
 
     protected $casts = [
@@ -39,22 +44,42 @@ class BorrowingLog extends Model
     protected static function booted()
     {
         static::created(function ($log) {
+            $arc = $log->archive;
+            $borrower = $log->borrower;
             \App\Services\SystemEventStream::emit(
                 'borrowing_created',
                 'BorrowingLog',
                 $log->id,
-                $log->archive ? $log->archive->department_id : null,
-                ['status' => $log->status]
+                $arc ? $arc->department_id : null,
+                [
+                    'status' => $log->status,
+                    'box_number' => $arc ? $arc->box_number : '',
+                    'title' => $arc ? $arc->title : '',
+                    'dept_code' => $arc && $arc->department ? $arc->department->code : '',
+                    'borrower' => $borrower ? $borrower->name : '',
+                    'borrower_user_id' => (int) $log->borrower_user_id,
+                    'action_by_user_id' => auth()->id() ?? (int) $log->borrower_user_id,
+                ]
             );
         });
 
         static::updated(function ($log) {
+            $arc = $log->archive;
+            $borrower = $log->borrower;
             \App\Services\SystemEventStream::emit(
                 'borrowing_updated',
                 'BorrowingLog',
                 $log->id,
-                $log->archive ? $log->archive->department_id : null,
-                ['status' => $log->status]
+                $arc ? $arc->department_id : null,
+                [
+                    'status' => $log->status,
+                    'box_number' => $arc ? $arc->box_number : '',
+                    'title' => $arc ? $arc->title : '',
+                    'dept_code' => $arc && $arc->department ? $arc->department->code : '',
+                    'borrower' => $borrower ? $borrower->name : '',
+                    'borrower_user_id' => (int) $log->borrower_user_id,
+                    'action_by_user_id' => auth()->id() ?? (int) $log->borrower_user_id,
+                ]
             );
         });
     }
@@ -79,6 +104,92 @@ class BorrowingLog extends Model
         return $this->belongsTo(User::class, 'pic_gudang_id');
     }
 
+    public function activeRestoreArchive(): BelongsTo
+    {
+        return $this->belongsTo(Archive::class, 'active_restore_archive_id');
+    }
+
+    public function getEffectiveBoxNumberAttribute(): string
+    {
+        return $this->snapshot_box_number ?: ($this->archive->box_number ?? 'DRAFT');
+    }
+
+    public function getEffectiveTitleAttribute(): string
+    {
+        return $this->snapshot_title ?: ($this->archive->title ?? 'Penarikan Berkas');
+    }
+
+    public function getEffectiveDepartmentCodeAttribute(): string
+    {
+        return $this->snapshot_department ?: ($this->archive->department->code ?? 'DEPT');
+    }
+
+    public function getParsedSnapshotItemsAttribute(): array
+    {
+        if (!empty($this->snapshot_items)) {
+            $decoded = json_decode($this->snapshot_items, true);
+            if (is_array($decoded)) {
+                return $decoded;
+            }
+        }
+
+        if ($this->archive && $this->archive->items) {
+            return $this->archive->items->map(function ($it) {
+                return [
+                    'number' => $it->item_number,
+                    'name' => $it->document_name,
+                    'period' => $it->period_text,
+                    'notes' => $it->notes
+                ];
+            })->values()->toArray();
+        }
+
+        return [];
+    }
+
+    public function getRestoreEligibilityAttribute(): array
+    {
+        if ($this->status !== 'dispatched') {
+            return [
+                'eligible' => false,
+                'reason' => 'Hanya transaksi penarikan dengan status "Sudah Ditarik" yang dapat diajukan simpan kembali.'
+            ];
+        }
+
+        if (!$this->archive) {
+            return [
+                'eligible' => false,
+                'reason' => 'Data arsip asal tidak ditemukan dalam sistem.'
+            ];
+        }
+
+        if ($this->archive->status === 'in_warehouse') {
+            return [
+                'eligible' => false,
+                'reason' => 'Box ini sudah tercatat berada di dalam rak gudang (in_warehouse).'
+            ];
+        }
+
+        if (in_array($this->archive->status, ['pending_verification', 'approved_booked'])) {
+            return [
+                'eligible' => false,
+                'reason' => 'Box ini sudah memiliki pengajuan penyimpanan kembali yang sedang aktif / diproses.'
+            ];
+        }
+
+        if ($this->archive->status === 'pending_destruction' || $this->archive->status === 'destroyed') {
+            return [
+                'eligible' => false,
+                'reason' => 'Box ini sedang dalam proses pemusnahan atau telah dimusnahkan.'
+            ];
+        }
+
+        return [
+            'eligible' => true,
+            'reason' => null
+        ];
+    }
+
     public function getEffectiveApprovalFileAttribute(): ?string
     {
         return $this->approval_file ?: $this->scan_approval_borrow;
@@ -99,7 +210,7 @@ class BorrowingLog extends Model
             case 'approved':
                 return 'Disetujui Gudang';
             case 'dispatched':
-                return empty($this->expected_return_date) ? 'Diambil (Permanen)' : 'Sedang Dipinjam';
+                return 'Sudah Ditarik';
             case 'returned':
                 return 'Dikembalikan';
             case 'rejected':

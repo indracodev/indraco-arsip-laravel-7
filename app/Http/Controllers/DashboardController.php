@@ -38,7 +38,7 @@ class DashboardController extends Controller
         // Expiry alerts (archives nearing expiration within 90 days or passed)
         $expiringArchives = (clone $archivesQuery)
             ->whereNotNull('retention_expiry_date')
-            ->where('status', '!=', 'destroyed')
+            ->whereNotIn('status', ['destroyed', 'draft'])
             ->whereDate('retention_expiry_date', '<=', Carbon::now()->addDays(90))
             ->with(['department', 'location'])
             ->orderBy('retention_expiry_date', 'asc')
@@ -169,7 +169,7 @@ class DashboardController extends Controller
 
         $hasFilter = !empty($search) || !empty($deptId && !$user->isPicDept()) || !empty($subDeptId) || !empty($periodFilter);
 
-        // KHUSUS PIC GUDANG: Fokus hanya pada pencarian Rak Gudang dan Box/Kardus Arsip (Judul Utama & Label Box, bukan isi item)
+        // KHUSUS PIC GUDANG: Fokus hanya pada pencarian Rak Gudang dan Box Arsip (Judul Utama & Label Box, bukan isi item)
         if ($user->isPicGudang()) {
             if (!$hasFilter && empty($search)) {
                 // 1. Suggestions: Racks
@@ -618,6 +618,32 @@ class DashboardController extends Controller
             'borrowed' => (clone $baseQuery)->where('status', 'borrowed')->count(),
         ];
 
+        // Dynamic Badge Counts for Sidebar / Tabs
+        $isPicGudangOrAdmin = $user && ($user->isPicGudang() || $user->isSuperAdmin());
+        if ($isPicGudangOrAdmin) {
+            $borrowingsBadge = \App\Models\BorrowingLog::whereIn('status', ['requested', 'dept_approved', 'approved'])->count();
+            $submissionsBadge = Archive::where('status', 'pending_verification')->count();
+        } else {
+            $deptId = $user ? $user->department_id : 0;
+            $borrowingsBadge = \App\Models\BorrowingLog::where(function ($q) use ($user, $deptId) {
+                $q->where('borrower_user_id', $user ? $user->id : 0)
+                  ->orWhereHas('archive', function ($q2) use ($deptId) {
+                      $q2->where('department_id', $deptId);
+                  });
+            })->whereIn('status', ['requested', 'approved'])->count();
+
+            $submissionsBadge = Archive::where('department_id', $deptId)
+                ->where('status', 'pending_verification')
+                ->count();
+        }
+        $destructionsBadge = Archive::getForm3PendingCount($user);
+
+        $badges = [
+            'borrowings' => (int) $borrowingsBadge,
+            'submissions' => (int) $submissionsBadge,
+            'destructions' => (int) $destructionsBadge,
+        ];
+
         // 2. Initial load baseline
         if ($initial || ($lastId <= 0 && $sinceSeq <= 0)) {
             return response()->json([
@@ -629,6 +655,7 @@ class DashboardController extends Controller
                 'new_archives' => [],
                 'count' => 0,
                 'stats' => $stats,
+                'badges' => $badges,
             ]);
         }
 
@@ -646,35 +673,64 @@ class DashboardController extends Controller
         $recentEvents = $eventsQuery->orderBy('id', 'asc')->limit(50)->get();
         $hasChanges = $recentEvents->isNotEmpty();
 
-        // Query new archives created after lastId for backward compatibility
+        // Query new archives created after lastId (EXCLUDE drafts from incoming alerts)
         $newArchivesQuery = Archive::with(['department', 'creator', 'location', 'subDepartment'])
-            ->where('id', '>', $lastId);
+            ->where('id', '>', $lastId)
+            ->where('status', '!=', 'draft');
 
         if ($user && $user->isPicDept()) {
             $newArchivesQuery->where('department_id', $user->department_id);
         }
 
         $newArchives = $newArchivesQuery->orderBy('id', 'desc')->take(10)->get();
-        $hasNew = $newArchives->isNotEmpty();
 
-        $items = $newArchives->map(function ($archive) {
+        // Also detect archives promoted from draft to pending_verification from recent event stream
+        $submittedEntityIds = $recentEvents->where('event_type', 'archive_submitted')
+            ->pluck('entity_id')
+            ->filter()
+            ->unique()
+            ->all();
+
+        $submittedArchives = collect();
+        if (!empty($submittedEntityIds)) {
+            $submittedArchivesQuery = Archive::with(['department', 'creator', 'location', 'subDepartment'])
+                ->whereIn('id', $submittedEntityIds)
+                ->where('status', '!=', 'draft');
+
+            if ($user && $user->isPicDept()) {
+                $submittedArchivesQuery->where('department_id', $user->department_id);
+            }
+            $submittedArchives = $submittedArchivesQuery->get();
+        }
+
+        $mergedArchives = $newArchives->concat($submittedArchives)->unique('id');
+        $hasNew = $mergedArchives->isNotEmpty();
+
+        $items = $mergedArchives->map(function ($archive) {
             return [
                 'id' => $archive->id,
                 'title' => $archive->title,
                 'box_number' => $archive->box_number ?? 'Penomoran Pending',
+                'department_id' => $archive->department_id,
                 'dept_name' => $archive->department->name ?? 'Semua Dept',
                 'dept_code' => $archive->department->code ?? 'GEN',
+                'sub_department_id' => $archive->sub_department_id,
+                'sub_dept_name' => $archive->subDepartment->name ?? null,
+                'document_type' => $archive->document_type,
+                'created_by_user_id' => (int) $archive->created_by_user_id,
                 'creator_name' => $archive->creator->name ?? 'User Client',
                 'creator_role' => $archive->creator->role_label ?? 'Client',
                 'periode_doc' => $archive->periode_doc ?? $archive->period_text ?? '-',
                 'location' => $archive->display_location,
+                'retention_expiry' => $archive->retention_expiry_date ? \Carbon\Carbon::parse($archive->retention_expiry_date)->format('M Y') : '-',
+                'has_files' => (bool) ($archive->scan_input_form || $archive->file_path || $archive->scan_approval_input || $archive->scan_extension_form),
                 'status' => $archive->status,
                 'status_label' => $this->getStatusLabel($archive->status),
                 'created_at_human' => $archive->created_at ? $archive->created_at->diffForHumans() : 'Baru saja',
                 'created_at_time' => $archive->created_at ? $archive->created_at->format('H:i:s') : '',
-                'url' => route('archives.show', $archive->id) . '?embed=1',
+                'url' => route('archives.show', $archive->id) . (request()->has('embed') ? '?embed=1' : ''),
             ];
-        });
+        })->values();
 
         return response()->json([
             'has_new' => $hasNew,
@@ -685,6 +741,7 @@ class DashboardController extends Controller
             'new_archives' => $items,
             'count' => $newArchives->count(),
             'stats' => $stats,
+            'badges' => $badges,
         ]);
     }
 

@@ -1,0 +1,17 @@
+{
+  "name": "indraco-dms-client",
+  "version": "1.0.0",
+  "description": "Desktop Client for DMS PT Indraco",
+  "private": true,
+  "scripts": {
+    "tauri": "tauri",
+    "dev": "tauri dev",
+    "build": "tauri build"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.2.0",
+    "@tauri-apps/api": "^2.2.0",
+    "@tauri-apps/plugin-updater": "^2.2.0",
+    "@tauri-apps/plugin-process": "^2.2.0"
+  }
+}

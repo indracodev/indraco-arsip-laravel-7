@@ -25,7 +25,12 @@ class BorrowingController extends Controller
         ]);
 
         if ($user->isPicDept()) {
-            $query->where('borrower_user_id', $user->id);
+            $query->where(function ($q) use ($user) {
+                $q->where('borrower_user_id', $user->id)
+                  ->orWhereHas('archive', function ($q2) use ($user) {
+                      $q2->where('department_id', $user->department_id);
+                  });
+            });
         }
 
         if ($request->filled('search')) {
@@ -74,23 +79,40 @@ class BorrowingController extends Controller
             'id', 'archive_code', 'title', 'department_id', 'sub_department_id',
             'warehouse_location_id', 'warehouse_rack_slot_id', 'box_number',
             'retention_expiry_date', 'status', 'period_start_date', 'period_end_date',
-            'period_text', 'periode_doc', 'physical_condition', 'content_description'
+            'period_text', 'periode_doc', 'periode', 'physical_condition', 'content_description'
         )->with([
             'department:id,name,code',
             'subDepartment:id,name',
-            'location:id,name,warehouse_id',
-            'location.warehouse:id,name',
-            'rackSlot:id,slot_name'
+            'location:id,warehouse_id,room_sector,rack_code,shelf_code',
+            'location.warehouse:id,name,code',
+            'rackSlot:id,warehouse_location_id,sap_level,layer,slot_number,slot_code',
+            'items:id,archive_id,item_number,document_name,period_start,period_end,period_text,notes',
+            'borrowingLogs' => function ($q) {
+                $q->whereIn('status', ['requested', 'dept_approved', 'approved']);
+            }
         ])->where('status', 'in_warehouse');
 
         if ($user->isPicDept()) {
             $archivesQuery->where('department_id', $user->department_id);
         }
 
-        $archives = $archivesQuery->get();
-        $selectedArchiveId = $request->query('archive_id');
+        $archives = $archivesQuery->get()->map(function ($arc) {
+            $arc->has_active_borrowing = $arc->borrowingLogs->isNotEmpty();
+            return $arc;
+        });
 
-        return view('borrowings.create', compact('archives', 'selectedArchiveId'));
+        // Support both single archive_id and multiple archive_ids (e.g. from catalog checkboxes)
+        $selectedArchiveIds = [];
+        if ($request->filled('archive_ids')) {
+            $raw = $request->query('archive_ids');
+            $selectedArchiveIds = is_array($raw) ? $raw : explode(',', (string)$raw);
+        } elseif ($request->filled('archive_id')) {
+            $selectedArchiveIds = [$request->query('archive_id')];
+        }
+        $selectedArchiveIds = array_filter(array_map('intval', (array)$selectedArchiveIds));
+        $selectedArchiveId = !empty($selectedArchiveIds) ? $selectedArchiveIds[0] : null;
+
+        return view('borrowings.create', compact('archives', 'selectedArchiveId', 'selectedArchiveIds'));
     }
 
     public function store(Request $request)
@@ -139,6 +161,19 @@ class BorrowingController extends Controller
                 return ($a->box_number ? "[{$a->box_number}] " : '') . $a->title;
             })->implode(', ');
             return back()->withInput()->with('error', "Berkas arsip berikut tidak tersedia di gudang untuk ditarik: {$unavailLabels}");
+        }
+
+        // Validasi jika arsip sedang dalam pengajuan penarikan aktif (Poin 6)
+        $busyBorrowings = \App\Models\BorrowingLog::whereIn('archive_id', $archiveIds)
+            ->whereIn('status', ['requested', 'dept_approved', 'approved'])
+            ->with('archive')
+            ->get();
+
+        if ($busyBorrowings->isNotEmpty()) {
+            $busyLabels = $busyBorrowings->map(function ($b) {
+                return ($b->archive && $b->archive->box_number ? "[{$b->archive->box_number}] " : '') . ($b->archive ? $b->archive->title : "ID #{$b->archive_id}");
+            })->unique()->implode(', ');
+            return back()->withInput()->with('error', "Gagal mengajukan penarikan: Box arsip berikut sedang dalam proses penarikan aktif: {$busyLabels}");
         }
 
         // Proteksi departemen untuk PIC Dept
@@ -338,6 +373,16 @@ class BorrowingController extends Controller
             $scanPath = $request->file('scan_approval_borrow')->store('borrowing_approvals', 'public');
         }
 
+        $archive = $borrowing->archive;
+        $items = ($archive && $archive->items) ? $archive->items->map(function ($it) {
+            return [
+                'number' => $it->item_number,
+                'name' => $it->document_name,
+                'period' => $it->period_text,
+                'notes' => $it->notes
+            ];
+        })->toArray() : [];
+
         $borrowing->update([
             'status' => 'dispatched',
             'borrow_date' => now(),
@@ -347,9 +392,11 @@ class BorrowingController extends Controller
             'approval_status' => 'approved',
             'department_approved_at' => $borrowing->department_approved_at ?: now(),
             'department_approval_by' => $borrowing->department_approval_by ?: auth()->id(),
+            'snapshot_box_number' => $archive ? $archive->box_number : null,
+            'snapshot_title' => $archive ? $archive->title : null,
+            'snapshot_department' => ($archive && $archive->department) ? $archive->department->code : 'DEPT',
+            'snapshot_items' => json_encode($items),
         ]);
-
-        $archive = $borrowing->archive;
         $isPermanent = empty($borrowing->expected_return_date);
         $archiveStatus = $isPermanent ? 'taken' : 'borrowed';
 
@@ -386,9 +433,7 @@ class BorrowingController extends Controller
             $archive->box_number
         );
 
-        $successMsg = $isPermanent 
-            ? 'Pengeluaran berkas disahkan! Status arsip diubah menjadi "Diambil (Permanen)" dan slot rak telah dikosongkan.'
-            : 'Pengeluaran berkas disahkan! Status arsip diubah menjadi "Sedang Dipinjam" dan slot rak telah dikosongkan.';
+        $successMsg = 'Pengeluaran berkas disahkan! Status penarikan berubah menjadi "Sudah Ditarik" dan slot rak telah dikosongkan.';
 
         return redirect()->back()
             ->with('success', $successMsg);

@@ -1772,7 +1772,7 @@
                         </div>
                         <h4 class="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider font-mono">Inspector Slot Rak</h4>
                         <p class="text-[11px] text-slate-500 dark:text-slate-400 max-w-xs mx-auto leading-relaxed font-sans">
-                            Klik salah satu dari 100 slot kardus (TB 30g) pada denah di sebelah kiri untuk melihat rincian dokumen dan opsi cetak label.
+                            Klik salah satu dari 100 slot box (TB 30g) pada denah di sebelah kiri untuk melihat rincian dokumen dan opsi cetak label.
                         </p>
                     </div>
 
@@ -5159,7 +5159,7 @@ function warehouseCanvasApp() {
                 }
             } else {
                 if (!this.slotAssignForm.archive_id) {
-                    alert('Silakan pilih salah satu kardus arsip dari antrean!');
+                    alert('Silakan pilih salah satu box arsip dari antrean!');
                     return;
                 }
             }
@@ -5217,7 +5217,7 @@ function warehouseCanvasApp() {
             if (!this.selectedSlotDetail || !this.selectedRackForModal) return;
             const ok = await window.showConfirmModal({
                 title: 'Kosongkan Slot Rak',
-                message: `Apakah Anda yakin ingin mengosongkan slot ${this.selectedSlotDetail.slot_code}? Kardus arsip akan dilepaskan dari slot rak ini.`,
+                message: `Apakah Anda yakin ingin mengosongkan slot ${this.selectedSlotDetail.slot_code}? Box arsip akan dilepaskan dari slot rak ini.`,
                 type: 'danger',
                 confirmText: 'Ya, Kosongkan'
             });

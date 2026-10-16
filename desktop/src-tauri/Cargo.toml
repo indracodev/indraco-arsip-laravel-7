@@ -1,0 +1,31 @@
+[package]
+name = "indraco-dms-client"
+version = "1.0.0"
+description = "DMS PT Indraco Desktop Client"
+authors = ["PT Indraco"]
+edition = "2021"
+
+[lib]
+name = "indraco_dms_client_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.dev]
+codegen-units = 1
+incremental = false
+
+[profile.release]
+codegen-units = 1
+lto = "thin"
+opt-level = "z"
+panic = "abort"
+strip = true

@@ -134,7 +134,7 @@
                         <input 
                             type="text" 
                             x-model="{{ $stateName }}.pic_pemohon" 
-                            @input="if(!{{ $stateName }}.approval_pemohon) {{ $stateName }}.approval_pemohon = {{ $stateName }}.pic_pemohon"
+                            @input="{{ $stateName }}.approval_pemohon = {{ $stateName }}.pic_pemohon"
                             placeholder="Ketik nama lengkap pemohon..."
                             style="font-size: 11px;"
                             class="w-full px-2 py-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
@@ -166,22 +166,6 @@
                         </div>
                     </div>
 
-                    <!-- Masa Simpan (Bulan) -->
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-0.5">
-                            MASA SIMPAN YANG DIAJUKAN (BULAN)
-                        </label>
-                        <input 
-                            type="number" 
-                            min="1" 
-                            max="60" 
-                            x-model="{{ $stateName }}.masa_simpan" 
-                            style="font-size: 11px;"
-                            class="w-full px-2 py-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
-                        >
-                        <span class="text-[9px] text-slate-400 block mt-0.5 font-sans">*Maksimal 60 bulan</span>
-                    </div>
-
                     <!-- Catatan Fisik / Opsional -->
                     <div>
                         <label class="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-0.5">
@@ -190,7 +174,7 @@
                         <textarea 
                             x-model="{{ $stateName }}.catatan" 
                             rows="2" 
-                            placeholder="Kondisi fisik kardus dan dokumen..." 
+                            placeholder="Kondisi fisik Box dan dokumen..." 
                             style="font-size: 11px;"
                             class="w-full px-2 py-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
                         ></textarea>
@@ -204,12 +188,14 @@
 
                         <!-- Diajukan oleh (Pemohon) -->
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-500 mb-0.5">
-                                Diajukan oleh (Pemohon):
+                            <label class="block text-[10px] font-bold text-slate-500 mb-0.5 flex items-center justify-between">
+                                <span>Diajukan oleh (Pemohon):</span>
+                                <span class="text-[9px] text-amber-600 dark:text-amber-400 font-normal italic">(Otomatis = PIC Pemohon)</span>
                             </label>
                             <input 
                                 type="text" 
-                                x-model="{{ $stateName }}.approval_pemohon" 
+                                x-model="{{ $stateName }}.pic_pemohon" 
+                                @input="{{ $stateName }}.approval_pemohon = {{ $stateName }}.pic_pemohon"
                                 placeholder="Ketik nama pemohon..."
                                 style="font-size: 11px;"
                                 class="w-full px-2 py-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
@@ -286,83 +272,83 @@
                         <!-- Header with Logo & Document Title (User Styling) -->
                         <div style="position: relative; margin-bottom: 8px; min-height: 28px;">
                             <div style="position: absolute; left: 0; top: 0;">
-                                <img src="{{ asset('images/logo_indraco.png') }}" alt="INDRACO" style="height: 25px; object-fit: contain;">
+                                <img src="{{ asset('images/logo_indraco.png') }}" alt="INDRACO" style="height: 28px; object-fit: contain;">
                             </div>
-                            <div style="text-align: center; padding-top: 40px; padding-bottom: 10px;">
-                                <h1 style="font-size: 16px; font-weight: bold; text-align: center; margin: 0; padding: 0; font-family: Arial, sans-serif; letter-spacing: 0.3px;">
+                            <div style="text-align: center; padding-top: 35px; padding-bottom: 8px;">
+                                <h1 style="font-size: 14pt; font-weight: bold; text-align: center; margin: 0; padding: 0; font-family: Arial, sans-serif; letter-spacing: 0.3px;">
                                     Form Pengajuan Dokumen
                                 </h1>
                             </div>
                         </div>
 
                         <!-- Metadata Table Box (2 rows x 4 columns) -->
-                        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                        <table style="width: 100%; table-layout: fixed; border-collapse: collapse; margin-bottom: 14px;">
                             <tbody>
-                                <tr>
-                                    <td style="width: 135px; border: 1px solid #000; padding: 3px 6px; font-size: 10px; font-weight: normal;">No. Form</td>
-                                    <td style="width: 35%; border: 1px solid #000; padding: 3px 6px; font-size: 10px; font-family: monospace;" x-text="{{ $stateName }}.no_form || ''"></td>
-                                    <td style="width: 135px; border: 1px solid #000; padding: 3px 6px; font-size: 10px; font-weight: normal;">Tanggal Pengajuan</td>
-                                    <td style="border: 1px solid #000; padding: 3px 6px; font-size: 10px;" x-text="{{ $dateFormatter }}({{ $stateName }}.tanggal_pengajuan)"></td>
+                                <tr style="height: 28px;">
+                                    <td style="width: 28%; border: 1px solid #000; padding: 4px 6px; font-size: 9.5pt; font-weight: normal; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">No. Form</td>
+                                    <td style="width: 26%; border: 1px solid #000; padding: 4px 6px; font-size: 9.5pt; font-family: monospace; vertical-align: middle; overflow: hidden; word-break: break-word;" x-text="{{ $stateName }}.no_form || ''"></td>
+                                    <td style="width: 24%; border: 1px solid #000; padding: 4px 6px; font-size: 9.5pt; font-weight: normal; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Tanggal Pengajuan</td>
+                                    <td style="width: 22%; border: 1px solid #000; padding: 4px 6px; font-size: 9.5pt; vertical-align: middle; white-space: nowrap; overflow: hidden;" x-text="{{ $dateFormatter }}({{ $stateName }}.tanggal_pengajuan)"></td>
                                 </tr>
-                                <tr>
-                                    <td style="width: 135px; border: 1px solid #000; padding: 3px 6px; font-size: 10px; font-weight: normal;">Departemen/ Sub Dept.</td>
-                                    <td style="border: 1px solid #000; padding: 3px 6px; font-size: 10px;" x-text="{{ $stateName }}.dept_display || (typeof {{ $deptFormatter }} === 'function' ? {{ $deptFormatter }}() : '')"></td>
-                                    <td style="width: 135px; border: 1px solid #000; padding: 3px 6px; font-size: 10px; font-weight: normal;">Nama PIC/ Pemohon</td>
-                                    <td style="border: 1px solid #000; padding: 3px 6px; font-size: 10px;" x-text="{{ $stateName }}.pic_pemohon || ''"></td>
+                                <tr style="height: 28px;">
+                                    <td style="width: 28%; border: 1px solid #000; padding: 4px 6px; font-size: 9.5pt; font-weight: normal; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Departemen/ Sub Dept.">Departemen/ Sub Dept.</td>
+                                    <td style="width: 26%; border: 1px solid #000; padding: 4px 6px; font-size: 9.5pt; vertical-align: middle; overflow: hidden; word-break: break-word;" x-text="{{ $stateName }}.dept_display || (typeof {{ $deptFormatter }} === 'function' ? {{ $deptFormatter }}() : '')"></td>
+                                    <td style="width: 24%; border: 1px solid #000; padding: 4px 6px; font-size: 9.5pt; font-weight: normal; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Nama PIC/ Pemohon</td>
+                                    <td style="width: 22%; border: 1px solid #000; padding: 4px 6px; font-size: 9.5pt; vertical-align: middle; overflow: hidden; word-break: break-word;" x-text="{{ $stateName }}.pic_pemohon || {{ $stateName }}.approval_pemohon || ''"></td>
                                 </tr>
                             </tbody>
                         </table>
 
                         <!-- Tipe Pengajuan Checkbox Row -->
-                        <div style="font-size: 10px; margin-bottom: 20px; display: flex; align-items: center; gap: 20px;">
+                        <div style="font-size: 9.5pt; margin-bottom: 14px; display: flex; align-items: center; gap: 20px;">
                             <span style="font-weight: normal;">Tipe Pengajuan :</span>
-                            <div style="display: flex; align-items: center; gap: 24px;">
+                            <div style="display: flex; align-items: center; gap: 20px;">
                                 <span style="display: inline-flex; align-items: center; gap: 6px;">
-                                    <span style="display: inline-block; width: 11px; height: 11px; border: 1px solid #000; font-size: 8.5px; line-height: 10px; text-align: center; font-weight: bold;" x-text="{{ $stateName }}.tipe === 'Simpan' ? '✓' : ''"></span>
+                                    <span style="display: inline-block; width: 14px; height: 14px; border: 1px solid #000; font-size: 9.5pt; line-height: 12px; text-align: center; font-weight: bold;" x-text="{{ $stateName }}.tipe === 'Simpan' ? '✓' : ''"></span>
                                     <span>Simpan</span>
                                 </span>
                                 <span style="display: inline-flex; align-items: center; gap: 6px;">
-                                    <span style="display: inline-block; width: 11px; height: 11px; border: 1px solid #000; font-size: 8.5px; line-height: 10px; text-align: center; font-weight: bold;" x-text="{{ $stateName }}.tipe === 'Penarikan' ? '✓' : ''"></span>
+                                    <span style="display: inline-block; width: 14px; height: 14px; border: 1px solid #000; font-size: 9.5pt; line-height: 12px; text-align: center; font-weight: bold;" x-text="{{ $stateName }}.tipe === 'Penarikan' ? '✓' : ''"></span>
                                     <span>Penarikan</span>
                                 </span>
                                 <span style="display: inline-flex; align-items: center; gap: 6px;">
-                                    <span style="display: inline-block; width: 11px; height: 11px; border: 1px solid #000; font-size: 8.5px; line-height: 10px; text-align: center; font-weight: bold;" x-text="{{ $stateName }}.tipe === 'Pemusnahan' ? '✓' : ''"></span>
+                                    <span style="display: inline-block; width: 14px; height: 14px; border: 1px solid #000; font-size: 9.5pt; line-height: 12px; text-align: center; font-weight: bold;" x-text="{{ $stateName }}.tipe === 'Pemusnahan' ? '✓' : ''"></span>
                                     <span>Pemusnahan</span>
                                 </span>
                                 <span style="display: inline-flex; align-items: center; gap: 6px;">
-                                    <span style="display: inline-block; width: 11px; height: 11px; border: 1px solid #000; font-size: 8.5px; line-height: 10px; text-align: center; font-weight: bold;" x-text="{{ $stateName }}.tipe === 'Perpanjangan' ? '✓' : ''"></span>
+                                    <span style="display: inline-block; width: 14px; height: 14px; border: 1px solid #000; font-size: 9.5pt; line-height: 12px; text-align: center; font-weight: bold;" x-text="{{ $stateName }}.tipe === 'Perpanjangan' ? '✓' : ''"></span>
                                     <span>Perpanjangan</span>
                                 </span>
                             </div>
                         </div>
 
                         <!-- Main Table: Daftar Box & Dokumen (12+ Rows) -->
-                        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                        <table style="width: 100%; table-layout: fixed; border-collapse: collapse; margin-bottom: 14px;">
                             <thead>
                                 <tr style="text-align: center; font-weight: bold;">
-                                    <th style="border: 1px solid #000; width: 34px; padding: 3px 2px; font-size: 9.5px; text-align: center; line-height: 1.2;">No.</th>
-                                    <th style="border: 1px solid #000; padding: 3px 6px; font-size: 9.5px; text-align: center; line-height: 1.2;">
-                                        Nama Kardus,<br>Nama/ Kode Dokumen
+                                    <th style="border: 1px solid #000; width: 36px; padding: 4px 2px; font-size: 9.5pt; text-align: center; line-height: 1.2; overflow: hidden;">No.</th>
+                                    <th style="border: 1px solid #000; padding: 4px 6px; font-size: 9.5pt; text-align: center; line-height: 1.2; overflow: hidden; word-break: break-word;">
+                                        Nama / Judul Box
                                     </th>
-                                    <th style="border: 1px solid #000; width: 115px; padding: 3px 4px; font-size: 9.5px; text-align: center; line-height: 1.2;">
-                                        Label Kardus
+                                    <th style="border: 1px solid #000; width: 105px; padding: 4px 4px; font-size: 9.5pt; text-align: center; line-height: 1.2; overflow: hidden;">
+                                        Masa Simpan<br>(Bulan)
                                     </th>
-                                    <th style="border: 1px solid #000; width: 92px; padding: 3px 4px; font-size: 9.5px; text-align: center; line-height: 1.2;">
-                                        Periode Awal<br>(MM-YYYY)
-                                    </th>
-                                    <th style="border: 1px solid #000; width: 92px; padding: 3px 4px; font-size: 9.5px; text-align: center; line-height: 1.2;">
+                                    <th style="border: 1px solid #000; width: 120px; padding: 4px 4px; font-size: 9.5pt; text-align: center; line-height: 1.2; overflow: hidden;">
                                         Periode Akhir<br>(MM-YYYY)
+                                    </th>
+                                    <th style="border: 1px solid #000; width: 115px; padding: 4px 4px; font-size: 9.5pt; text-align: center; line-height: 1.2; overflow: hidden; word-break: break-word;">
+                                        Label Box
                                     </th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <template x-for="row in {{ $rowsName }}" :key="row.no">
-                                    <tr style="height: 22px;">
-                                        <td style="border: 1px solid #000; padding: 2px 2px; text-align: center; font-size: 9.5px;" x-text="row.no"></td>
-                                        <td style="border: 1px solid #000; padding: 2px 6px; text-align: left; font-size: 9.5px; outline: none;" contenteditable="true" @blur="row.title = $el.innerText" x-text="row.title"></td>
-                                        <td style="border: 1px solid #000; padding: 2px 4px; text-align: center; font-size: 9.5px; outline: none;" contenteditable="true" @blur="row.label_kardus = $el.innerText" x-text="row.label_kardus"></td>
-                                        <td style="border: 1px solid #000; padding: 2px 2px; text-align: center; font-size: 9px; font-family: monospace; outline: none;" contenteditable="true" @blur="row.period_start = $el.innerText" x-text="row.period_start"></td>
-                                        <td style="border: 1px solid #000; padding: 2px 2px; text-align: center; font-size: 9px; font-family: monospace; outline: none;" contenteditable="true" @blur="row.period_end = $el.innerText" x-text="row.period_end"></td>
+                                    <tr style="height: 24px;">
+                                        <td style="border: 1px solid #000; padding: 2px 2px; text-align: center; font-size: 9.5pt; overflow: hidden;" x-text="row.no"></td>
+                                        <td style="border: 1px solid #000; padding: 2px 6px; text-align: left; font-size: 9.5pt; outline: none; overflow: hidden; word-break: break-word;" contenteditable="true" @blur="row.title = $el.innerText" x-text="row.title"></td>
+                                        <td style="border: 1px solid #000; padding: 2px 2px; text-align: center; font-size: 9.5pt; outline: none; overflow: hidden; white-space: nowrap;" contenteditable="true" @blur="row.masa_simpan = $el.innerText" x-text="row.masa_simpan"></td>
+                                        <td style="border: 1px solid #000; padding: 2px 2px; text-align: center; font-size: 9.5pt; font-family: monospace; outline: none; overflow: hidden; white-space: nowrap;" contenteditable="true" @blur="row.period_end = $el.innerText" x-text="row.period_end"></td>
+                                        <td style="border: 1px solid #000; padding: 2px 4px; text-align: center; font-size: 9.5pt; outline: none; overflow: hidden; word-break: break-word;" contenteditable="true" @blur="row.label_box = $el.innerText; row.label_kardus = $el.innerText" x-text="row.label_box || row.label_kardus"></td>
                                     </tr>
                                 </template>
                             </tbody>
@@ -370,75 +356,70 @@
                     </div>
 
                     <!-- BOTTOM FOOTER SECTION (Anchored to Bottom of A4 Page) -->
-                    <div style="margin-bottom: 20px">
-                        <!-- Masa Simpan & Catatan Section -->
-                        <div style="font-size: 9.5px; margin-bottom: 20px; line-height: 1.35;">
-                            <div style="margin-bottom: 20px;">
-                                <span>Masa Simpan yang diajukan :</span>
-                                <span style="display: inline-block; min-width: 24px; text-align: center; font-weight: bold; border-bottom: 1px dotted #000; margin: 0 4px;" x-text="{{ $stateName }}.masa_simpan"></span>
-                                <span>Bulan (*maksimal 60 bulan)</span>
-                            </div>
+                    <div style="margin-bottom: 14px">
+                        <!-- Catatan Section -->
+                        <div style="font-size: 9.5pt; margin-bottom: 14px; line-height: 1.35;">
                             <div>
-                                <div>Catatan (misal kondisi fisik kardus dan dokumen/ *optional) :</div>
+                                <div>Catatan (misal kondisi fisik Box dan dokumen/ *optional) :</div>
                                 <div 
-                                    style="border-bottom: 1px dotted #000; text-decoration: underline dotted #000; text-underline-offset: 3px; min-height: 16px; font-size: 9px; line-height: 16px; padding-top: 1px; word-break: break-word; outline: none;" 
+                                    style="border-bottom: 1px dotted #000; text-decoration: underline dotted #000; text-underline-offset: 3px; min-height: 18px; font-size: 9.5pt; line-height: 18px; padding-top: 2px; word-break: break-word; outline: none;" 
                                     contenteditable="true" 
                                     @blur="{{ $stateName }}.catatan = $el.innerText" 
                                     x-text="{{ $stateName }}.catatan"
                                 ></div>
                                 <div 
                                     x-show="!{{ $stateName }}.catatan || !{{ $stateName }}.catatan.trim()" 
-                                    style="border-bottom: 1px dotted #000; min-height: 16px;"
+                                    style="border-bottom: 1px dotted #000; min-height: 18px;"
                                 ></div>
                             </div>
                         </div>
 
                         <!-- Approval Signatures Table (4 Columns) -->
-                        <table style="width: 100%; border-collapse: collapse; margin-top: 6px; margin-bottom: 20px;">
+                        <table style="width: 100%; border-collapse: collapse; margin-top: 6px; margin-bottom: 14px;">
                             <tbody>
                                 <tr>
                                     <!-- Diajukan oleh (Pemohon) -->
-                                    <td style="width: 25%; border: 1px solid #000; vertical-align: top; height: 80px; padding: 4px 6px;">
-                                        <div style="font-size: 9.5px; text-align: left;">Diajukan oleh,</div>
-                                        <div style="height: 50px;"></div>
-                                        <div style="font-size: 8.5px; text-align: center; line-height: 1.2;">
-                                            (&nbsp;<span style="display: inline-block; min-width: 65px; border-bottom: 1px solid #000; text-align: center; vertical-align: bottom; padding: 0 4px; outline: none;" contenteditable="true" @blur="{{ $stateName }}.approval_pemohon = $el.innerText" x-text="{{ $stateName }}.approval_pemohon || ''"></span>&nbsp;)
+                                    <td style="width: 25%; border: 1px solid #000; vertical-align: top; height: 85px; padding: 4px 6px;">
+                                        <div style="font-size: 9.5pt; text-align: left;">Diajukan oleh,</div>
+                                        <div style="height: 48px;"></div>
+                                        <div style="font-size: 9.5pt; text-align: center; line-height: 1.2;">
+                                            (&nbsp;<span style="display: inline-block; min-width: 65px; border-bottom: 1px solid #000; text-align: center; vertical-align: bottom; padding: 0 4px; outline: none;" contenteditable="true" @blur="{{ $stateName }}.approval_pemohon = $el.innerText; {{ $stateName }}.pic_pemohon = $el.innerText" x-text="{{ $stateName }}.approval_pemohon || {{ $stateName }}.pic_pemohon || ''"></span>&nbsp;)
                                         </div>
-                                        <div style="font-size: 8.5px; text-align: left; margin-top: 3px;">
-                                            Tgl. <span x-text="{{ $dateFormatter }}({{ $stateName }}.approval_tgl)"></span>
+                                        <div style="font-size: 9.5pt; text-align: left; margin-top: 3px;">
+                                            Tgl. ....................
                                         </div>
                                     </td>
                                     <!-- Disetujui oleh (Atasan Langsung) -->
-                                    <td style="width: 25%; border: 1px solid #000; vertical-align: top; height: 80px; padding: 4px 6px;">
-                                        <div style="font-size: 9.5px; text-align: left;">Disetujui oleh,</div>
-                                        <div style="height: 50px;"></div>
-                                        <div style="font-size: 8.5px; text-align: center; line-height: 1.2;">
+                                    <td style="width: 25%; border: 1px solid #000; vertical-align: top; height: 85px; padding: 4px 6px;">
+                                        <div style="font-size: 9.5pt; text-align: left;">Disetujui oleh,</div>
+                                        <div style="height: 48px;"></div>
+                                        <div style="font-size: 9.5pt; text-align: center; line-height: 1.2;">
                                             (&nbsp;<span style="display: inline-block; min-width: 65px; border-bottom: 1px solid #000; text-align: center; vertical-align: bottom; padding: 0 4px; outline: none;" contenteditable="true" @blur="{{ $stateName }}.approval_atasan = $el.innerText" x-text="{{ $stateName }}.approval_atasan || ''"></span>&nbsp;)
                                         </div>
-                                        <div style="font-size: 8.5px; text-align: left; margin-top: 3px;">
-                                            Tgl. <span x-text="{{ $dateFormatter }}({{ $stateName }}.approval_tgl)"></span>
+                                        <div style="font-size: 9.5pt; text-align: left; margin-top: 3px;">
+                                            Tgl. ....................
                                         </div>
                                     </td>
                                     <!-- Diketahui oleh (Pimpinan Departemen) -->
-                                    <td style="width: 25%; border: 1px solid #000; vertical-align: top; height: 80px; padding: 4px 6px;">
-                                        <div style="font-size: 9.5px; text-align: left;">Diketahui oleh,</div>
-                                        <div style="height: 50px;"></div>
-                                        <div style="font-size: 8.5px; text-align: center; line-height: 1.2;">
+                                    <td style="width: 25%; border: 1px solid #000; vertical-align: top; height: 85px; padding: 4px 6px;">
+                                        <div style="font-size: 9.5pt; text-align: left;">Diketahui oleh,</div>
+                                        <div style="height: 48px;"></div>
+                                        <div style="font-size: 9.5pt; text-align: center; line-height: 1.2;">
                                             (&nbsp;<span style="display: inline-block; min-width: 65px; border-bottom: 1px solid #000; text-align: center; vertical-align: bottom; padding: 0 4px; outline: none;" contenteditable="true" @blur="{{ $stateName }}.approval_pimpinan = $el.innerText" x-text="{{ $stateName }}.approval_pimpinan || ''"></span>&nbsp;)
                                         </div>
-                                        <div style="font-size: 8.5px; text-align: left; margin-top: 3px;">
-                                            Tgl. <span x-text="{{ $dateFormatter }}({{ $stateName }}.approval_tgl)"></span>
+                                        <div style="font-size: 9.5pt; text-align: left; margin-top: 3px;">
+                                            Tgl. ....................
                                         </div>
                                     </td>
                                     <!-- Diterima oleh (Admin Gudang) -->
-                                    <td style="width: 25%; border: 1px solid #000; vertical-align: top; height: 80px; padding: 4px 6px;">
-                                        <div style="font-size: 9.5px; text-align: left;">Diterima oleh,</div>
-                                        <div style="height: 50px;"></div>
-                                        <div style="font-size: 8.5px; text-align: center; line-height: 1.2;">
+                                    <td style="width: 25%; border: 1px solid #000; vertical-align: top; height: 85px; padding: 4px 6px;">
+                                        <div style="font-size: 9.5pt; text-align: left;">Diterima oleh,</div>
+                                        <div style="height: 48px;"></div>
+                                        <div style="font-size: 9.5pt; text-align: center; line-height: 1.2;">
                                             (&nbsp;<span style="display: inline-block; min-width: 65px; border-bottom: 1px solid #000; text-align: center; vertical-align: bottom; padding: 0 4px; outline: none;" contenteditable="true" @blur="{{ $stateName }}.approval_admin_gudang = $el.innerText" x-text="{{ $stateName }}.approval_admin_gudang || ''"></span>&nbsp;)
                                         </div>
-                                        <div style="font-size: 8.5px; text-align: left; margin-top: 3px;">
-                                            Tgl. <span x-text="{{ $dateFormatter }}({{ $stateName }}.approval_tgl)"></span>
+                                        <div style="font-size: 9.5pt; text-align: left; margin-top: 3px;">
+                                            Tgl. ....................
                                         </div>
                                     </td>
                                 </tr>
@@ -446,18 +427,20 @@
                         </table>
 
                         <!-- Petunjuk Pengisian (Verbatim from Official Form) -->
-                        <div style="font-size: 8.5px; line-height: 1.35; color: #000; margin-top: 6px;">
+                        <div style="font-size: 9.5pt; line-height: 1.35; color: #000; margin-top: 6px;">
                             <div style="font-weight: normal; margin-bottom: 2px;">Petunjuk Pengisian :</div>
-                            <ol style="margin: 0; padding-left: 14px; list-style-type: decimal;">
+                            <ol style="margin: 0; padding-left: 18px; list-style-type: decimal;">
                                 <li>Centang pada tipe pengajuan yang tersedia (Simpan/ Penarikan/ Pemusnahan/ Perpanjangan).</li>
-                                <li>Isi Nama Kardus, Nama/ Kode Dokumen dan Periode Dokumen saat pengajuan Simpan (kosongkan label kardus).</li>
-                                <li>Isi Label Kardus saat pengajuan Penarikan/ Pemusnahan/ Perpanjangan (kosongkan Nama Kardus, Nama/ Kode Dokumen dan Periode Dokumen).</li>
+                                <li>Isi <strong>Nama/ Judul Box</strong> dan <strong>Masa Simpan Box</strong> untuk pengajuan simpan.</li>
+                                <li>Isi <strong>Label Box</strong> saat pengajuan Penarikan/ Pemusnahan/ Perpanjangan.</li>
+                                <li><strong>Masa Simpan Box</strong> di hitung bulanan (maksimal 60 bulan untuk umum dan 120 bulan khusus dept. FAT).</li>
+                                <li>Dalam satu pengajuan dibatasi maksimal 10 box.</li>
                                 <li>Approval =
-                                    <ul style="margin: 0; padding-left: 14px; list-style-type: none;">
-                                        <li>✸ Diajukan oleh Pemohon</li>
-                                        <li>✸ Disetujui oleh Atasan Langsung</li>
-                                        <li>✸ Diketahui oleh Pimpinan Departemen</li>
-                                        <li>✸ Diterima oleh Admin Gudang</li>
+                                    <ul style="margin: 0; padding-left: 18px; list-style-type: none;">
+                                        <li>✸ Diajukan oleh <strong>Pemohon</strong></li>
+                                        <li>✸ Disetujui oleh <strong>Atasan Langsung</strong></li>
+                                        <li>✸ Diketahui oleh <strong>Pimpinan Departemen</strong></li>
+                                        <li>✸ Diterima oleh <strong>Admin Gudang</strong></li>
                                     </ul>
                                 </li>
                             </ol>
@@ -507,7 +490,7 @@ select,
 
 .indraco-form-preview {
     font-family: Arial, "Helvetica Neue", Helvetica, sans-serif !important;
-    font-size: 9.5px !important;
+    font-size: 9.5pt !important;
     line-height: 1.3 !important;
     color: #000000 !important;
     background-color: #ffffff !important;
@@ -540,7 +523,7 @@ select,
         color: #000000 !important;
         z-index: 9999999 !important;
         font-family: Arial, "Helvetica Neue", Helvetica, sans-serif !important;
-        font-size: 9.5px !important;
+        font-size: 9.5pt !important;
         display: block !important;
     }
     @page {

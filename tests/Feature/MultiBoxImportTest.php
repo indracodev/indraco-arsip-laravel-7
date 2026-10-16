@@ -67,12 +67,14 @@ class MultiBoxImportTest extends TestCase
 
         $uploaded = new UploadedFile($tempCsv, 'test.csv', 'text/csv', null, true);
 
-        $adminUser = User::create([
-            'name' => 'Admin User',
-            'email' => 'admin@indraco.com',
-            'password' => bcrypt('password'),
-            'role' => 'admin',
-        ]);
+        $adminUser = User::firstOrCreate(
+            ['email' => 'admin@indraco.com'],
+            [
+                'name' => 'Admin User',
+                'password' => bcrypt('password'),
+                'role' => 'admin',
+            ]
+        );
 
         $service = new MultiBoxExcelService();
         $result = $service->parseFile($uploaded, $adminUser);

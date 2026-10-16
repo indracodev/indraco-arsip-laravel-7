@@ -564,7 +564,7 @@
                         </div>
                         <h4 class="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider font-mono">Inspector Slot Rak</h4>
                         <p class="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto leading-relaxed">
-                            Klik salah satu dari 100 kotak slot kardus (TB 30g) pada denah di sebelah kiri untuk melihat rincian dokumen dan opsi cetak label.
+                            Klik salah satu dari 100 kotak slot box (TB 30g) pada denah di sebelah kiri untuk melihat rincian dokumen dan opsi cetak label.
                         </p>
                     </div>
 

@@ -94,24 +94,33 @@
 
         <!-- Signatures -->
         <div class="pt-8 grid grid-cols-3 gap-4 text-center text-xs">
-            <div class="space-y-12">
+            <div class="space-y-8">
                 <span class="text-slate-600 block">Diajukan Oleh,<br><strong>PIC / Pemohon Departemen</strong></span>
-                <div class="pt-4 border-b border-slate-400 max-w-[180px] mx-auto">
-                    <span class="font-bold text-slate-900 text-sm">{{ auth()->user()->name }}</span>
+                <div class="space-y-1">
+                    <div class="pt-12 border-b border-slate-400 max-w-[180px] mx-auto">
+                        <span class="font-bold text-slate-900 text-sm">{{ auth()->user()->name }}</span>
+                    </div>
+                    <span class="text-[11px] text-slate-500 block">Tgl. ....................</span>
                 </div>
             </div>
 
-            <div class="space-y-12">
+            <div class="space-y-8">
                 <span class="text-slate-600 block">Disetujui Oleh,<br><strong>Head of Department</strong></span>
-                <div class="pt-4 border-b border-slate-400 max-w-[180px] mx-auto">
-                    <span class="font-bold text-slate-900 text-sm">( Tanda Tangan & Nama )</span>
+                <div class="space-y-1">
+                    <div class="pt-12 border-b border-slate-400 max-w-[180px] mx-auto">
+                        <span class="font-bold text-slate-900 text-sm">( Tanda Tangan & Nama )</span>
+                    </div>
+                    <span class="text-[11px] text-slate-500 block">Tgl. ....................</span>
                 </div>
             </div>
 
-            <div class="space-y-12">
+            <div class="space-y-8">
                 <span class="text-slate-600 block">Diterima & Diperbarui Oleh,<br><strong>PIC Gudang Arsip</strong></span>
-                <div class="pt-4 border-b border-slate-400 max-w-[180px] mx-auto">
-                    <span class="font-bold text-slate-900 text-sm">( Tanda Tangan & Nama )</span>
+                <div class="space-y-1">
+                    <div class="pt-12 border-b border-slate-400 max-w-[180px] mx-auto">
+                        <span class="font-bold text-slate-900 text-sm">( Tanda Tangan & Nama )</span>
+                    </div>
+                    <span class="text-[11px] text-slate-500 block">Tgl. ....................</span>
                 </div>
             </div>
         </div>

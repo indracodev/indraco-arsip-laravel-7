@@ -753,7 +753,7 @@
                         <thead>
                             <tr class="bg-slate-100 dark:bg-slate-900 border-b border-slate-300 dark:border-slate-800 font-mono text-[11px] text-slate-700 dark:text-slate-300">
                                 <th class="py-2 px-2.5 text-center">#</th>
-                                <th class="py-2 px-3">NO. BOX KARDUS</th>
+                                <th class="py-2 px-3">NO. BOX</th>
                                 <th class="py-2 px-3">SUB-UNIT</th>
                                 <th class="py-2 px-3">PERIODE / TGL SERAH</th>
                                 <th class="py-2 px-3">LOKASI GUDANG & RAK</th>
@@ -895,7 +895,7 @@
                         <div class="bg-slate-100 dark:bg-slate-900 px-3 py-2 border-b border-slate-300 dark:border-slate-800 font-mono text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center justify-between">
                             <span class="flex items-center gap-1.5">
                                 <i data-lucide="list-checks" class="w-3.5 h-3.5 text-emerald-500"></i>
-                                Rincian Butir Dokumen di Dalam Kardus (<span x-text="selectedArchiveDetail.items ? selectedArchiveDetail.items.length : 0"></span> Berkas)
+                                Rincian Butir Dokumen di Dalam Box (<span x-text="selectedArchiveDetail.items ? selectedArchiveDetail.items.length : 0"></span> Berkas)
                             </span>
                             <span class="text-[10px] text-slate-500 font-normal">Format Standar Box TB 30g</span>
                         </div>

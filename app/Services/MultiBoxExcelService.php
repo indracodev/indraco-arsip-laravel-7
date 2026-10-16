@@ -236,7 +236,7 @@ class MultiBoxExcelService
             $docName = $getVal($row, 'NAMA_DOKUMEN');
 
             if (empty($tempBoxId)) {
-                $errors[] = "Baris {$currentExcelLine}: 'NO_BOX_SEMENTARA' wajib diisi untuk mengelompokkan dokumen ke dalam kardus.";
+                $errors[] = "Baris {$currentExcelLine}: 'NO_BOX_SEMENTARA' wajib diisi untuk mengelompokkan dokumen ke dalam box.";
                 continue;
             }
 
@@ -349,11 +349,13 @@ class MultiBoxExcelService
             $endDate = Carbon::createFromDate((int)$maxY, (int)$maxM, 1)->endOfMonth()->endOfDay();
 
             // Calculate total months diff
+            $isFat = in_array(strtoupper($dept->code ?? ''), ['FAT', 'FIN', 'FATCLM']);
+            $maxPeriodMonths = $isFat ? 120 : 60;
             $monthsCount = $startDate->diffInMonths($endDate) + 1;
-            if ($monthsCount > 60) {
-                $warnings[] = "Box '{$tempBoxId}': Rentang periode terdeteksi {$monthsCount} bulan. Dibatasi otomatis ke batas maksimal 60 bulan sesuai standar kearsipan.";
-                $monthsCount = 60;
-                $endDate = $startDate->copy()->addMonths(60)->endOfMonth()->endOfDay();
+            if ($monthsCount > $maxPeriodMonths) {
+                $warnings[] = "Box '{$tempBoxId}': Rentang periode terdeteksi {$monthsCount} bulan. Dibatasi otomatis ke batas maksimal {$maxPeriodMonths} bulan sesuai standar kearsipan.";
+                $monthsCount = $maxPeriodMonths;
+                $endDate = $startDate->copy()->addMonths($maxPeriodMonths)->endOfMonth()->endOfDay();
             }
 
             // Determine Box Period Label

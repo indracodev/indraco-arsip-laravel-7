@@ -135,26 +135,35 @@
         <!-- Signature Block -->
         <div class="pt-8 grid grid-cols-3 gap-4 text-center text-xs">
             <!-- Signature 1 -->
-            <div class="space-y-12">
+            <div class="space-y-8">
                 <span class="text-slate-600 block">Dipelajari & Diajukan Oleh,<br><strong>Kurator Gudang Arsip</strong></span>
-                <div class="pt-4 border-b border-slate-400 max-w-[180px] mx-auto">
-                    <span class="font-bold text-slate-900 text-sm">{{ $destructionLog->proposedBy->name ?? 'Specialist Gudang' }}</span>
+                <div class="space-y-1">
+                    <div class="pt-12 border-b border-slate-400 max-w-[180px] mx-auto">
+                        <span class="font-bold text-slate-900 text-sm">{{ $destructionLog->proposedBy->name ?? 'Specialist Gudang' }}</span>
+                    </div>
+                    <span class="text-[11px] text-slate-500 block">Tgl. ....................</span>
                 </div>
             </div>
 
             <!-- Signature 2 -->
-            <div class="space-y-12">
+            <div class="space-y-8">
                 <span class="text-slate-600 block">Disetujui Oleh,<br><strong>Head of Department</strong></span>
-                <div class="pt-4 border-b border-slate-400 max-w-[180px] mx-auto">
-                    <span class="font-bold text-slate-900 text-sm">{{ $destructionLog->departmentApprovedBy->name ?? $destructionLog->approvedBy->name ?? 'PIC Departemen' }}</span>
+                <div class="space-y-1">
+                    <div class="pt-12 border-b border-slate-400 max-w-[180px] mx-auto">
+                        <span class="font-bold text-slate-900 text-sm">{{ $destructionLog->departmentApprovedBy->name ?? $destructionLog->approvedBy->name ?? 'PIC Departemen' }}</span>
+                    </div>
+                    <span class="text-[11px] text-slate-500 block">Tgl. ....................</span>
                 </div>
             </div>
 
             <!-- Signature 3 -->
-            <div class="space-y-12">
+            <div class="space-y-8">
                 <span class="text-slate-600 block">Mengetahui & Disaksikan,<br><strong>Super Admin / Management</strong></span>
-                <div class="pt-4 border-b border-slate-400 max-w-[180px] mx-auto">
-                    <span class="font-bold text-slate-900 text-sm">Direksi PT Indraco</span>
+                <div class="space-y-1">
+                    <div class="pt-12 border-b border-slate-400 max-w-[180px] mx-auto">
+                        <span class="font-bold text-slate-900 text-sm">Direksi PT Indraco</span>
+                    </div>
+                    <span class="text-[11px] text-slate-500 block">Tgl. ....................</span>
                 </div>
             </div>
         </div>
