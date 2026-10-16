@@ -1635,13 +1635,26 @@ function archiveCreateApp() {
                 deptName = @json(auth()->user()->department ? auth()->user()->department->name : '');
             }
 
+            // Kumpulkan seluruh sub-departemen efektif dari box-box saat ini
+            const distinctSubDepts = new Set();
+            this.boxes.forEach(b => {
+                const sId = (b.sub_department_id !== undefined && b.sub_department_id !== '' && b.sub_department_id !== null)
+                    ? b.sub_department_id
+                    : (this.selectedSubDeptId || '');
+                distinctSubDepts.add(String(sId || ''));
+            });
+
+            // Jika terdeteksi multi sub-departemen pada box, tampilkan Departemen saja tanpa sub
+            if (distinctSubDepts.size > 1) {
+                return deptName || '-';
+            }
+
+            // Jika seluruh box seragam menggunakan 1 sub-departemen yang sama
             let subDeptName = '';
-            if (this.selectedSubDeptId && this.subDepartments) {
-                const sub = this.subDepartments.find(s => String(s.id) === String(this.selectedSubDeptId));
-                if (sub) subDeptName = sub.name;
-            } else if (this.boxes.length > 0 && this.boxes[0].sub_department_id && this.subDepartments) {
-                const sub = this.subDepartments.find(s => String(s.id) === String(this.boxes[0].sub_department_id));
-                if (sub) subDeptName = sub.name;
+            const onlySubId = distinctSubDepts.size === 1 ? Array.from(distinctSubDepts)[0] : '';
+            if (onlySubId && onlySubId !== 'inti' && this.subDepartments) {
+                const sub = this.subDepartments.find(s => String(s.id) === String(onlySubId));
+                if (sub) subDeptName = sub.name || sub.code || '';
             }
 
             if (deptName && subDeptName) {

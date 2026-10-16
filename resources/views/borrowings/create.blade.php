@@ -593,13 +593,26 @@ function borrowingCreateApp() {
             }
 
             const selected = this.selectedArchives;
-            if (selected.length > 0 && selected[0].department) {
+            if (selected.length > 0) {
                 const dept = selected[0].department;
-                const subDept = selected[0].sub_department;
-                if (subDept && subDept.name) {
-                    this.formPengajuanData.dept_display = `${dept.name || dept.code} / ${subDept.name}`;
+                const deptName = dept ? (dept.name || dept.code) : (@json(auth()->user()->department ? auth()->user()->department->name : ''));
+
+                const distinctSubDepts = new Set();
+                selected.forEach(arc => {
+                    const subId = arc.sub_department_id || (arc.sub_department ? arc.sub_department.id : '');
+                    distinctSubDepts.add(String(subId || ''));
+                });
+
+                if (distinctSubDepts.size === 1) {
+                    const singleSub = selected[0].sub_department;
+                    if (singleSub && singleSub.name) {
+                        this.formPengajuanData.dept_display = `${deptName} / ${singleSub.name}`;
+                    } else {
+                        this.formPengajuanData.dept_display = deptName;
+                    }
                 } else {
-                    this.formPengajuanData.dept_display = dept.name || dept.code || '';
+                    // Multi sub-departemen terdeteksi: Cukup nama departemen saja
+                    this.formPengajuanData.dept_display = deptName;
                 }
             } else if (!this.formPengajuanData.dept_display) {
                 this.formPengajuanData.dept_display = @json(auth()->user()->department ? auth()->user()->department->name : '');
