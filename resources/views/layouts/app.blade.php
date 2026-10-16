@@ -1542,14 +1542,22 @@
                             <div>
                                 <span class="block text-[10px] text-slate-500 font-bold uppercase mb-1.5">Pilihan Skala
                                     Cepat (Preset):</span>
-                                <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-                                    <button @click="applyFontSizeLive('16px')" type="button"
+                                <div class="grid grid-cols-2 sm:grid-cols-5 gap-1.5">
+                                    <button @click="applyFontSizeLive('10px')" type="button"
                                         class="px-2 py-1.5 rounded border text-xs font-bold transition flex flex-col items-center justify-center text-center"
-                                        :class="tempFontSize === '16px' ?
+                                        :class="tempFontSize === '10px' ?
                                             'bg-indigo-600 text-white border-indigo-700 shadow-sm' :
                                             'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-indigo-50'">
-                                        <span>Kecil (16px)</span>
-                                        <span class="text-xs opacity-75">Compact / 85%</span>
+                                        <span>Mini (10px)</span>
+                                        <span class="text-xs opacity-75">Ultra Compact</span>
+                                    </button>
+                                    <button @click="applyFontSizeLive('14px')" type="button"
+                                        class="px-2 py-1.5 rounded border text-xs font-bold transition flex flex-col items-center justify-center text-center"
+                                        :class="tempFontSize === '14px' ?
+                                            'bg-indigo-600 text-white border-indigo-700 shadow-sm' :
+                                            'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-indigo-50'">
+                                        <span>Kecil (14px)</span>
+                                        <span class="text-xs opacity-75">Compact / 75%</span>
                                     </button>
                                     <button @click="applyFontSizeLive('19px')" type="button"
                                         class="px-2 py-1.5 rounded border text-xs font-bold transition flex flex-col items-center justify-center text-center"
@@ -1568,7 +1576,7 @@
                                         <span class="text-xs opacity-75">Large / 110%</span>
                                     </button>
                                     <button @click="applyFontSizeLive('23px')" type="button"
-                                        class="px-2 py-1.5 rounded border text-xs font-bold transition flex flex-col items-center justify-center text-center"
+                                        class="px-2 py-1.5 rounded border text-xs font-bold transition flex flex-col items-center justify-center text-center col-span-2 sm:col-span-1"
                                         :class="tempFontSize === '23px' ?
                                             'bg-indigo-600 text-white border-indigo-700 shadow-sm' :
                                             'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-indigo-50'">
@@ -1581,11 +1589,11 @@
                             <!-- Live Slider -->
                             <div class="space-y-1 pt-1">
                                 <div class="flex justify-between text-[10px] text-slate-500 font-bold">
-                                    <span>14px (Sangat Kecil)</span>
-                                    <span>Slider Presisi (14px - 26px)</span>
+                                    <span>10px (Paling Kecil)</span>
+                                    <span>Slider Presisi (10px - 26px)</span>
                                     <span>26px (Ekstra Besar)</span>
                                 </div>
-                                <input type="range" min="14" max="26" step="1"
+                                <input type="range" min="10" max="26" step="1"
                                     :value="parseInt(tempFontSize) || 19"
                                     @input="applyFontSizeLive($event.target.value + 'px')"
                                     class="w-full accent-indigo-600 cursor-pointer h-2 bg-slate-300 dark:bg-slate-700 rounded-lg appearance-none">
