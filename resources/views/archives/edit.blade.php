@@ -311,8 +311,9 @@
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                             <!-- Judul Box dengan Live Similarity Check -->
                             <div class="sm:col-span-2">
-                                <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                                    JUDUL / LABEL BOX <span class="text-rose-500">*</span>
+                                <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center justify-between">
+                                    <span>NAMA / JUDUL BOX <span class="text-rose-500">*</span></span>
+                                    <span class="text-[10px] text-slate-400 font-normal">Cek kemiripan aktif otomatis</span>
                                 </label>
                                 <input 
                                     type="text" 
@@ -364,10 +365,10 @@
                             </div>
 
                             <!-- Kategori Dokumen (Terkunci Otomatis dari Master Berkas) -->
-                            <div class="sm:col-span-2">
+                            <div class="sm:col-span-1">
                                 <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center justify-between">
-                                    <span>KATEGORI DOKUMEN</span>
-                                    <span class="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-0.5" title="Tipe dokumen otomatis terkunci sesuai Master Berkas">
+                                    <span class="truncate" title="KATEGORI DOKUMEN">KATEGORI DOKUMEN</span>
+                                    <span class="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-0.5 shrink-0" title="Tipe dokumen otomatis terkunci sesuai Master Berkas">
                                         <i data-lucide="lock" class="w-2.5 h-2.5"></i> Terkunci
                                     </span>
                                 </label>
@@ -377,8 +378,9 @@
                                         :name="'boxes[' + bIdx + '][document_type]'" 
                                         x-model="box.document_type"
                                         readonly
-                                        placeholder="Otomatis terkunci dari Master Berkas" 
-                                        class="w-full pl-2.5 pr-8 py-1.5 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-700 dark:text-slate-300 cursor-not-allowed select-none"
+                                        placeholder="Otomatis dari Master Berkas" 
+                                        title="Tipe dokumen otomatis terkunci dari Master Berkas"
+                                        class="w-full pl-2.5 pr-8 py-1.5 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-700 dark:text-slate-300 cursor-not-allowed select-none truncate"
                                     >
                                     <i data-lucide="lock" class="w-3.5 h-3.5 text-slate-400 absolute right-2.5 pointer-events-none"></i>
                                 </div>
@@ -386,7 +388,7 @@
 
                             <!-- Wadah Fisik -->
                             <div class="sm:col-span-1">
-                                <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                                <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1 truncate" title="KONDISI FISIK WADAH BOX">
                                     KONDISI FISIK WADAH BOX <span class="text-rose-500">*</span>
                                 </label>
                                 <input 
@@ -399,27 +401,46 @@
                             </div>
 
                             <!-- Periode Dokumen (Bulan) -->
-                            <div class="sm:col-span-1 space-y-1">
-                                <div class="flex items-center justify-between">
-                                    <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                            <div class="sm:col-span-2 space-y-1.5">
+                                <div class="flex items-center justify-between mb-1">
+                                    <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300">
                                         PERIODE DOKUMEN (BULAN) <span class="text-rose-500">*</span>
                                     </label>
-                                    <span class="text-[10px] text-amber-600 dark:text-amber-400 font-normal" x-text="'Maks. ' + getMaxPeriodMonths() + ' Bulan'"></span>
+                                    <span class="text-[10px] text-amber-600 dark:text-amber-400 font-semibold px-2 py-0.5 bg-amber-500/10 rounded border border-amber-500/20" x-text="'Maks. ' + getMaxPeriodMonths() + ' Bulan (' + (getMaxPeriodMonths()/12) + ' Thn)'"></span>
                                 </div>
 
-                                <div class="relative flex items-center">
-                                    <input 
-                                        type="number" 
-                                        :id="'periode_bulan_' + bIdx"
-                                        x-model="box.periode_bulan"
-                                        :disabled="bIdx > 0 && box.follow_previous"
-                                        @input="if(box.periode_bulan > getMaxPeriodMonths()) box.periode_bulan = getMaxPeriodMonths(); if(box.periode_bulan !== '' && box.periode_bulan < 1) box.periode_bulan = 1;"
-                                        min="1" 
-                                        :max="getMaxPeriodMonths()"
-                                        :placeholder="'Maks. ' + getMaxPeriodMonths() + ' Bulan (' + (getMaxPeriodMonths()/12) + ' Thn)'" 
-                                        class="w-full pl-2.5 pr-14 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 transition disabled:bg-slate-100 dark:disabled:bg-slate-900/50 disabled:text-slate-400 disabled:cursor-not-allowed"
-                                    >
-                                    <span class="absolute right-2.5 text-xs font-mono font-bold text-slate-400 pointer-events-none select-none">Bulan</span>
+                                <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                                    <!-- Input Angka -->
+                                    <div class="relative w-full sm:w-36 shrink-0">
+                                        <input 
+                                            type="number" 
+                                            :id="'periode_bulan_' + bIdx"
+                                            x-model="box.periode_bulan"
+                                            :disabled="bIdx > 0 && box.follow_previous"
+                                            @input="if(box.periode_bulan > getMaxPeriodMonths()) box.periode_bulan = getMaxPeriodMonths(); if(box.periode_bulan !== '' && box.periode_bulan < 1) box.periode_bulan = 1;"
+                                            min="1" 
+                                            :max="getMaxPeriodMonths()"
+                                            :placeholder="'Maks. ' + getMaxPeriodMonths() + ' Bln'" 
+                                            class="w-full pl-2.5 pr-14 py-1.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 transition disabled:bg-slate-100 dark:disabled:bg-slate-900/50 disabled:text-slate-400 disabled:cursor-not-allowed"
+                                        >
+                                        <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-mono font-bold text-slate-400 pointer-events-none select-none">Bulan</span>
+                                    </div>
+
+                                    <!-- Quick Preset Buttons (Sejajar Horisontal) -->
+                                    <div class="flex-1 flex flex-wrap items-center gap-1 font-mono text-[10px]" x-show="!(bIdx > 0 && box.follow_previous)">
+                                        <span class="text-slate-400 text-[10px] mr-0.5 font-sans">Preset:</span>
+                                        <template x-for="preset in getPresetMonths()" :key="preset">
+                                            <button 
+                                                type="button" 
+                                                @click="box.periode_bulan = preset" 
+                                                class="px-2 py-1 rounded border transition cursor-pointer text-xs"
+                                                :class="box.periode_bulan == preset 
+                                                    ? 'bg-amber-500 text-slate-950 border-amber-600 font-black shadow-xs' 
+                                                    : 'bg-slate-100 dark:bg-slate-900 hover:bg-amber-500/20 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 font-medium'"
+                                                x-text="preset + ' Bln' + (preset == 120 ? ' (10 Thn)' : (preset == 60 ? ' (5 Thn)' : ''))"
+                                            ></button>
+                                        </template>
+                                    </div>
                                 </div>
 
                                 @if($archive->status === 'draft')
@@ -436,22 +457,6 @@
                                     </label>
                                 </template>
                                 @endif
-
-                                <!-- Quick Preset Buttons -->
-                                <div class="flex flex-wrap items-center gap-1 pt-1 font-mono text-[10px]" x-show="!(bIdx > 0 && box.follow_previous)">
-                                    <span class="text-slate-400 text-[9px] mr-0.5">Preset:</span>
-                                    <template x-for="preset in getPresetMonths()" :key="preset">
-                                        <button 
-                                            type="button" 
-                                            @click="box.periode_bulan = preset" 
-                                            class="px-1.5 py-0.5 rounded border transition cursor-pointer"
-                                            :class="box.periode_bulan == preset 
-                                                ? 'bg-amber-500 text-slate-950 border-amber-600 font-black' 
-                                                : 'bg-slate-100 dark:bg-slate-900 hover:bg-amber-500/20 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 font-medium'"
-                                            x-text="preset + ' Bln' + (preset == 120 ? ' (10 Thn)' : (preset == 60 ? ' (5 Thn)' : ''))"
-                                        ></button>
-                                    </template>
-                                </div>
 
                                 <!-- Hidden field submitted to backend -->
                                 <input 
