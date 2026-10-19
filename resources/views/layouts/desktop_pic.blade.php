@@ -165,6 +165,7 @@
     </script>
     @include('layouts.partials.confirm_modal')
     @include('layouts.partials.file_preview_modal')
+    @include('layouts.partials.label_print_modal')
     @stack('scripts')
 </body>
 </html>
@@ -379,10 +380,10 @@
 
             @if(!auth()->user()->isPicDept())
             <!-- Action Button: F9 Cetak Custom Label -->
-            <a href="{{ route('archives.print_labels') }}" target="_blank" class="px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded text-xs font-bold transition flex items-center gap-1.5 shadow-2xs shrink-0" title="Cetak Custom Label (F9)">
+            <button type="button" @click="window.openLabelModal()" class="px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded text-xs font-bold transition flex items-center gap-1.5 shadow-2xs shrink-0 cursor-pointer" title="Cetak Custom Label (F9)">
                 <i data-lucide="printer" class="w-3.5 h-3.5 text-amber-400"></i>
                 <span class="hidden lg:inline">Cetak (F9)</span>
-            </a>
+            </button>
             @endif
 
             <!-- Action Button: F5 Refresh Active Form -->
@@ -2590,6 +2591,7 @@
     </script>
     @include('layouts.partials.confirm_modal')
     @include('layouts.partials.file_preview_modal')
+    @include('layouts.partials.label_print_modal')
     @stack('scripts')
 </body>
 </html>

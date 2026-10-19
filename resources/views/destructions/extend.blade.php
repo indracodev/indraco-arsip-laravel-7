@@ -649,6 +649,32 @@ function extendCreateApp() {
         formPengajuanRows: [],
 
         openFormPengajuanModal() {
+            const selected = this.selectedArchives;
+            if (selected.length > 0) {
+                const dept = selected[0].department;
+                const deptName = dept ? (dept.name || dept.code) : (@json(auth()->user()->department ? auth()->user()->department->name : ''));
+
+                const distinctSubDepts = new Set();
+                selected.forEach(arc => {
+                    const sub = arc.sub_department || arc.subDepartment;
+                    const subId = arc.sub_department_id || (sub ? sub.id : '');
+                    distinctSubDepts.add(String(subId || ''));
+                });
+
+                if (distinctSubDepts.size === 1) {
+                    const singleSub = selected[0].sub_department || selected[0].subDepartment;
+                    if (singleSub && singleSub.name) {
+                        this.formPengajuanData.dept_display = `${deptName} / ${singleSub.name}`;
+                    } else {
+                        this.formPengajuanData.dept_display = deptName;
+                    }
+                } else {
+                    this.formPengajuanData.dept_display = deptName;
+                }
+            } else if (!this.formPengajuanData.dept_display) {
+                this.formPengajuanData.dept_display = @json(auth()->user()->department ? auth()->user()->department->name : '');
+            }
+
             this.populateFormRows();
             this.formPengajuanData.tipe = 'Perpanjangan';
             this.formPengajuanData.catatan = 'Perpanjangan masa simpan (' + this.additionalMonths + ' Bulan). Alasan: ' + (document.getElementById('extension_reason')?.value || '');

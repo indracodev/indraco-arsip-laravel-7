@@ -2147,16 +2147,101 @@ class ArchiveController extends Controller
         return view('archives.show', compact('archive', 'locations'));
     }
 
-    public function printSticker(Archive $archive)
+    private function formatArchiveForLabel(Archive $archive)
+    {
+        $expDate = 'MM-YYYY';
+        if (!empty($archive->retention_expiry_date)) {
+            $expDate = \Carbon\Carbon::parse($archive->retention_expiry_date)->format('m-Y');
+        } elseif (!empty($archive->period_end_date) && !empty($archive->retention_years)) {
+            $expDate = \Carbon\Carbon::parse($archive->period_end_date)
+                ->addYears($archive->retention_years)
+                ->format('m-Y');
+        } elseif (!empty($archive->end_year) && !empty($archive->retention_years)) {
+            $expDate = '12-' . ($archive->end_year + $archive->retention_years);
+        }
+
+        $rackLetter = '';
+        if ($archive->location && !empty($archive->location->rack_code)) {
+            if (preg_match('/([A-Za-z]+)$/i', $archive->location->rack_code, $m)) {
+                $rackLetter = strtoupper($m[1]);
+            }
+        } elseif ($archive->rackSlot && !empty($archive->rackSlot->slot_code) && preg_match('/^([A-Za-z]+)/', $archive->rackSlot->slot_code, $m)) {
+            $rackLetter = strtoupper($m[1]);
+        }
+
+        if (empty($rackLetter)) {
+            if (!empty($archive->box_number) && preg_match('/([A-Za-z]{1,3})/i', $archive->box_number, $bm)) {
+                $rackLetter = strtoupper($bm[1]);
+            } else {
+                $letterIdx = intval(($archive->id - 1) / 20) % 26;
+                $rackLetter = chr(65 + $letterIdx);
+            }
+        }
+
+        $slotNo = '';
+        if ($archive->rackSlot && !empty($archive->rackSlot->slot_number)) {
+            $slotNo = str_pad($archive->rackSlot->slot_number, 2, '0', STR_PAD_LEFT);
+        } elseif ($archive->location && !empty($archive->location->shelf_code) && preg_match('/(\d+)/', $archive->location->shelf_code, $m)) {
+            $slotNo = str_pad($m[1], 2, '0', STR_PAD_LEFT);
+        }
+
+        if (empty($slotNo)) {
+            if (!empty($archive->box_number) && preg_match('/(\d{1,3})$/', $archive->box_number, $nm)) {
+                $slotNo = str_pad(intval($nm[1]) % 100 ?: 1, 2, '0', STR_PAD_LEFT);
+            } else {
+                $slotNo = str_pad((($archive->id - 1) % 20) + 1, 2, '0', STR_PAD_LEFT);
+            }
+        }
+
+        $boxCode = $rackLetter . $slotNo;
+
+        $isAllocated = !empty($archive->warehouse_location_id) || !empty($archive->location_id);
+        $whName = $archive->location && $archive->location->warehouse ? ($archive->location->warehouse->name ?: $archive->location->warehouse->code) : ($archive->location->room_sector ?? null);
+        $rackCode = $archive->location ? $archive->location->rack_code : null;
+        $slotLabel = $archive->rackSlot ? ("Sap {$archive->rackSlot->sap_level}, {$archive->rackSlot->layer_label} Slot {$archive->rackSlot->slot_number}") : null;
+        $effectivePeriod = $archive->effective_periode ?? ($archive->periode_doc ?? ($archive->periode ?? ''));
+
+        return [
+            'id' => $archive->id,
+            'title' => $archive->title,
+            'box_number' => $archive->box_number ?: 'DRAFT-BOX',
+            'department_name' => $archive->department ? $archive->department->name : 'Departemen',
+            'sub_department_name' => $archive->subDepartment ? $archive->subDepartment->name : null,
+            'exp_date' => $expDate,
+            'rack_letter' => $rackLetter,
+            'slot_no' => $slotNo,
+            'box_code' => $boxCode,
+            'is_allocated' => $isAllocated,
+            'wh_name' => $whName,
+            'rack_code' => $rackCode,
+            'slot_label' => $slotLabel,
+            'effective_period' => $effectivePeriod,
+            'retention_duration_label' => $archive->retention_duration_label ?: ($archive->retention_years ? $archive->retention_years . ' Tahun' : '-'),
+            'tgl_penyerahan' => $archive->tgl_penyerahan ? \Carbon\Carbon::parse($archive->tgl_penyerahan)->format('d/m/Y') : date('d/m/Y'),
+            'content_description' => $archive->content_description ?: $archive->title,
+        ];
+    }
+
+    public function printSticker(Archive $archive, Request $request)
     {
         $user = auth()->user();
         if ($user->isPicDept() && (int)$archive->department_id !== (int)$user->department_id) {
+            if ($request->wantsJson() || $request->has('json') || $request->ajax()) {
+                return response()->json(['success' => false, 'error' => 'Anda tidak memiliki akses ke label arsip departemen lain.'], 403);
+            }
             abort(403, 'Anda tidak memiliki akses ke label arsip departemen lain.');
         }
 
-        if ($archive->status !== 'in_warehouse' && !$this->isRunningTestEnvironment()) {
-            return redirect()->route('archives.show', $archive)
-                ->with('error', 'Stiker label box hanya dapat dicetak setelah berkas resmi berstatus tersimpan di gudang.');
+        // Label box boleh dicetak untuk arsip yang sudah disetujui/booking, tersimpan di gudang, atau perpanjangan
+        if (!in_array($archive->status, ['approved_booked', 'in_warehouse', 'pending_extension'])) {
+            $msg = 'Label box hanya dapat dicetak untuk arsip yang telah disetujui (Approved / Booked), tersimpan di gudang, atau dalam perpanjangan (status saat ini: ' . $archive->status_label . ').';
+            if ($request->wantsJson() || $request->has('json') || $request->ajax()) {
+                return response()->json(['success' => false, 'error' => $msg], 403);
+            }
+            if ($request->has('embed')) {
+                return response("<div style='font-family: monospace; padding: 24px; text-align: center; color: #dc2626;'><strong>Peringatan:</strong> {$msg}</div>", 403);
+            }
+            return redirect()->route('archives.show', $archive)->with('error', $msg);
         }
 
         ActivityLogger::log(
@@ -2173,16 +2258,26 @@ class ArchiveController extends Controller
 
         $archive->load(['department', 'subDepartment', 'items', 'location.warehouse', 'rackSlot', 'creator']);
         $archives = collect([$archive]);
+
+        if ($request->wantsJson() || $request->has('json') || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'labels' => [$this->formatArchiveForLabel($archive)]
+            ]);
+        }
+
         return view('archives.print_sticker', compact('archives', 'archive'));
     }
 
     public function printLabels(Request $request)
     {
         $user = auth()->user();
-        $ids = $request->input('ids');
+        $ids = $request->input('ids') ?: $request->input('archive_id');
 
         if (is_string($ids)) {
             $ids = array_filter(explode(',', $ids));
+        } elseif (is_numeric($ids)) {
+            $ids = [(int)$ids];
         }
 
         $query = Archive::with(['department', 'subDepartment', 'items', 'location.warehouse', 'rackSlot', 'creator']);
@@ -2190,6 +2285,9 @@ class ArchiveController extends Controller
         if ($user->isPicDept()) {
             $query->where('department_id', $user->department_id);
         }
+
+        // Label box boleh dicetak untuk arsip disetujui/booking, di gudang, atau dalam perpanjangan
+        $query->whereIn('status', ['approved_booked', 'in_warehouse', 'pending_extension']);
 
         if (!empty($ids) && is_array($ids)) {
             $query->whereIn('id', $ids);
@@ -2214,8 +2312,17 @@ class ArchiveController extends Controller
         $archives = $query->get();
 
         if ($archives->isEmpty()) {
+            if ($request->wantsJson() || $request->has('json') || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Tidak ada data arsip yang memenuhi syarat untuk dicetak label (label hanya untuk arsip yang disetujui, di gudang, atau perpanjangan).'
+                ], 404);
+            }
+            if ($request->has('embed')) {
+                return response("<div style='font-family: monospace; padding: 24px; text-align: center; color: #dc2626;'><strong>Peringatan:</strong> Tidak ada berkas arsip yang memenuhi syarat untuk dicetak label.<br><small style='color: #64748b;'>Label hanya dapat dicetak untuk arsip yang disetujui (Approved / Booked), tersimpan di gudang, atau dalam perpanjangan.</small></div>", 404);
+            }
             return redirect()->route('archives.index')
-                ->with('warning', 'Tidak ada data arsip yang ditemukan untuk dicetak label.');
+                ->with('warning', 'Tidak ada data arsip yang memenuhi syarat untuk dicetak label.');
         }
 
         ActivityLogger::log(
@@ -2228,6 +2335,15 @@ class ArchiveController extends Controller
             ],
             "Batch: {$archives->count()} Box"
         );
+
+        if ($request->wantsJson() || $request->has('json') || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'labels' => $archives->map(function($arc) {
+                    return $this->formatArchiveForLabel($arc);
+                })->values()
+            ]);
+        }
 
         $archive = $archives->first();
 

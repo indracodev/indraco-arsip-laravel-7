@@ -27,10 +27,20 @@
 
             @if(!auth()->user()->isPicDept())
             <!-- Cetak Custom Label (F9) -->
-            <a href="{{ route('archives.print_labels') }}" target="_blank" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 rounded text-xs font-mono font-bold transition flex items-center gap-1.5 shadow-sm shrink-0" title="Cetak Custom Label Box (F9)">
+            <button type="button" @click="
+                if (selected && selected.length) {
+                    if (selectedPrintable.length > 0) {
+                        window.openLabelModal(selectedPrintable);
+                    } else {
+                        alert('Tidak ada box terpilih yang memenuhi syarat cetak label (label dinonaktifkan untuk status antrian, ditarik, dan dimusnahkan).');
+                    }
+                } else {
+                    window.openLabelModal(null);
+                }
+            " class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 rounded text-xs font-mono font-bold transition flex items-center gap-1.5 shadow-sm shrink-0 cursor-pointer" title="Cetak Custom Label Box (F9)">
                 <i data-lucide="printer" class="w-3.5 h-3.5 text-amber-500"></i>
                 <span>Cetak Label (F9)</span>
-            </a>
+            </button>
             @endif
 
             <!-- Impor Multi-Box Excel (Ctrl+I) -->
@@ -265,13 +275,17 @@
 
             @if(!auth()->user()->isPicDept())
             <!-- Batch Print Labels (Warehouse / Admin) -->
-            <form action="{{ route('archives.print_labels') }}" method="GET" target="_blank" class="inline">
-                <input type="hidden" name="ids" :value="selected.join(',')">
-                <button type="submit" class="px-3 py-1 bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black text-xs rounded border border-amber-600 shadow transition flex items-center gap-1.5 cursor-pointer">
-                    <i data-lucide="printer" class="w-3.5 h-3.5 text-slate-950"></i>
-                    <span>Cetak Label (<span x-text="selected.length"></span>)</span>
-                </button>
-            </form>
+            <button 
+                type="button" 
+                @click="selectedPrintable.length > 0 ? window.openLabelModal(selectedPrintable) : alert('Tidak ada box terpilih yang memenuhi syarat cetak label (label hanya untuk arsip di gudang atau perpanjangan).')" 
+                :disabled="selectedPrintable.length === 0"
+                :class="selectedPrintable.length === 0 ? 'opacity-40 cursor-not-allowed bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-300 dark:border-slate-700' : 'bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 border-amber-600 cursor-pointer shadow'"
+                class="px-3 py-1 font-black text-xs rounded border transition flex items-center gap-1.5"
+                title="Cetak label box untuk arsip berstatus di gudang atau perpanjangan"
+            >
+                <i data-lucide="printer" class="w-3.5 h-3.5" :class="selectedPrintable.length === 0 ? 'text-slate-400 dark:text-slate-500' : 'text-slate-950'"></i>
+                <span>Cetak Label (<span x-text="selectedPrintable.length"></span>)</span>
+            </button>
             @endif
         </div>
     </div>
@@ -913,11 +927,24 @@
                                 @endif
 
                                 @if(!auth()->user()->isPicDept())
-                                    @if($hasFiles)
-                                        <a href="{{ route('archives.print_sticker', $archive) }}" target="_blank" title="Cetak Label Box Container" class="px-2 py-0.5 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40 text-[11px] font-bold transition inline-flex items-center gap-1 shadow-xs">
+                                    @php
+                                        $canPrintLabel = in_array($archive->status, ['approved_booked', 'in_warehouse', 'pending_extension']);
+                                    @endphp
+                                    @if(!$canPrintLabel)
+                                        <button 
+                                            type="button" 
+                                            disabled 
+                                            title="Label dinonaktifkan: Hanya dapat dicetak untuk arsip yang telah disetujui (Approved / Booked), tersimpan di gudang, atau perpanjangan (status saat ini: {{ $archive->status_label }})" 
+                                            class="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 border border-slate-200 dark:border-slate-800 text-[11px] font-bold inline-flex items-center gap-1 shadow-2xs opacity-40 cursor-not-allowed"
+                                        >
+                                            <i data-lucide="printer" class="w-3 h-3 text-slate-400 dark:text-slate-600"></i>
+                                            <span>Label</span>
+                                        </button>
+                                    @elseif($hasFiles)
+                                        <button type="button" @click="window.openLabelModal({{ $archive->id }})" title="Cetak Label Box Container" class="px-2 py-0.5 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40 text-[11px] font-bold transition inline-flex items-center gap-1 shadow-xs cursor-pointer">
                                             <i data-lucide="printer" class="w-3 h-3 text-amber-500"></i>
                                             <span>Label</span>
-                                        </a>
+                                        </button>
                                     @else
                                         <button 
                                             type="button" 
@@ -2850,6 +2877,9 @@ function archiveCatalog() {
         },
         get selectedNonDrafts() {
             return this.selected.filter(id => this.archiveStatuses[id] !== 'draft');
+        },
+        get selectedPrintable() {
+            return this.selected.filter(id => ['approved_booked', 'in_warehouse', 'pending_extension'].includes(this.archiveStatuses[id]));
         },
 
         // Super Admin Status Override State

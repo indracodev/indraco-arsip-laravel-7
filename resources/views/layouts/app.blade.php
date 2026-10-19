@@ -283,6 +283,7 @@
         </script>
         @include('layouts.partials.confirm_modal')
         @include('layouts.partials.file_preview_modal')
+        @include('layouts.partials.label_print_modal')
         @stack('scripts')
     </body>
 
@@ -3151,6 +3152,7 @@
         </script>
         @include('layouts.partials.confirm_modal')
         @include('layouts.partials.file_preview_modal')
+        @include('layouts.partials.label_print_modal')
         @stack('scripts')
     </body>
 

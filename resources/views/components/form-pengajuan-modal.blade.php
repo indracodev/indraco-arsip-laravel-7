@@ -296,19 +296,20 @@
                 >
                     <div>
                         <!-- Header with Logo & Document Title (User Styling) -->
-                        <div style="position: relative; margin-bottom: 6px; min-height: 28px;">
+                        <div style="position: relative; margin-bottom: 10px; min-height: 28px;">
                             <div style="position: absolute; left: 0; top: 0;">
                                 <img src="{{ asset('images/logo_indraco.png') }}" alt="INDRACO" style="height: 26px; object-fit: contain;">
                             </div>
-                            <div style="text-align: center; padding-top: 24px; padding-bottom: 4px;">
+                            <div style="text-align: center; padding-top: 30px; padding-bottom: 4px;">
                                 <h1 style="font-size: 13pt; font-weight: bold; text-align: center; margin: 0; padding: 0; font-family: Arial, sans-serif; letter-spacing: 0.3px;">
-                                    Form Pengajuan Dokumen
+                                    Form Pengajuan
                                 </h1>
+                                DMS (Document Management System)
                             </div>
                         </div>
 
                         <!-- Metadata Table Box (2 rows x 4 columns) -->
-                        <table style="width: 100%; table-layout: fixed; border-collapse: collapse; margin-bottom: 8px;">
+                        <table style="width: 100%; table-layout: fixed; border-collapse: collapse; margin-bottom: 15px;">
                             <tbody>
                                 <tr style="height: 24px;">
                                     <td style="width: 28%; border: 1px solid #000; padding: 3px 6px; font-size: 9pt; font-weight: normal; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">No. Form</td>
@@ -326,7 +327,7 @@
                         </table>
 
                         <!-- Tipe Pengajuan Checkbox Row -->
-                        <div style="font-size: 9pt; margin-bottom: 8px; display: flex; align-items: center; gap: 20px;">
+                        <div style="font-size: 9pt; margin-bottom: 15px; display: flex; align-items: center; gap: 20px;">
                             <span style="font-weight: normal;">Tipe Pengajuan :</span>
                             <div style="display: flex; align-items: center; gap: 20px;">
                                 <span style="display: inline-flex; align-items: center; gap: 6px;">
@@ -349,7 +350,7 @@
                         </div>
 
                         <!-- Main Table: Daftar Box & Dokumen (Maksimal 10 Baris Sesuai Ketentuan) -->
-                        <table style="width: 100%; table-layout: fixed; border-collapse: collapse; margin-bottom: 8px;">
+                        <table style="width: 100%; table-layout: fixed; border-collapse: collapse; margin-bottom: 15px;">
                             <thead>
                                 <tr style="text-align: center; font-weight: bold; background-color: #fafafa;">
                                     <th style="border: 1px solid #000; width: 34px; padding: 3px 2px; font-size: 9pt; text-align: center; line-height: 1.2; overflow: hidden;">No.</th>
@@ -386,7 +387,7 @@
                     </div>
 
                     <!-- BOTTOM FOOTER SECTION (Anchored to Bottom of A4 Page) -->
-                    <div style="margin-bottom: 0;">
+                    <div style="margin-bottom: 10;">
                         <!-- Catatan Section -->
                         <div style="font-size: 9pt; margin-bottom: 8px; line-height: 1.3;">
                             <div>
@@ -405,7 +406,7 @@
                         </div>
 
                         <!-- Approval Signatures Table (3 Columns: Pemohon, Atasan, Pimpinan) -->
-                        <table style="width: 100%; border-collapse: collapse; margin-top: 4px; margin-bottom: 6px;">
+                        <table style="width: 100%; border-collapse: collapse; margin-top: 4px; margin-bottom: 15px;">
                             <tbody>
                                 <tr>
                                     <!-- Diajukan oleh (Pemohon) -->

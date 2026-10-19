@@ -1848,14 +1848,17 @@
                                         <span>Buka Detail Halaman Arsip</span>
                                     </a>
 
-                                    <a 
-                                        :href="'/archives/print-labels?archive_id=' + selectedSlotDetail.archive.id" 
-                                        target="_blank"
-                                        class="w-full py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold text-xs rounded transition flex items-center justify-center gap-1.5 border border-slate-300 dark:border-slate-700 cursor-pointer"
+                                    <button 
+                                        type="button"
+                                        @click="window.openLabelModal(selectedSlotDetail.archive.id)" 
+                                        :disabled="!selectedSlotDetail.archive || !['approved_booked', 'in_warehouse', 'pending_extension'].includes(selectedSlotDetail.archive.status)"
+                                        :class="!selectedSlotDetail.archive || !['approved_booked', 'in_warehouse', 'pending_extension'].includes(selectedSlotDetail.archive.status) ? 'opacity-40 cursor-not-allowed bg-slate-100 dark:bg-slate-900 text-slate-400 dark:text-slate-600 border-slate-200 dark:border-slate-800' : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-300 dark:border-slate-700 cursor-pointer'"
+                                        class="w-full py-1.5 font-bold text-xs rounded transition flex items-center justify-center gap-1.5 border shadow-2xs"
+                                        :title="!selectedSlotDetail.archive || !['approved_booked', 'in_warehouse', 'pending_extension'].includes(selectedSlotDetail.archive.status) ? 'Label dinonaktifkan: Hanya untuk arsip yang disetujui (Approved / Booked), di gudang, atau perpanjangan' : 'Cetak Label Box Form A5 (TB 30g)'"
                                     >
                                         <i data-lucide="printer" class="w-3.5 h-3.5"></i>
                                         <span>Cetak Label Box Form A5 (TB 30g)</span>
-                                    </a>
+                                    </button>
 
                                     <button 
                                         type="button" 

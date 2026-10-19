@@ -15,8 +15,7 @@
     <script src="{{ asset('js/vendor/qrcode.min.js') }}"></script>
     <style>
         @page {
-            size: 100mm 100mm;
-            margin: 3mm;
+            margin: 0 !important;
         }
 
         * {
@@ -144,16 +143,25 @@
         }
 
         @media print {
+            @page {
+                margin: 0 !important;
+            }
+
+            html,
             body {
                 background: none !important;
                 padding: 0 !important;
                 margin: 0 !important;
+                display: block !important;
+                height: auto !important;
             }
 
             .container {
                 width: 100mm !important;
                 margin: 0 auto !important;
+                padding: 0 !important;
                 gap: 0 !important;
+                display: block !important;
             }
 
             nav {
@@ -163,15 +171,17 @@
             .label {
                 box-shadow: none !important;
                 border: 2px solid #000000 !important;
-                margin: 0 auto !important;
-                width: 94mm !important;
-                height: 94mm !important;
+                margin: 0 auto 3mm auto !important;
+                width: 100mm !important;
+                height: 100mm !important;
                 page-break-inside: avoid !important;
-                page-break-after: always !important;
+                break-inside: avoid !important;
+                page-break-after: auto !important;
+                break-after: auto !important;
             }
 
             .label:last-child {
-                page-break-after: auto !important;
+                margin-bottom: 0 !important;
             }
 
             .a5-label-container {
@@ -198,6 +208,12 @@
             }
         }
     </style>
+    @if(request()->has('embed'))
+    <style>
+        nav { display: none !important; }
+        body { padding-bottom: 0 !important; background: #ffffff !important; }
+    </style>
+    @endif
 </head>
 
 <body>

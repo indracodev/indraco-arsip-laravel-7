@@ -196,7 +196,7 @@
 
     // PT INDRACO DMS - Cross-Frame & Desktop Client Unified Print Engine
     (function() {
-        window.dmsPrint = function(elementOrId) {
+        window.dmsPrint = function(elementOrId, customStyles) {
             var el = null;
             if (typeof elementOrId === 'string') {
                 el = document.getElementById(elementOrId);
@@ -209,7 +209,7 @@
                 var printDoc = el || document.getElementById('form-pengajuan-print-document') || document.body;
                 
                 // Optimal lightweight print styling: pure vector, zero-bloat, standard Arial font (no embedded TTF/WOFF)
-                var cleanStyles = '<style>' +
+                var cleanStyles = customStyles || ('<style>' +
                     '@page { size: A4 portrait; margin: 5mm 8mm 5mm 8mm; } ' +
                     '* { box-sizing: border-box !important; box-shadow: none !important; text-shadow: none !important; filter: none !important; } ' +
                     'html, body { margin: 0 !important; padding: 0 !important; background: #ffffff !important; color: #000000 !important; font-family: Arial, "Helvetica Neue", Helvetica, sans-serif !important; } ' +
@@ -218,7 +218,7 @@
                     '#form-pengajuan-print-document tr { page-break-inside: avoid !important; break-inside: avoid !important; } ' +
                     '#form-pengajuan-print-document th, #form-pengajuan-print-document td { border-color: #000000 !important; } ' +
                     '.dms-print-container { width: 100% !important; margin: 0 !important; padding: 0 !important; page-break-after: avoid !important; break-after: avoid !important; } ' +
-                    '</style>';
+                    '</style>');
 
                 try {
                     window.parent.postMessage({
@@ -233,8 +233,27 @@
                 }
             }
 
-            // Normal browser window context
-            window.print();
+            // Normal / Top window context: isolate cleanly into global print portal
+            var targetDoc = el || document.getElementById('form-pengajuan-print-document') || document.body;
+            var targetStyles = customStyles || ('<style>' +
+                '@page { size: A4 portrait; margin: 5mm 8mm 5mm 8mm; } ' +
+                '* { box-sizing: border-box !important; } ' +
+                'html, body { margin: 0 !important; padding: 0 !important; background: #ffffff !important; color: #000000 !important; font-family: Arial, sans-serif !important; } ' +
+                '.dms-print-container { width: 100% !important; margin: 0 !important; padding: 0 !important; } ' +
+                '</style>');
+
+            var portal = document.getElementById('dms-global-print-portal');
+            if (!portal) {
+                portal = document.createElement('div');
+                portal.id = 'dms-global-print-portal';
+                document.body.appendChild(portal);
+            }
+            portal.innerHTML = targetStyles + '<div class="dms-print-container">' + targetDoc.outerHTML + '</div>';
+            document.body.classList.add('has-dms-print-portal');
+            window.focus();
+            setTimeout(function() {
+                (nativePrint || window.print).call(window);
+            }, 100);
         };
 
         // If top-level shell window, receive and fulfill print requests from child iframes

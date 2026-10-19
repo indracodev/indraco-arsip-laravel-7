@@ -81,11 +81,16 @@
 
             <!-- Cetak Label Box -->
             @if(!auth()->user()->isPicDept())
-                @if($archive->status === 'in_warehouse')
-                <a href="{{ route('archives.print_sticker', $archive) }}" target="_blank" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 rounded text-xs font-mono font-bold transition flex items-center gap-1 shadow-sm shrink-0" title="Cetak Stiker Label Box">
+                @if(in_array($archive->status, ['approved_booked', 'in_warehouse', 'pending_extension']))
+                <button type="button" @click="window.openLabelModal({{ $archive->id }})" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 rounded text-xs font-mono font-bold transition flex items-center gap-1 shadow-sm shrink-0 cursor-pointer" title="Cetak Stiker Label Box">
                     <i data-lucide="printer" class="w-3.5 h-3.5 text-amber-500"></i>
                     <span>Cetak Label</span>
-                </a>
+                </button>
+                @else
+                <button type="button" disabled class="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold flex items-center gap-1 shadow-2xs shrink-0 opacity-40 cursor-not-allowed" title="Label dinonaktifkan: Hanya dapat dicetak untuk arsip yang telah disetujui (Approved / Booked), tersimpan di gudang, atau perpanjangan (status saat ini: {{ $archive->status_label }})">
+                    <i data-lucide="printer" class="w-3.5 h-3.5 text-slate-400 dark:text-slate-600"></i>
+                    <span>Cetak Label</span>
+                </button>
                 @endif
             @endif
 

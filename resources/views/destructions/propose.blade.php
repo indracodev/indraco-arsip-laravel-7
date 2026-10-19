@@ -661,6 +661,32 @@ function proposeCreateApp() {
         formPengajuanRows: [],
 
         openFormPengajuanModal() {
+            const selected = this.selectedArchives;
+            if (selected.length > 0) {
+                const dept = selected[0].department;
+                const deptName = dept ? (dept.name || dept.code) : (@json(auth()->user()->department ? auth()->user()->department->name : ''));
+
+                const distinctSubDepts = new Set();
+                selected.forEach(arc => {
+                    const sub = arc.sub_department || arc.subDepartment;
+                    const subId = arc.sub_department_id || (sub ? sub.id : '');
+                    distinctSubDepts.add(String(subId || ''));
+                });
+
+                if (distinctSubDepts.size === 1) {
+                    const singleSub = selected[0].sub_department || selected[0].subDepartment;
+                    if (singleSub && singleSub.name) {
+                        this.formPengajuanData.dept_display = `${deptName} / ${singleSub.name}`;
+                    } else {
+                        this.formPengajuanData.dept_display = deptName;
+                    }
+                } else {
+                    this.formPengajuanData.dept_display = deptName;
+                }
+            } else if (!this.formPengajuanData.dept_display) {
+                this.formPengajuanData.dept_display = @json(auth()->user()->department ? auth()->user()->department->name : '');
+            }
+
             this.populateFormRows();
             this.formPengajuanData.tipe = 'Pemusnahan';
             this.formPengajuanData.catatan = 'Usulan pemusnahan fisik berkas arsip. Catatan: ' + (document.getElementById('notes')?.value || '');
@@ -679,7 +705,8 @@ function proposeCreateApp() {
                 const rackLoc = arc.rack_label || (arc.short_location && arc.short_location !== 'Belum Ada Lokasi' ? arc.short_location : '') || '';
                 const boxLabel = rackLoc || arc.box_number || arc.archive_code || '';
 
-                const subDeptName = arc.sub_department ? (arc.sub_department.code || arc.sub_department.name) : (arc.sub_department_id ? 'Inti Dept' : '-');
+                const sub = arc.sub_department || arc.subDepartment;
+                const subDeptName = sub ? (sub.name || sub.code) : (arc.sub_department_id ? 'Inti Dept' : '-');
 
                 rows.push({
                     no: idx + 1,

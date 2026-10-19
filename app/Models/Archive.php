@@ -435,6 +435,11 @@ class Archive extends Model
         return "{$whName} - {$this->location->rack_code}";
     }
 
+    public function canPrintLabel(): bool
+    {
+        return in_array($this->status, ['approved_booked', 'in_warehouse', 'pending_extension']);
+    }
+
     public function getStatusLabelAttribute(): string
     {
         switch ($this->status) {
