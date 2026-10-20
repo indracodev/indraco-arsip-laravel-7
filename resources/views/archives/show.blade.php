@@ -42,13 +42,22 @@
             'ext' => strtolower(pathinfo($archive->file_path, PATHINFO_EXTENSION)),
         ];
     }
+    $from = request('from', 'archives');
+    $backRoute = 'archives.index';
+    if ($from === 'borrowings') {
+        $backRoute = 'borrowings.index';
+    } elseif ($from === 'destructions') {
+        $backRoute = 'destructions.index';
+    } elseif ($from === 'warehouse') {
+        $backRoute = 'warehouse.index';
+    }
 @endphp
 
 <div class="space-y-3" x-data="{}">
     <!-- DELPHI ACTION RIBBON TOOLBAR & HEADER (TPanel / TToolBar) -->
     <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-2.5 sm:p-3 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3 font-mono">
         <div class="flex items-center gap-2.5">
-            <a href="{{ route('archives.index', request()->has('embed') ? ['embed' => 1] : []) }}" onclick="if(window.history.length > 1) { event.preventDefault(); window.history.back(); }" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600 rounded text-xs font-bold transition flex items-center gap-1 shadow-sm shrink-0" title="Kembali">
+            <a href="{{ route($backRoute, request()->has('embed') ? ['embed' => 1] : []) }}" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600 rounded text-xs font-bold transition flex items-center gap-1 shadow-sm shrink-0" title="Kembali">
                 <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
                 <span class="hidden sm:inline">Kembali</span>
             </a>
@@ -211,9 +220,26 @@
                     <select name="warehouse_location_id" required class="w-full py-1 px-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 transition">
                         <option value="">-- Pilih Slot Rak Gudang Available --</option>
                         @foreach($locations as $loc)
-                        <option value="{{ $loc->id }}">
-                            {{ $loc->full_location }} (Terisi {{ $loc->current_box_count }}/{{ $loc->box_capacity }} Box)
-                        </option>
+                            @php
+                                $isLocLocked = $loc->is_locked;
+                                $isDeptMismatch = ($loc->assigned_department_id && $loc->assigned_department_id != $archive->department_id);
+                                $isDisabled = $isLocLocked || $isDeptMismatch;
+                                $badge = '';
+                                if ($isLocLocked) {
+                                    $badge = ' [TERKUNCI 🔒]';
+                                } elseif ($isDeptMismatch) {
+                                    $deptCode = $loc->assignedDepartment ? $loc->assignedDepartment->code : 'Lain';
+                                    $badge = " [Khusus Dept {$deptCode}]";
+                                } elseif ($loc->assigned_department_id) {
+                                    $deptCode = $loc->assignedDepartment ? $loc->assignedDepartment->code : 'Dept';
+                                    $badge = " [Khusus {$deptCode} ✓]";
+                                } else {
+                                    $badge = ' [Umum]';
+                                }
+                            @endphp
+                            <option value="{{ $loc->id }}" {{ $isDisabled ? 'disabled' : '' }} class="{{ $isDisabled ? 'text-slate-400 bg-slate-100 dark:bg-slate-800' : '' }}">
+                                {{ $loc->full_location }}{{ $badge }} (Terisi {{ $loc->current_box_count }}/{{ $loc->box_capacity }} Box)
+                            </option>
                         @endforeach
                     </select>
                 </div>

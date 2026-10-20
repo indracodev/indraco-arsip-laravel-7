@@ -136,10 +136,20 @@ async function connectToServer() {
     // Save local shell URL
     sessionStorage.setItem("indraco_local_shell", window.location.href);
 
+    // Retrieve active path before disconnection so user returns to the exact page they were on
+    const urlParams = new URLSearchParams(window.location.search);
+    const returnPath = urlParams.get("return_path") || 
+                       localStorage.getItem("indraco_dms_last_active_path");
+
     // Short pause for smooth visual transition
     setTimeout(() => {
       try {
-        const dest = new URL(currentServerUrl);
+        let dest;
+        if (returnPath && returnPath.startsWith("/") && !returnPath.startsWith("//") && !returnPath.includes("embed=1")) {
+          dest = new URL(returnPath, currentServerUrl);
+        } else {
+          dest = new URL(currentServerUrl);
+        }
         dest.searchParams.set("dms_client", "desktop");
         window.location.replace(dest.toString());
       } catch (e) {

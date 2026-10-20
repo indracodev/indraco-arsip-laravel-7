@@ -284,6 +284,7 @@
         @include('layouts.partials.confirm_modal')
         @include('layouts.partials.file_preview_modal')
         @include('layouts.partials.label_print_modal')
+        @include('layouts.partials.change_password_modal')
         @stack('scripts')
     </body>
 
@@ -1113,13 +1114,21 @@
                 @include('layouts.partials.lan_monitor')
 
                 @auth
-                    <div class="flex items-center gap-2 ml-1">
+                    <div class="flex items-center gap-1.5 ml-1">
                         <span
                             class="text-slate-300 font-bold text-[10px] hidden sm:inline">{{ auth()->user()->name }}</span>
                         <span
                             class="px-2 py-0.5 bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded text-[10px] font-bold">
                             {{ auth()->user()->role_label }}
                         </span>
+
+                        <!-- Button Ganti Password Mandiri -->
+                        <button type="button" 
+                            @click="$dispatch('open-change-password-modal')" 
+                            class="p-1 text-slate-400 hover:text-amber-400 hover:bg-slate-800 rounded transition cursor-pointer"
+                            title="Ganti Password Saya">
+                            <i data-lucide="key" class="w-3.5 h-3.5"></i>
+                        </button>
 
                         <form action="{{ route('logout') }}" method="POST" class="inline ml-0.5">
                             @csrf
@@ -2016,7 +2025,44 @@
                             this.applyFontSizeLive(this.currentFontSize);
                         }
 
-                        this.openFormWindow(initialId);
+                        // Restore previous MDI window state across refresh (F5/Ctrl+R/Ctrl+Shift+R) and reconnect
+                        let restored = false;
+                        try {
+                            const raw = sessionStorage.getItem('dms_admin_mdi_state') || localStorage.getItem('dms_admin_mdi_state');
+                            if (raw) {
+                                const saved = JSON.parse(raw);
+                                if (saved && Array.isArray(saved.openWindows) && saved.openWindows.length > 0) {
+                                    this.openWindows = saved.openWindows.map(w => ({
+                                        ...w,
+                                        loading: true,
+                                        isDragging: false,
+                                        startX: 0,
+                                        startY: 0
+                                    }));
+                                    this.activeWinId = saved.activeWinId || (this.openWindows[0] ? this.openWindows[0].id : null);
+                                    this.maxZIndex = Math.max(...this.openWindows.map(w => w.zIndex || 10), 10);
+                                    restored = true;
+                                }
+                            }
+                        } catch (e) {}
+
+                        if (restored) {
+                            @if(!request()->is('/') && !request()->routeIs('dashboard'))
+                            if (!this.openWindows.some(w => w.id === initialId)) {
+                                this.openFormWindow(initialId);
+                            } else {
+                                this.focusWindow(initialId);
+                            }
+                            @endif
+                        } else {
+                            this.openFormWindow(initialId);
+                        }
+
+                        // Watch changes and persist MDI state reactively
+                        this.$watch('openWindows', () => this.saveMdiState());
+                        this.$watch('activeWinId', () => this.saveMdiState());
+                        window.addEventListener('beforeunload', () => this.saveMdiState());
+
                         this.startSystemMonitor();
                         this.initRealtimePoller();
 
@@ -2028,6 +2074,11 @@
 
                         // Listen to cross-frame toast notifications and badge updates from forms in iframes
                         window.addEventListener('message', (event) => {
+                            if (event.data && event.data.type === 'DMS_HARD_REFRESH') {
+                                this.saveMdiState();
+                                window.location.reload();
+                                return;
+                            }
                             if (event.data && event.data.type === 'UPDATE_FORM_BADGE') {
                                 const target = this.availableForms.find(f => f.id === event.data.formId);
                                 if (target) {
@@ -2866,6 +2917,45 @@
                         }
                     },
 
+                    saveMdiState() {
+                        try {
+                            if (!Array.isArray(this.openWindows)) return;
+                            const state = {
+                                openWindows: this.openWindows.map(w => ({
+                                    id: w.id,
+                                    title: w.title,
+                                    icon: w.icon,
+                                    url: w.url,
+                                    posX: w.posX || 0,
+                                    posY: w.posY || 0,
+                                    zIndex: w.zIndex || 10,
+                                    maximized: !!w.maximized,
+                                    minimized: !!w.minimized
+                                })),
+                                activeWinId: this.activeWinId,
+                                timestamp: Date.now()
+                            };
+                            sessionStorage.setItem('dms_admin_mdi_state', JSON.stringify(state));
+                            localStorage.setItem('dms_admin_mdi_state', JSON.stringify(state));
+
+                            const activeWin = this.openWindows.find(w => w.id === this.activeWinId);
+                            if (activeWin && activeWin.url) {
+                                localStorage.setItem('indraco_dms_last_active_path', activeWin.url);
+                            }
+                        } catch (e) {}
+                    },
+
+                    refreshActiveWindow() {
+                        if (this.activeWinId) {
+                            const iframe = document.getElementById('iframe-' + this.activeWinId);
+                            if (iframe && iframe.contentWindow) {
+                                iframe.contentWindow.location.reload();
+                                return;
+                            }
+                        }
+                        window.location.reload();
+                    },
+
                     cascadeWindows() {
                         const visibleWins = this.openWindows.filter(w => !w.minimized);
                         visibleWins.forEach((win, index) => {
@@ -3134,8 +3224,29 @@
 
                 // Desktop Keyboard Shortcuts Handler
                 document.addEventListener('keydown', function(e) {
-                    if (e.key === 'F5') {
+                    // F5 / Ctrl+R / Ctrl+Shift+R: Refresh Active Window or Hard Refresh
+                    if (e.key === 'F5' || ((e.ctrlKey || e.metaKey) && (e.key === 'r' || e.key === 'R'))) {
+                        const app = document.querySelector('[x-data="desktopAppLayout()"]');
+                        if (e.shiftKey) {
+                            // Ctrl + Shift + R: Persist state then perform full reload
+                            if (app && window.Alpine) {
+                                const alpineData = Alpine.$data(app);
+                                if (alpineData && alpineData.saveMdiState) {
+                                    alpineData.saveMdiState();
+                                }
+                            }
+                            return; // Let browser trigger hard reload
+                        }
+
+                        // Regular F5 or Ctrl + R: Refresh ONLY the active form iframe without shell flicker or losing open windows
                         e.preventDefault();
+                        if (app && window.Alpine) {
+                            const alpineData = Alpine.$data(app);
+                            if (alpineData && alpineData.refreshActiveWindow) {
+                                alpineData.refreshActiveWindow();
+                                return;
+                            }
+                        }
                         window.location.reload();
                     }
                     // Ctrl + F: Focus Super Admin Search Input
@@ -3153,6 +3264,8 @@
         @include('layouts.partials.confirm_modal')
         @include('layouts.partials.file_preview_modal')
         @include('layouts.partials.label_print_modal')
+        @include('layouts.partials.change_password_modal')
+        @include('layouts.partials.expiry_warning_modal')
         @stack('scripts')
     </body>
 

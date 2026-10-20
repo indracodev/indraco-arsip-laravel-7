@@ -54,18 +54,45 @@
 
     {{-- Existing File Banner (e.g. on Edit Form) --}}
     @if($existingUrl)
-    <div class="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 flex items-center justify-between gap-2">
+    <div class="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 flex items-center justify-between gap-2"
+         x-show="!hasRemovedExisting && !hasFile">
         <div class="flex items-center gap-2 truncate">
             <i data-lucide="check-circle" class="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0"></i>
             <span class="truncate font-medium text-[11px]">{{ $existingLabel }}</span>
         </div>
+        <div class="flex items-center gap-1.5 shrink-0">
+            <button type="button" 
+                    @click="openExistingPreview()"
+                    class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-[10px] transition shrink-0 inline-flex items-center gap-1 cursor-pointer shadow-xs">
+                <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                <span>Pratinjau</span>
+            </button>
+            <button type="button" 
+                    @click="removeExisting()"
+                    title="Hapus file ini untuk diganti dengan file baru"
+                    class="px-2 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30 hover:border-rose-500/40 rounded-lg font-bold text-[10px] transition shrink-0 inline-flex items-center gap-1 cursor-pointer shadow-xs">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                <span>Hapus / Ganti</span>
+            </button>
+        </div>
+    </div>
+
+    {{-- Banner ketika file tersimpan ditandai hapus --}}
+    <div class="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-800 dark:text-rose-300 flex items-center justify-between gap-2 text-xs"
+         x-show="hasRemovedExisting && !hasFile" x-cloak>
+        <div class="flex items-center gap-1.5 truncate">
+            <i data-lucide="alert-circle" class="w-4 h-4 text-rose-500 shrink-0"></i>
+            <span class="truncate font-medium text-[11px]">File tersimpan dihapus. Silakan pilih berkas baru di bawah.</span>
+        </div>
         <button type="button" 
-                @click="openExistingPreview()"
-                class="px-2 py-0.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded font-bold text-[10px] transition shrink-0 inline-flex items-center gap-1">
-            <i data-lucide="eye" class="w-3 h-3"></i>
-            <span>Pratinjau</span>
+                @click="restoreExisting()"
+                class="px-2 py-0.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 text-slate-700 dark:text-slate-200 rounded font-bold text-[10px] transition shrink-0 inline-flex items-center gap-1 cursor-pointer">
+            <i data-lucide="undo" class="w-3 h-3"></i>
+            <span>Batal Hapus</span>
         </button>
     </div>
+
+    <input type="hidden" name="remove_{{ $name }}" :value="hasRemovedExisting ? '1' : '0'">
     @endif
 
     {{-- File Input Control (Hidden when file is already selected to keep UI clean, or visible) --}}

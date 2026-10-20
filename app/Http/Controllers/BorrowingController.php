@@ -112,7 +112,9 @@ class BorrowingController extends Controller
         $selectedArchiveIds = array_filter(array_map('intval', (array)$selectedArchiveIds));
         $selectedArchiveId = !empty($selectedArchiveIds) ? $selectedArchiveIds[0] : null;
 
-        return view('borrowings.create', compact('archives', 'selectedArchiveId', 'selectedArchiveIds'));
+        $from = $request->query('from') ?: (strpos(url()->previous(), 'archives') !== false ? 'archives' : 'borrowings');
+
+        return view('borrowings.create', compact('archives', 'selectedArchiveId', 'selectedArchiveIds', 'from'));
     }
 
     public function store(Request $request)
@@ -235,9 +237,11 @@ class BorrowingController extends Controller
             ? "Permintaan penarikan {$boxCount} box berkas berhasil diajukan dengan lampiran form persetujuan. Menunggu verifikasi Departemen & pengeluaran fisik Gudang."
             : "Permintaan penarikan berkas berhasil diajukan dengan lampiran form persetujuan. Menunggu verifikasi Departemen & pengeluaran fisik Gudang.";
 
+        $from = $request->input('from', 'borrowings');
         $redirectParams = $request->has('embed') ? ['embed' => 1] : [];
+        $targetRoute = ($from === 'archives') ? 'archives.index' : 'borrowings.index';
 
-        return redirect()->route('borrowings.index', $redirectParams)
+        return redirect()->route($targetRoute, $redirectParams)
             ->with('success', $successMessage);
     }
 

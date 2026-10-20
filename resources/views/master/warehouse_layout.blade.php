@@ -785,7 +785,7 @@
                         </button>
                     </div>
 
-                    <!-- Lock Status Card (For Gudang Room & Rak) -->
+                    <!-- Lock Status Card (Fitur Lama: Kunci/Buka Posisi Object Canvas) -->
                     <template x-if="selectedLocation">
                         <div class="p-2.5 bg-slate-50 dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-800 flex items-center justify-between">
                             <div>
@@ -798,6 +798,32 @@
                             <button @click="toggleLockLocation(selectedLocation)" type="button" class="px-2.5 py-1 rounded font-bold text-xs shadow-xs transition text-white cursor-pointer border" :class="selectedLocation?.is_locked !== false ? 'bg-emerald-600 hover:bg-emerald-500 border-emerald-700' : 'bg-rose-600 hover:bg-rose-500 border-rose-700'">
                                 <span x-text="selectedLocation?.is_locked !== false ? '🔓 Buka Kunci' : '🔒 Kunci Object'"></span>
                             </button>
+                        </div>
+                    </template>
+
+                    <!-- FITUR BARU: Alokasi / Pembatasan Penempatan Box Berdasarkan Departemen -->
+                    <template x-if="selectedLocation">
+                        <div class="p-2.5 bg-indigo-50/50 dark:bg-slate-900 rounded border border-indigo-200/80 dark:border-slate-800 space-y-1 font-sans">
+                            <div class="flex items-center justify-between">
+                                <span class="text-indigo-900 dark:text-indigo-300 text-[10px] uppercase font-bold block">Izin Penempatan Box:</span>
+                                <button @click="openEditModal()" type="button" class="text-indigo-600 dark:text-indigo-400 hover:underline text-[10px] font-bold cursor-pointer">
+                                    Atur Dept
+                                </button>
+                            </div>
+                            <div class="flex items-center gap-1.5 text-xs font-semibold">
+                                <template x-if="selectedLocation?.assigned_department_id">
+                                    <span class="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-950/70 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 rounded font-mono text-[11px] flex items-center gap-1 truncate max-w-full">
+                                        <i data-lucide="building" class="w-3 h-3 text-indigo-500 shrink-0"></i>
+                                        <span x-text="getDeptName(selectedLocation.assigned_department_id)" class="truncate"></span>
+                                    </span>
+                                </template>
+                                <template x-if="!selectedLocation?.assigned_department_id">
+                                    <span class="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded font-mono text-[11px] flex items-center gap-1">
+                                        <i data-lucide="globe" class="w-3 h-3 text-slate-400 shrink-0"></i>
+                                        <span>Semua Departemen (Bebas)</span>
+                                    </span>
+                                </template>
+                            </div>
                         </div>
                     </template>
 
@@ -1237,14 +1263,32 @@
                     </div>
                 </div>
 
+                <!-- Fitur Lama: Kunci Posisi Object Canvas -->
                 <div>
-                    <label class="block text-[10px] font-bold uppercase text-slate-700 dark:text-slate-400 mb-1">Alokasi Departemen</label>
-                    <select x-model="editForm.assigned_department_id" class="w-full px-2.5 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-900 dark:text-white font-medium">
-                        <option value="">-- Umum (Bebas) --</option>
+                    <label class="block text-[10px] font-bold uppercase text-slate-700 dark:text-slate-400 mb-1">Status Kunci Posisi Object (Canvas)</label>
+                    <select x-model="editForm.is_locked" class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-900 dark:text-white font-bold">
+                        <option :value="false">🔓 Terbuka (Unlocked - Posisi dapat digeser / diatur)</option>
+                        <option :value="true">🔒 Terkunci (Locked - Posisi terkunci anti geser)</option>
+                    </select>
+                </div>
+
+                <!-- FITUR BARU: Pembatasan Penempatan Box Berdasarkan Departemen -->
+                <div class="p-3 bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/70 rounded space-y-1.5">
+                    <div class="flex items-center justify-between">
+                        <label class="block text-[10px] font-bold uppercase text-indigo-950 dark:text-indigo-300">
+                            Departemen yang Diizinkan Menempatkan Box
+                        </label>
+                        <span class="text-[9px] font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-100 dark:bg-indigo-900/60 px-1.5 py-0.5 rounded border border-indigo-300 dark:border-indigo-700 font-mono">Fitur Baru</span>
+                    </div>
+                    <select x-model="editForm.assigned_department_id" class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-indigo-300 dark:border-indigo-700 rounded text-xs text-slate-900 dark:text-white font-medium">
+                        <option value="">-- Semua Departemen Diizinkan (Default) --</option>
                         <template x-for="dept in departments" :key="dept.id">
                             <option :value="dept.id" x-text="dept.code + ' - ' + dept.name"></option>
                         </template>
                     </select>
+                    <p class="text-[10px] text-slate-600 dark:text-slate-400 leading-tight">
+                        Pilih departemen jika gudang/rak ini dikhususkan (misal: GA / IT). Jika tidak ada departemen yang dipilih, secara default <strong>box dari semua departemen boleh ditempatkan</strong> di sini.
+                    </p>
                 </div>
 
                 <div class="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
@@ -1510,16 +1554,26 @@
                             <span class="px-1.5 py-0.2 bg-indigo-100 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold rounded">
                                 100 Box (TB 30g)
                             </span>
-                            <template x-if="selectedRackForModal?.is_fat_locked">
-                                <span class="px-1.5 py-0.2 bg-rose-100 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-[10px] font-bold rounded flex items-center gap-1">
-                                    <i data-lucide="lock" class="w-3 h-3 text-rose-500"></i> FAT
+                            <!-- Department Restriction Badge (Fitur Baru) -->
+                            <template x-if="getCurrentRackCustomDept()">
+                                <span class="px-2 py-0.5 bg-indigo-500/15 border border-indigo-500/30 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold rounded flex items-center gap-1 font-mono">
+                                    <i data-lucide="building" class="w-3 h-3 text-indigo-500"></i>
+                                    <span x-text="'KHUSUS ' + getCurrentRackCustomDept().code"></span>
+                                </span>
+                            </template>
+                            <template x-if="!getCurrentRackCustomDept()">
+                                <span class="px-2 py-0.5 bg-slate-500/15 border border-slate-500/30 text-slate-700 dark:text-slate-300 text-[10px] font-bold rounded flex items-center gap-1 font-mono">
+                                    <i data-lucide="globe" class="w-3 h-3 text-slate-400"></i>
+                                    <span>SEMUA DEPT (BEBAS)</span>
                                 </span>
                             </template>
                         </div>
-                        <p class="text-[11px] text-slate-500 font-sans">
+                        <p class="text-[11px] text-slate-500 font-sans flex items-center gap-1.5 flex-wrap">
                             <span x-text="'Sektor: ' + (selectedRackForModal?.room_sector || 'Umum')"></span>
-                            <span class="text-slate-300 mx-1">•</span>
-                            <span x-text="'Alokasi: ' + (selectedRackForModal?.assigned_department ? (selectedRackForModal?.assigned_department.code + ' - ' + selectedRackForModal?.assigned_department.name) : 'Umum (Bebas)')"></span>
+                            <span class="text-slate-300 dark:text-slate-700">•</span>
+                            <span :class="getCurrentRackCustomDeptId() ? 'font-bold text-purple-600 dark:text-purple-400' : 'text-slate-600 dark:text-slate-400'" 
+                                  x-text="getCurrentRackCustomDept() ? ('Khusus: ' + getCurrentRackCustomDept().code + ' - ' + getCurrentRackCustomDept().name) : 'Alokasi: Umum (Semua Departemen)'">
+                            </span>
                         </p>
                     </div>
                 </div>
@@ -1884,8 +1938,16 @@
                                     <span class="text-[10px] font-mono text-emerald-800 dark:text-emerald-300 font-bold">Slot Kosong</span>
                                 </div>
 
-                                <!-- Segmented Mode Switch Tabs (Square Desktop Style) -->
-                                <div class="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-900 p-0.5 rounded border border-slate-200 dark:border-slate-800">
+                                <!-- Notice Departemen yang Diizinkan (Fitur Baru) -->
+                                <template x-if="getCurrentRackCustomDept()">
+                                    <div class="p-2 bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800 rounded flex items-center gap-1.5 text-[11px] text-indigo-700 dark:text-indigo-300 font-medium font-sans">
+                                        <svg class="w-3.5 h-3.5 text-indigo-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/></svg>
+                                        <span>Penempatan Dikhususkan untuk: <strong class="font-bold font-mono" x-text="getCurrentRackCustomDept().code + ' - ' + getCurrentRackCustomDept().name"></strong></span>
+                                    </div>
+                                </template>
+
+                                <!-- Tab Switcher: Input Baru vs Dari Antrean -->
+                                <div class="flex items-center p-0.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded text-xs font-mono">
                                     <button 
                                         type="button" 
                                         @click="slotAssignMode = 'create_new'"
@@ -1916,7 +1978,7 @@
                                         >
                                             <option value="">-- Pilih Departemen --</option>
                                             <template x-for="dept in departments" :key="dept.id">
-                                                <option :value="dept.id" x-text="dept.code + ' - ' + dept.name" :disabled="isCurrentRackFatLocked() && !isFatDepartment(dept)"></option>
+                                                <option :value="dept.id" x-text="dept.code + ' - ' + dept.name" :disabled="getCurrentRackCustomDeptId() && dept.id != getCurrentRackCustomDeptId()"></option>
                                             </template>
                                         </select>
                                     </div>
@@ -2002,7 +2064,7 @@
                                             type="button" 
                                             @click="submitAssignSlot()"
                                             :disabled="slotAssignLoading"
-                                            class="w-full py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded border border-emerald-700 shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+                                            class="w-full py-1.5 font-bold text-xs rounded border shadow-xs transition flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-700 cursor-pointer disabled:opacity-50"
                                         >
                                             <i data-lucide="check" class="w-3.5 h-3.5"></i>
                                             <span x-text="slotAssignLoading ? 'Menyimpan...' : 'Simpan & Tempatkan di Slot'"></span>
@@ -2012,10 +2074,10 @@
 
                                 <!-- Mode 2: Form Pilih Dari Antrean Arsip -->
                                 <div x-show="slotAssignMode === 'existing_archive'" class="space-y-2">
-                                    <template x-if="isCurrentRackFatLocked()">
-                                        <div class="p-1.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/70 rounded flex items-center gap-1.5 text-[10px] text-rose-700 dark:text-rose-300 font-bold">
-                                            <i data-lucide="lock" class="w-3 h-3 text-rose-600 shrink-0"></i>
-                                            <span>Ruang <strong x-text="selectedRackForModal?.room_sector || 'R1/R2'"></strong> khusus Dept FAT (Hanya antrean FAT yang ditampilkan).</span>
+                                    <template x-if="getCurrentRackCustomDept()">
+                                        <div class="p-1.5 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/70 rounded flex items-center gap-1.5 text-[10px] text-indigo-700 dark:text-indigo-300 font-bold">
+                                            <svg class="w-3 h-3 text-indigo-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/></svg>
+                                            <span>Khusus Departemen <strong x-text="getCurrentRackCustomDept().code"></strong> (Hanya antrean departemen ini yang dapat dipilih).</span>
                                         </div>
                                     </template>
 
@@ -2030,25 +2092,28 @@
                                                 <option :value="arc.id" x-text="'[' + (arc.department_code || 'Dept') + '] ' + (arc.box_number ? arc.box_number + ' - ' : '') + arc.title"></option>
                                             </template>
                                         </select>
-                                        <template x-if="getFilteredUnassignedArchives().length === 0">
-                                            <p class="text-[10px] text-slate-500 italic pt-0.5 font-sans" x-text="isCurrentRackFatLocked() ? 'Tidak ada antrean arsip dari Departemen FAT yang belum memiliki rak. Gunakan tab \'Input Dokumen Baru\'.' : 'Tidak ada antrean arsip yang belum memiliki rak. Gunakan tab \'Input Dokumen Baru\'.'"></p>
-                                        </template>
                                     </div>
 
-                                    <div class="pt-1">
-                                        <button 
-                                            type="button" 
-                                            @click="submitAssignSlot()"
-                                            :disabled="slotAssignLoading || !slotAssignForm.archive_id"
-                                            class="w-full py-1.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold text-xs rounded border border-indigo-700 shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
-                                        >
-                                            <i data-lucide="folder-check" class="w-3.5 h-3.5"></i>
-                                            <span x-text="slotAssignLoading ? 'Menempatkan...' : 'Alokasikan Arsip ke Slot'"></span>
-                                        </button>
-                                    </div>
+                                    <template x-if="getFilteredUnassignedArchives().length === 0">
+                                        <p class="text-[10px] text-slate-500 italic pt-0.5 font-sans">Tidak ada antrean arsip yang belum memiliki rak. Gunakan tab 'Input Dokumen Baru'.</p>
+                                    </template>
+                                </div>
+
+                                <!-- Submit Button Existing Archive -->
+                                <div class="pt-1">
+                                    <button 
+                                        type="button" 
+                                        @click="submitAssignSlot()"
+                                        :disabled="slotAssignLoading || !slotAssignForm.archive_id"
+                                        class="w-full py-1.5 font-bold text-xs rounded border shadow-xs transition flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-700 cursor-pointer disabled:opacity-50"
+                                    >
+                                        <i data-lucide="folder-check" class="w-3.5 h-3.5"></i>
+                                        <span x-text="slotAssignLoading ? 'Menempatkan...' : 'Alokasikan Arsip ke Slot'"></span>
+                                    </button>
                                 </div>
                             </div>
-                        </template>
+                        </div>
+                    </template>
                     </div>
 
                     <!-- Footer Close Button -->
@@ -4767,6 +4832,7 @@ function warehouseCanvasApp() {
                 shelf_code: this.selectedLocation.shelf_code,
                 box_capacity: this.selectedLocation.box_capacity,
                 assigned_department_id: this.selectedLocation.assigned_department_id || '',
+                is_locked: this.selectedLocation.is_locked !== false,
                 custom_color: this.selectedLocation.custom_color || '',
                 canvas_width: this.selectedLocation.canvas_width,
                 canvas_height: this.selectedLocation.canvas_height,
@@ -5064,47 +5130,54 @@ function warehouseCanvasApp() {
             return dept && dept.sub_departments ? dept.sub_departments : [];
         },
 
-        isCurrentRackFatLocked() {
+        isCurrentRackLocked() {
             if (!this.selectedRackForModal) return false;
-            const roomSector = String(this.selectedRackForModal.room_sector || '').trim().toUpperCase();
-            const rackCode = String(this.selectedRackForModal.rack_code || '').trim().toUpperCase();
-            return !!this.selectedRackForModal.is_fat_locked || 
-                   ['R1', 'R2', 'RUANG 1', 'RUANG 2', 'SEKTOR R1', 'SEKTOR R2'].includes(roomSector) ||
-                   /^R[12]$/i.test(roomSector) ||
-                   rackCode.startsWith('RAK-R1-') ||
-                   rackCode.startsWith('RAK-R2-');
+            if (this.selectedRackForModal.is_locked !== false) return true;
+            const parentRoom = this.locations.find(l => l.location_type === 'room' && l.room_sector === this.selectedRackForModal.room_sector);
+            if (parentRoom && parentRoom.is_locked !== false) return true;
+            return false;
         },
 
-        isFatDepartment(deptOrArc) {
-            if (!deptOrArc) return false;
-            const code = String(deptOrArc.code || deptOrArc.department_code || '').trim().toUpperCase();
-            const name = String(deptOrArc.name || deptOrArc.department_name || '').trim().toUpperCase();
-            const fatCodes = ['FAT', 'FIN', 'ACC', 'TAX', 'FATCLM', 'FATCLAIM'];
-            return fatCodes.includes(code) || 
-                   name.includes('FAT') || 
-                   name.includes('KEUANGAN') || 
-                   name.includes('AKUNTANSI') || 
-                   name.includes('PAJAK') ||
-                   name.includes('FIN, ACC');
+        getCurrentRackCustomDeptId() {
+            if (!this.selectedRackForModal) return null;
+            if (this.selectedRackForModal.assigned_department_id) {
+                return this.selectedRackForModal.assigned_department_id;
+            }
+            const parentRoom = this.locations.find(l => l.location_type === 'room' && l.room_sector === this.selectedRackForModal.room_sector);
+            if (parentRoom && parentRoom.assigned_department_id) {
+                return parentRoom.assigned_department_id;
+            }
+            return null;
+        },
+
+        getDeptName(deptId) {
+            if (!deptId) return 'Semua Departemen (Bebas)';
+            const d = this.departments.find(x => x.id == deptId);
+            return d ? `${d.code} - ${d.name}` : `Dept #${deptId}`;
+        },
+
+        getCurrentRackCustomDept() {
+            const id = this.getCurrentRackCustomDeptId();
+            if (!id) return null;
+            return this.departments.find(d => d.id == id) || null;
         },
 
         getFilteredUnassignedArchives() {
             if (!this.unassignedArchivesList) return [];
-            if (!this.isCurrentRackFatLocked()) {
+            const customDeptId = this.getCurrentRackCustomDeptId();
+            if (!customDeptId) {
                 return this.unassignedArchivesList;
             }
-            return this.unassignedArchivesList.filter(arc => this.isFatDepartment(arc));
+            return this.unassignedArchivesList.filter(arc => arc.department_id == customDeptId);
         },
 
         selectSlotForDetail(slot) {
             this.selectedSlotDetail = slot;
             if (!slot.archive) {
                 let defaultDeptId = '';
-                if (this.selectedRackForModal?.assigned_department_id) {
-                    defaultDeptId = this.selectedRackForModal.assigned_department_id;
-                } else if (this.isCurrentRackFatLocked()) {
-                    const fin = this.departments.find(d => this.isFatDepartment(d));
-                    if (fin) defaultDeptId = fin.id;
+                const customDeptId = this.getCurrentRackCustomDeptId();
+                if (customDeptId) {
+                    defaultDeptId = customDeptId;
                 }
 
                 const now = new Date();
@@ -5135,17 +5208,20 @@ function warehouseCanvasApp() {
         async submitAssignSlot() {
             if (!this.selectedSlotDetail || !this.selectedRackForModal) return;
 
-            if (this.isCurrentRackFatLocked()) {
+            const customDeptId = this.getCurrentRackCustomDeptId();
+            if (customDeptId) {
+                const customDept = this.departments.find(d => d.id == customDeptId);
+                const customDeptLabel = customDept ? `${customDept.code} - ${customDept.name}` : 'Departemen Khusus';
+
                 if (this.slotAssignMode === 'create_new') {
-                    const selectedDept = this.departments.find(d => d.id == this.slotAssignForm.department_id);
-                    if (selectedDept && !this.isFatDepartment(selectedDept)) {
-                        alert(`Akses Ditolak: Ruang ${this.selectedRackForModal.room_sector || 'R1/R2'} hanya diperuntukkan untuk Departemen FAT (FIN, ACC & TAX / FATCLAIM).`);
+                    if (this.slotAssignForm.department_id != customDeptId) {
+                        alert(`⚠️ Akses Ditolak: Lokasi ini dikhususkan (Custom) untuk ${customDeptLabel}. Dokumen dari departemen lain tidak diizinkan.`);
                         return;
                     }
                 } else {
                     const selectedArc = this.unassignedArchivesList.find(a => a.id == this.slotAssignForm.archive_id);
-                    if (selectedArc && !this.isFatDepartment(selectedArc)) {
-                        alert(`Akses Ditolak: Ruang ${this.selectedRackForModal.room_sector || 'R1/R2'} hanya diperuntukkan untuk Departemen FAT. Dokumen dari departemen lain tidak dapat dialokasikan ke ruangan ini.`);
+                    if (selectedArc && selectedArc.department_id != customDeptId) {
+                        alert(`⚠️ Akses Ditolak: Lokasi ini dikhususkan (Custom) untuk ${customDeptLabel}. Dokumen dari departemen lain (${selectedArc.department_code || 'Lain'}) tidak dapat dialokasikan ke sini.`);
                         return;
                     }
                 }

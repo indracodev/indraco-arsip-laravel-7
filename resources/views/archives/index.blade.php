@@ -236,16 +236,16 @@
         </div>
 
         <div class="flex items-center flex-wrap gap-2">
-            <!-- Batch Borrowing Action (Tarik Berkas) — hanya muncul jika ada non-draft terpilih -->
-            <template x-if="selectedNonDrafts.length > 0">
+            <!-- Batch Borrowing Action (Tarik Berkas) — hanya muncul jika ada box yang MEMENUHI SYARAT TARIK (tersimpan di gudang & belum ditarik) -->
+            <template x-if="selectedBorrowable.length > 0">
                 <button 
                     type="button" 
-                    @click="window.location.href = '{{ route('borrowings.create') }}?archive_ids=' + selectedNonDrafts.join(',') + '{{ request()->has('embed') ? '&embed=1' : '' }}'"
+                    @click="window.location.href = '{{ route('borrowings.create') }}?archive_ids=' + selectedBorrowable.join(',') + '&from=archives{{ request()->has('embed') ? '&embed=1' : '' }}'"
                     class="px-3 py-1 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded border border-purple-700 shadow transition flex items-center gap-1.5 cursor-pointer"
-                    title="Ajukan penarikan untuk box arsip non-draft yang dipilih"
+                    title="Ajukan penarikan untuk box arsip yang memenuhi syarat penarikan (tersimpan di gudang & belum ditarik)"
                 >
                     <i data-lucide="corner-up-right" class="w-3.5 h-3.5 text-white"></i>
-                    <span>Tarik Berkas (<span x-text="selectedNonDrafts.length"></span> Box)</span>
+                    <span>Tarik Berkas (<span x-text="selectedBorrowable.length"></span> Box)</span>
                 </button>
             </template>
 
@@ -503,7 +503,11 @@
                         $isNewSubmission = false;
 
                         if ($archive->status === 'draft') {
-                            $rowColorClass = 'border-l-2 border-l-slate-300 dark:border-l-slate-700 bg-slate-50/40 dark:bg-slate-900/20 hover:bg-slate-100/60';
+                            if (!empty($archive->rejection_note)) {
+                                $rowColorClass = 'border-l-4 border-l-rose-500 bg-rose-500/[0.08] dark:bg-rose-500/15 hover:bg-rose-500/20';
+                            } else {
+                                $rowColorClass = 'border-l-2 border-l-slate-300 dark:border-l-slate-700 bg-slate-50/40 dark:bg-slate-900/20 hover:bg-slate-100/60';
+                            }
                         } elseif ($archive->status === 'pending_verification') {
                             $rowColorClass = 'border-l-4 border-l-amber-500 bg-amber-500/[0.07] dark:bg-amber-500/15 hover:bg-amber-500/20';
                             $isNewSubmission = true;
@@ -521,7 +525,11 @@
                     @endphp
                     <tr class="transition duration-150 {{ $rowColorClass }}">
                         <td class="py-2.5 px-3 text-center border-r border-slate-200 dark:border-slate-800">
-                            <input type="checkbox" :value="{{ $archive->id }}" x-model="selected" class="rounded border-slate-300 dark:border-slate-700 text-amber-500 focus:ring-0">
+                            @php
+                                $isPulledOrActive = $activeBorrowing || in_array($archive->status, ['borrowed', 'taken', 'out']);
+                            @endphp
+                            <input type="checkbox" :value="{{ $archive->id }}" x-model="selected" class="rounded border-slate-300 dark:border-slate-700 text-amber-500 focus:ring-0"
+                                   @if($isPulledOrActive) title="Arsip sedang ditarik / keluar dari gudang (tidak dapat ditarik kembali)" @endif>
                         </td>
 
                         <td class="py-2.5 px-3 font-mono text-amber-700 dark:text-amber-400 font-extrabold border-r border-slate-200 dark:border-slate-800 whitespace-nowrap">
@@ -552,6 +560,15 @@
                                 <a href="{{ route('archives.show', $archive) }}" class="font-bold text-slate-900 dark:text-white hover:text-amber-600 dark:hover:text-amber-400 transition block font-mono">
                                     {{ $archive->title }}
                                 </a>
+                                @if($archive->status === 'draft' && !empty($archive->rejection_note))
+                                    <div class="mt-1 p-1.5 rounded bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-200 text-[10px] font-mono flex items-start gap-1.5 shadow-2xs">
+                                        <i data-lucide="alert-circle" class="w-3.5 h-3.5 text-rose-500 shrink-0 mt-0.5"></i>
+                                        <div>
+                                            <span class="font-bold uppercase tracking-wider text-rose-700 dark:text-rose-300">Catatan Revisi Gudang:</span>
+                                            <span class="block text-slate-700 dark:text-slate-300">{{ $archive->rejection_note }}</span>
+                                        </div>
+                                    </div>
+                                @endif
                                 <div class="flex items-center gap-1.5 text-[11px] text-slate-500 font-mono flex-wrap">
                                     <span class="px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-bold">
                                         {{ $archive->department->code ?? 'GEN' }}
@@ -750,7 +767,14 @@
                                 </button>
                             @else
                                 @if($archive->status === 'draft')
-                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-300 border border-slate-300 dark:border-slate-700">Draft</span>
+                                    @if(!empty($archive->rejection_note))
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-300 dark:border-rose-700 inline-flex items-center gap-1 shadow-xs" title="Catatan Revisi Gudang: {{ $archive->rejection_note }}">
+                                            <i data-lucide="alert-circle" class="w-3 h-3 text-rose-600 dark:text-rose-400"></i>
+                                            <span>Perlu Revisi</span>
+                                        </span>
+                                    @else
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-300 border border-slate-300 dark:border-slate-700">Draft</span>
+                                    @endif
                                 @elseif($archive->status === 'pending_verification')
                                     @if(auth()->user()->isPicGudang())
                                         <button 
@@ -896,18 +920,18 @@
                                     </button>
                                 @endif
 
-                                {{-- Tombol Penarikan Box di Gudang (Poin 4) --}}
-                                @if($archive->status === 'in_warehouse' && (auth()->user()->isSuperAdmin() || auth()->user()->isAdmin() || (auth()->user()->isPicDept() && (int)$archive->department_id === (int)auth()->user()->department_id)))
-                                <a href="{{ route('borrowings.create', array_merge(['archive_ids' => $archive->id], request()->has('embed') ? ['embed' => 1] : [])) }}" class="px-2 py-0.5 rounded bg-purple-500/15 hover:bg-purple-500/25 text-purple-700 dark:text-purple-300 border border-purple-500/40 font-bold text-[11px] transition inline-flex items-center gap-1 shadow-xs" title="Ajukan Penarikan Box Ini">
+                                {{-- Tombol Penarikan Box di Gudang (Hanya jika tersimpan di gudang & tidak sedang ditarik) --}}
+                                @if(!$activeBorrowing && $archive->status === 'in_warehouse' && (auth()->user()->isSuperAdmin() || auth()->user()->isAdmin() || (auth()->user()->isPicDept() && (int)$archive->department_id === (int)auth()->user()->department_id)))
+                                <a href="{{ route('borrowings.create', array_merge(['archive_ids' => $archive->id, 'from' => 'archives'], request()->has('embed') ? ['embed' => 1] : [])) }}" class="px-2 py-0.5 rounded bg-purple-500/15 hover:bg-purple-500/25 text-purple-700 dark:text-purple-300 border border-purple-500/40 font-bold text-[11px] transition inline-flex items-center gap-1 shadow-xs" title="Ajukan Penarikan Box Ini">
                                     <i data-lucide="corner-up-right" class="w-3 h-3 text-purple-600 dark:text-purple-400"></i>
                                     <span>Tarik</span>
                                 </a>
                                 @endif
 
                                 @if(!auth()->user()->isPicGudang() && (auth()->user()->isSuperAdmin() || auth()->user()->isAdmin() || (auth()->user()->isPicDept() && (int)$archive->department_id === (int)auth()->user()->department_id && $archive->status === 'draft')))
-                                <a href="{{ route('archives.edit', array_merge(['archive' => $archive->id], request()->has('embed') ? ['embed' => 1] : [])) }}" class="px-2 py-0.5 rounded bg-amber-500 hover:bg-amber-400 text-slate-950 border border-amber-600 font-bold text-[11px] transition inline-flex items-center gap-1 shadow-xs" title="Edit Data Berkas Arsip">
-                                    <i data-lucide="edit-3" class="w-3 h-3 text-slate-950"></i>
-                                    <span>Edit</span>
+                                <a href="{{ route('archives.edit', array_merge(['archive' => $archive->id], request()->has('embed') ? ['embed' => 1] : [])) }}" class="px-2 py-0.5 rounded {{ !empty($archive->rejection_note) ? 'bg-rose-600 hover:bg-rose-500 text-white border border-rose-700 animate-pulse' : 'bg-amber-500 hover:bg-amber-400 text-slate-950 border border-amber-600' }} font-bold text-[11px] transition inline-flex items-center gap-1 shadow-xs" title="{{ !empty($archive->rejection_note) ? 'Perbaiki Pengajuan Sesuai Catatan Revisi Gudang' : 'Edit Data Berkas Arsip' }}">
+                                    <i data-lucide="{{ !empty($archive->rejection_note) ? 'alert-circle' : 'edit-3' }}" class="w-3 h-3"></i>
+                                    <span>{{ !empty($archive->rejection_note) ? 'Revisi & Ajukan' : 'Edit' }}</span>
                                 </a>
 
                                 {{-- Tombol Hapus Draft Arsip (Poin 3) --}}
@@ -2787,6 +2811,17 @@
 @endsection
 
 @push('scripts')
+@php
+    $borrowableArchiveIds = [];
+    foreach ($archives as $arc) {
+        $hasActiveBorrowing = $arc->borrowingLogs && $arc->borrowingLogs->whereIn('status', ['requested', 'dept_approved', 'approved'])->isNotEmpty();
+        $isStoredInWh = $arc->status === 'in_warehouse';
+        $isDeptAllowed = !auth()->user()->isPicDept() || ((int)$arc->department_id === (int)auth()->user()->department_id);
+        if ($isStoredInWh && !$hasActiveBorrowing && $isDeptAllowed) {
+            $borrowableArchiveIds[] = (int) $arc->id;
+        }
+    }
+@endphp
 <script>
 function archiveCatalog() {
     return {
@@ -2871,12 +2906,19 @@ function archiveCatalog() {
 
         // Archive status map for batch action filtering (id -> status)
         archiveStatuses: @json($archives->pluck('status', 'id')),
+        borrowableArchiveIds: @json($borrowableArchiveIds),
 
+        get selectedBorrowable() {
+            return this.selected.filter(id => this.borrowableArchiveIds.includes(Number(id)));
+        },
         get selectedDrafts() {
             return this.selected.filter(id => this.archiveStatuses[id] === 'draft');
         },
         get selectedNonDrafts() {
             return this.selected.filter(id => this.archiveStatuses[id] !== 'draft');
+        },
+        get selectedAlreadyPulled() {
+            return this.selected.filter(id => !this.borrowableArchiveIds.includes(Number(id)) && this.archiveStatuses[id] !== 'draft');
         },
         get selectedPrintable() {
             return this.selected.filter(id => ['approved_booked', 'in_warehouse', 'pending_extension'].includes(this.archiveStatuses[id]));

@@ -49,6 +49,7 @@
              if (this.selectedBorrowingIds.length === 0) return;
              const params = new URLSearchParams();
              params.append('re_store', '1');
+             params.append('from', 'borrowings');
              this.selectedBorrowingIds.forEach(id => params.append('borrowing_ids[]', id));
              @if(request()->has('embed'))
                  params.append('embed', '1');
@@ -95,7 +96,7 @@
             </button>
 
             <!-- Pengajuan Penarikan Berkas (F2) -->
-            <a href="{{ route('borrowings.create') }}" class="px-3 py-1 bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-400 hover:to-emerald-300 text-slate-950 font-mono font-black text-xs rounded border border-emerald-600 shadow transition flex items-center gap-1.5 shrink-0" title="Ajukan Penarikan Berkas Baru">
+            <a href="{{ route('borrowings.create', array_merge(['from' => 'borrowings'], request()->has('embed') ? ['embed' => 1] : [])) }}" class="px-3 py-1 bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-400 hover:to-emerald-300 text-slate-950 font-mono font-black text-xs rounded border border-emerald-600 shadow transition flex items-center gap-1.5 shrink-0" title="Ajukan Penarikan Berkas Baru">
                 <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-slate-950"></i>
                 <span>Buat Pengajuan (F2)</span>
             </a>

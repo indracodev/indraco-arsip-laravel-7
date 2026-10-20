@@ -35,7 +35,7 @@
         window.pdfjsLib.GlobalWorkerOptions.workerSrc = "{{ asset('js/vendor/pdf.worker.min.js') }}";
     }
 </script>
-<script src="{{ asset('js/file-uploader-preview.js') }}"></script>
+<script src="{{ asset('js/file-uploader-preview.js') }}?v={{ @filemtime(public_path('js/file-uploader-preview.js')) }}"></script>
 <script defer src="{{ asset('js/vendor/alpine.min.js') }}"></script>
 
 <script>
@@ -66,12 +66,20 @@
             document.cookie = "dms_client=desktop; path=/; max-age=86400; SameSite=Lax";
         }
 
+        // Store active path to localStorage so upon reconnect or reload, client returns to this exact page
+        try {
+            var curPath = window.location.pathname;
+            if (curPath && curPath !== '/' && curPath !== '/login' && curPath !== '/logout') {
+                localStorage.setItem('indraco_dms_last_active_path', curPath + window.location.search);
+            }
+        } catch (e) {}
+
         var failedCount = 0;
         var checkTimer = null;
 
         function runHeartbeat() {
             var controller = new AbortController();
-            var timeout = setTimeout(function() { controller.abort(); }, 2500);
+            var timeout = setTimeout(function() { controller.abort(); }, 5000);
 
             fetch('/api/health/ping?_t=' + Date.now(), {
                 method: 'GET',
@@ -94,12 +102,17 @@
 
         function handleDisconnect() {
             failedCount++;
-            if (failedCount >= 2) {
-                if (isTauri) {
-                    window.location.replace('http://tauri.localhost/index.html?offline=1');
-                } else {
-                    showOfflineOverlay();
-                }
+            if (failedCount >= 3) {
+                // Ensure current page path is preserved before showing offline state
+                try {
+                    var curPath = window.location.pathname;
+                    if (curPath && curPath !== '/' && curPath !== '/login' && curPath !== '/logout') {
+                        localStorage.setItem('indraco_dms_last_active_path', curPath + window.location.search);
+                    }
+                } catch (e) {}
+
+                // Keep user in-place on current form page instead of dumping out to initial screen!
+                showOfflineOverlay();
             }
         }
 
@@ -136,7 +149,7 @@
                     <div style="display:inline-block;padding:3px 12px;border-radius:99px;font-size:11px;font-weight:600;background:#fff1f2;color:#9f1239;border:1px solid #fecdd3;margin-bottom:14px;">Jalur: Tidak Terhubung</div>
 
                     <p style="font-size:13px;line-height:1.55;color:#475569;margin:0 0 22px 0;">
-                        Layanan arsip tidak merespons (server mati atau kabel jaringan terlepas). Mencoba menghubungkan kembali otomatis dalam <strong id="indracoCountdownText" style="color:#2563eb;font-family:monospace;font-size:15px;">5</strong> detik...
+                        Layanan arsip tidak merespons (server mati atau kabel jaringan terlepas). Data input formulir Anda tetap aman di halaman ini. Mencoba menghubungkan kembali otomatis dalam <strong id="indracoCountdownText" style="color:#2563eb;font-family:monospace;font-size:15px;">5</strong> detik...
                     </p>
 
                     <div style="display:flex;gap:10px;justify-content:center;">
@@ -174,7 +187,7 @@
                         if (r.ok) {
                             clearInterval(cdInterval);
                             removeOfflineOverlay();
-                            window.location.reload();
+                            // Data in current DOM remains 100% safe without having to reload!
                         } else {
                             if (btn) btn.textContent = 'Hubungkan Sekarang';
                         }
@@ -190,12 +203,146 @@
             if (el) el.remove();
         }
 
-        checkTimer = setInterval(runHeartbeat, 3000);
+        checkTimer = setInterval(runHeartbeat, 8000);
         window.addEventListener('offline', handleDisconnect);
+
+        // Warn user before closing window/tab if inside a form editing page or active form input
+        window.addEventListener('beforeunload', function(e) {
+            if (window.formSubmitted) return;
+
+            var formModal = document.getElementById('form-pengajuan-print-document');
+            var isModalOpen = formModal && formModal.offsetParent !== null;
+
+            // Check if active form has unsaved user inputs
+            var activeForm = document.getElementById('archiveCreateForm') || document.querySelector('form[action*="borrowings.store"]');
+            var isDirtyForm = false;
+            if (activeForm) {
+                var inputs = activeForm.querySelectorAll('input[type="text"]:not([readonly]), textarea');
+                for (var i = 0; i < inputs.length; i++) {
+                    if (inputs[i].value && inputs[i].value.trim().length > 0) {
+                        isDirtyForm = true;
+                        break;
+                    }
+                }
+            }
+
+            if (isModalOpen || isDirtyForm) {
+                e.preventDefault();
+                e.returnValue = 'Data pengajuan formulir belum disimpan ke server. Apakah Anda yakin ingin meninggalkan atau memuat ulang halaman?';
+                return e.returnValue;
+            }
+        });
+
+        // Global Keyboard Shortcuts (F5, Ctrl+R, Ctrl+Shift+R) Protection inside Iframes & Pages
+        window.addEventListener('keydown', function(e) {
+            var isCtrlR = (e.ctrlKey || e.metaKey) && (e.key === 'r' || e.key === 'R');
+            var isF5 = e.key === 'F5';
+
+            if (isF5 || isCtrlR) {
+                // If inside an MDI child iframe, refresh only this iframe without losing the parent desktop shell
+                if (window.self !== window.top) {
+                    if (e.shiftKey) {
+                        // Ctrl+Shift+R: Notify parent desktop to persist state and reload
+                        try {
+                            window.parent.postMessage({ type: 'DMS_HARD_REFRESH' }, '*');
+                        } catch (err) {}
+                    } else {
+                        // Regular F5 or Ctrl+R: Refresh only this active iframe form in-place
+                        e.preventDefault();
+                        window.location.reload();
+                    }
+                }
+            }
+        });
     })();
 
     // PT INDRACO DMS - Cross-Frame & Desktop Client Unified Print Engine
     (function() {
+        function getCleanPrintHtml(sourceEl) {
+            if (!sourceEl) return '';
+
+            // Blur active element to ensure in-progress edits/events commit
+            if (document.activeElement && typeof document.activeElement.blur === 'function') {
+                try { document.activeElement.blur(); } catch (e) {}
+            }
+
+            var clone = sourceEl.cloneNode(true);
+
+            // 1. Sync live form control values (inputs, textareas, selects) 1-to-1 from source to clone
+            var srcInputs = sourceEl.querySelectorAll('input, textarea, select');
+            var cloneInputs = clone.querySelectorAll('input, textarea, select');
+            for (var m = 0; m < srcInputs.length && m < cloneInputs.length; m++) {
+                var sNode = srcInputs[m];
+                var cNode = cloneInputs[m];
+                if (!sNode || !cNode) continue;
+                if (sNode.tagName === 'INPUT') {
+                    if (sNode.type === 'checkbox' || sNode.type === 'radio') {
+                        if (sNode.checked) {
+                            cNode.setAttribute('checked', 'checked');
+                            cNode.checked = true;
+                        } else {
+                            cNode.removeAttribute('checked');
+                            cNode.checked = false;
+                        }
+                    } else {
+                        cNode.setAttribute('value', sNode.value || '');
+                        cNode.value = sNode.value || '';
+                    }
+                } else if (sNode.tagName === 'TEXTAREA') {
+                    cNode.textContent = sNode.value || '';
+                    cNode.value = sNode.value || '';
+                } else if (sNode.tagName === 'SELECT') {
+                    cNode.value = sNode.value;
+                }
+            }
+
+            // 2. Remove all <template> tags (Alpine x-for templates, etc.) so they don't break outside Alpine scope
+            var templates = clone.querySelectorAll('template');
+            for (var i = 0; i < templates.length; i++) {
+                if (templates[i].parentNode) {
+                    templates[i].parentNode.removeChild(templates[i]);
+                }
+            }
+
+            // 3. Remove all Alpine.js directives, event bindings, and editing attributes from all nodes
+            var allElements = [clone].concat(Array.prototype.slice.call(clone.querySelectorAll('*')));
+            for (var i = 0; i < allElements.length; i++) {
+                var node = allElements[i];
+                if (!node.attributes) continue;
+
+                var toRemove = [];
+                for (var j = 0; j < node.attributes.length; j++) {
+                    var attr = node.attributes[j];
+                    var name = attr.name.toLowerCase();
+                    // Strip all Alpine directives (x-*), event bindings (@*), dynamic bindings (:*), and editing flags
+                    if (name.indexOf('x-') === 0 || 
+                        name.indexOf('@') === 0 || 
+                        name.indexOf(':') === 0 || 
+                        name === 'contenteditable' || 
+                        name === 'tabindex') {
+                        toRemove.push(attr.name);
+                    }
+                }
+                for (var k = 0; k < toRemove.length; k++) {
+                    node.removeAttribute(toRemove[k]);
+                }
+            }
+
+            return clone.outerHTML;
+        }
+
+        var defaultPrintStyles = '<style>' +
+            '@page { size: A4 portrait; margin: 5mm 8mm 5mm 8mm; } ' +
+            '* { box-sizing: border-box !important; box-shadow: none !important; text-shadow: none !important; filter: none !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } ' +
+            'html, body { margin: 0 !important; padding: 0 !important; background: #ffffff !important; color: #000000 !important; font-family: Arial, "Helvetica Neue", Helvetica, sans-serif !important; } ' +
+            '#form-pengajuan-print-document { width: 100% !important; max-width: 100% !important; min-height: 0 !important; height: auto !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; border: none !important; background: #ffffff !important; color: #000000 !important; font-family: Arial, "Helvetica Neue", Helvetica, sans-serif !important; font-size: 9pt !important; display: block !important; page-break-inside: avoid !important; break-inside: avoid !important; page-break-after: avoid !important; break-after: avoid !important; } ' +
+            '#form-pengajuan-print-document table { width: 100% !important; border-collapse: collapse !important; page-break-inside: avoid !important; break-inside: avoid !important; } ' +
+            '#form-pengajuan-print-document tr { page-break-inside: avoid !important; break-inside: avoid !important; } ' +
+            '#form-pengajuan-print-document th, #form-pengajuan-print-document td { border-color: #000000 !important; color: #000000 !important; } ' +
+            '.dms-print-container { width: 100% !important; margin: 0 !important; padding: 0 !important; page-break-after: avoid !important; break-after: avoid !important; } ' +
+            '#dms-global-print-portal, #dms-global-print-portal * { visibility: visible !important; color: #000000 !important; } ' +
+            '</style>';
+
         window.dmsPrint = function(elementOrId, customStyles) {
             var el = null;
             if (typeof elementOrId === 'string') {
@@ -204,28 +351,18 @@
                 el = elementOrId;
             }
 
+            var targetDoc = el || document.getElementById('form-pengajuan-print-document') || document.body;
+            var cleanHtml = getCleanPrintHtml(targetDoc);
+            var styles = customStyles || defaultPrintStyles;
+
             // In desktop client or MDI shell, forms are hosted in an iframe
             if (window.parent && window.parent !== window) {
-                var printDoc = el || document.getElementById('form-pengajuan-print-document') || document.body;
-                
-                // Optimal lightweight print styling: pure vector, zero-bloat, standard Arial font (no embedded TTF/WOFF)
-                var cleanStyles = customStyles || ('<style>' +
-                    '@page { size: A4 portrait; margin: 5mm 8mm 5mm 8mm; } ' +
-                    '* { box-sizing: border-box !important; box-shadow: none !important; text-shadow: none !important; filter: none !important; } ' +
-                    'html, body { margin: 0 !important; padding: 0 !important; background: #ffffff !important; color: #000000 !important; font-family: Arial, "Helvetica Neue", Helvetica, sans-serif !important; } ' +
-                    '#form-pengajuan-print-document { width: 100% !important; max-width: 100% !important; min-height: 0 !important; height: auto !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; border: none !important; background: #ffffff !important; color: #000000 !important; font-family: Arial, "Helvetica Neue", Helvetica, sans-serif !important; font-size: 9pt !important; display: block !important; page-break-inside: avoid !important; break-inside: avoid !important; page-break-after: avoid !important; break-after: avoid !important; } ' +
-                    '#form-pengajuan-print-document table { border-collapse: collapse !important; page-break-inside: avoid !important; break-inside: avoid !important; } ' +
-                    '#form-pengajuan-print-document tr { page-break-inside: avoid !important; break-inside: avoid !important; } ' +
-                    '#form-pengajuan-print-document th, #form-pengajuan-print-document td { border-color: #000000 !important; } ' +
-                    '.dms-print-container { width: 100% !important; margin: 0 !important; padding: 0 !important; page-break-after: avoid !important; break-after: avoid !important; } ' +
-                    '</style>');
-
                 try {
                     window.parent.postMessage({
                         type: 'DMS_EXECUTE_PRINT',
-                        html: printDoc.outerHTML,
+                        html: cleanHtml,
                         title: document.title,
-                        styles: cleanStyles
+                        styles: styles
                     }, '*');
                     return;
                 } catch (e) {
@@ -234,25 +371,20 @@
             }
 
             // Normal / Top window context: isolate cleanly into global print portal
-            var targetDoc = el || document.getElementById('form-pengajuan-print-document') || document.body;
-            var targetStyles = customStyles || ('<style>' +
-                '@page { size: A4 portrait; margin: 5mm 8mm 5mm 8mm; } ' +
-                '* { box-sizing: border-box !important; } ' +
-                'html, body { margin: 0 !important; padding: 0 !important; background: #ffffff !important; color: #000000 !important; font-family: Arial, sans-serif !important; } ' +
-                '.dms-print-container { width: 100% !important; margin: 0 !important; padding: 0 !important; } ' +
-                '</style>');
-
             var portal = document.getElementById('dms-global-print-portal');
             if (!portal) {
                 portal = document.createElement('div');
                 portal.id = 'dms-global-print-portal';
                 document.body.appendChild(portal);
             }
-            portal.innerHTML = targetStyles + '<div class="dms-print-container">' + targetDoc.outerHTML + '</div>';
+            portal.innerHTML = styles + '<div class="dms-print-container">' + cleanHtml + '</div>';
             document.body.classList.add('has-dms-print-portal');
             window.focus();
             setTimeout(function() {
                 (nativePrint || window.print).call(window);
+                setTimeout(function() {
+                    document.body.classList.remove('has-dms-print-portal');
+                }, 300);
             }, 100);
         };
 
@@ -260,31 +392,67 @@
         if (window === window.top) {
             window.addEventListener('message', function(event) {
                 if (event.data && event.data.type === 'DMS_EXECUTE_PRINT') {
+                    var sourceWindow = event.source;
                     var portal = document.getElementById('dms-global-print-portal');
                     if (!portal) {
                         portal = document.createElement('div');
                         portal.id = 'dms-global-print-portal';
                         document.body.appendChild(portal);
                     }
-                    portal.innerHTML = (event.data.styles || '') + '<div class="dms-print-container">' + event.data.html + '</div>';
+                    portal.innerHTML = (event.data.styles || defaultPrintStyles) + '<div class="dms-print-container">' + (event.data.html || '') + '</div>';
                     document.body.classList.add('has-dms-print-portal');
                     window.focus();
                     setTimeout(function() {
-                        window.print();
+                        try {
+                            window.print();
+                        } finally {
+                            document.body.classList.remove('has-dms-print-portal');
+                            if (portal) portal.innerHTML = '';
+                            try {
+                                if (sourceWindow && typeof sourceWindow.postMessage === 'function') {
+                                    sourceWindow.postMessage({ type: 'DMS_PRINT_COMPLETED' }, '*');
+                                }
+                            } catch (err) {}
+                        }
                     }, 150);
                 }
             });
-
-            window.addEventListener('afterprint', function() {
-                document.body.classList.remove('has-dms-print-portal');
-                var portal = document.getElementById('dms-global-print-portal');
-                if (portal) portal.innerHTML = '';
-            });
         }
+
+        // Child window listener for print completion from parent shell
+        window.addEventListener('message', function(event) {
+            if (event.data && event.data.type === 'DMS_PRINT_COMPLETED') {
+                document.body.classList.remove('has-dms-print-portal');
+                window.focus();
+            }
+        });
+
+        // Cleanup print portal on afterprint
+        window.addEventListener('afterprint', function() {
+            document.body.classList.remove('has-dms-print-portal');
+            var portal = document.getElementById('dms-global-print-portal');
+            if (portal) portal.innerHTML = '';
+        });
+
+        // Intercept Ctrl+P shortcut when print preview modal is open
+        window.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && (e.key === 'p' || e.key === 'P')) {
+                var printDoc = document.getElementById('form-pengajuan-print-document');
+                if (printDoc && printDoc.offsetParent !== null) {
+                    e.preventDefault();
+                    window.dmsPrint(printDoc);
+                }
+            }
+        });
 
         // Wrap default window.print so any direct call (even third-party) routes cleanly
         var nativePrint = window.print;
         window.print = function() {
+            var printDoc = document.getElementById('form-pengajuan-print-document');
+            if (printDoc && printDoc.offsetParent !== null && !document.body.classList.contains('has-dms-print-portal')) {
+                window.dmsPrint(printDoc);
+                return;
+            }
             if (window.parent && window.parent !== window) {
                 window.dmsPrint();
                 return;
@@ -295,6 +463,11 @@
 </script>
 
 <style>
+@media screen {
+    #dms-global-print-portal {
+        display: none !important;
+    }
+}
 @media print {
     body.has-dms-print-portal > *:not(#dms-global-print-portal) {
         display: none !important;
@@ -310,6 +483,11 @@
         background: #ffffff !important;
         color: #000000 !important;
         z-index: 99999999 !important;
+    }
+    #dms-global-print-portal,
+    #dms-global-print-portal * {
+        visibility: visible !important;
+        color: #000000 !important;
     }
 }
 </style>

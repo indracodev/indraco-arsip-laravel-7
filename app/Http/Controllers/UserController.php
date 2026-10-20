@@ -180,4 +180,78 @@ class UserController extends Controller
         return redirect()->route('master.users')
             ->with('success', "Selesai Impersonasi: Anda telah kembali ke akun SuperAdmin {$admin->name}.");
     }
+
+    /**
+     * User self-service change password
+     */
+    public function changePassword(Request $request)
+    {
+        $user = auth()->user();
+
+        $request->validate([
+            'current_password' => ['required', 'string'],
+            'password' => ['required', 'string', 'min:6', 'confirmed'],
+        ], [
+            'current_password.required' => 'Password saat ini wajib diisi.',
+            'password.required' => 'Password baru wajib diisi.',
+            'password.min' => 'Password baru minimal 6 karakter.',
+            'password.confirmed' => 'Konfirmasi password baru tidak cocok.',
+        ]);
+
+        if (!Hash::check($request->current_password, $user->password)) {
+            return back()->withErrors(['current_password' => 'Password saat ini yang Anda masukkan salah.'])->withInput();
+        }
+
+        $user->update([
+            'password' => Hash::make($request->password),
+        ]);
+
+        ActivityLogger::log(
+            'PASSWORD_CHANGE',
+            "Pengguna '{$user->name}' ({$user->role_label}) berhasil memperbarui password akunnya secara mandiri.",
+            'AUTH',
+            [
+                'user_id' => $user->id,
+                'email' => $user->email,
+            ],
+            $user->name,
+            $user
+        );
+
+        return back()->with('success', 'Password Anda berhasil diperbarui.');
+    }
+
+    /**
+     * Super Admin reset user password
+     */
+    public function resetPassword(Request $request, User $user)
+    {
+        $admin = auth()->user();
+
+        $request->validate([
+            'password' => ['required', 'string', 'min:6'],
+        ], [
+            'password.required' => 'Password baru wajib diisi.',
+            'password.min' => 'Password baru minimal 6 karakter.',
+        ]);
+
+        $user->update([
+            'password' => Hash::make($request->password),
+        ]);
+
+        ActivityLogger::log(
+            'USER_PASSWORD_RESET',
+            "Super Admin '{$admin->name}' mereset password untuk pengguna '{$user->name}' ({$user->email}).",
+            'USER_MANAGEMENT',
+            [
+                'admin_id' => $admin->id,
+                'user_id' => $user->id,
+                'email' => $user->email,
+            ],
+            $user->name,
+            $admin
+        );
+
+        return back()->with('success', "Password untuk pengguna {$user->name} ({$user->email}) berhasil di-reset.");
+    }
 }

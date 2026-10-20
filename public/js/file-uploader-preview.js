@@ -149,6 +149,7 @@ function dmsFileUploader(config) {
         errorMessage: '',
         isOverLimit: false,
         hasFile: false,
+        hasRemovedExisting: false,
 
         init() {
             this.$watch('hasFile', () => {
@@ -157,6 +158,34 @@ function dmsFileUploader(config) {
             this.$watch('isOptimizing', () => {
                 this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
             });
+            this.$watch('hasRemovedExisting', () => {
+                this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+            });
+        },
+
+        removeExisting() {
+            this.hasRemovedExisting = true;
+            this.clearFile();
+            this.$dispatch('file-change', {
+                name: this.inputName,
+                hasFile: false,
+                hasExisting: false,
+                isOverLimit: false,
+                file: null
+            });
+            this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+        },
+
+        restoreExisting() {
+            this.hasRemovedExisting = false;
+            this.$dispatch('file-change', {
+                name: this.inputName,
+                hasFile: false,
+                hasExisting: !!this.existingUrl,
+                isOverLimit: false,
+                file: null
+            });
+            this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
         },
 
         async handleFileInput(event) {
@@ -232,6 +261,7 @@ function dmsFileUploader(config) {
             }
 
             // 4. File Valid & Aman: Set Active File Info & Object URL Preview
+            this.hasRemovedExisting = false;
             this.file = selectedFile;
             this.fileName = selectedFile.name;
             this.fileSizeFormatted = window.DmsFileOptimizer.formatBytes(selectedFile.size);
@@ -245,6 +275,7 @@ function dmsFileUploader(config) {
             this.$dispatch('file-change', {
                 name: this.inputName,
                 hasFile: true,
+                hasExisting: true,
                 isOverLimit: false,
                 file: selectedFile
             });
@@ -271,6 +302,7 @@ function dmsFileUploader(config) {
             this.$dispatch('file-change', {
                 name: this.inputName,
                 hasFile: false,
+                hasExisting: !this.hasRemovedExisting && !!this.existingUrl,
                 isOverLimit: false,
                 file: null
             });

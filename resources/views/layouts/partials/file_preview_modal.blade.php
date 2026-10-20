@@ -98,46 +98,70 @@
                 <template x-if="fileType === 'image'">
                     <div class="flex items-center gap-1 bg-slate-200/80 dark:bg-slate-800 rounded-xl p-1 text-slate-700 dark:text-slate-300">
                         <button type="button" @click="zoomOut()" title="Perkecil (-)" class="p-1.5 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition cursor-pointer">
-                            <i data-lucide="zoom-out" class="w-4 h-4"></i>
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
                         </button>
                         <span class="text-[10px] font-mono font-bold px-1 min-w-[42px] text-center" x-text="Math.round(zoom * 100) + '%'"></span>
                         <button type="button" @click="zoomIn()" title="Perbesar (+)" class="p-1.5 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition cursor-pointer">
-                            <i data-lucide="zoom-in" class="w-4 h-4"></i>
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
                         </button>
-                        <button type="button" @click="rotate()" title="Putar 90° Searah Jarum Jam" class="p-1.5 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition ml-1 cursor-pointer">
-                            <i data-lucide="rotate-cw" class="w-4 h-4"></i>
+                        <span class="text-slate-400 dark:text-slate-600">|</span>
+                        <button type="button" @click="rotateCcw()" title="Putar 90° Berlawanan Jarum Jam (Kiri)" class="p-1.5 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition cursor-pointer">
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
                         </button>
-                        <button type="button" @click="resetView()" title="Reset Tampilan (Fit 1:1)" class="p-1.5 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition cursor-pointer">
-                            <i data-lucide="refresh-ccw" class="w-3.5 h-3.5"></i>
+                        <button type="button" @click="rotateCw()" title="Putar 90° Searah Jarum Jam (Kanan)" class="p-1.5 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition cursor-pointer">
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.85.99 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+                        </button>
+                        <button type="button" @click="flip180()" title="Balik 180° (Putar Balik Terbalik)" class="p-1.5 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition cursor-pointer flex items-center gap-1 text-[10px] font-mono font-bold px-1.5 text-amber-600 dark:text-amber-400">
+                            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+                            <span>180°</span>
+                        </button>
+                        <span class="text-slate-400 dark:text-slate-600">|</span>
+                        <button type="button" @click="resetView()" title="Reset Tampilan (Fit 1:1, Orientasi 0°)" class="p-1.5 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition cursor-pointer">
+                            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
                         </button>
                     </div>
                 </template>
 
-                {{-- PDF Interactive Inspection Tools (Pagination & Zoom) --}}
+                {{-- PDF Interactive Inspection Tools (Pagination, Zoom & Rotation) --}}
                 <template x-if="fileType === 'pdf' && !loadingPdf && !pdfError">
                     <div class="flex items-center gap-1 bg-slate-200/80 dark:bg-slate-800 rounded-xl p-1 text-slate-700 dark:text-slate-300">
                         {{-- Prev Page --}}
                         <button type="button" @click="pdfPrevPage()" :disabled="pdfPageNum <= 1" title="Halaman Sebelumnya" class="p-1.5 hover:bg-white dark:hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed rounded-lg transition cursor-pointer">
-                            <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
                         </button>
                         <span class="text-[10px] font-mono font-bold px-1 min-w-[48px] text-center" x-text="pdfPageNum + ' / ' + pdfTotalPages"></span>
                         {{-- Next Page --}}
                         <button type="button" @click="pdfNextPage()" :disabled="pdfPageNum >= pdfTotalPages" title="Halaman Berikutnya" class="p-1.5 hover:bg-white dark:hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed rounded-lg transition cursor-pointer">
-                            <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
                         </button>
                         <span class="text-slate-400 dark:text-slate-600">|</span>
                         {{-- Zoom Out --}}
                         <button type="button" @click="pdfZoomOut()" title="Perkecil (-)" class="p-1.5 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition cursor-pointer">
-                            <i data-lucide="zoom-out" class="w-4 h-4"></i>
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
                         </button>
                         <span class="text-[10px] font-mono font-bold px-1 min-w-[40px] text-center" x-text="Math.round(pdfScale * 100) + '%'"></span>
                         {{-- Zoom In --}}
                         <button type="button" @click="pdfZoomIn()" title="Perbesar (+)" class="p-1.5 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition cursor-pointer">
-                            <i data-lucide="zoom-in" class="w-4 h-4"></i>
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
                         </button>
-                        {{-- Reset Fit Zoom --}}
-                        <button type="button" @click="pdfResetZoom()" title="Reset Ukuran (Fit 125%)" class="p-1.5 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition cursor-pointer">
-                            <i data-lucide="maximize" class="w-3.5 h-3.5"></i>
+                        <span class="text-slate-400 dark:text-slate-600">|</span>
+                        {{-- Rotate CCW --}}
+                        <button type="button" @click="rotatePdfCcw()" title="Putar 90° Berlawanan Jarum Jam (Kiri)" class="p-1.5 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition cursor-pointer">
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                        </button>
+                        {{-- Rotate CW --}}
+                        <button type="button" @click="rotatePdfCw()" title="Putar 90° Searah Jarum Jam (Kanan)" class="p-1.5 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition cursor-pointer">
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.85.99 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+                        </button>
+                        {{-- Flip 180 --}}
+                        <button type="button" @click="flipPdf180()" title="Balik 180° (Putar Balik Terbalik)" class="p-1.5 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition cursor-pointer flex items-center gap-1 text-[10px] font-mono font-bold px-1.5 text-amber-600 dark:text-amber-400">
+                            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+                            <span>180°</span>
+                        </button>
+                        <span class="text-slate-400 dark:text-slate-600">|</span>
+                        {{-- Reset Fit Zoom & Rotation --}}
+                        <button type="button" @click="pdfResetZoom()" title="Reset Ukuran & Orientasi Normal" class="p-1.5 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition cursor-pointer">
+                            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
                         </button>
                     </div>
                 </template>
@@ -202,7 +226,7 @@
                              :alt="fileName"
                              class="select-none pointer-events-none rounded-lg shadow-2xl transition-transform duration-75 block"
                              :class="zoom === 1.0 && rotation === 0 && panX === 0 && panY === 0 ? 'w-full max-w-full h-auto' : 'max-w-none'"
-                             :style="`transform: translate(${panX}px, ${panY}px) scale(${zoom}) rotate(${rotation}deg); transform-origin: top center;`"
+                             :style="`transform: translate(${panX}px, ${panY}px) scale(${zoom}) rotate(${rotation}deg); transform-origin: center center;`"
                         />
                     </div>
 
@@ -255,14 +279,31 @@
                         </div>
                     </div>
 
-                    {{-- Floating Bottom Page Switcher (for Multi-Page Documents) --}}
-                    <div x-show="!loadingPdf && !pdfError && pdfTotalPages > 1" x-cloak class="sticky bottom-2 z-20 flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950/85 backdrop-blur-md border border-slate-800 text-[11px] font-mono text-slate-300 shadow-xl">
-                        <button type="button" @click="pdfPrevPage()" :disabled="pdfPageNum <= 1" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer">
-                            ◀ Hal Sebelumnya
+                    {{-- Floating Bottom Page Switcher (for Multi-Page Documents) & Quick Rotate Tools --}}
+                    <div x-show="!loadingPdf && !pdfError" x-cloak class="sticky bottom-2 z-20 flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950/85 backdrop-blur-md border border-slate-800 text-[11px] font-mono text-slate-300 shadow-xl">
+                        <template x-if="pdfTotalPages > 1">
+                            <div class="flex items-center gap-1.5">
+                                <button type="button" @click="pdfPrevPage()" :disabled="pdfPageNum <= 1" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer">
+                                    ◀ Hal Sebelumnya
+                                </button>
+                                <span class="px-2 font-bold text-amber-400" x-text="pdfPageNum + ' / ' + pdfTotalPages"></span>
+                                <button type="button" @click="pdfNextPage()" :disabled="pdfPageNum >= pdfTotalPages" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer">
+                                    Hal Berikutnya ▶
+                                </button>
+                                <span class="text-slate-600 mx-0.5">|</span>
+                            </div>
+                        </template>
+
+                        {{-- Quick Rotation in Bottom Bar --}}
+                        <button type="button" @click="rotatePdfCcw()" title="Putar 90° Kiri (Berlawanan Jarum Jam)" class="p-1 hover:bg-slate-800 rounded transition cursor-pointer text-slate-300">
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
                         </button>
-                        <span class="px-2 font-bold text-amber-400" x-text="pdfPageNum + ' / ' + pdfTotalPages"></span>
-                        <button type="button" @click="pdfNextPage()" :disabled="pdfPageNum >= pdfTotalPages" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer">
-                            Hal Berikutnya ▶
+                        <button type="button" @click="rotatePdfCw()" title="Putar 90° Kanan (Searah Jarum Jam)" class="p-1 hover:bg-slate-800 rounded transition cursor-pointer text-slate-300">
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.85.99 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+                        </button>
+                        <button type="button" @click="flipPdf180()" title="Balik 180° (Putar Balik Terbalik)" class="px-1.5 py-0.5 hover:bg-slate-800 rounded transition cursor-pointer flex items-center gap-1 font-bold text-[10px] text-amber-400">
+                            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+                            <span>180°</span>
                         </button>
                     </div>
                 </div>
@@ -358,6 +399,7 @@ function filePreviewModalHandler() {
         pdfPageNum: 1,
         pdfTotalPages: 1,
         pdfScale: 1.25,
+        pdfRotation: 0,
         pdfRendering: false,
         pdfPendingPage: null,
         loadingPdf: false,
@@ -426,6 +468,7 @@ function filePreviewModalHandler() {
             this.textContent = '';
 
             // Reset viewer transforms
+            this.pdfRotation = 0;
             this.resetView();
 
             // Destroy previous raw PDF document instance
@@ -579,8 +622,11 @@ function filePreviewModalHandler() {
                     return;
                 }
 
+                const baseRotation = (page.rotate || 0);
+                const totalRotation = (baseRotation + this.pdfRotation) % 360;
+
                 if (autoFit && scrollArea) {
-                    const unscaled = page.getViewport({ scale: 1.0 });
+                    const unscaled = page.getViewport({ scale: 1.0, rotation: totalRotation });
                     // Stretch horizontal (kanan-kiri) menyesuaikan lebar modal
                     // Jika tinggi dokumen melebihi modal, dokumen dapat di-scroll vertikal secara penuh
                     const padding = window.innerWidth < 640 ? 32 : 48;
@@ -590,7 +636,7 @@ function filePreviewModalHandler() {
                 }
 
                 const ctx = canvas.getContext('2d');
-                const viewport = page.getViewport({ scale: this.pdfScale });
+                const viewport = page.getViewport({ scale: this.pdfScale, rotation: totalRotation });
                 const outputScale = window.devicePixelRatio || 1;
 
                 canvas.width = Math.floor(viewport.width * outputScale);
@@ -659,7 +705,30 @@ function filePreviewModalHandler() {
         },
 
         pdfResetZoom() {
+            this.pdfRotation = 0;
             this.renderPdfPage(this.pdfPageNum, true);
+        },
+
+        rotatePdfCw() {
+            this.pdfRotation = (this.pdfRotation + 90) % 360;
+            this.pdfQueueRenderPage(this.pdfPageNum);
+            this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+        },
+
+        rotatePdfCcw() {
+            this.pdfRotation = (this.pdfRotation + 270) % 360;
+            this.pdfQueueRenderPage(this.pdfPageNum);
+            this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+        },
+
+        flipPdf180() {
+            this.pdfRotation = (this.pdfRotation + 180) % 360;
+            this.pdfQueueRenderPage(this.pdfPageNum);
+            this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+        },
+
+        rotatePdf() {
+            this.rotatePdfCw();
         },
 
         // Transform Controls (Zoom, Pan, Rotate)
@@ -679,8 +748,23 @@ function filePreviewModalHandler() {
             }
         },
 
-        rotate() {
+        rotateCw() {
             this.rotation = (this.rotation + 90) % 360;
+            this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+        },
+
+        rotateCcw() {
+            this.rotation = (this.rotation + 270) % 360;
+            this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+        },
+
+        flip180() {
+            this.rotation = (this.rotation + 180) % 360;
+            this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+        },
+
+        rotate() {
+            this.rotateCw();
         },
 
         resetView() {
@@ -689,6 +773,7 @@ function filePreviewModalHandler() {
             this.panX = 0;
             this.panY = 0;
             this.isDragging = false;
+            this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
         },
 
         // Mouse Drag to Pan (Geser)
@@ -742,6 +827,7 @@ function filePreviewModalHandler() {
             this.fileType = '';
             this.loadingPdf = false;
             this.pdfError = null;
+            this.pdfRotation = 0;
             this.resetView();
         }
     };

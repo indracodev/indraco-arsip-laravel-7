@@ -389,5 +389,124 @@ class MultiBoxCreateTest extends TestCase
         $item1 = ArchiveItem::where('archive_id', $box1->id)->first();
         $this->assertEquals('Catatan berkas khusus baris 1', $item1->notes);
     }
+
+    public function test_duplicate_box_name_is_rejected_in_submission()
+    {
+        Storage::fake('public');
+        $dept = Department::where('code', 'FIN')->first();
+        $user = User::firstOrCreate(
+            ['email' => 'pic_fin_dup_test@indraco.com'],
+            [
+                'name' => 'PIC Finance Dup',
+                'password' => bcrypt('password'),
+                'role' => 'pic_dept',
+                'department_id' => $dept->id,
+            ]
+        );
+
+        $scanFile = UploadedFile::fake()->create('scan_form.pdf', 100, 'application/pdf');
+
+        // Payload with 2 boxes having identical names in the same batch
+        $payloadBatchDup = [
+            'department_id' => $dept->id,
+            'company_name' => 'PT INDRACO GLOBAL INDONESIA',
+            'tgl_penyerahan' => date('Y-m-d'),
+            'submit_action' => 'submit',
+            'scan_input_form' => $scanFile,
+            'boxes' => [
+                [
+                    'title' => 'BOX-FIN-2026-SAME',
+                    'physical_condition' => 'Baik / Box Karton Standar TB 30g',
+                    'items' => [
+                        ['document_name' => 'Dokumen A', 'period_start' => '2024-01', 'period_end' => '2024-01', 'notes' => '']
+                    ]
+                ],
+                [
+                    'title' => 'BOX-FIN-2026-SAME',
+                    'physical_condition' => 'Baik / Box Karton Standar TB 30g',
+                    'items' => [
+                        ['document_name' => 'Dokumen B', 'period_start' => '2024-01', 'period_end' => '2024-01', 'notes' => '']
+                    ]
+                ]
+            ]
+        ];
+
+        $response = $this->actingAs($user)->post(route('archives.store'), $payloadBatchDup);
+        $response->assertSessionHasErrors(['boxes']);
+        $this->assertDatabaseMissing('archives', ['title' => 'BOX-FIN-2026-SAME']);
+    }
+
+    public function test_restored_box_from_borrowing_allows_same_box_name()
+    {
+        Storage::fake('public');
+        $dept = Department::where('code', 'FIN')->first();
+        $user = User::firstOrCreate(
+            ['email' => 'pic_fin_restore_test@indraco.com'],
+            [
+                'name' => 'PIC Finance Restore',
+                'password' => bcrypt('password'),
+                'role' => 'pic_dept',
+                'department_id' => $dept->id,
+            ]
+        );
+
+        // Buat arsip awal yang sudah pernah ditarik
+        $originalArchive = Archive::create([
+            'department_id' => $dept->id,
+            'title' => 'BOX-FIN-2026-PULANG',
+            'box_number' => 'BOX-FIN-2026-PULANG',
+            'status' => 'borrowed',
+            'created_by_user_id' => $user->id,
+            'tgl_penyerahan' => date('Y-m-d'),
+            'periode' => '1 Bulan',
+            'period_start_date' => date('Y-m-01'),
+            'period_end_date' => date('Y-m-t'),
+            'periode_doc' => date('Y/m'),
+            'content_description' => '1. Arsip Lama',
+            'physical_condition' => 'Baik / Box Karton Standar TB 30g',
+        ]);
+
+        $borrowingLog = \App\Models\BorrowingLog::create([
+            'archive_id' => $originalArchive->id,
+            'borrower_user_id' => $user->id,
+            'request_date' => date('Y-m-d'),
+            'purpose' => 'Audit Pajak',
+            'status' => 'approved',
+            'borrow_date' => date('Y-m-d'),
+        ]);
+
+        $scanFile = UploadedFile::fake()->create('scan_form_restore.pdf', 100, 'application/pdf');
+
+        // Pengajuan kembali dengan box yang sama (origin_archive_id dan origin_borrowing_log_id disertakan)
+        $payloadRestore = [
+            'department_id' => $dept->id,
+            'company_name' => 'PT INDRACO GLOBAL INDONESIA',
+            'tgl_penyerahan' => date('Y-m-d'),
+            'submit_action' => 'submit',
+            'scan_input_form' => $scanFile,
+            'boxes' => [
+                [
+                    'title' => 'BOX-FIN-2026-PULANG',
+                    'physical_condition' => 'Baik / Box Karton Standar TB 30g',
+                    'origin_archive_id' => $originalArchive->id,
+                    'origin_borrowing_log_id' => $borrowingLog->id,
+                    'items' => [
+                        ['document_name' => 'Dokumen Pulang Kembali', 'period_start' => '2024-01', 'period_end' => '2024-01', 'notes' => '']
+                    ]
+                ]
+            ]
+        ];
+
+        $response = $this->actingAs($user)->post(route('archives.store'), $payloadRestore);
+        $response->assertSessionHasNoErrors();
+        $response->assertRedirect(route('borrowings.index'));
+
+        // Cek bahwa pengajuan baru berhasil dibuat dengan status pending_verification
+        $restoredArchive = Archive::where('title', 'BOX-FIN-2026-PULANG')
+            ->where('status', 'pending_verification')
+            ->first();
+        $this->assertNotNull($restoredArchive);
+        $this->assertEquals($originalArchive->box_number, $restoredArchive->box_number);
+    }
 }
 

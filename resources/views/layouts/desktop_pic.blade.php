@@ -1536,7 +1536,44 @@
                         this.applyFontSizeLive(this.currentFontSize);
                     }
 
-                    this.openFormWindow(initialId);
+                    // Restore previous MDI window state across refresh (F5/Ctrl+R/Ctrl+Shift+R) and reconnect
+                    let restored = false;
+                    try {
+                        const raw = sessionStorage.getItem('dms_pic_mdi_state') || localStorage.getItem('dms_pic_mdi_state');
+                        if (raw) {
+                            const saved = JSON.parse(raw);
+                            if (saved && Array.isArray(saved.openWindows) && saved.openWindows.length > 0) {
+                                this.openWindows = saved.openWindows.map(w => ({
+                                    ...w,
+                                    loading: true,
+                                    isDragging: false,
+                                    startX: 0,
+                                    startY: 0
+                                }));
+                                this.activeWinId = saved.activeWinId || (this.openWindows[0] ? this.openWindows[0].id : null);
+                                this.maxZIndex = Math.max(...this.openWindows.map(w => w.zIndex || 10), 10);
+                                restored = true;
+                            }
+                        }
+                    } catch (e) {}
+
+                    if (restored) {
+                        @if(!request()->is('/') && !request()->routeIs('archives.index'))
+                        if (!this.openWindows.some(w => w.id === initialId)) {
+                            this.openFormWindow(initialId);
+                        } else {
+                            this.focusWindow(initialId);
+                        }
+                        @endif
+                    } else {
+                        this.openFormWindow(initialId);
+                    }
+
+                    // Watch changes and persist MDI state reactively
+                    this.$watch('openWindows', () => this.saveMdiState());
+                    this.$watch('activeWinId', () => this.saveMdiState());
+                    window.addEventListener('beforeunload', () => this.saveMdiState());
+
                     this.startSystemMonitor();
                     this.initRealtimePoller();
 
@@ -1548,6 +1585,11 @@
 
                     // Listen to cross-frame toast notifications and badge updates from forms in iframes
                     window.addEventListener('message', (event) => {
+                        if (event.data && event.data.type === 'DMS_HARD_REFRESH') {
+                            this.saveMdiState();
+                            window.location.reload();
+                            return;
+                        }
                         if (event.data && event.data.type === 'UPDATE_FORM_BADGE') {
                             const target = this.availableForms.find(f => f.id === event.data.formId);
                             if (target) {
@@ -2031,6 +2073,34 @@
                         this.activeWinId = win.id;
                         if (win.minimized) win.minimized = false;
                     }
+                },
+
+                saveMdiState() {
+                    try {
+                        if (!Array.isArray(this.openWindows)) return;
+                        const state = {
+                            openWindows: this.openWindows.map(w => ({
+                                id: w.id,
+                                title: w.title,
+                                icon: w.icon,
+                                url: w.url,
+                                posX: w.posX || 0,
+                                posY: w.posY || 0,
+                                zIndex: w.zIndex || 10,
+                                maximized: !!w.maximized,
+                                minimized: !!w.minimized
+                            })),
+                            activeWinId: this.activeWinId,
+                            timestamp: Date.now()
+                        };
+                        sessionStorage.setItem('dms_pic_mdi_state', JSON.stringify(state));
+                        localStorage.setItem('dms_pic_mdi_state', JSON.stringify(state));
+
+                        const activeWin = this.openWindows.find(w => w.id === this.activeWinId);
+                        if (activeWin && activeWin.url) {
+                            localStorage.setItem('indraco_dms_last_active_path', activeWin.url);
+                        }
+                    } catch (e) {}
                 },
 
                 refreshActiveWindow() {
@@ -2552,10 +2622,22 @@
                         }
                     }));
                 }
-                // F5: Refresh Halaman / Active Window
-                else if (e.key === 'F5') {
-                    e.preventDefault();
+                // F5 / Ctrl+R / Ctrl+Shift+R: Refresh Active Window or Hard Refresh
+                else if (e.key === 'F5' || ((e.ctrlKey || e.metaKey) && (e.key === 'r' || e.key === 'R'))) {
                     const app = document.querySelector('[x-data="desktopPicAppLayout()"]');
+                    if (e.shiftKey) {
+                        // Ctrl + Shift + R: Persist state then perform full reload
+                        if (app && window.Alpine) {
+                            const alpineData = Alpine.$data(app);
+                            if (alpineData && alpineData.saveMdiState) {
+                                alpineData.saveMdiState();
+                            }
+                        }
+                        return; // Let browser trigger hard reload
+                    }
+
+                    // Regular F5 or Ctrl + R: Refresh ONLY the active form iframe without shell flicker or losing open windows
+                    e.preventDefault();
                     if (app && window.Alpine) {
                         const alpineData = Alpine.$data(app);
                         if (alpineData && alpineData.refreshActiveWindow) {
@@ -2592,6 +2674,7 @@
     @include('layouts.partials.confirm_modal')
     @include('layouts.partials.file_preview_modal')
     @include('layouts.partials.label_print_modal')
+    @include('layouts.partials.expiry_warning_modal')
     @stack('scripts')
 </body>
 </html>

@@ -3,7 +3,11 @@
 @section('title', 'Form Permintaan Penarikan Arsip - DMS PT Indraco')
 
 @section('content')
-<div class="max-w-5xl mx-auto space-y-3 font-sans pb-10" x-data="borrowingCreateApp()">
+@php
+    $from = $from ?? request('from', 'borrowings');
+    $backRoute = ($from === 'archives') ? 'archives.index' : 'borrowings.index';
+@endphp
+<div class="max-w-5xl mx-auto space-y-3 font-sans pb-10" x-data="borrowingCreateApp()" @keydown.escape.window="if(!formModalOpen) window.location.href = '{{ route($backRoute, request()->has('embed') ? ['embed' => 1] : []) }}'">
 
     <!-- DELPHI FORM TOOLBAR HEADER -->
     <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-2.5 sm:p-3 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-3 font-mono">
@@ -35,7 +39,7 @@
                 <span>Form Penarikan</span>
             </button>
 
-            <a href="{{ route('borrowings.index', request()->has('embed') ? ['embed' => 1] : []) }}" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded text-xs font-bold transition flex items-center gap-1 shadow-sm whitespace-nowrap shrink-0">
+            <a href="{{ route($backRoute, request()->has('embed') ? ['embed' => 1] : []) }}" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded text-xs font-bold transition flex items-center gap-1 shadow-sm whitespace-nowrap shrink-0">
                 <i data-lucide="arrow-left" class="w-3.5 h-3.5 text-amber-500 shrink-0"></i>
                 <span>Kembali (Esc)</span>
             </a>
@@ -74,11 +78,12 @@
     @endif
 
     <!-- MAIN FORM WINDOW CARD -->
-    <form action="{{ route('borrowings.store', request()->has('embed') ? ['embed' => 1] : []) }}" method="POST" enctype="multipart/form-data" class="space-y-3">
+    <form @submit="clearDraft()" action="{{ route('borrowings.store', request()->has('embed') ? ['embed' => 1] : []) }}" method="POST" enctype="multipart/form-data" class="space-y-3">
         @csrf
         @if(request()->has('embed'))
             <input type="hidden" name="embed" value="1">
         @endif
+        <input type="hidden" name="from" value="{{ $from }}">
 
         <!-- Hidden Archive IDs (Multi-Box Support & Single Fallback) -->
         <template x-for="arc in selectedArchives" :key="arc.id">
@@ -336,6 +341,7 @@
                 <textarea 
                     name="purpose" 
                     id="purpose" 
+                    x-model="purposeText"
                     rows="3" 
                     required 
                     placeholder="Contoh: Diperlukan untuk keperluan verifikasi audit internal perpajakan tahunan..." 
@@ -398,7 +404,7 @@
 
             <!-- Right Buttons -->
             <div class="flex items-center gap-2">
-                <a href="{{ route('borrowings.index', request()->has('embed') ? ['embed' => 1] : []) }}" class="px-3.5 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded text-xs font-bold border border-slate-300 dark:border-slate-700 transition">
+                <a href="{{ route($backRoute, request()->has('embed') ? ['embed' => 1] : []) }}" class="px-3.5 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded text-xs font-bold border border-slate-300 dark:border-slate-700 transition">
                     Batal
                 </a>
                 <button type="submit" 
@@ -424,10 +430,31 @@ function borrowingCreateApp() {
     return {
         selectedArchives: [],
         globalSearch: '',
+        purposeText: @json(old('purpose', '')),
         searchDropdownOpen: false,
         openAccordionIndex: null, // null = default semua menutup
         hasApprovalFile: false,
         archives: window.borrowingArchives || [],
+
+        saveDraft() {
+            if (window.formSubmitted) return;
+            try {
+                if (this.selectedArchives.length === 0 && !this.purposeText.trim()) return;
+                const draft = {
+                    userId: {{ auth()->id() ?? 0 }},
+                    archiveIds: this.selectedArchives.map(a => a.id),
+                    purpose: this.purposeText
+                };
+                localStorage.setItem('dms_draft_borrowing_create', JSON.stringify(draft));
+            } catch(e) {}
+        },
+
+        clearDraft() {
+            try {
+                window.formSubmitted = true;
+                localStorage.removeItem('dms_draft_borrowing_create');
+            } catch(e) {}
+        },
 
         init() {
             const initialIds = @json($selectedArchiveIds ?? ($selectedArchiveId ? [(int)$selectedArchiveId] : []));
@@ -438,7 +465,35 @@ function borrowingCreateApp() {
                         this.selectedArchives.push(found);
                     }
                 });
+            } else {
+                // Restore draft selection from localStorage across refresh
+                try {
+                    const raw = localStorage.getItem('dms_draft_borrowing_create');
+                    if (raw) {
+                        const draft = JSON.parse(raw);
+                        if (draft && Number(draft.userId) === Number({{ auth()->id() ?? 0 }})) {
+                            if (Array.isArray(draft.archiveIds)) {
+                                draft.archiveIds.forEach(id => {
+                                    const found = this.archives.find(a => a.id == id);
+                                    if (found && !found.has_active_borrowing && !this.selectedArchives.some(x => x.id == id)) {
+                                        this.selectedArchives.push(found);
+                                    }
+                                });
+                            }
+                            if (draft.purpose && !this.purposeText) {
+                                this.purposeText = draft.purpose;
+                            }
+                        }
+                    }
+                } catch(e) {}
             }
+
+            this.$watch('selectedArchives', () => this.saveDraft());
+            this.$watch('purposeText', () => this.saveDraft());
+            window.addEventListener('beforeunload', () => {
+                if (!window.formSubmitted) this.saveDraft();
+            });
+
             this.$nextTick(() => {
                 if (window.lucide) lucide.createIcons();
             });

@@ -8,8 +8,17 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
-// LAN Ping Endpoint (Lightweight heartbeat for UI navbar - open to all clients)
-Route::get('/api/health/ping', 'HealthController@ping')->name('api.health.ping');
+// LAN Ping Endpoint (Lightweight heartbeat - completely stateless, no session locking, no CSRF/cookies)
+Route::get('/api/health/ping', 'HealthController@ping')
+    ->withoutMiddleware([
+        \Illuminate\Session\Middleware\StartSession::class,
+        \Illuminate\View\Middleware\ShareErrorsFromSession::class,
+        \App\Http\Middleware\VerifyCsrfToken::class,
+        \App\Http\Middleware\EncryptCookies::class,
+        \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
+        \App\Http\Middleware\UpdateUserPresence::class,
+    ])
+    ->name('api.health.ping');
 
 // Restricted Server Telemetry, Logs & Diagnostics (Super Admin only or diagnostic key)
 Route::middleware('diagnostics.auth')->group(function () {
@@ -26,6 +35,13 @@ Route::get('/files/stream/{path}', 'FileStreamController@stream')->where('path',
 Route::get('/storage/files/{path}', 'FileStreamController@stream')->where('path', '.*')->name('storage.files');
 Route::get('/manifest.json', 'DashboardController@manifestJson')->name('manifest.json');
 
+// LAN Quick Scratchpad & Web Clipboard (Transfer text & notes across LAN devices without login)
+Route::get('/quick-notes', 'QuickNotesController@index')->name('quick_notes.index');
+Route::get('/quick-notes/api', 'QuickNotesController@apiGet')->name('quick_notes.api_get');
+Route::post('/quick-notes', 'QuickNotesController@store')->name('quick_notes.store');
+Route::get('/quick-notes/download', 'QuickNotesController@download')->name('quick_notes.download');
+Route::post('/quick-notes/clear', 'QuickNotesController@clear')->name('quick_notes.clear');
+
 Route::middleware('guest')->group(function () {
     Route::get('/login', 'AuthController@showLogin')->name('login');
     Route::post('/login', 'AuthController@login')->name('login.post');
@@ -40,6 +56,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard', 'DashboardController@index');
     Route::get('/api/search-archives', 'DashboardController@searchApi')->name('archives.search_api');
     Route::get('/api/realtime/check-new-archives', 'DashboardController@realtimeCheck')->name('api.realtime.check');
+    Route::get('/api/archives/expiring-list', 'DashboardController@apiExpiringList')->name('api.archives.expiring_list');
     Route::get('/api/departments/{department}/sub-departments', 'ArchiveController@apiGetSubDepartments')->name('api.departments.sub_departments');
     Route::get('/api/departments/{department}/archives', 'DepartmentController@apiGetDepartmentArchives')->name('api.departments.archives');
     Route::get('/api/sub-departments/{subDepartment}/archives', 'DepartmentController@apiGetSubDepartmentArchives')->name('api.sub_departments.archives');
@@ -179,8 +196,12 @@ Route::middleware('auth')->group(function () {
         Route::post('/users', 'UserController@store')->name('users.store')->middleware('role:admin');
         Route::put('/users/{user}', 'UserController@update')->name('users.update')->middleware('role:admin');
         Route::delete('/users/{user}', 'UserController@destroy')->name('users.destroy')->middleware('role:admin');
+        Route::post('/users/{user}/reset-password', 'UserController@resetPassword')->name('users.reset_password')->middleware('role:admin');
         Route::post('/users/{user}/impersonate', 'UserController@impersonate')->name('users.impersonate')->middleware('role:admin');
     });
+
+    // Self-Service Profile Routes
+    Route::post('/profile/change-password', 'UserController@changePassword')->name('profile.change_password');
 
     // Leave Impersonate Route
     Route::post('/impersonate/leave', 'UserController@leaveImpersonate')->name('impersonate.leave');

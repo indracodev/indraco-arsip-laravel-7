@@ -19,6 +19,7 @@
     x-cloak 
     class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto"
     @keydown.escape.window="{{ $openState }} = false"
+    @click.self="{{ $openState }} = false"
 >
     <div 
         class="bg-white dark:bg-slate-900 border-2 border-amber-500/60 dark:border-amber-500/40 rounded-lg shadow-2xl max-w-6xl w-full max-h-[96vh] flex flex-col overflow-hidden text-slate-800 dark:text-slate-100"
@@ -52,32 +53,32 @@
                     <span>Cetak Dokumen (Print / PDF)</span>
                 </button>
 
-                <!-- Tombol Tutup Modal Merah Ringkas -->
+                <!-- Tombol Tutup Modal Merah Jelas & Mencolok -->
                 <button 
                     type="button" 
                     @click="{{ $openState }} = false" 
-                    class="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded border border-rose-700 shadow-sm flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
-                    title="Tutup Modal Pratinjau (Kembali ke Form)"
+                    class="px-4 py-1.5 bg-rose-600 hover:bg-rose-500 active:bg-rose-700 text-white font-black text-xs rounded border border-rose-700 shadow-md flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
+                    title="Tutup Pratinjau (Kembali ke Form)"
                 >
                     <i data-lucide="x" class="w-4 h-4 text-white"></i>
-                    <span>Tutup</span>
+                    <span>Tutup Pratinjau (ESC)</span>
                 </button>
             </div>
         </div>
 
         <!-- Banner Panduan Pengguna (Mencegah Salah Tutup Halaman Utama) -->
-        <div class="px-4 py-1.5 bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-900/40 text-amber-900 dark:text-amber-200 text-[11px] font-sans flex items-center justify-between gap-3 shrink-0">
+        <div class="px-4 py-2 bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-900/40 text-amber-900 dark:text-amber-200 text-[11px] font-sans flex items-center justify-between gap-3 shrink-0">
             <div class="flex items-center gap-2">
                 <i data-lucide="info" class="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0"></i>
-                <span><strong>Mode Pratinjau Form Cetak:</strong> Semua input data form utama Anda tetap aman tersimpan. Gunakan tombol <strong>"Tutup"</strong> merah di toolbar (bukan tombol silang merah di sudut kanan atas jendela) untuk kembali mengedit data.</span>
+                <span><strong>Mode Pratinjau Form Cetak:</strong> Semua input data form Anda tetap aman. Klik tombol merah <strong>"Tutup Pratinjau (ESC)"</strong> atau tekan tombol keyboard <strong>[ESC]</strong> untuk kembali ke form pengisian (jangan klik tombol [X] di pojok kanan atas monitor).</span>
             </div>
             <button 
                 type="button" 
                 @click="{{ $openState }} = false" 
-                class="text-[11px] font-bold text-rose-600 dark:text-rose-400 hover:underline shrink-0 cursor-pointer flex items-center gap-1"
+                class="px-2.5 py-1 bg-rose-600 hover:bg-rose-500 text-white font-bold text-[11px] rounded transition cursor-pointer flex items-center gap-1 shrink-0 shadow-xs"
             >
                 <i data-lucide="x" class="w-3.5 h-3.5"></i>
-                <span>Tutup</span>
+                <span>Tutup Pratinjau (ESC)</span>
             </button>
         </div>
 
@@ -275,10 +276,11 @@
                             <button 
                                 type="button" 
                                 @click="{{ $openState }} = false" 
-                                class="w-full py-1.5 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded border border-rose-700 flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shadow-sm"
+                                class="w-full py-2 bg-rose-600 hover:bg-rose-500 active:bg-rose-700 text-white font-bold text-xs rounded border border-rose-700 flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shadow-sm"
+                                title="Kembali ke layar form pengisian"
                             >
-                                <i data-lucide="x" class="w-3.5 h-3.5 text-white"></i>
-                                <span>Tutup</span>
+                                <i data-lucide="arrow-left" class="w-3.5 h-3.5 text-white"></i>
+                                <span>Kembali ke Form Pengisian (ESC)</span>
                             </button>
                         </div>
                     </div>
@@ -526,17 +528,17 @@ select,
         text-shadow: none !important;
         filter: none !important;
     }
-    body * {
+    body:not(.has-dms-print-portal) * {
         visibility: hidden !important;
     }
-    #form-pengajuan-print-document, 
-    #form-pengajuan-print-document * {
+    body:not(.has-dms-print-portal) #form-pengajuan-print-document, 
+    body:not(.has-dms-print-portal) #form-pengajuan-print-document * {
         visibility: visible !important;
         box-shadow: none !important;
         text-shadow: none !important;
         filter: none !important;
     }
-    #form-pengajuan-print-document {
+    body:not(.has-dms-print-portal) #form-pengajuan-print-document {
         position: absolute !important;
         left: 0 !important;
         top: 0 !important;
@@ -559,12 +561,12 @@ select,
         page-break-after: avoid !important;
         break-after: avoid !important;
     }
-    #form-pengajuan-print-document table {
+    body:not(.has-dms-print-portal) #form-pengajuan-print-document table {
         border-collapse: collapse !important;
         page-break-inside: avoid !important;
         break-inside: avoid !important;
     }
-    #form-pengajuan-print-document tr {
+    body:not(.has-dms-print-portal) #form-pengajuan-print-document tr {
         page-break-inside: avoid !important;
         break-inside: avoid !important;
     }

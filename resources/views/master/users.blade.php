@@ -118,6 +118,10 @@
                                         <i data-lucide="edit-3" class="w-3 h-3 text-amber-500"></i> Edit
                                     </button>
 
+                                    <button @click="openResetPassword(usr)" class="px-2 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 rounded text-[11px] font-bold transition flex items-center gap-1 cursor-pointer" title="Reset Password Pengguna Ini">
+                                        <i data-lucide="key-round" class="w-3 h-3 text-amber-500"></i> Reset Pass
+                                    </button>
+
                                     <template x-if="currentUserId !== usr.id">
                                         <div class="inline-flex items-center gap-1">
                                             <form :action="'{{ url('/master/users') }}/' + usr.id + '/impersonate'" method="POST" class="inline">
@@ -299,6 +303,64 @@
             </div>
         </div>
     </template>
+
+    <!-- WINDOWS FORM DIALOG MODAL 3: RESET PASSWORD USER -->
+    <template x-if="resetPasswordUser">
+        <div x-data="{ posX: 0, posY: 0, isDragging: false, startX: 0, startY: 0, startDrag(e) { if(e.target.closest('button')||e.target.closest('input')||e.target.closest('textarea')||e.target.closest('select')) return; this.isDragging = true; this.startX = e.clientX - this.posX; this.startY = e.clientY - this.posY; }, onDrag(e) { if(!this.isDragging) return; this.posX = e.clientX - this.startX; this.posY = e.clientY - this.startY; }, stopDrag() { this.isDragging = false; }, resetPos() { this.posX = 0; this.posY = 0; } }"
+             @mousemove.window="onDrag($event)" @mouseup.window="stopDrag()"
+             class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+            <div :style="posX || posY ? 'transform: translate3d(' + posX + 'px, ' + posY + 'px, 0px);' : ''" class="delphi-window bg-slate-100 dark:bg-slate-900 border-2 border-slate-400 dark:border-slate-700 rounded-lg max-w-md w-full shadow-2xl overflow-hidden font-mono">
+                <div @mousedown="startDrag($event)" :class="isDragging ? 'cursor-grabbing select-none' : 'cursor-grab'" class="bg-gradient-to-r from-slate-800 via-slate-700 to-amber-950 text-white px-3 py-1.5 flex items-center justify-between border-b border-slate-600 font-mono text-xs select-none">
+                    <span class="flex items-center gap-1.5 font-bold pointer-events-none"><i data-lucide="key-round" class="w-3.5 h-3.5 text-amber-400"></i> frmResetUserPassword : Reset Password User</span>
+                    <div class="flex items-center gap-1">
+                        <button x-show="posX !== 0 || posY !== 0" @click="resetPos()" type="button" class="px-1.5 py-0.5 bg-slate-700 hover:bg-amber-600 border border-slate-600 rounded text-amber-300 hover:text-white text-[10px] font-bold transition mr-1" title="Kembalikan Form ke Tengah">Center</button>
+                        <button @click="resetPasswordUser = null; resetPos()" type="button" class="text-slate-400 hover:text-white">✕</button>
+                    </div>
+                </div>
+
+                <form :action="'{{ url('/master/users') }}/' + resetPasswordUser.id + '/reset-password'" method="POST" class="p-4 space-y-3 font-sans text-xs" @submit="submitting = true">
+                    @csrf
+                    <div class="p-2.5 rounded bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 text-xs font-mono">
+                        <div class="font-bold flex items-center gap-1.5"><i data-lucide="user" class="w-3.5 h-3.5"></i> <span x-text="resetPasswordUser.name"></span></div>
+                        <div class="text-[11px] text-slate-500 dark:text-slate-400" x-text="resetPasswordUser.email + ' (' + (resetPasswordUser.role || '') + ')'"></div>
+                    </div>
+
+                    <fieldset class="border border-slate-300 dark:border-slate-700 p-3 rounded bg-white/80 dark:bg-slate-950/70 space-y-2.5">
+                        <legend class="px-2 font-mono text-xs font-bold text-amber-700 dark:text-amber-400 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded shadow-sm">Atur Password Baru</legend>
+
+                        <div>
+                            <label class="block font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">PASSWORD BARU USER <span class="text-rose-500">* (Min. 6 Karakter)</span></label>
+                            <div class="relative">
+                                <input :type="showResetPass ? 'text' : 'password'" name="password" x-model="resetPasswordValue" required minlength="6" class="w-full pl-2.5 pr-8 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-400 dark:border-slate-700 rounded font-mono text-xs text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 font-bold">
+                                <button type="button" @click="showResetPass = !showResetPass" class="absolute right-2 top-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" tabindex="-1">
+                                    <i :data-lucide="showResetPass ? 'eye-off' : 'eye'" class="w-3.5 h-3.5"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Shortcut Preset Buttons -->
+                        <div class="pt-1 flex flex-wrap items-center gap-1.5 font-mono text-[10px]">
+                            <span class="text-slate-500">Preset:</span>
+                            <button type="button" @click="resetPasswordValue = 'indraco123'" class="px-2 py-0.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded border border-slate-400 dark:border-slate-600 font-bold cursor-pointer">
+                                indraco123
+                            </button>
+                            <button type="button" @click="generateRandomPassword()" class="px-2 py-0.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-700 dark:text-blue-300 rounded border border-blue-500/30 font-bold flex items-center gap-1 cursor-pointer">
+                                <i data-lucide="sparkles" class="w-3 h-3"></i> Acak 8 Karakter
+                            </button>
+                        </div>
+                    </fieldset>
+
+                    <div class="flex justify-end gap-2 pt-2 font-mono">
+                        <button type="button" @click="resetPasswordUser = null; resetPos()" class="px-3 py-1.5 bg-slate-300 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded text-xs font-bold hover:bg-slate-400 cursor-pointer">Batal (Esc)</button>
+                        <button type="submit" :disabled="submitting" class="px-4 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black rounded transition disabled:opacity-50 flex items-center gap-1 cursor-pointer">
+                            <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin" x-show="submitting"></i>
+                            <span x-text="submitting ? 'Mereset...' : 'Simpan Password (Enter)'"></span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </template>
 </div>
 @endsection
 
@@ -308,6 +370,9 @@ function masterUsersManager() {
     return {
         openAdd: false,
         editUserItem: null,
+        resetPasswordUser: null,
+        resetPasswordValue: 'indraco123',
+        showResetPass: false,
         searchQuery: '',
         sortColumn: 'name',
         sortDirection: 'asc',
@@ -316,6 +381,25 @@ function masterUsersManager() {
         currentUserId: {{ auth()->id() }},
         users: @json($users),
         departments: @json($departments),
+
+        openResetPassword(usr) {
+            this.resetPasswordUser = Object.assign({}, usr);
+            this.resetPasswordValue = 'indraco123';
+            this.showResetPass = false;
+            this.$nextTick(() => {
+                if (window.lucide) lucide.createIcons();
+            });
+        },
+
+        generateRandomPassword() {
+            const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789!@#$';
+            let res = '';
+            for (let i = 0; i < 8; i++) {
+                res += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            this.resetPasswordValue = res;
+            this.showResetPass = true;
+        },
 
         get filteredUsers() {
             let res = [...this.users];

@@ -1,0 +1,30 @@
+PEGAJUAN SIMPAN
+===============
+departemen :
+1. saat mau print form pengajuan simpan data tidak muncul di berkas print
+2. penolakan pengajuan tidak ada notifikasi dan pesan revsisi dari admin gudang (hanya muncul tombol edit di catalog arsip)
+3. tombol kembali tidak berfungsi saat setela cetak form
+
+gudang :
+1. waktu admin akan approval pengajuan dan melihat formulir yang dilampirkan hasilnya terbalik 180derajat
+2. gudang IT dan GA bukan untuk arsip
+3. tombol kembali setelah verifikasi box dan cetak label dokumen tidak berfungsi
+4. mau approvall pengajuan simpan melalui denah 2D gudang, koneksi selalu terputus
+5. fungsi tolak pengajuan sudah berfungsi di admin gudang dengan status box minta revisi
+
+PENGAJUAN TARIK
+===============
+departemen :
+1. search dan filter dalam konten penarikan dokumen tidak berjalan
+2. tombol kembali tidak berfungsi
+3. setelah menjalankan penarikan dan menekan tombol kembali, halaman kembali ke catalog arsip tapi data yang di tampilkan history penarikan dokumen
+
+PEMUSNAHAN
+==========
+departemen :
+1. ada warning box yang retensi mendekati jatuh tempo di badge menu Perpanjangan & pemusnahan
+2. box yang sudah di ajukan pemusnahan masih masuk di kolom jatuh tempo dengan status jatuh tempo bukan penajuan pemusnahan tapi status pengajuan pemusnahan masuk di kolom riwayat pemusnahan
+
+gudang :
+1. tidak ada warning retensi box mendekati jatu tempo harus buka menu pemusnahan & retensi dulu
+2. tidak ada notifikasi pengajuan perpanjangan yang masuk

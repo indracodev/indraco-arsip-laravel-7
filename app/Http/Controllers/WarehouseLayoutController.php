@@ -300,21 +300,23 @@ class WarehouseLayoutController extends Controller
             'booking_notes' => 'required|string|max:500',
         ]);
 
-        // Business Rule: Room Locking for FAT (R1 & R2)
-        $roomSector = strtoupper(trim($location->room_sector ?? ''));
-        $isLocationFat = $location->is_fat_locked 
-            || ($location->warehouse && $location->warehouse->is_fat_locked)
-            || in_array($roomSector, ['R1', 'R2', 'RUANG 1', 'RUANG 2', 'SEKTOR R1', 'SEKTOR R2'])
-            || preg_match('/^R[12]$/i', $roomSector);
-        $department = Department::find($validated['department_id']);
-        $deptCode = strtoupper(trim($department->code ?? ''));
-        $isDeptFat = ($department && (in_array($deptCode, ['FIN', 'FAT', 'FATCLM']) || stripos($department->name ?? '', 'FAT') !== false));
+        // Validasi Pembatasan Departemen yang Diizinkan (Fitur Baru)
+        $parentRoom = null;
+        if ($location->location_type !== 'room' && !empty($location->room_sector)) {
+            $parentRoom = WarehouseLocation::where('location_type', 'room')
+                ->where('room_sector', $location->room_sector)
+                ->first();
+        }
 
-        if ($isLocationFat && !$isDeptFat) {
-            $deptName = $department ? $department->name : 'Departemen';
+        $department = Department::find($validated['department_id']);
+        $customDeptId = $location->assigned_department_id ?? ($parentRoom ? $parentRoom->assigned_department_id : null);
+        if ($customDeptId && $validated['department_id'] != $customDeptId) {
+            $customDept = Department::find($customDeptId);
+            $customDeptName = $customDept ? "{$customDept->code} ({$customDept->name})" : "Departemen Khusus";
+            $reqDeptName = $department ? "{$department->code} ({$department->name})" : "Departemen Anda";
             return response()->json([
                 'success' => false,
-                'message' => "Akses Ditolak: Ruang {$location->room_sector} (Rak '{$location->rack_code}') hanya diperuntukkan untuk Departemen FAT (FIN, ACC & TAX / FATCLAIM). Departemen {$deptName} tidak diizinkan mem-booking lokasi ini.",
+                'message' => "Akses Ditolak: Lokasi ini dikhususkan untuk {$customDeptName}. {$reqDeptName} tidak diizinkan mem-booking lokasi ini.",
             ], 403);
         }
 
@@ -491,12 +493,13 @@ class WarehouseLayoutController extends Controller
             'archive_id' => 'required_if:mode,existing_archive,assign_existing|nullable|exists:archives,id',
         ]);
 
-        // Room Locking for FAT validation (R1 & R2)
-        $roomSector = strtoupper(trim($location->room_sector ?? ''));
-        $isLocationFat = $location->is_fat_locked 
-            || ($location->warehouse && $location->warehouse->is_fat_locked)
-            || in_array($roomSector, ['R1', 'R2', 'RUANG 1', 'RUANG 2', 'SEKTOR R1', 'SEKTOR R2'])
-            || preg_match('/^R[12]$/i', $roomSector);
+        // Validasi Pembatasan Departemen yang Diizinkan (Fitur Baru)
+        $parentRoom = null;
+        if ($location->location_type !== 'room' && !empty($location->room_sector)) {
+            $parentRoom = WarehouseLocation::where('location_type', 'room')
+                ->where('room_sector', $location->room_sector)
+                ->first();
+        }
 
         $departmentId = $validated['department_id'] ?? null;
         if (in_array($validated['mode'], ['existing_archive', 'assign_existing'])) {
@@ -504,17 +507,17 @@ class WarehouseLayoutController extends Controller
             $departmentId = $existingArc->department_id;
         }
 
-        if ($departmentId) {
-            $department = Department::find($departmentId);
-            $deptCode = strtoupper(trim($department->code ?? ''));
-            $isDeptFat = ($department && (in_array($deptCode, ['FIN', 'FAT', 'FATCLM']) || stripos($department->name ?? '', 'FAT') !== false));
-            if ($isLocationFat && !$isDeptFat) {
-                $deptName = $department ? $department->name : 'Departemen';
-                return response()->json([
-                    'success' => false,
-                    'message' => "Akses Ditolak: Ruang {$location->room_sector} (Rak '{$location->rack_code}') hanya diperuntukkan untuk Departemen FAT (FIN, ACC & TAX / FATCLAIM). Dokumen Departemen {$deptName} tidak diizinkan dialokasikan ke ruangan ini.",
-                ], 403);
-            }
+        $customDeptId = $location->assigned_department_id ?? ($parentRoom ? $parentRoom->assigned_department_id : null);
+        if ($customDeptId && $departmentId && $customDeptId != $departmentId) {
+            $customDept = Department::find($customDeptId);
+            $customDeptName = $customDept ? "{$customDept->code} ({$customDept->name})" : "Departemen Khusus";
+            $docDept = Department::find($departmentId);
+            $docDeptName = $docDept ? "{$docDept->code} ({$docDept->name})" : "Departemen Terkait";
+
+            return response()->json([
+                'success' => false,
+                'message' => "Akses Ditolak: Lokasi/Gudang '{$location->rack_code}' dikhususkan untuk {$customDeptName}. Box dari {$docDeptName} tidak diizinkan ditempatkan di lokasi ini.",
+            ], 403);
         }
 
         // Get or Create Slot in DB

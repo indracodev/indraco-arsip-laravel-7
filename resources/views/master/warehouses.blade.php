@@ -277,9 +277,10 @@
                             <span class="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-500/15 border border-indigo-200 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-300 font-mono text-[11px] font-semibold rounded">
                                 100 Box (TB 30g)
                             </span>
-                            <template x-if="selectedRackForModal?.is_fat_locked">
-                                <span class="px-2 py-0.5 bg-rose-100 dark:bg-rose-500/20 border border-rose-200 dark:border-rose-500/40 text-rose-700 dark:text-rose-300 text-[10px] font-bold rounded flex items-center gap-1">
-                                    <i data-lucide="lock" class="w-3 h-3 text-rose-500 dark:text-rose-400"></i> RUANGAN KHUSUS FAT
+                            <template x-if="selectedRackForModal?.assigned_department">
+                                <span class="px-2 py-0.5 bg-purple-100 dark:bg-purple-500/20 border border-purple-200 dark:border-purple-500/40 text-purple-700 dark:text-purple-300 text-[10px] font-bold rounded flex items-center gap-1 font-mono">
+                                    <i data-lucide="building" class="w-3 h-3 text-purple-500"></i>
+                                    <span x-text="'KHUSUS ' + selectedRackForModal?.assigned_department?.code"></span>
                                 </span>
                             </template>
                         </div>

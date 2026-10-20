@@ -255,7 +255,9 @@ class ArchiveController extends Controller
             $originBorrowingIds = $rawIds;
         }
 
-        return view('archives.create', compact('user', 'departments', 'preloadedBoxes', 'isReStore', 'originBorrowingIds', 'targetDeptId'));
+        $from = $request->query('from') ?: (!empty($isReStore) ? 'borrowings' : 'archives');
+
+        return view('archives.create', compact('user', 'departments', 'preloadedBoxes', 'isReStore', 'originBorrowingIds', 'targetDeptId', 'from'));
     }
 
     public function store(Request $request)
@@ -703,9 +705,10 @@ class ArchiveController extends Controller
             $successMessage = 'Pengajuan booking box arsip (' . count($parsedItems) . ' butir dokumen) berhasil disubmit untuk diverifikasi PIC Gudang.';
         }
 
+        $redirectRoute = ($request->input('from') === 'borrowings' || $request->has('is_re_store') || !empty($originBorrowingLogId)) ? 'borrowings.index' : 'archives.index';
         $redirectParams = $this->getEmbedParams($request);
 
-        return redirect()->route('archives.index', $redirectParams)
+        return redirect()->route($redirectRoute, $redirectParams)
             ->with('success', $successMessage);
     }
 
@@ -939,8 +942,53 @@ class ArchiveController extends Controller
             );
 
             $successMessage = "Berhasil menyimpan {$boxCount} box arsip sebagai 1 data draft sementara.";
+            $hasOriginBorrowing = collect($boxesList)->contains(function($b) {
+                return !empty($b['origin_borrowing_log_id']);
+            });
+            $redirectRoute = ($request->input('from') === 'borrowings' || $request->has('is_re_store') || $hasOriginBorrowing) ? 'borrowings.index' : 'archives.index';
             $redirectParams = $this->getEmbedParams($request);
-            return redirect()->route('archives.index', $redirectParams)->with('success', $successMessage);
+            return redirect()->route($redirectRoute, $redirectParams)->with('success', $successMessage);
+        }
+
+        // Validasi keunikan nama/judul box (Kecuali jika merupakan pengajuan kembali dari penarikan)
+        $seenTitlesInBatch = [];
+        foreach ($boxesList as $bIdx => $bData) {
+            $bTitle = trim($bData['title'] ?? '');
+            if (empty($bTitle)) {
+                $bTitle = trim($bData['items'][0]['document_name'] ?? ('Box ' . ($bIdx + 1)));
+            }
+            $normalizedBTitle = strtolower(preg_replace('/\s+/', ' ', $bTitle));
+
+            // 1. Cek duplikasi di dalam batch pengajuan yang sama
+            if (in_array($normalizedBTitle, $seenTitlesInBatch)) {
+                return back()->withInput()->withErrors([
+                    'boxes' => "Terdapat nama/judul box yang duplikat di dalam form pengajuan ini: \"{$bTitle}\". Setiap box harus memiliki nama yang berbeda."
+                ]);
+            }
+            $seenTitlesInBatch[] = $normalizedBTitle;
+
+            // 2. Cek duplikasi terhadap database
+            $originBorrowingLogId = !empty($bData['origin_borrowing_log_id']) ? (int)$bData['origin_borrowing_log_id'] : null;
+            $originArchiveId = !empty($bData['origin_archive_id']) ? (int)$bData['origin_archive_id'] : null;
+
+            // Jika BUKAN pengajuan kembali dari penarikan, nama tidak boleh sama dengan box aktif manapun di departemen ini
+            $duplicateQuery = Archive::where('department_id', $validated['department_id'])
+                ->where('status', '!=', 'destroyed')
+                ->whereRaw('LOWER(TRIM(title)) = ?', [strtolower(trim($bTitle))]);
+
+            // Jika merupakan pengajuan kembali dari penarikan, boleh sama dengan box asalnya
+            if ($originArchiveId) {
+                $duplicateQuery->where('id', '!=', $originArchiveId);
+            }
+
+            $duplicateArchive = $duplicateQuery->first();
+            if ($duplicateArchive) {
+                $statusLabel = $duplicateArchive->status_label ?? $duplicateArchive->status;
+                $boxNum = $duplicateArchive->box_number ? "[{$duplicateArchive->box_number}]" : '';
+                return back()->withInput()->withErrors([
+                    'boxes' => "Nama / Judul Box \"{$bTitle}\" sudah digunakan oleh arsip lain {$boxNum} (Status: {$statusLabel}). Harap gunakan nama box yang berbeda."
+                ]);
+            }
         }
 
         DB::beginTransaction();
@@ -1201,8 +1249,12 @@ class ArchiveController extends Controller
 
         $successMessage = "Pengajuan {$createdBoxesCount} box arsip ({$totalItemsCount} butir dokumen) berhasil disubmit untuk diverifikasi PIC Gudang.";
 
+        $hasOriginBorrowing = collect($boxesList)->contains(function($b) {
+            return !empty($b['origin_borrowing_log_id']);
+        });
+        $redirectRoute = ($request->input('from') === 'borrowings' || $request->has('is_re_store') || $hasOriginBorrowing) ? 'borrowings.index' : 'archives.index';
         $redirectParams = $this->getEmbedParams($request);
-        return redirect()->route('archives.index', $redirectParams)->with('success', $successMessage);
+        return redirect()->route($redirectRoute, $redirectParams)->with('success', $successMessage);
     }
 
     public function edit(Archive $archive)
@@ -1230,7 +1282,9 @@ class ArchiveController extends Controller
             }
         }
 
-        return view('archives.edit', compact('user', 'archive', 'departments', 'draftBoxes'));
+        $from = request('from') ?: (!empty($archive->origin_borrowing_log_id) ? 'borrowings' : 'archives');
+
+        return view('archives.edit', compact('user', 'archive', 'departments', 'draftBoxes', 'from'));
     }
 
     public function update(Request $request, Archive $archive)
@@ -1450,6 +1504,20 @@ class ArchiveController extends Controller
         $primaryItemName = $parsedItems[0]['document_name'] ?? ('Arsip ' . $formattedPeriodDoc);
         $finalTitle = $isCustomDocName ? $customDocName : (!empty($validated['title']) ? $validated['title'] : $primaryItemName);
 
+        // Validasi keunikan nama box terhadap database
+        $dupQuery = Archive::where('department_id', $validated['department_id'])
+            ->where('status', '!=', 'destroyed')
+            ->where('id', '!=', $archive->id)
+            ->whereRaw('LOWER(TRIM(title)) = ?', [strtolower(trim($finalTitle))]);
+        if (!empty($archive->origin_archive_id)) {
+            $dupQuery->where('id', '!=', (int)$archive->origin_archive_id);
+        }
+        if ($dupArchive = $dupQuery->first()) {
+            return back()->withInput()->withErrors([
+                'title' => "Nama / Judul Box \"{$finalTitle}\" sudah digunakan oleh arsip lain [{$dupArchive->box_number}]. Harap gunakan nama box yang berbeda."
+            ]);
+        }
+
         // 4. Automated Retention Years & Expiry Calculation
         $department = Department::find($validated['department_id']);
         $subDepartment = !empty($validated['sub_department_id']) ? SubDepartment::find($validated['sub_department_id']) : null;
@@ -1476,26 +1544,36 @@ class ArchiveController extends Controller
             $retentionExpiryDate = $endDate->copy()->addYears($effectiveRetentionYears)->endOfMonth()->format('Y-m-d');
         }
 
-        // 5. File uploads (only update if new files provided)
+        // 5. File uploads (only update if new files provided, or remove if requested)
         $filePath = $archive->file_path;
+        if ($request->input('remove_file') == '1') {
+            if ($archive->file_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($archive->file_path)) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($archive->file_path);
+            }
+            $filePath = null;
+        }
         if ($request->hasFile('file')) {
             $filePath = $request->file('file')->store('archive_digital', 'public');
         }
 
-        $isDraft = ($request->input('submit_action') === 'draft' || $request->has('save_draft') || $request->input('action') === 'draft');
-        if (!$isDraft && empty($archive->scan_input_form) && !$request->hasFile('scan_input_form') && !$this->isRunningTestEnvironment()) {
-            return back()->withInput()->withErrors([
-                'scan_input_form' => 'Scan Formulir Input wajib diunggah sebelum mengajukan verifikasi box arsip.'
-            ]);
-        }
-
         $scanInputFormPath = $archive->scan_input_form;
+        if ($request->input('remove_scan_input_form') == '1') {
+            if ($archive->scan_input_form && \Illuminate\Support\Facades\Storage::disk('public')->exists($archive->scan_input_form)) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($archive->scan_input_form);
+            }
+            $scanInputFormPath = null;
+        }
         if ($request->hasFile('scan_input_form')) {
             $scanInputFormPath = $request->file('scan_input_form')->store('archive_scans', 'public');
         }
 
         $submitAction = $request->input('submit_action');
-        $isDraft = ($submitAction === 'draft');
+        $isDraft = ($submitAction === 'draft' || $request->has('save_draft') || $request->input('action') === 'draft');
+        if (!$isDraft && empty($scanInputFormPath) && !$this->isRunningTestEnvironment()) {
+            return back()->withInput()->withErrors([
+                'scan_input_form' => 'Scan Formulir Input wajib diunggah sebelum mengajukan verifikasi box arsip.'
+            ]);
+        }
 
         if ($archive->status === 'draft') {
             $archiveStatus = $isDraft ? 'draft' : 'pending_verification';
@@ -1602,9 +1680,10 @@ class ArchiveController extends Controller
             $successMessage = 'Data rincian berkas arsip (' . count($parsedItems) . ' butir dokumen) berhasil diperbarui.';
         }
 
+        $redirectRoute = ($request->input('from') === 'borrowings' || !empty($archive->origin_borrowing_log_id)) ? 'borrowings.index' : 'archives.index';
         $redirectParams = $this->getEmbedParams($request);
 
-        return redirect()->route('archives.index', $redirectParams)
+        return redirect()->route($redirectRoute, $redirectParams)
             ->with('success', $successMessage);
     }
 
@@ -1661,20 +1740,32 @@ class ArchiveController extends Controller
             $validated['department_id'] = $user->department_id ?: $archive->department_id;
         }
 
-        if (!$isDraft && empty($archive->scan_input_form) && !$request->hasFile('scan_input_form') && !$this->isRunningTestEnvironment()) {
-            return back()->withInput()->withErrors([
-                'scan_input_form' => 'Scan Formulir Input wajib diunggah sebelum mengajukan verifikasi box arsip.'
-            ]);
-        }
-
         $scanInputFormPath = $archive->scan_input_form;
+        if ($request->input('remove_scan_input_form') == '1') {
+            if ($archive->scan_input_form && \Illuminate\Support\Facades\Storage::disk('public')->exists($archive->scan_input_form)) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($archive->scan_input_form);
+            }
+            $scanInputFormPath = null;
+        }
         if ($request->hasFile('scan_input_form')) {
             $scanInputFormPath = $request->file('scan_input_form')->store('archive_scans', 'public');
         }
 
         $boxFilePath = $archive->file_path;
+        if ($request->input('remove_file') == '1') {
+            if ($archive->file_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($archive->file_path)) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($archive->file_path);
+            }
+            $boxFilePath = null;
+        }
         if ($request->hasFile('file')) {
             $boxFilePath = $request->file('file')->store('archive_digital', 'public');
+        }
+
+        if (!$isDraft && empty($scanInputFormPath) && !$this->isRunningTestEnvironment()) {
+            return back()->withInput()->withErrors([
+                'scan_input_form' => 'Scan Formulir Input wajib diunggah sebelum mengajukan verifikasi box arsip.'
+            ]);
         }
 
         $department = Department::find($validated['department_id']);
@@ -1696,6 +1787,45 @@ class ArchiveController extends Controller
 
         $now = now();
         $currentMonth = date('Y-m');
+
+        if (!$isDraft) {
+            $seenTitlesInBatch = [];
+            foreach ($boxesList as $bIdx => $bData) {
+                $bTitle = trim($bData['title'] ?? '');
+                if (empty($bTitle)) {
+                    $bTitle = trim($bData['items'][0]['document_name'] ?? ('Box ' . ($bIdx + 1)));
+                }
+                $normalizedBTitle = strtolower(preg_replace('/\s+/', ' ', $bTitle));
+
+                // 1. Cek duplikasi di dalam batch
+                if (in_array($normalizedBTitle, $seenTitlesInBatch)) {
+                    return back()->withInput()->withErrors([
+                        'boxes' => "Terdapat nama/judul box yang duplikat di dalam form pengajuan ini: \"{$bTitle}\". Setiap box harus memiliki nama yang berbeda."
+                    ]);
+                }
+                $seenTitlesInBatch[] = $normalizedBTitle;
+
+                // 2. Cek duplikasi terhadap database
+                $originArchiveId = !empty($bData['origin_archive_id']) ? (int)$bData['origin_archive_id'] : $archive->id;
+                $dupQuery = Archive::where('department_id', $validated['department_id'])
+                    ->where('status', '!=', 'destroyed')
+                    ->where('id', '!=', $archive->id)
+                    ->whereRaw('LOWER(TRIM(title)) = ?', [strtolower(trim($bTitle))]);
+
+                if (!empty($bData['origin_archive_id'])) {
+                    $dupQuery->where('id', '!=', (int)$bData['origin_archive_id']);
+                }
+
+                $dupArchive = $dupQuery->first();
+                if ($dupArchive) {
+                    $statusLabel = $dupArchive->status_label ?? $dupArchive->status;
+                    $boxNum = $dupArchive->box_number ? "[{$dupArchive->box_number}]" : '';
+                    return back()->withInput()->withErrors([
+                        'boxes' => "Nama / Judul Box \"{$bTitle}\" sudah digunakan oleh arsip lain {$boxNum} (Status: {$statusLabel}). Harap gunakan nama box yang berbeda."
+                    ]);
+                }
+            }
+        }
 
         DB::beginTransaction();
         try {
@@ -1822,8 +1952,12 @@ class ArchiveController extends Controller
                     $user
                 );
 
+                $hasOriginBorrowing = collect($boxesList)->contains(function($b) {
+                    return !empty($b['origin_borrowing_log_id']);
+                });
+                $redirectRoute = ($request->input('from') === 'borrowings' || !empty($archive->origin_borrowing_log_id) || $hasOriginBorrowing) ? 'borrowings.index' : 'archives.index';
                 $redirectParams = $this->getEmbedParams($request);
-                return redirect()->route('archives.index', $redirectParams)->with('success', "Berhasil memperbarui draft pengajuan ({$boxCount} Box) sebagai 1 data draft.");
+                return redirect()->route($redirectRoute, $redirectParams)->with('success', "Berhasil memperbarui draft pengajuan ({$boxCount} Box) sebagai 1 data draft.");
             } else {
                 // Submit pengajuan verifikasi ke gudang:
                 // Box pertama meng-update $archive yang ada, box berikutnya dibuat sebagai data baru
@@ -2008,8 +2142,12 @@ class ArchiveController extends Controller
                     $user
                 );
 
+                $hasOriginBorrowing = collect($boxesList)->contains(function($b) {
+                    return !empty($b['origin_borrowing_log_id']);
+                });
+                $redirectRoute = ($request->input('from') === 'borrowings' || !empty($archive->origin_borrowing_log_id) || $hasOriginBorrowing) ? 'borrowings.index' : 'archives.index';
                 $redirectParams = $this->getEmbedParams($request);
-                return redirect()->route('archives.index', $redirectParams)->with('success', "Pengajuan {$createdBoxesCount} box arsip ({$totalItemsCount} butir dokumen) berhasil disubmit untuk diverifikasi PIC Gudang.");
+                return redirect()->route($redirectRoute, $redirectParams)->with('success', "Pengajuan {$createdBoxesCount} box arsip ({$totalItemsCount} butir dokumen) berhasil disubmit untuk diverifikasi PIC Gudang.");
             }
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -2444,13 +2582,20 @@ class ArchiveController extends Controller
 
         $location = WarehouseLocation::with('warehouse')->findOrFail($request->warehouse_location_id);
 
-        // Business Rule: Room Locking for FAT (2 Ruangan Khusus FAT)
-        $isLocationFat = $location->is_fat_locked || ($location->warehouse && $location->warehouse->is_fat_locked);
-        $isArchiveFat = ($archive->department && strtoupper($archive->department->code) === 'FIN');
+        // Validasi Pembatasan Departemen yang Diizinkan (Fitur Baru)
+        $parentRoom = null;
+        if ($location->location_type !== 'room' && !empty($location->room_sector)) {
+            $parentRoom = WarehouseLocation::where('location_type', 'room')
+                ->where('room_sector', $location->room_sector)
+                ->first();
+        }
 
-        if ($isLocationFat && !$isArchiveFat) {
-            $deptName = $archive->department ? $archive->department->name : 'Non-FAT';
-            return back()->with('error', "Akses Ditolak: Lokasi rak '{$location->rack_code}' berada di Ruangan Khusus FAT (Finance, Accounting & Tax). Departemen {$deptName} tidak diizinkan menempatkan arsip di ruangan ini.");
+        $customDeptId = $location->assigned_department_id ?? ($parentRoom ? $parentRoom->assigned_department_id : null);
+        if ($customDeptId && $archive->department_id && $customDeptId != $archive->department_id) {
+            $customDept = \App\Models\Department::find($customDeptId);
+            $customDeptName = $customDept ? "{$customDept->code} ({$customDept->name})" : "Departemen Khusus";
+            $arcDeptName = $archive->department ? "{$archive->department->code} ({$archive->department->name})" : "Departemen Terkait";
+            return back()->with('error', "Akses Ditolak: Lokasi '{$location->rack_code}' dikhususkan untuk {$customDeptName}. Box dari {$arcDeptName} tidak diizinkan dialokasikan ke lokasi ini.");
         }
 
         // Allocate slot if standard slots exist
@@ -3268,44 +3413,56 @@ class ArchiveController extends Controller
         $normalizedInput = strtolower(preg_replace('/[^\p{L}\p{N}\s]/u', '', $title));
         $normalizedInput = preg_replace('/\s+/', ' ', trim($normalizedInput));
 
-        $excludeId = $request->input('exclude_archive_id') ?: ($request->input('exclude_id') ?: $request->input('origin_archive_id'));
+        $excludeIds = [];
+        if ($request->filled('exclude_archive_id')) $excludeIds[] = (int)$request->input('exclude_archive_id');
+        if ($request->filled('exclude_id')) $excludeIds[] = (int)$request->input('exclude_id');
+        if ($request->filled('origin_archive_id')) $excludeIds[] = (int)$request->input('origin_archive_id');
+        $excludeIds = array_unique(array_filter($excludeIds));
 
         // Query active archives in department
         $query = Archive::where('department_id', $deptId)
             ->where('status', '!=', 'destroyed');
 
-        if ($excludeId) {
-            $query->where('id', '!=', (int)$excludeId);
+        if (!empty($excludeIds)) {
+            $query->whereNotIn('id', $excludeIds);
         }
-
-        $existingArchives = $query->select(['id', 'box_number', 'title', 'status', 'periode_doc', 'periode', 'period_text'])
-            ->latest('id')
-            ->take(100)
-            ->get();
 
         $bestMatch = null;
         $highestSimilarity = 0;
         $matchType = 'unique';
 
-        foreach ($existingArchives as $arch) {
-            $existingTitle = trim($arch->title ?? '');
-            if (empty($existingTitle)) continue;
+        // Direct exact match check across entire department (guaranteed detection even with >100 records)
+        $exactMatch = (clone $query)->whereRaw('LOWER(TRIM(title)) = ?', [strtolower(trim($title))])->first();
+        if ($exactMatch) {
+            $bestMatch = $exactMatch;
+            $highestSimilarity = 100;
+            $matchType = 'identical';
+        } else {
+            $existingArchives = $query->select(['id', 'box_number', 'title', 'status', 'periode_doc', 'periode', 'period_text'])
+                ->latest('id')
+                ->take(100)
+                ->get();
 
-            $normalizedExisting = strtolower(preg_replace('/[^\p{L}\p{N}\s]/u', '', $existingTitle));
-            $normalizedExisting = preg_replace('/\s+/', ' ', trim($normalizedExisting));
+            foreach ($existingArchives as $arch) {
+                $existingTitle = trim($arch->title ?? '');
+                if (empty($existingTitle)) continue;
 
-            if ($normalizedInput === $normalizedExisting) {
-                $bestMatch = $arch;
-                $highestSimilarity = 100;
-                $matchType = 'identical';
-                break;
-            }
+                $normalizedExisting = strtolower(preg_replace('/[^\p{L}\p{N}\s]/u', '', $existingTitle));
+                $normalizedExisting = preg_replace('/\s+/', ' ', trim($normalizedExisting));
 
-            // Calculate similarity percentage
-            similar_text($normalizedInput, $normalizedExisting, $percent);
-            if ($percent > $highestSimilarity) {
-                $highestSimilarity = round($percent, 1);
-                $bestMatch = $arch;
+                if ($normalizedInput === $normalizedExisting) {
+                    $bestMatch = $arch;
+                    $highestSimilarity = 100;
+                    $matchType = 'identical';
+                    break;
+                }
+
+                // Calculate similarity percentage
+                similar_text($normalizedInput, $normalizedExisting, $percent);
+                if ($percent > $highestSimilarity) {
+                    $highestSimilarity = round($percent, 1);
+                    $bestMatch = $arch;
+                }
             }
         }
 
@@ -3322,6 +3479,7 @@ class ArchiveController extends Controller
 
             return response()->json([
                 'has_similarity' => true,
+                'is_duplicate' => ($matchType === 'identical'),
                 'match_type' => $matchType,
                 'similarity_percentage' => $highestSimilarity,
                 'matched_archive' => [

@@ -3,7 +3,11 @@
 @section('title', 'Form Pengajuan Multi-Box Arsip (TB 30g) - DMS PT Indraco')
 
 @section('content')
-<div class="max-w-6xl mx-auto space-y-3 font-sans pb-10 select-text" x-data="archiveCreateApp()">
+@php
+    $from = $from ?? request('from', (!empty($isReStore) ? 'borrowings' : 'archives'));
+    $backRoute = ($from === 'borrowings' || !empty($isReStore)) ? 'borrowings.index' : 'archives.index';
+@endphp
+<div class="max-w-6xl mx-auto space-y-3 font-sans pb-10 select-text" x-data="archiveCreateApp()" @keydown.escape.window="if(!formModalOpen && !duplicateModalOpen) window.location.href = '{{ route($backRoute, request()->has('embed') ? ['embed' => 1] : []) }}'">
 
     <!-- DELPHI FORM TOOLBAR HEADER -->
     <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-2.5 sm:p-3 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-3 font-mono">
@@ -26,6 +30,14 @@
                 <span x-text="getTotalItemsCount() + ' Berkas'"></span>
             </div>
 
+            <!-- Autosave Indicator Chip -->
+            <template x-if="draftSavedTime">
+                <div class="px-2 py-1 bg-emerald-500/10 border border-emerald-500/30 rounded text-[11px] font-mono text-emerald-700 dark:text-emerald-300 flex items-center gap-1 shrink-0" title="Data formulir tersimpan otomatis di browser workstation">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>Draft Autosave: <strong x-text="draftSavedTime"></strong></span>
+                </div>
+            </template>
+
             <!-- Tombol Cetak Form Pengajuan Dokumen -->
             <button 
                 type="button" 
@@ -37,7 +49,7 @@
                 <span>Form Pengajuan</span>
             </button>
 
-            <a href="{{ route('archives.index', request()->has('embed') ? ['embed' => 1] : []) }}" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded text-xs font-bold transition flex items-center gap-1 shadow-sm whitespace-nowrap shrink-0">
+            <a href="{{ route($backRoute, request()->has('embed') ? ['embed' => 1] : []) }}" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded text-xs font-bold transition flex items-center gap-1 shadow-sm whitespace-nowrap shrink-0">
                 <i data-lucide="arrow-left" class="w-3.5 h-3.5 text-amber-500 shrink-0"></i>
                 <span>Kembali (Esc)</span>
             </a>
@@ -64,8 +76,50 @@
     </div>
     @endif
 
+    <!-- DRAFT RECOVERY NOTIFICATION BANNER -->
+    <div 
+        x-show="draftRestored" 
+        x-transition
+        x-cloak
+        class="p-3 bg-amber-500/10 border-2 border-amber-500/40 rounded-lg text-amber-950 dark:text-amber-200 text-xs font-mono flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-sm"
+    >
+        <div class="flex items-center gap-2.5 min-w-0">
+            <span class="p-2 bg-amber-500 text-slate-950 rounded shrink-0 shadow-2xs font-bold">
+                <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+            </span>
+            <div class="min-w-0">
+                <strong class="font-bold uppercase tracking-wider block text-amber-900 dark:text-amber-300">Draft Pengisian Formulir Berhasil Dipulihkan Otomatis!</strong>
+                <p class="text-[11px] text-slate-700 dark:text-slate-300 font-sans mt-0.5">
+                    Data pengisian (<strong x-text="boxes.length + ' Box, ' + getTotalItemsCount() + ' Butir Berkas'"></strong>) dipulihkan dari sesi sebelum terputus/refresh (Tersimpan: <strong x-text="draftSavedTime"></strong>).
+                </p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 shrink-0 self-start sm:self-auto pt-1 sm:pt-0">
+            <button 
+                type="button" 
+                @click="draftRestored = false" 
+                class="px-3 py-1.5 rounded bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold transition shadow-xs cursor-pointer"
+            >
+                Lanjutkan Mengisi
+            </button>
+            <button 
+                type="button" 
+                @click="clearSavedDraft()" 
+                class="px-2.5 py-1.5 rounded bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/30 text-xs font-bold transition cursor-pointer"
+                title="Hapus draft tersimpan dan kembali ke form kosong awal"
+            >
+                Kosongkan Form
+            </button>
+        </div>
+    </div>
+
     <!-- MAIN FORM WINDOW -->
-    <form id="archiveCreateForm" action="{{ route('archives.store', request()->has('embed') ? ['embed' => 1] : []) }}" method="POST" enctype="multipart/form-data" class="space-y-3">
+    <form id="archiveCreateForm" 
+          action="{{ route('archives.store', request()->has('embed') ? ['embed' => 1] : []) }}" 
+          method="POST" 
+          enctype="multipart/form-data" 
+          class="space-y-3"
+          @submit="isSubmitting = true; window.formSubmitted = true; clearTimeout(autoSaveDebounceTimer); try { localStorage.removeItem('dms_draft_archive_create'); } catch(e) {}">
         @csrf
         @if(request()->has('embed'))
             <input type="hidden" name="embed" value="1">
@@ -73,6 +127,7 @@
         @if(!empty($isReStore))
             <input type="hidden" name="is_re_store" value="1">
         @endif
+        <input type="hidden" name="from" value="{{ $from }}">
 
         <!-- SECTION 1: UNIT & TANGGAL SERAH TERIMA (BATCH HEADER) -->
         <fieldset class="border border-slate-300 dark:border-slate-800 p-3.5 rounded bg-white dark:bg-slate-950 shadow-sm space-y-3 font-mono">
@@ -349,13 +404,26 @@
                                 <template x-if="box.similarityInfo && box.similarityInfo.has_similarity">
                                     <div 
                                         class="mt-1.5 p-2 rounded border text-[11px] font-sans flex items-start gap-2 transition"
-                                        :class="box.similarityInfo.match_type === 'identical' ? 'bg-amber-500/15 border-amber-500/40 text-amber-900 dark:text-amber-200' : 'bg-blue-50 dark:bg-blue-950/40 border-blue-300 dark:border-blue-800 text-blue-900 dark:text-blue-200'"
+                                        :class="box.similarityInfo.is_duplicate 
+                                            ? 'bg-rose-500/15 border-rose-500/40 text-rose-900 dark:text-rose-200' 
+                                            : (box.similarityInfo.is_restored_box 
+                                                ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-900 dark:text-emerald-200' 
+                                                : (box.similarityInfo.match_type === 'identical' 
+                                                    ? 'bg-amber-500/15 border-amber-500/40 text-amber-900 dark:text-amber-200' 
+                                                    : 'bg-blue-50 dark:bg-blue-950/40 border-blue-300 dark:border-blue-800 text-blue-900 dark:text-blue-200'))"
                                     >
-                                        <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-500 shrink-0 mt-0.5"></i>
+                                        <i data-lucide="alert-triangle" class="w-4 h-4 shrink-0 mt-0.5"
+                                           :class="box.similarityInfo.is_duplicate ? 'text-rose-600 dark:text-rose-400' : (box.similarityInfo.is_restored_box ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-500')"></i>
                                         <div class="space-y-0.5 flex-1">
                                             <div class="font-bold flex items-center justify-between">
                                                 <span x-text="box.similarityInfo.message"></span>
-                                                <span class="text-[10px] font-mono px-1.5 py-0.2 rounded font-black" :class="box.similarityInfo.match_type === 'identical' ? 'bg-amber-500/30 text-amber-800 dark:text-amber-200' : 'bg-blue-500/20 text-blue-800 dark:text-blue-200'" x-text="box.similarityInfo.similarity_percentage + '% Mirip'"></span>
+                                                <span class="text-[10px] font-mono px-1.5 py-0.2 rounded font-black"
+                                                      :class="box.similarityInfo.is_duplicate 
+                                                        ? 'bg-rose-500/30 text-rose-800 dark:text-rose-200' 
+                                                        : (box.similarityInfo.is_restored_box 
+                                                            ? 'bg-emerald-500/30 text-emerald-800 dark:text-emerald-200' 
+                                                            : 'bg-amber-500/30 text-amber-800 dark:text-amber-200')"
+                                                      x-text="box.similarityInfo.is_duplicate ? 'DUPLIKAT (DITOLAK)' : (box.similarityInfo.is_restored_box ? 'BOX PENARIKAN (VALID)' : box.similarityInfo.similarity_percentage + '% Mirip')"></span>
                                             </div>
                                             <template x-if="box.similarityInfo.diff && (box.similarityInfo.diff.unique_in_input.length > 0 || box.similarityInfo.diff.unique_in_existing.length > 0)">
                                                 <div class="text-[10px] text-slate-600 dark:text-slate-400 font-mono pt-0.5">
@@ -363,7 +431,8 @@
                                                     <span class="text-emerald-600 dark:text-emerald-400 font-bold" x-text="box.similarityInfo.diff.unique_in_input.join(', ') || '-'"></span>
                                                 </div>
                                             </template>
-                                            <p class="text-[10px] text-slate-500 italic">Peringatan ini informatif agar Anda dapat memeriksa potensi duplikasi. Anda tetap bebas menyimpan jika box ini sah.</p>
+                                            <p class="text-[10px] italic" :class="box.similarityInfo.is_duplicate ? 'text-rose-700 dark:text-rose-300 font-bold' : 'text-slate-500'"
+                                               x-text="box.similarityInfo.is_duplicate ? 'Nama box harus unik dan tidak boleh sama dengan box aktif lainnya. Silakan ubah nama box ini.' : (box.similarityInfo.is_restored_box ? 'Nama box sama diperbolehkan karena merupakan transaksi penyimpanan kembali dari box ditarik yang sah.' : 'Peringatan ini informatif agar Anda dapat memeriksa potensi duplikasi.')"></p>
                                         </div>
                                         <button type="button" @click="box.similarityInfo = null" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 shrink-0 text-xs px-1 cursor-pointer">✕</button>
                                     </div>
@@ -782,7 +851,7 @@
             </div>
 
             <div class="flex items-center gap-2">
-                <a href="{{ route('archives.index', request()->has('embed') ? ['embed' => 1] : []) }}" class="px-3.5 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded text-xs font-bold border border-slate-300 dark:border-slate-700 transition">
+                <a href="{{ route($backRoute, request()->has('embed') ? ['embed' => 1] : []) }}" class="px-3.5 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded text-xs font-bold border border-slate-300 dark:border-slate-700 transition">
                     Batal
                 </a>
 
@@ -853,6 +922,9 @@ function archiveCreateApp() {
     return {
         isSubmitting: false,
         hasScanForm: false,
+        draftRestored: false,
+        draftSavedTime: null,
+        autoSaveDebounceTimer: null,
         departments: departmentsData,
         selectedCompany: '{{ old('company_name', 'PT INDRACO GLOBAL INDONESIA') }}',
         selectedDeptId: initialDept ? initialDept.id : initialDeptId,
@@ -893,15 +965,129 @@ function archiveCreateApp() {
         // Similarity check debounce timer
         similarityTimer: null,
 
+        saveDraftToStorage() {
+            @if(!empty($isReStore)) return; @endif
+            if (this.isSubmitting || window.formSubmitted) return;
+            try {
+                if (!Array.isArray(this.boxes) || this.boxes.length === 0) return;
+                const hasContent = this.boxes.some(b => 
+                    (b.title && b.title.trim()) || 
+                    (b.items && b.items.some(it => it.document_name && it.document_name.trim()))
+                );
+                if (!hasContent) return;
+
+                const draft = {
+                    userId: {{ auth()->id() ?? 0 }},
+                    selectedCompany: this.selectedCompany,
+                    selectedDeptId: this.selectedDeptId,
+                    selectedSubDeptId: this.selectedSubDeptId,
+                    tglPenyerahan: this.tglPenyerahan,
+                    activeBoxIndex: this.activeBoxIndex,
+                    boxes: this.boxes.map(b => ({
+                        id: b.id,
+                        title: b.title || '',
+                        sub_department_id: b.sub_department_id || '',
+                        document_type: b.document_type || '',
+                        periode_bulan: b.periode_bulan || '1',
+                        follow_previous: !!b.follow_previous,
+                        physical_condition: b.physical_condition || 'Baik / Box Karton Standar TB 30g',
+                        items: (b.items || []).map(it => ({
+                            id: it.id,
+                            document_name: it.document_name || '',
+                            period_start: it.period_start || '',
+                            period_end: it.period_end || '',
+                            notes: it.notes || ''
+                        }))
+                    })),
+                    savedAt: Date.now(),
+                    savedTimeFormatted: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                };
+                localStorage.setItem('dms_draft_archive_create', JSON.stringify(draft));
+                this.draftSavedTime = draft.savedTimeFormatted;
+            } catch (e) {}
+        },
+
+        triggerAutoSave() {
+            if (this.isSubmitting || window.formSubmitted) return;
+            clearTimeout(this.autoSaveDebounceTimer);
+            this.autoSaveDebounceTimer = setTimeout(() => {
+                this.saveDraftToStorage();
+            }, 400);
+        },
+
+        async clearSavedDraft() {
+            if (window.showConfirmModal) {
+                const ok = await window.showConfirmModal({
+                    title: 'Kosongkan Draft Formulir?',
+                    message: 'Apakah Anda yakin ingin menghapus seluruh data isian draft formulir ini dan memulai kembali dari formulir kosong?',
+                    type: 'danger',
+                    confirmText: 'Ya, Kosongkan Formulir',
+                    cancelText: 'Batal'
+                });
+                if (!ok) return;
+            } else if (!confirm('Apakah Anda yakin ingin mengosongkan draft isian formulir ini?')) {
+                return;
+            }
+            try {
+                localStorage.removeItem('dms_draft_archive_create');
+            } catch(e) {}
+            window.location.reload();
+        },
+
         init() {
             this.updateSubDepartments(false);
             this.updateMasterArchives();
+
+            @if(empty($isReStore))
+            // Auto-restore draft from localStorage across refresh / reconnection
+            try {
+                const raw = localStorage.getItem('dms_draft_archive_create');
+                if (raw) {
+                    const draft = JSON.parse(raw);
+                    if (draft && Number(draft.userId) === Number({{ auth()->id() ?? 0 }})) {
+                        if (Array.isArray(draft.boxes) && draft.boxes.length > 0) {
+                            const hasDraftContent = draft.boxes.some(b => 
+                                (b.title && b.title.trim()) || 
+                                (b.items && b.items.some(it => it.document_name && it.document_name.trim()))
+                            );
+                            if (hasDraftContent) {
+                                this.boxes = draft.boxes;
+                                if (draft.selectedCompany) this.selectedCompany = draft.selectedCompany;
+                                if (draft.selectedDeptId) this.selectedDeptId = draft.selectedDeptId;
+                                if (draft.selectedSubDeptId) this.selectedSubDeptId = draft.selectedSubDeptId;
+                                if (draft.tglPenyerahan) this.tglPenyerahan = draft.tglPenyerahan;
+                                this.activeBoxIndex = Math.min(draft.activeBoxIndex || 0, this.boxes.length - 1);
+                                this.draftRestored = true;
+                                this.draftSavedTime = draft.savedTimeFormatted || 'Sesi Sebelumnya';
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn('Gagal memulihkan draft form arsip:', e);
+            }
+            @endif
+
             this.boxes.forEach(b => {
                 if (this.selectedSubDeptId && !b.sub_department_id) {
                     b.sub_department_id = this.selectedSubDeptId;
                 }
                 this.onBoxSubDeptChange(b);
             });
+
+            // Watch changes to trigger continuous autosave
+            this.$watch('boxes', () => this.triggerAutoSave());
+            this.$watch('selectedSubDeptId', () => this.triggerAutoSave());
+            this.$watch('tglPenyerahan', () => this.triggerAutoSave());
+            this.$watch('activeBoxIndex', () => this.triggerAutoSave());
+
+            // Save on beforeunload only if not currently submitting
+            window.addEventListener('beforeunload', () => {
+                if (!this.isSubmitting && !window.formSubmitted) {
+                    this.saveDraftToStorage();
+                }
+            });
+
             this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
         },
 
@@ -1266,12 +1452,15 @@ function archiveCreateApp() {
                 if (localMatch) {
                     box.similarityInfo = {
                         has_similarity: true,
+                        is_duplicate: true,
+                        is_restored_box: false,
                         match_type: 'identical',
                         source: 'batch',
                         similarity_percentage: 100,
-                        message: `Judul identik 100% dengan Box #${localMatch.box_num} di form pengajuan ini.`,
+                        message: `Nama box sama dengan Box #${localMatch.box_num} di form pengajuan ini. Setiap box harus memiliki nama berbeda.`,
                         matched_title: localMatch.title
                     };
+                    this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
                     return;
                 }
 
@@ -1288,19 +1477,26 @@ function archiveCreateApp() {
                     },
                     body: JSON.stringify({
                         department_id: deptId,
-                        title: box.title
+                        title: box.title,
+                        origin_archive_id: box.origin_archive_id || null
                     })
                 })
                 .then(res => res.json())
                 .then(data => {
                     if (data && data.has_similarity) {
+                        const isIdentical = data.match_type === 'identical' || data.is_duplicate;
+                        const isRestored = !!box.origin_archive_id;
                         box.similarityInfo = {
                             has_similarity: true,
+                            is_duplicate: isIdentical && !isRestored,
+                            is_restored_box: isIdentical && isRestored,
                             match_type: data.match_type,
                             source: 'database',
                             similarity_percentage: data.similarity_percentage,
-                            message: data.match_type === 'identical'
-                                ? `Judul identik 100% dengan arsip tersimpan [${data.matched_archive.box_number || 'Box'}]: ${data.matched_archive.title}`
+                            message: isIdentical
+                                ? (isRestored 
+                                    ? `Box dari penarikan [${data.matched_archive.box_number || 'Box'}]: ${data.matched_archive.title}`
+                                    : `Nama box sudah digunakan oleh arsip lain [${data.matched_archive.box_number || 'Box'}]: ${data.matched_archive.title}`)
                                 : `Kemiripan ${data.similarity_percentage}% dengan arsip tersimpan [${data.matched_archive.box_number || 'Box'}]: ${data.matched_archive.title}`,
                             matched_archive: data.matched_archive,
                             diff: data.diff
@@ -1308,6 +1504,7 @@ function archiveCreateApp() {
                     } else {
                         box.similarityInfo = null;
                     }
+                    this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
                 })
                 .catch(err => {
                     console.error('Similarity check error:', err);
@@ -1520,7 +1717,28 @@ function archiveCreateApp() {
         submitDraft() {
             if (this.isSubmitting) return;
 
+            // Cek duplikasi nama box di dalam batch form
+            const seenDraftTitles = {};
+            for (let i = 0; i < this.boxes.length; i++) {
+                const rawTitle = (this.boxes[i].title || '').trim();
+                if (rawTitle) {
+                    const normTitle = rawTitle.toLowerCase();
+                    if (seenDraftTitles[normTitle] !== undefined) {
+                        alert(`⚠️ DUPLIKASI NAMA BOX:\n\nBox #${i + 1} memiliki nama yang sama dengan Box #${seenDraftTitles[normTitle] + 1} ("${rawTitle}").\n\nSetiap box dalam pengajuan harus memiliki nama yang berbeda.`);
+                        this.activeBoxIndex = i;
+                        return;
+                    }
+                    seenDraftTitles[normTitle] = i;
+                }
+            }
+
             this.isSubmitting = true;
+            window.formSubmitted = true;
+            clearTimeout(this.autoSaveDebounceTimer);
+            try {
+                localStorage.removeItem('dms_draft_archive_create');
+            } catch(e) {}
+
             const form = document.getElementById('archiveCreateForm');
             if (form) {
                 // Hilangkan seluruh pembatasan HTML5 validation saat simpan draft
@@ -1551,16 +1769,41 @@ function archiveCreateApp() {
                 return;
             }
 
-            // Check that all boxes have titles
+            // 1. Cek judul box tidak boleh kosong dan tidak boleh duplikat di dalam batch pengajuan yang sama
+            const seenFormTitles = {};
             for (let i = 0; i < this.boxes.length; i++) {
-                if (!this.boxes[i].title || !this.boxes[i].title.trim()) {
+                const rawTitle = (this.boxes[i].title || '').trim();
+                if (!rawTitle) {
                     alert(`⚠️ Nama / Judul Box untuk Box #${i + 1} belum diisi. Silakan lengkapi judul box.`);
+                    this.activeBoxIndex = i;
+                    return;
+                }
+                const normTitle = rawTitle.toLowerCase();
+                if (seenFormTitles[normTitle] !== undefined) {
+                    alert(`⚠️ DUPLIKASI NAMA BOX:\n\nBox #${i + 1} memiliki nama yang sama dengan Box #${seenFormTitles[normTitle] + 1} ("${rawTitle}").\n\nSetiap box dalam pengajuan harus memiliki nama yang berbeda.`);
+                    this.activeBoxIndex = i;
+                    return;
+                }
+                seenFormTitles[normTitle] = i;
+            }
+
+            // 2. Cek apakah ada box yang duplikat dengan database (kecuali jika berasal dari penarikan)
+            for (let i = 0; i < this.boxes.length; i++) {
+                const b = this.boxes[i];
+                if (b.similarityInfo && b.similarityInfo.is_duplicate && !b.origin_archive_id) {
+                    alert(`⚠️ PENGAJUAN DITOLAK:\n\nNama Box #${i + 1} ("${b.title}") sudah digunakan oleh arsip lain yang aktif di sistem.\n\nHarap ubah nama box agar berbeda.`);
                     this.activeBoxIndex = i;
                     return;
                 }
             }
 
             this.isSubmitting = true;
+            window.formSubmitted = true;
+            clearTimeout(this.autoSaveDebounceTimer);
+            try {
+                localStorage.removeItem('dms_draft_archive_create');
+            } catch(e) {}
+
             const form = document.getElementById('archiveCreateForm');
             if (form) {
                 let actionInput = form.querySelector('input[name="submit_action"]');
@@ -1606,9 +1849,11 @@ function archiveCreateApp() {
             for (let i = 0; i < count; i++) {
                 if (i < this.boxes.length) {
                     const b = this.boxes[i];
+                    const firstDoc = (b.items && b.items.length > 0) ? b.items.find(it => it.document_name && it.document_name.trim()) : null;
+                    const defaultTitle = (b.title && b.title.trim()) ? b.title.trim() : (firstDoc ? firstDoc.document_name.trim() : `Box ${i + 1}`);
                     rows.push({
                         no: i + 1,
-                        title: b.title || '',
+                        title: defaultTitle,
                         sub_dept: this.getBoxSubDeptName(b),
                         period_end: this.getBoxPeriodEndFormatted(b),
                         masa_simpan: b.periode_bulan ? String(b.periode_bulan) : '1',
@@ -1734,11 +1979,14 @@ function archiveCreateApp() {
         },
 
         printFormPengajuan() {
-            if (window.dmsPrint) {
-                window.dmsPrint('form-pengajuan-print-document');
-            } else {
-                window.print();
-            }
+            this.populateFormRows();
+            this.$nextTick(() => {
+                if (window.dmsPrint) {
+                    window.dmsPrint('form-pengajuan-print-document');
+                } else {
+                    window.print();
+                }
+            });
         }
     };
 }

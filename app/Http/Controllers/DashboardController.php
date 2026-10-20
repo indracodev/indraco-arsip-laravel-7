@@ -765,17 +765,61 @@ class DashboardController extends Controller
         }
     }
 
-    public function manifestJson()
+    public function apiExpiringList(Request $request)
     {
-        $manifestPath = public_path('manifest.json');
-        if (file_exists($manifestPath)) {
-            return response()->file($manifestPath, ['Content-Type' => 'application/manifest+json; charset=utf-8']);
+        $user = auth()->user();
+        if (!$user) {
+            return response()->json(['count' => 0, 'items' => []]);
         }
+
+        $today = Carbon::today();
+
+        $archives = Archive::with(['department', 'subDepartment', 'location.warehouse', 'rackSlot'])
+            ->whereNotIn('status', ['destroyed', 'draft'])
+            ->whereNotNull('retention_expiry_date')
+            ->when($user->isPicDept(), function ($q) use ($user) {
+                return $q->where('department_id', $user->department_id);
+            })
+            ->get();
+
+        $expiringItems = [];
+
+        foreach ($archives as $arc) {
+            $expiryEndOfMonth = Carbon::parse($arc->retention_expiry_date)->endOfMonth()->endOfDay();
+            $h30Threshold = $expiryEndOfMonth->copy()->subDays(30)->startOfDay();
+
+            // Batas masuk daftar: jika hari ini sudah mencapai H-30 atau sudah lewat jatuh tempo
+            if ($today->gte($h30Threshold)) {
+                $isExpired = $today->gt($expiryEndOfMonth);
+                $daysDiff = $today->diffInDays($expiryEndOfMonth, false);
+
+                $expiringItems[] = [
+                    'id' => $arc->id,
+                    'box_number' => $arc->box_number ?: 'Belum Ada No. Box',
+                    'title' => $arc->effective_title ?? $arc->title,
+                    'dept_code' => $arc->department->code ?? 'GEN',
+                    'dept_name' => $arc->department->name ?? '',
+                    'expiry_date' => Carbon::parse($arc->retention_expiry_date)->format('d M Y'),
+                    'expiry_month' => Carbon::parse($arc->retention_expiry_date)->format('M Y'),
+                    'is_expired' => $isExpired,
+                    'days_diff' => abs($daysDiff),
+                    'badge_text' => $isExpired ? 'LEWAT ' . abs($daysDiff) . ' HARI' : 'H-' . abs($daysDiff) . ' HARI',
+                    'badge_type' => $isExpired ? 'danger' : 'warning',
+                    'location' => $arc->display_location ?: 'Gudang Utama',
+                ];
+            }
+        }
+
+        // Urutkan: yang sudah expired paling lama di paling atas, lalu yang mendekati expired
+        usort($expiringItems, function ($a, $b) {
+            if ($a['is_expired'] && !$b['is_expired']) return -1;
+            if (!$a['is_expired'] && $b['is_expired']) return 1;
+            return $b['days_diff'] <=> $a['days_diff'];
+        });
+
         return response()->json([
-            'name' => 'DMS PT Indraco - Sistem Pengarsipan & Gudang',
-            'short_name' => 'Indraco DMS',
-            'start_url' => '/',
-            'display' => 'standalone',
+            'count' => count($expiringItems),
+            'items' => $expiringItems,
         ]);
     }
 }
