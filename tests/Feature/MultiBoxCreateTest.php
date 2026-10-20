@@ -361,7 +361,7 @@ class MultiBoxCreateTest extends TestCase
                             'document_name' => 'Faktur Pajak Seri B',
                             'period_start' => '2024-01',
                             'period_end' => '2024-12',
-                            'notes' => ''
+                            'notes' => 'Faktur Pajak Seri B'
                         ],
                     ]
                 ]
@@ -418,14 +418,14 @@ class MultiBoxCreateTest extends TestCase
                     'title' => 'BOX-FIN-2026-SAME',
                     'physical_condition' => 'Baik / Box Karton Standar TB 30g',
                     'items' => [
-                        ['document_name' => 'Dokumen A', 'period_start' => '2024-01', 'period_end' => '2024-01', 'notes' => '']
+                        ['document_name' => 'Dokumen A', 'period_start' => '2024-01', 'period_end' => '2024-01', 'notes' => 'Catatan Dokumen A']
                     ]
                 ],
                 [
                     'title' => 'BOX-FIN-2026-SAME',
                     'physical_condition' => 'Baik / Box Karton Standar TB 30g',
                     'items' => [
-                        ['document_name' => 'Dokumen B', 'period_start' => '2024-01', 'period_end' => '2024-01', 'notes' => '']
+                        ['document_name' => 'Dokumen B', 'period_start' => '2024-01', 'period_end' => '2024-01', 'notes' => 'Catatan Dokumen B']
                     ]
                 ]
             ]
@@ -491,7 +491,7 @@ class MultiBoxCreateTest extends TestCase
                     'origin_archive_id' => $originalArchive->id,
                     'origin_borrowing_log_id' => $borrowingLog->id,
                     'items' => [
-                        ['document_name' => 'Dokumen Pulang Kembali', 'period_start' => '2024-01', 'period_end' => '2024-01', 'notes' => '']
+                        ['document_name' => 'Dokumen Pulang Kembali', 'period_start' => '2024-01', 'period_end' => '2024-01', 'notes' => 'Dokumen Pulang Selesai Pinjam']
                     ]
                 ]
             ]

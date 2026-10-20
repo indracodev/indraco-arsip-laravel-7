@@ -6,22 +6,8 @@
     <title>LAN Quick Clipboard & Scratchpad - DMS PT Indraco</title>
     <link rel="icon" type="image/png" href="{{ asset('images/icon_indraco.png') }}">
 
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        amber: { 500: '#f59e0b', 600: '#d97706' }
-                    }
-                }
-            }
-        }
-    </script>
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- PT INDRACO DMS - 100% Offline Asset Suite -->
+    @include('layouts.partials.head_assets')
 
     <style>
         [x-cloak] { display: none !important; }
@@ -456,7 +442,17 @@
         }
 
         async function clearActiveNote() {
-            if (!confirm('Apakah Anda yakin ingin mengosongkan seluruh isi catatan di server LAN?')) return;
+            if (window.showConfirmModal) {
+                const ok = await window.showConfirmModal({
+                    title: 'Kosongkan Catatan LAN?',
+                    message: 'Apakah Anda yakin ingin mengosongkan seluruh isi catatan di server LAN? Tindakan ini tidak dapat dibatalkan.',
+                    type: 'danger',
+                    confirmText: 'Ya, Kosongkan Catatan'
+                });
+                if (!ok) return;
+            } else {
+                if (!confirm('Apakah Anda yakin ingin mengosongkan seluruh isi catatan di server LAN?')) return;
+            }
 
             try {
                 const res = await fetch('{{ route("quick_notes.clear") }}', {
@@ -546,5 +542,6 @@
             document.getElementById('toastMessage').classList.add('hidden');
         }
     </script>
+    @include('layouts.partials.confirm_modal')
 </body>
 </html>

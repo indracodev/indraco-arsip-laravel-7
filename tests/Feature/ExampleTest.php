@@ -7,11 +7,11 @@ use Tests\TestCase;
 
 class ExampleTest extends TestCase
 {
-    /**
-     * A basic test example.
-     *
-     * @return void
-     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->withoutMiddleware(\App\Http\Middleware\VerifyCsrfToken::class);
+    }
     public function testBasicTest()
     {
         $response = $this->get('/login');
@@ -21,6 +21,11 @@ class ExampleTest extends TestCase
 
     public function testSuperAdminLoginAndDashboardAccess()
     {
+        \App\Models\User::firstOrCreate(
+            ['email' => 'admin@indraco.com'],
+            ['name' => 'Super Admin', 'password' => bcrypt('password'), 'role' => 'admin']
+        );
+
         $response = $this->post('/login', [
             'email' => 'admin@indraco.com',
             'password' => 'password',

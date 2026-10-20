@@ -71,18 +71,18 @@ Route::middleware('auth')->group(function () {
     Route::put('/archives/{archive}', 'ArchiveController@update')->name('archives.update');
     Route::delete('/archives/{archive}', 'ArchiveController@destroy')->name('archives.destroy');
     Route::post('/archives/batch-delete-drafts', 'ArchiveController@batchDeleteDrafts')->name('archives.batch_delete_drafts');
-    Route::get('/archives/print-labels', 'ArchiveController@printLabels')->name('archives.print_labels');
-    Route::post('/archives/print-labels', 'ArchiveController@printLabels')->name('archives.print_labels_post');
+    Route::get('/archives/print-labels', 'ArchiveLabelController@printLabels')->name('archives.print_labels');
+    Route::post('/archives/print-labels', 'ArchiveLabelController@printLabels')->name('archives.print_labels_post');
     Route::get('/archives/{archive}', 'ArchiveController@show')->name('archives.show');
-    Route::get('/archives/{archive}/print-sticker', 'ArchiveController@printSticker')->name('archives.print_sticker');
-    Route::post('/archives/{archive}/verify', 'ArchiveController@verify')->name('archives.verify');
-    Route::post('/archives/{archive}/checkout', 'ArchiveController@checkout')->name('archives.checkout');
-    Route::post('/archives/{archive}/checkin', 'ArchiveController@checkin')->name('archives.checkin');
-    Route::post('/archives/{archive}/superadmin-status', 'ArchiveController@superAdminUpdateStatus')->name('archives.superadmin_status');
-    Route::get('/archives/import/template', 'ArchiveController@downloadImportTemplate')->name('archives.import.template');
-    Route::post('/archives/import/preview', 'ArchiveController@previewImport')->name('archives.import.preview');
-    Route::post('/archives/import/commit', 'ArchiveController@commitImport')->name('archives.import.commit');
-    Route::post('/archives/import/load-to-form', 'ArchiveController@loadImportToCreateForm')->name('archives.import.load_to_form');
+    Route::get('/archives/{archive}/print-sticker', 'ArchiveLabelController@printSticker')->name('archives.print_sticker');
+    Route::post('/archives/{archive}/verify', 'ArchiveVerificationController@verify')->name('archives.verify');
+    Route::post('/archives/{archive}/checkout', 'ArchiveVerificationController@checkout')->name('archives.checkout');
+    Route::post('/archives/{archive}/checkin', 'ArchiveVerificationController@checkin')->name('archives.checkin');
+    Route::post('/archives/{archive}/superadmin-status', 'ArchiveStatusController@superAdminUpdateStatus')->name('archives.superadmin_status');
+    Route::get('/archives/import/template', 'ArchiveImportController@downloadImportTemplate')->name('archives.import.template');
+    Route::post('/archives/import/preview', 'ArchiveImportController@previewImport')->name('archives.import.preview');
+    Route::post('/archives/import/commit', 'ArchiveImportController@commitImport')->name('archives.import.commit');
+    Route::post('/archives/import/load-to-form', 'ArchiveImportController@loadImportToCreateForm')->name('archives.import.load_to_form');
 
 
     // Borrowing Workflow
