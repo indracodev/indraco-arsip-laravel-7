@@ -46,8 +46,8 @@
                     <span>Kembali ke Dashboard</span>
                 </a>
                 <button type="button" 
-                        onclick="history.back()"
-                        class="px-4 py-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded text-xs font-semibold text-white flex items-center justify-center gap-1.5 transition">
+                        onclick="if (window.history.length > 1) { history.back(); } else { window.location.href = '{{ route('dashboard') }}'; }"
+                        class="px-4 py-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded text-xs font-semibold text-white flex items-center justify-center gap-1.5 transition cursor-pointer">
                     <i data-lucide="arrow-left" class="w-4 h-4"></i>
                     <span>Halaman Sebelumnya</span>
                 </button>

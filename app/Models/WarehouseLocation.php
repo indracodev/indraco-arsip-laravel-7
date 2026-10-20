@@ -27,6 +27,7 @@ class WarehouseLocation extends Model
         'rotation_angle',
         'custom_color',
         'assigned_department_id',
+        'assigned_department_ids',
         'is_booked',
         'booked_by_user_id',
         'booking_notes',
@@ -44,6 +45,7 @@ class WarehouseLocation extends Model
         'is_locked' => 'boolean',
         'is_fat_locked' => 'boolean',
         'is_active' => 'boolean',
+        'assigned_department_ids' => 'array',
         'canvas_x' => 'integer',
         'canvas_y' => 'integer',
         'canvas_width' => 'integer',
@@ -75,6 +77,26 @@ class WarehouseLocation extends Model
     public function assignedDepartment(): BelongsTo
     {
         return $this->belongsTo(Department::class, 'assigned_department_id');
+    }
+
+    public function getAllowedDepartmentIdsAttribute(): array
+    {
+        if (!empty($this->assigned_department_ids) && is_array($this->assigned_department_ids)) {
+            return array_values(array_filter(array_map('intval', $this->assigned_department_ids)));
+        }
+        if (!empty($this->assigned_department_id)) {
+            return [(int) $this->assigned_department_id];
+        }
+        return [];
+    }
+
+    public function isDepartmentAllowed($deptId): bool
+    {
+        $allowed = $this->allowed_department_ids;
+        if (empty($allowed)) {
+            return true;
+        }
+        return in_array((int) $deptId, $allowed, true);
     }
 
     public function bookedBy(): BelongsTo

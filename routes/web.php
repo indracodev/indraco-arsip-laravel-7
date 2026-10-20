@@ -82,6 +82,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/archives/import/template', 'ArchiveController@downloadImportTemplate')->name('archives.import.template');
     Route::post('/archives/import/preview', 'ArchiveController@previewImport')->name('archives.import.preview');
     Route::post('/archives/import/commit', 'ArchiveController@commitImport')->name('archives.import.commit');
+    Route::post('/archives/import/load-to-form', 'ArchiveController@loadImportToCreateForm')->name('archives.import.load_to_form');
 
 
     // Borrowing Workflow
@@ -103,6 +104,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/destructions/propose/{archive}', 'DestructionController@propose')->name('destructions.store.archive');
     Route::get('/destructions/bap/{destructionLog}', 'DestructionController@showBap')->name('destructions.bap');
     Route::post('/destructions/{destructionLog}/approve', 'DestructionController@approve')->name('destructions.approve');
+    Route::post('/destructions/{destructionLog}/reject', 'DestructionController@reject')->name('destructions.reject');
     Route::post('/destructions/{destructionLog}/complete', 'DestructionController@complete')->name('destructions.complete');
     Route::get('/destructions/extend', 'DestructionController@extendForm')->name('destructions.extend_form');
     Route::get('/destructions/extend/{archive}', 'DestructionController@extendForm')->name('destructions.extend_form.archive');

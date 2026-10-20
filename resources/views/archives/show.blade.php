@@ -42,14 +42,37 @@
             'ext' => strtolower(pathinfo($archive->file_path, PATHINFO_EXTENSION)),
         ];
     }
+    if ($archive->borrowingLogs && $archive->borrowingLogs->isNotEmpty()) {
+        $existingPaths = array_column($archiveFiles, 'raw_path');
+        foreach ($archive->borrowingLogs as $bLogItem) {
+            if (!empty($bLogItem->effective_approval_file) && !in_array($bLogItem->effective_approval_file, $existingPaths)) {
+                $existingPaths[] = $bLogItem->effective_approval_file;
+                $archiveFiles[] = [
+                    'name' => 'Scan Formulir Approval Penarikan',
+                    'url' => app_storage_url($bLogItem->effective_approval_file),
+                    'stream_url' => app_preview_stream_url($bLogItem->effective_approval_file),
+                    'raw_path' => $bLogItem->effective_approval_file,
+                    'ext' => strtolower(pathinfo($bLogItem->effective_approval_file, PATHINFO_EXTENSION)),
+                ];
+                break;
+            }
+        }
+    }
     $from = request('from', 'archives');
     $backRoute = 'archives.index';
     if ($from === 'borrowings') {
         $backRoute = 'borrowings.index';
     } elseif ($from === 'destructions') {
         $backRoute = 'destructions.index';
-    } elseif ($from === 'warehouse') {
-        $backRoute = 'warehouse.index';
+    } elseif ($from === 'warehouse' || $from === 'layout') {
+        $backRoute = (auth()->check() && auth()->user()->isPicDept()) ? 'archives.index' : 'master.warehouses.layout';
+    } elseif ($from === 'warehouses') {
+        $backRoute = (auth()->check() && auth()->user()->isPicDept()) ? 'archives.index' : 'warehouses';
+    } elseif ($from === 'dashboard') {
+        $backRoute = 'dashboard';
+    }
+    if (!\Illuminate\Support\Facades\Route::has($backRoute)) {
+        $backRoute = 'archives.index';
     }
 @endphp
 
@@ -57,10 +80,6 @@
     <!-- DELPHI ACTION RIBBON TOOLBAR & HEADER (TPanel / TToolBar) -->
     <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-2.5 sm:p-3 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3 font-mono">
         <div class="flex items-center gap-2.5">
-            <a href="{{ route($backRoute, request()->has('embed') ? ['embed' => 1] : []) }}" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600 rounded text-xs font-bold transition flex items-center gap-1 shadow-sm shrink-0" title="Kembali">
-                <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
-                <span class="hidden sm:inline">Kembali</span>
-            </a>
             <span class="p-1.5 bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 rounded shrink-0">
                 <i data-lucide="folder-open" class="w-4 h-4"></i>
             </span>
@@ -90,13 +109,17 @@
 
             <!-- Cetak Label Box -->
             @if(!auth()->user()->isPicDept())
-                @if(in_array($archive->status, ['approved_booked', 'in_warehouse', 'pending_extension']))
+                @php
+                    $hasRackLocation = !empty($archive->warehouse_location_id);
+                    $canPrint = in_array($archive->status, ['approved_booked', 'in_warehouse', 'pending_extension']) && $hasRackLocation;
+                @endphp
+                @if($canPrint)
                 <button type="button" @click="window.openLabelModal({{ $archive->id }})" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 rounded text-xs font-mono font-bold transition flex items-center gap-1 shadow-sm shrink-0 cursor-pointer" title="Cetak Stiker Label Box">
                     <i data-lucide="printer" class="w-3.5 h-3.5 text-amber-500"></i>
                     <span>Cetak Label</span>
                 </button>
                 @else
-                <button type="button" disabled class="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold flex items-center gap-1 shadow-2xs shrink-0 opacity-40 cursor-not-allowed" title="Label dinonaktifkan: Hanya dapat dicetak untuk arsip yang telah disetujui (Approved / Booked), tersimpan di gudang, atau perpanjangan (status saat ini: {{ $archive->status_label }})">
+                <button type="button" disabled class="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold flex items-center gap-1 shadow-2xs shrink-0 opacity-40 cursor-not-allowed" title="{{ !$hasRackLocation ? 'Label dinonaktifkan: Lokasi rak gudang belum ditentukan (tahap verifikasi/approval atau belum check-in ke rak)' : 'Label dinonaktifkan: Hanya dapat dicetak untuk arsip yang tersimpan di rak gudang atau perpanjangan (status saat ini: ' . $archive->status_label . ')' }}">
                     <i data-lucide="printer" class="w-3.5 h-3.5 text-slate-400 dark:text-slate-600"></i>
                     <span>Cetak Label</span>
                 </button>
@@ -113,6 +136,15 @@
                 </a>
                 @endif
             @endif
+
+            <!-- Tombol Kembali (Diposisikan di Sebelah Kanan dengan Handler Navigasi Pasti) -->
+            <a href="{{ route($backRoute, request()->has('embed') ? ['embed' => 1] : []) }}" 
+               onclick="if (window.history.length > 1 && document.referrer && document.referrer !== window.location.href) { window.history.back(); return false; }"
+               class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600 rounded text-xs font-bold transition flex items-center gap-1 shadow-sm shrink-0 cursor-pointer" 
+               title="Kembali ke Daftar (Esc)">
+                <i data-lucide="arrow-left" class="w-3.5 h-3.5 text-amber-500"></i>
+                <span>Kembali</span>
+            </a>
         </div>
     </div>
 
@@ -221,18 +253,18 @@
                         <option value="">-- Pilih Slot Rak Gudang Available --</option>
                         @foreach($locations as $loc)
                             @php
-                                $isLocLocked = $loc->is_locked;
-                                $isDeptMismatch = ($loc->assigned_department_id && $loc->assigned_department_id != $archive->department_id);
-                                $isDisabled = $isLocLocked || $isDeptMismatch;
+                                $isFull = ($loc->box_capacity > 0 && $loc->current_box_count >= $loc->box_capacity);
+                                $locAllowed = $loc->allowed_department_ids;
+                                $isDeptMismatch = (!empty($locAllowed) && !in_array((int)$archive->department_id, $locAllowed, true));
+                                $isDisabled = $isFull || $isDeptMismatch;
                                 $badge = '';
-                                if ($isLocLocked) {
-                                    $badge = ' [TERKUNCI 🔒]';
+                                if ($isFull) {
+                                    $badge = ' [PENUH ⚠️]';
                                 } elseif ($isDeptMismatch) {
-                                    $deptCode = $loc->assignedDepartment ? $loc->assignedDepartment->code : 'Lain';
-                                    $badge = " [Khusus Dept {$deptCode}]";
-                                } elseif ($loc->assigned_department_id) {
-                                    $deptCode = $loc->assignedDepartment ? $loc->assignedDepartment->code : 'Dept';
-                                    $badge = " [Khusus {$deptCode} ✓]";
+                                    $deptCodes = \App\Models\Department::whereIn('id', $locAllowed)->pluck('code')->implode(', ');
+                                    $badge = " [Khusus: {$deptCodes}]";
+                                } elseif (!empty($locAllowed)) {
+                                    $badge = ' [Diizinkan ✓]';
                                 } else {
                                     $badge = ' [Umum]';
                                 }
@@ -389,6 +421,17 @@
                         {{ $archive->content_description ?: 'Tidak ada rincian butir berkas.' }}
                     </div>
                     @endif
+                </div>
+            </fieldset>
+            @elseif(auth()->user()->isPicGudang())
+            <fieldset class="border border-slate-300 dark:border-slate-800 p-3 rounded bg-white dark:bg-slate-950 font-mono text-xs shadow-sm">
+                <legend class="px-2 font-mono text-xs font-bold text-amber-700 dark:text-amber-400 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded shadow-sm flex items-center gap-1.5">
+                    <i data-lucide="shield-alert" class="w-3.5 h-3.5 text-amber-500"></i>
+                    Informasi Butir Dokumen (Privasi Departemen)
+                </legend>
+                <div class="p-3 bg-amber-500/10 border border-amber-500/30 rounded text-xs text-amber-800 dark:text-amber-300 font-mono flex items-center gap-2">
+                    <i data-lucide="shield-check" class="w-4 h-4 text-amber-600 shrink-0"></i>
+                    <span>Rincian butir isi dokumen di dalam box bersifat rahasia dan disembunyikan. Wewenang PIC Gudang hanya pada verifikasi fisik nomor box, segel, dan penempatan lokasi rak.</span>
                 </div>
             </fieldset>
             @endif

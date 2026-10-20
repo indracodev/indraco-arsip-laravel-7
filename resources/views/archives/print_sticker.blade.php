@@ -219,10 +219,11 @@
 <body>
     <div class="container">
         <nav>
-            <a href="{{ $isSingle && $singleArchive ? route('archives.show', $singleArchive->id) : route('archives.index') }}"
-                class="btn">&larr; Kembali</a>
             <button type="button" onclick="toggleFormat()" id="btn-toggle-format" class="btn">📋 Format: Stiker 10x10</button>
             <button onclick="window.print()" class="btn">🖨️ Cetak Label</button>
+            <a href="{{ $isSingle && $singleArchive ? route('archives.show', $singleArchive->id) : route('archives.index') }}"
+                onclick="if (window.opener) { window.close(); return false; } else if (window.history.length > 1) { window.history.back(); return false; }"
+                class="btn">&larr; Kembali</a>
         </nav>
 
         @foreach ($archives as $archive)

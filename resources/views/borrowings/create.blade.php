@@ -39,7 +39,9 @@
                 <span>Form Penarikan</span>
             </button>
 
-            <a href="{{ route($backRoute, request()->has('embed') ? ['embed' => 1] : []) }}" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded text-xs font-bold transition flex items-center gap-1 shadow-sm whitespace-nowrap shrink-0">
+            <a href="{{ route($backRoute, request()->has('embed') ? ['embed' => 1] : []) }}" 
+               onclick="if (window.history.length > 1 && document.referrer && document.referrer !== window.location.href) { window.history.back(); return false; }"
+               class="px-3 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded text-xs font-bold transition flex items-center gap-1 shadow-sm whitespace-nowrap shrink-0 cursor-pointer">
                 <i data-lucide="arrow-left" class="w-3.5 h-3.5 text-amber-500 shrink-0"></i>
                 <span>Kembali (Esc)</span>
             </a>
@@ -158,6 +160,9 @@
                                         <span x-show="arc.has_active_borrowing" class="text-[9px] font-bold text-purple-700 dark:text-purple-300 bg-purple-500/20 px-1.5 py-0.2 rounded border border-purple-500/40 flex items-center gap-1">
                                             <i data-lucide="clock" class="w-2.5 h-2.5"></i> Sedang Diajukan Penarikan
                                         </span>
+                                        <span x-show="!arc.has_active_borrowing && arc.has_rejected_borrowing" class="text-[9px] font-bold text-rose-700 dark:text-rose-300 bg-rose-500/15 px-1.5 py-0.2 rounded border border-rose-500/30 flex items-center gap-1">
+                                            <i data-lucide="rotate-ccw" class="w-2.5 h-2.5 text-rose-500"></i> Pernah Ditolak
+                                        </span>
                                         <span x-show="!arc.has_active_borrowing && isAlreadySelected(arc.id)" class="text-[9px] font-bold text-emerald-600 bg-emerald-500/10 px-1.5 py-0.2 rounded border border-emerald-500/20 flex items-center gap-1">
                                             <i data-lucide="check" class="w-2.5 h-2.5"></i> Sudah di List
                                         </span>
@@ -262,6 +267,18 @@
                              x-transition:enter-end="opacity-100 translate-y-0"
                              class="p-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/50 space-y-3 font-mono">
                             
+                            <!-- Alert Catatan Penolakan Pengajuan Sebelumnya -->
+                            <template x-if="arc.has_rejected_borrowing && arc.rejected_note">
+                                <div class="p-2.5 rounded bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-200 text-xs font-mono flex items-start gap-2 shadow-2xs">
+                                    <i data-lucide="alert-circle" class="w-4 h-4 text-rose-500 shrink-0 mt-0.5"></i>
+                                    <div>
+                                        <strong class="font-bold uppercase tracking-wider text-rose-700 dark:text-rose-300 block">Catatan Penolakan Pengajuan Sebelumnya:</strong>
+                                        <span class="text-[11px] text-slate-700 dark:text-slate-300" x-text="arc.rejected_note"></span>
+                                        <p class="text-[10px] text-rose-600 dark:text-rose-400 mt-1 italic font-sans">*Pastikan surat permohonan dan kelengkapan dokumen telah diperbaiki sebelum mengirimkan ulang pengajuan ini.</p>
+                                    </div>
+                                </div>
+                            </template>
+
                             <!-- Metadata Mini Grid -->
                             <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                                 <div class="p-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
@@ -404,7 +421,9 @@
 
             <!-- Right Buttons -->
             <div class="flex items-center gap-2">
-                <a href="{{ route($backRoute, request()->has('embed') ? ['embed' => 1] : []) }}" class="px-3.5 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded text-xs font-bold border border-slate-300 dark:border-slate-700 transition">
+                <a href="{{ route($backRoute, request()->has('embed') ? ['embed' => 1] : []) }}" 
+                   onclick="if (window.history.length > 1 && document.referrer && document.referrer !== window.location.href) { window.history.back(); return false; }"
+                   class="px-3.5 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded text-xs font-bold border border-slate-300 dark:border-slate-700 transition cursor-pointer">
                     Batal
                 </a>
                 <button type="submit" 

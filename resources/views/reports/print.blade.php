@@ -96,13 +96,13 @@
         </div>
         
         <div class="flex items-center gap-2">
-            <button onclick="window.close()" type="button" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 transition flex items-center gap-1">
-                <i data-lucide="arrow-left" class="w-3 h-3"></i>
-                <span>Kembali</span>
-            </button>
-            <button onclick="window.print()" type="button" class="px-3.5 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded border border-amber-600 transition flex items-center gap-1.5 shadow">
+            <button onclick="window.print()" type="button" class="px-3.5 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded border border-amber-600 transition flex items-center gap-1.5 shadow cursor-pointer">
                 <i data-lucide="printer" class="w-3.5 h-3.5"></i>
                 <span>Cetak / Simpan PDF (Ctrl+P)</span>
+            </button>
+            <button onclick="if (window.opener) { window.close(); } else if (window.history.length > 1) { window.history.back(); } else { window.location.href = '{{ route('reports.index') }}'; }" type="button" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 transition flex items-center gap-1 cursor-pointer">
+                <i data-lucide="arrow-left" class="w-3 h-3"></i>
+                <span>Kembali</span>
             </button>
         </div>
     </div>

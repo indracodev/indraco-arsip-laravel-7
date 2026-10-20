@@ -17,7 +17,10 @@ class WarehouseLayoutController extends Controller
 {
     public function index()
     {
-        $warehouses = Warehouse::all();
+        $isSuperAdmin = auth()->check() && auth()->user()->isSuperAdmin();
+        $warehouses = $isSuperAdmin 
+            ? Warehouse::all() 
+            : Warehouse::whereNotIn('code', ['GUDANG GA', 'GUDANG IT', 'GA', 'IT'])->get();
         $departments = Department::with(['subDepartments' => function ($q) {
             $q->where('is_active', true);
         }])->where('is_active', true)->get();
@@ -27,6 +30,7 @@ class WarehouseLayoutController extends Controller
     public function apiLayoutData(Request $request)
     {
         $warehouseId = $request->query('warehouse_id');
+        $isSuperAdmin = auth()->check() && auth()->user()->isSuperAdmin();
 
         $query = WarehouseLocation::with([
             'warehouse',
@@ -43,6 +47,14 @@ class WarehouseLayoutController extends Controller
 
         if ($warehouseId) {
             $query->where('warehouse_id', $warehouseId);
+        }
+
+        if (!$isSuperAdmin) {
+            $query->whereNotIn('rack_code', ['GUDANG GA', 'GUDANG IT', 'GA', 'IT'])
+                  ->where(function($q) {
+                      $q->whereNull('room_sector')
+                        ->orWhereNotIn('room_sector', ['GUDANG GA', 'GUDANG IT', 'GA', 'IT']);
+                  });
         }
 
         $locations = $query->get()->map(function ($loc) {
@@ -82,6 +94,7 @@ class WarehouseLayoutController extends Controller
                 'is_fat_locked' => $isFatLocked,
                 'is_active' => (bool) ($loc->is_active ?? true),
                 'assigned_department_id' => $loc->assigned_department_id,
+                'assigned_department_ids' => $loc->allowed_department_ids,
                 'assigned_department' => $loc->assignedDepartment ? [
                     'id' => $loc->assignedDepartment->id,
                     'code' => $loc->assignedDepartment->code,
@@ -193,15 +206,72 @@ class WarehouseLayoutController extends Controller
             $q->where('is_active', true);
         }])->where('is_active', true)->get();
 
-        $unassignedArchives = Archive::with('department')
-            ->where(function ($q) {
-                $q->whereNull('warehouse_rack_slot_id')
-                  ->orWhere('status', 'draft')
-                  ->orWhere('status', 'approved_booked');
-            })
-            ->whereNotIn('status', ['destroyed', 'in_warehouse'])
-            ->get()
+        $unassignedQuery = Archive::with(['department', 'creator'])
+            ->whereIn('status', ['pending_verification', 'approved_booked', 'approved', 'in_warehouse'])
+            ->whereNull('warehouse_rack_slot_id')
+            ->orderBy('id', 'desc');
+
+        if ($warehouseId) {
+            $targetWh = Warehouse::find($warehouseId);
+            if ($targetWh) {
+                $whCode = strtoupper(trim($targetWh->code ?? ''));
+                if (in_array($whCode, ['GUDANG GA', 'GA'])) {
+                    $unassignedQuery->whereHas('department', function($q) {
+                        $q->where('code', 'GA');
+                    });
+                } elseif (in_array($whCode, ['GUDANG IT', 'IT'])) {
+                    $unassignedQuery->whereHas('department', function($q) {
+                        $q->whereIn('code', ['IT', 'MIS', 'EDP']);
+                    });
+                } else {
+                    $unassignedQuery->whereHas('department', function($q) {
+                        $q->whereNotIn('code', ['GA', 'IT']);
+                    });
+                }
+            }
+        } elseif (!$isSuperAdmin) {
+            $unassignedQuery->whereHas('department', function($q) {
+                $q->whereNotIn('code', ['GA', 'IT']);
+            });
+        }
+
+        $unassignedArchives = $unassignedQuery->get()
             ->map(function ($arc) {
+                $archiveFiles = [];
+                if ($arc->scan_input_form) {
+                    $archiveFiles[] = [
+                        'name' => 'Scan Formulir Input',
+                        'category' => 'Formulir Pendaftaran Fisik',
+                        'url' => app_storage_url($arc->scan_input_form),
+                        'stream_url' => app_preview_stream_url($arc->scan_input_form),
+                        'raw_path' => $arc->scan_input_form,
+                        'filename' => basename($arc->scan_input_form),
+                        'ext' => strtolower(pathinfo($arc->scan_input_form, PATHINFO_EXTENSION)),
+                    ];
+                }
+                if ($arc->file_path) {
+                    $archiveFiles[] = [
+                        'name' => 'Lampiran Digital Dokumen',
+                        'category' => 'Softcopy Dokumen',
+                        'url' => app_storage_url($arc->file_path),
+                        'stream_url' => app_preview_stream_url($arc->file_path),
+                        'raw_path' => $arc->file_path,
+                        'filename' => basename($arc->file_path),
+                        'ext' => strtolower(pathinfo($arc->file_path, PATHINFO_EXTENSION)),
+                    ];
+                }
+                if ($arc->scan_approval_input) {
+                    $archiveFiles[] = [
+                        'name' => 'Scan Approval Input',
+                        'category' => 'Bukti Persetujuan PIC',
+                        'url' => app_storage_url($arc->scan_approval_input),
+                        'stream_url' => app_preview_stream_url($arc->scan_approval_input),
+                        'raw_path' => $arc->scan_approval_input,
+                        'filename' => basename($arc->scan_approval_input),
+                        'ext' => strtolower(pathinfo($arc->scan_approval_input, PATHINFO_EXTENSION)),
+                    ];
+                }
+
                 return [
                     'id' => $arc->id,
                     'box_number' => $arc->box_number,
@@ -209,7 +279,15 @@ class WarehouseLayoutController extends Controller
                     'department_id' => $arc->department_id,
                     'department_code' => $arc->department ? $arc->department->code : 'Dept',
                     'department_name' => $arc->department ? $arc->department->name : '',
+                    'department' => $arc->department ? $arc->department->name : '',
+                    'creator' => $arc->creator ? $arc->creator->name : ($arc->created_by_user_id ? 'PIC / Staf' : '-'),
+                    'periode' => $arc->effective_periode ?? $arc->periode_doc ?? $arc->period_text,
                     'periode_doc' => $arc->periode_doc ?? $arc->period_text,
+                    'physical_condition' => $arc->physical_condition ?? 'Baik',
+                    'files' => $archiveFiles,
+                    'has_files' => count($archiveFiles) > 0,
+                    'status' => $arc->status,
+                    'is_approved' => in_array($arc->status, ['approved_booked', 'approved', 'in_warehouse']),
                 ];
             });
 
@@ -309,14 +387,17 @@ class WarehouseLayoutController extends Controller
         }
 
         $department = Department::find($validated['department_id']);
-        $customDeptId = $location->assigned_department_id ?? ($parentRoom ? $parentRoom->assigned_department_id : null);
-        if ($customDeptId && $validated['department_id'] != $customDeptId) {
-            $customDept = Department::find($customDeptId);
-            $customDeptName = $customDept ? "{$customDept->code} ({$customDept->name})" : "Departemen Khusus";
+        $allowedDeptIds = $location->allowed_department_ids;
+        if (empty($allowedDeptIds) && $parentRoom) {
+            $allowedDeptIds = $parentRoom->allowed_department_ids;
+        }
+
+        if (!empty($allowedDeptIds) && !in_array((int)$validated['department_id'], $allowedDeptIds, true)) {
+            $deptNames = Department::whereIn('id', $allowedDeptIds)->pluck('code')->implode(', ');
             $reqDeptName = $department ? "{$department->code} ({$department->name})" : "Departemen Anda";
             return response()->json([
                 'success' => false,
-                'message' => "Akses Ditolak: Lokasi ini dikhususkan untuk {$customDeptName}. {$reqDeptName} tidak diizinkan mem-booking lokasi ini.",
+                'message' => "Akses Ditolak: Lokasi ini dikhususkan untuk [{$deptNames}]. {$reqDeptName} tidak diizinkan mem-booking lokasi ini.",
             ], 403);
         }
 
@@ -385,6 +466,8 @@ class WarehouseLayoutController extends Controller
             'custom_color' => 'nullable|string|max:30',
             'is_fat_locked' => 'nullable|boolean',
             'assigned_department_id' => 'nullable|exists:departments,id',
+            'assigned_department_ids' => 'nullable|array',
+            'assigned_department_ids.*' => 'exists:departments,id',
             'canvas_x' => 'nullable|integer',
             'canvas_y' => 'nullable|integer',
             'canvas_width' => 'nullable|integer',
@@ -393,6 +476,19 @@ class WarehouseLayoutController extends Controller
             'rotation_angle' => 'nullable|integer',
             'is_locked' => 'nullable|boolean',
         ]);
+
+        // Security check: Hanya superadmin yang dapat mengatur pembatasan departemen
+        if (!auth()->check() || !auth()->user()->isSuperAdmin()) {
+            unset($validated['assigned_department_id'], $validated['assigned_department_ids']);
+        } else {
+            if (isset($validated['assigned_department_ids'])) {
+                $ids = array_values(array_filter(array_map('intval', $validated['assigned_department_ids'])));
+                $validated['assigned_department_ids'] = $ids;
+                $validated['assigned_department_id'] = !empty($ids) ? $ids[0] : null;
+            } elseif (array_key_exists('assigned_department_id', $validated)) {
+                $validated['assigned_department_ids'] = $validated['assigned_department_id'] ? [(int)$validated['assigned_department_id']] : [];
+            }
+        }
 
         $location->update($validated);
 
@@ -437,6 +533,12 @@ class WarehouseLayoutController extends Controller
         return response()->json([
             'success' => true,
             'message' => "Data object '{$location->rack_code}' berhasil diperbarui.",
+            'location' => [
+                'id' => $location->id,
+                'rack_code' => $location->rack_code,
+                'assigned_department_id' => $location->assigned_department_id,
+                'assigned_department_ids' => $location->allowed_department_ids,
+            ]
         ]);
     }
 
@@ -493,6 +595,13 @@ class WarehouseLayoutController extends Controller
             'archive_id' => 'required_if:mode,existing_archive,assign_existing|nullable|exists:archives,id',
         ]);
 
+        if ($user->isPicGudang() && $validated['mode'] === 'create_new') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akses Ditolak: PIC Gudang tidak memiliki hak untuk membuat pengajuan berkas baru. Wewenang gudang hanya untuk verifikasi fisik dan approval.',
+            ], 403);
+        }
+
         // Validasi Pembatasan Departemen yang Diizinkan (Fitur Baru)
         $parentRoom = null;
         if ($location->location_type !== 'room' && !empty($location->room_sector)) {
@@ -502,21 +611,48 @@ class WarehouseLayoutController extends Controller
         }
 
         $departmentId = $validated['department_id'] ?? null;
+        $wasPending = false;
         if (in_array($validated['mode'], ['existing_archive', 'assign_existing'])) {
             $existingArc = Archive::findOrFail($validated['archive_id']);
+            if (!in_array($existingArc->status, ['approved_booked', 'approved', 'pending_verification', 'in_warehouse'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Akses Ditolak: Status arsip tidak valid untuk penempatan ke rak (Status: " . ($existingArc->status_label ?? $existingArc->status) . ").",
+                ], 422);
+            }
+            if ($existingArc->status === 'pending_verification') {
+                $wasPending = true;
+            }
             $departmentId = $existingArc->department_id;
         }
 
-        $customDeptId = $location->assigned_department_id ?? ($parentRoom ? $parentRoom->assigned_department_id : null);
-        if ($customDeptId && $departmentId && $customDeptId != $departmentId) {
-            $customDept = Department::find($customDeptId);
-            $customDeptName = $customDept ? "{$customDept->code} ({$customDept->name})" : "Departemen Khusus";
+        // Validasi Proteksi Ruang FAT (R1 & R2)
+        $sector = strtoupper(trim($location->room_sector ?? ($parentRoom ? $parentRoom->room_sector : '')));
+        $isFatSector = in_array($sector, ['R1', 'R2', 'RUANG 1', 'RUANG 2', 'RUANG R1', 'RUANG R2', 'SEKTOR R1', 'SEKTOR R2']) || preg_match('/^R[12]$/i', $sector);
+        if ($isFatSector) {
+            $docDept = Department::find($departmentId);
+            $isFatDept = $docDept && (in_array(strtoupper(trim($docDept->code)), ['FAT', 'FIN']) || stripos($docDept->name, 'Finance') !== false || stripos($docDept->name, 'Accounting') !== false);
+            if (!$isFatDept) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Akses Ditolak: Ruang/Sektor {$sector} dikhususkan hanya untuk dokumen Departemen FAT (Finance & Accounting). Dokumen dari departemen " . ($docDept ? $docDept->code : 'Lain') . " tidak diizinkan ditempatkan di sini.",
+                ], 403);
+            }
+        }
+
+        $allowedDeptIds = $location->allowed_department_ids;
+        if (empty($allowedDeptIds) && $parentRoom) {
+            $allowedDeptIds = $parentRoom->allowed_department_ids;
+        }
+
+        if (!empty($allowedDeptIds) && $departmentId && !in_array((int)$departmentId, $allowedDeptIds, true)) {
+            $deptNames = Department::whereIn('id', $allowedDeptIds)->pluck('code')->implode(', ');
             $docDept = Department::find($departmentId);
             $docDeptName = $docDept ? "{$docDept->code} ({$docDept->name})" : "Departemen Terkait";
 
             return response()->json([
                 'success' => false,
-                'message' => "Akses Ditolak: Lokasi/Gudang '{$location->rack_code}' dikhususkan untuk {$customDeptName}. Box dari {$docDeptName} tidak diizinkan ditempatkan di lokasi ini.",
+                'message' => "Akses Ditolak: Lokasi/Gudang '{$location->rack_code}' dikhususkan untuk [{$deptNames}]. Box dari {$docDeptName} tidak diizinkan ditempatkan di lokasi ini.",
             ], 403);
         }
 
@@ -604,23 +740,41 @@ class WarehouseLayoutController extends Controller
             $archive->save();
         } else {
             $archive = Archive::with('department')->findOrFail($validated['archive_id']);
+            $numberingService = new NumberingService();
+            if (empty($archive->box_number)) {
+                $archive->box_number = $numberingService->generateBoxCode($archive);
+            }
+
             $updateData = [
                 'warehouse_location_id' => $location->id,
                 'warehouse_rack_slot_id' => $slot->id,
                 'status' => 'in_warehouse',
+                'box_number' => $archive->box_number,
+                'rejection_note' => null,
             ];
 
             if (!empty($validated['box_number'])) {
                 $archive->box_number = trim($validated['box_number']);
                 $updateData['box_number'] = $archive->box_number;
-            } elseif (empty($archive->box_number)) {
-                $numberingService = new NumberingService();
-                $archive->box_number = $numberingService->generateBoxCode($archive);
-                $updateData['box_number'] = $archive->box_number;
             }
 
             $archive->update($updateData);
             $archive->refresh();
+
+            if ($wasPending) {
+                ActivityLogger::log(
+                    'ARCHIVE_VERIFY',
+                    "Verifikasi persetujuan (Approve) & penempatan box '{$archive->box_number}' di slot {$slot->slot_code} pada rak '{$location->rack_code}'.",
+                    'DOKUMEN_ARSIP',
+                    [
+                        'archive_id' => $archive->id,
+                        'box_number' => $archive->box_number,
+                        'status' => 'in_warehouse',
+                        'slot_code' => $slot->slot_code,
+                    ],
+                    $archive->box_number
+                );
+            }
         }
 
         // Link slot to archive
@@ -648,9 +802,13 @@ class WarehouseLayoutController extends Controller
             $archive->box_number
         );
 
+        $successMsg = $wasPending
+            ? "Box arsip '{$archive->box_number}' berhasil disetujui (ACC) dan ditempatkan di slot {$slot->slot_code}."
+            : "Box arsip '{$archive->box_number}' berhasil ditempatkan di slot {$slot->slot_code}.";
+
         return response()->json([
             'success' => true,
-            'message' => "Box arsip '{$archive->box_number}' berhasil ditempatkan di slot {$slot->slot_code}.",
+            'message' => $successMsg,
             'display_location' => $archive->display_location,
             'location_full' => $archive->display_location,
             'slot' => [

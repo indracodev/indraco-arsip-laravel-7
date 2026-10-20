@@ -366,13 +366,40 @@ document.addEventListener('change', function(e) {
 
     var file = input.files[0];
     var ext = (file.name || '').split('.').pop().toLowerCase();
-    var allowedExts = ['pdf', 'jpg', 'jpeg', 'png'];
-    var maxBytes = 500 * 1024; // 500 KB limit
+    var acceptAttr = (input.getAttribute('accept') || '').toLowerCase();
 
-    // 1. Validasi Ekstensi
+    // 1. Tentukan ekstensi yang diizinkan berdasarkan atribut accept atau default
+    var allowedExts = ['pdf', 'jpg', 'jpeg', 'png'];
+
+    if (acceptAttr && acceptAttr.trim() !== '') {
+        var tokens = acceptAttr.split(',').map(function(t) { return t.trim(); });
+        var parsedExts = [];
+        tokens.forEach(function(t) {
+            if (t.startsWith('.')) {
+                parsedExts.push(t.substring(1));
+            } else if (t === 'image/*' || t.startsWith('image/')) {
+                parsedExts.push('jpg', 'jpeg', 'png', 'webp', 'gif');
+            } else if (t === 'application/pdf') {
+                parsedExts.push('pdf');
+            } else if (t.includes('spreadsheet') || t.includes('excel')) {
+                parsedExts.push('xlsx', 'xls');
+            } else if (t === 'text/csv') {
+                parsedExts.push('csv');
+            }
+        });
+        if (parsedExts.length > 0) {
+            allowedExts = [];
+            parsedExts.forEach(function(item) {
+                if (allowedExts.indexOf(item) === -1) allowedExts.push(item);
+            });
+        }
+    }
+
+    // 2. Validasi Ekstensi
     if (!allowedExts.includes(ext)) {
-        input.value = ''; // BLENG (kosongkan seketika)
-        var msgExt = 'Format berkas (.' + (ext.toUpperCase() || 'tidak valid') + ') tidak didukung. Harap unggah berkas bertipe PDF atau Gambar (JPG, JPEG, PNG).';
+        input.value = ''; // Kosongkan seketika
+        var allowedListStr = allowedExts.map(function(x) { return x.toUpperCase(); }).join(', ');
+        var msgExt = 'Format berkas (.' + (ext.toUpperCase() || 'tidak valid') + ') tidak didukung. Harap unggah berkas bertipe: ' + allowedListStr + '.';
         if (typeof window.showNotificationModal === 'function') {
             window.showNotificationModal(msgExt, 'Format Berkas Ditolak', 'warning');
         } else {
@@ -381,13 +408,28 @@ document.addEventListener('change', function(e) {
         return;
     }
 
-    // 2. Validasi Ukuran Maksimal 500 KB
+    // 3. Validasi Ukuran Maksimal
+    // - Khusus Berkas Spreadsheet (.xlsx, .xls, .csv) & Lampiran Dokumen (.doc, .docx, .zip): Batas 50 MB
+    // - Berkas Scan Persetujuan / Formulir Biasa: Batas 500 KB
+    var isLargeDoc = input.id === 'multi_box_excel_file_input' || 
+                     allowedExts.includes('xlsx') || 
+                     allowedExts.includes('xls') || 
+                     allowedExts.includes('csv') || 
+                     allowedExts.includes('zip') || 
+                     allowedExts.includes('docx') || 
+                     allowedExts.includes('doc');
+
+    var maxBytes = isLargeDoc ? (50 * 1024 * 1024) : (500 * 1024);
+    var maxLabel = isLargeDoc ? '50 MB' : '500 KB';
+
     if (file.size > maxBytes) {
-        input.value = ''; // BLENG (kosongkan seketika)
-        var actualFormatted = (file.size / 1024).toFixed(1) + ' KB';
-        var msgSize = 'Ukuran berkas (' + actualFormatted + ') melebihi batas maksimal 500 KB. Berkas otomatis dibatalkan.';
+        input.value = ''; // Kosongkan seketika
+        var actualFormatted = (file.size > 1024 * 1024)
+            ? (file.size / (1024 * 1024)).toFixed(1) + ' MB'
+            : (file.size / 1024).toFixed(1) + ' KB';
+        var msgSize = 'Ukuran berkas (' + actualFormatted + ') melebihi batas maksimal ' + maxLabel + '. Berkas otomatis dibatalkan.';
         if (typeof window.showNotificationModal === 'function') {
-            window.showNotificationModal(msgSize, 'Batas Ukuran 500 KB', 'warning');
+            window.showNotificationModal(msgSize, 'Batas Ukuran ' + maxLabel, 'warning');
         } else {
             alert(msgSize);
         }

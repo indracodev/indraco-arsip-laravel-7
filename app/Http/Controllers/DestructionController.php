@@ -263,9 +263,12 @@ class DestructionController extends Controller
             if ($status === 'approved') {
                 $statusLabel = 'Antrean Pemusnahan';
                 $statusBadge = 'bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-300 border-blue-300 dark:border-blue-700';
+            } elseif ($status === 'rejected') {
+                $statusLabel = 'Ditolak';
+                $statusBadge = 'bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300 border-rose-300 dark:border-rose-700';
             } elseif ($status === 'completed' || ($dLog->archive && $dLog->archive->status === 'destroyed')) {
                 $statusLabel = 'Telah Dimusnahkan';
-                $statusBadge = 'bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300 border-rose-300 dark:border-rose-700';
+                $statusBadge = 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700';
             }
 
             return [
@@ -287,7 +290,11 @@ class DestructionController extends Controller
                 'approval_status' => $status,
                 'status_label' => $statusLabel,
                 'status_badge' => $statusBadge,
+                'rejection_note' => $dLog->approval_notes,
                 'can_print_bap' => $canPrintBap,
+                'can_approve' => ($user->isPicGudang() || $user->isSuperAdmin()) && $status === 'pending',
+                'can_reject' => ($user->isPicGudang() || $user->isSuperAdmin()) && in_array($status, ['pending', 'approved']),
+                'can_complete' => ($user->isPicGudang() || $user->isSuperAdmin()) && $status === 'approved',
             ];
         });
 
@@ -297,6 +304,9 @@ class DestructionController extends Controller
     public function proposeForm(Request $request, $archive = null)
     {
         $user = auth()->user();
+        if ($user && $user->isPicGudang()) {
+            abort(403, 'Akses Ditolak: PIC Gudang tidak memiliki hak untuk mengajukan pemusnahan berkas.');
+        }
 
         $selectedArchiveIds = [];
         if ($archive instanceof Archive) {
@@ -341,7 +351,11 @@ class DestructionController extends Controller
     {
         $user = auth()->user();
 
-        if (!$user->isPicGudang() && !$user->isSuperAdmin() && !$user->isPicDept()) {
+        if ($user && $user->isPicGudang()) {
+            abort(403, 'Akses Ditolak: PIC Gudang tidak memiliki hak untuk mengajukan pemusnahan berkas.');
+        }
+
+        if (!$user->isSuperAdmin() && !$user->isPicDept()) {
             abort(403, 'Akses ditolak.');
         }
 
@@ -546,6 +560,58 @@ class DestructionController extends Controller
     }
 
     /**
+     * Penolakan Pengajuan Pemusnahan oleh Gudang / Super Admin
+     */
+    public function reject(DestructionLog $destructionLog, Request $request)
+    {
+        $user = auth()->user();
+        if (!$user->isPicGudang() && !$user->isSuperAdmin()) {
+            abort(403, 'Hanya PIC Gudang atau Super Admin yang berwenang menolak pengajuan pemusnahan.');
+        }
+
+        $request->validate([
+            'rejection_note' => 'required|string|max:500',
+        ], [
+            'rejection_note.required' => 'Alasan penolakan pemusnahan wajib diisi.',
+            'rejection_note.max' => 'Alasan penolakan maksimal 500 karakter.',
+        ]);
+
+        $archive = $destructionLog->archive;
+        $reason = $request->input('rejection_note');
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($destructionLog, $archive, $user, $reason) {
+            if ($archive && in_array($archive->status, ['pending_destruction'])) {
+                $archive->update([
+                    'status' => 'in_warehouse',
+                ]);
+            }
+
+            $destructionLog->update([
+                'approval_status' => 'rejected',
+                'approval_notes' => $reason,
+                'approved_by_dept_pic_id' => $user->id,
+            ]);
+
+            ActivityLogger::log(
+                'DESTRUCTION_REJECTED',
+                "Pengajuan pemusnahan berkas '" . ($archive ? $archive->title : "ID #{$destructionLog->archive_id}") . "' ditolak oleh {$user->name}. Alasan: {$reason}",
+                'PEMUSNAHAN_RETENSI',
+                [
+                    'destruction_log_id' => $destructionLog->id,
+                    'archive_id' => $archive ? $archive->id : null,
+                    'rejection_note' => $reason,
+                    'rejected_by' => $user->id,
+                ],
+                $archive ? $archive->box_number : '-'
+            );
+        });
+
+        return redirect()->back()
+            ->with('active_tab', 'destructions')
+            ->with('info', "Pengajuan pemusnahan berkas berhasil ditolak. Status berkas dikembalikan normal di gudang.");
+    }
+
+    /**
      * TAHAP 3: Gudang / Superadmin menyelesaikan eksekusi fisik & menerbitkan nomor BAP resmi.
      */
     public function complete(DestructionLog $destructionLog, Request $request)
@@ -654,6 +720,9 @@ class DestructionController extends Controller
     public function extendForm(Request $request, $archive = null)
     {
         $user = auth()->user();
+        if ($user && $user->isPicGudang()) {
+            abort(403, 'Akses Ditolak: PIC Gudang tidak memiliki hak untuk mengajukan perpanjangan masa simpan.');
+        }
 
         $selectedArchiveIds = [];
         if ($archive instanceof Archive) {
@@ -696,6 +765,9 @@ class DestructionController extends Controller
     public function extendStore(Request $request, $archive = null)
     {
         $user = auth()->user();
+        if ($user && $user->isPicGudang()) {
+            abort(403, 'Akses Ditolak: PIC Gudang tidak memiliki hak untuk mengajukan perpanjangan masa simpan.');
+        }
 
         $rawArchiveIds = [];
         if ($request->has('archive_ids') && is_array($request->input('archive_ids'))) {

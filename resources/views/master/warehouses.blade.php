@@ -91,6 +91,9 @@
                             <div class="space-y-1 min-w-0 flex-1">
                                 <div class="flex items-center gap-2 flex-wrap">
                                     <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 shrink-0" x-text="wh.code"></span>
+                                    <template x-if="['GUDANG GA', 'GUDANG IT', 'GA', 'IT'].includes(wh.code)">
+                                        <span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-500/30 shadow-2xs select-none">Khusus Super Admin</span>
+                                    </template>
                                     <h2 class="text-xs font-extrabold text-slate-900 dark:text-white truncate" :class="wh.is_active === false ? 'opacity-60 line-through' : ''" x-text="wh.name"></h2>
                                     
                                     <!-- Active / Inactive Toggle Switch Button -->

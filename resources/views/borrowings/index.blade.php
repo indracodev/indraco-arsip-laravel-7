@@ -82,6 +82,7 @@
                 <span>Refresh (F5)</span>
             </button>
 
+            @if(!auth()->user()->isPicGudang())
             <!-- Tombol Aksi Simpan Kembali (Multi-Select) -->
             <button 
                 type="button" 
@@ -100,6 +101,7 @@
                 <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-slate-950"></i>
                 <span>Buat Pengajuan (F2)</span>
             </a>
+            @endif
         </div>
     </div>
 
@@ -222,7 +224,7 @@
                             $eligibleBorrowingIds = $borrowings->filter(fn($b) => $b->restore_eligibility['eligible'])->pluck('id')->values()->toArray();
                         @endphp
                         <th class="py-2.5 px-2.5 border-r border-slate-300 dark:border-slate-700 w-10 text-center">
-                            @if(count($eligibleBorrowingIds) > 0)
+                            @if(!auth()->user()->isPicGudang() && count($eligibleBorrowingIds) > 0)
                                 <input 
                                     type="checkbox" 
                                     :checked="selectedBorrowingIds.length > 0 && selectedBorrowingIds.length === {{ count($eligibleBorrowingIds) }}"
@@ -321,6 +323,23 @@
                         ];
                         $borrowingFilesMap[$bLog->id] = $borrowingFilesPayload;
 
+                        $rejectionHistory = [];
+                        if ($bLog->archive && $bLog->archive->borrowingLogs) {
+                            $rejectionHistory = $bLog->archive->borrowingLogs
+                                ->where('status', 'rejected')
+                                ->where('id', '!=', $bLog->id)
+                                ->map(function ($rej) {
+                                    return [
+                                        'id' => $rej->id,
+                                        'date' => $rej->updated_at ? $rej->updated_at->format('d/m/Y H:i') : ($rej->created_at ? $rej->created_at->format('d/m/Y H:i') : '-'),
+                                        'request_date' => $rej->request_date ? $rej->request_date->format('d/m/Y H:i') : ($rej->created_at ? $rej->created_at->format('d/m/Y H:i') : '-'),
+                                        'notes' => $rej->approval_notes ?: 'Pengajuan penarikan berkas ditolak oleh petugas.',
+                                        'borrower' => $rej->borrower ? $rej->borrower->name : 'User',
+                                        'purpose' => $rej->purpose,
+                                    ];
+                                })->values()->toArray();
+                        }
+
                         $detailPayload = [
                             'id' => $bLog->id,
                             'box_number' => $bLog->archive->box_number ?? 'DRAFT',
@@ -349,6 +368,8 @@
                             'dispatch_url' => \Illuminate\Support\Facades\Route::has('borrowings.dispatch') ? route('borrowings.dispatch', $bLog) : url("/borrowings/{$bLog->id}/dispatch"),
                             'reject_url' => \Illuminate\Support\Facades\Route::has('borrowings.reject') ? route('borrowings.reject', $bLog) : url("/borrowings/{$bLog->id}/reject"),
                             'approval_notes' => $bLog->approval_notes,
+                            'rejection_history' => $rejectionHistory,
+                            'has_previous_rejections' => count($rejectionHistory) > 0,
                             'items' => (!auth()->user()->isPicGudang() && $bLog->archive && $bLog->archive->items) ? $bLog->archive->items->map(function($it) {
                                 return [
                                     'number' => $it->item_number,
@@ -386,7 +407,7 @@
                         @endphp
                         <!-- Kolom Checkbox Simpan Kembali -->
                         <td class="py-2.5 px-2.5 border-r border-slate-200 dark:border-slate-800 text-center">
-                            @if($bLog->status === 'dispatched')
+                            @if(!auth()->user()->isPicGudang() && $bLog->status === 'dispatched')
                                 @if($eligibility['eligible'])
                                     <input 
                                         type="checkbox" 
@@ -421,6 +442,10 @@
                                         <span class="px-1.5 py-0.2 rounded bg-emerald-500 text-white font-black text-[9px] uppercase tracking-wider shadow-xs" title="Telah Dikembalikan ke Gudang">KEMBALI</span>
                                     @elseif($bLog->status === 'rejected')
                                         <span class="px-1.5 py-0.2 rounded bg-rose-500 text-white font-black text-[9px] uppercase tracking-wider shadow-xs" title="Permohonan Ditolak">DITOLAK</span>
+                                    @endif
+
+                                    @if($bLog->status !== 'rejected' && count($rejectionHistory) > 0)
+                                        <span class="px-1.5 py-0.2 rounded bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30 font-black text-[9px] uppercase tracking-wider shadow-xs" title="Box ini pernah ditolak pada pengajuan sebelumnya. Klik Detail untuk melihat log riwayat penolakan.">PERNAH DITOLAK</span>
                                     @endif
 
                                     <span class="font-mono text-xs text-amber-600 dark:text-amber-400 font-extrabold">{{ $bLog->effective_box_number }}</span>
@@ -488,7 +513,18 @@
                             @elseif($bLog->status === 'returned')
                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">Dikembalikan</span>
                             @elseif($bLog->status === 'rejected')
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/30">Ditolak</span>
+                                <div class="space-y-1">
+                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30">
+                                        <i data-lucide="x-circle" class="w-3 h-3 text-rose-500"></i>
+                                        <span>Ditolak</span>
+                                    </span>
+                                    @if($bLog->approval_notes)
+                                        <div class="text-[10px] text-rose-700 dark:text-rose-300 font-sans max-w-[220px] bg-rose-50 dark:bg-rose-950/40 p-1.5 rounded border border-rose-200 dark:border-rose-900/50 leading-tight">
+                                            <span class="font-bold block text-[9px] uppercase font-mono text-rose-600 dark:text-rose-400">Catatan Penolakan:</span>
+                                            {{ $bLog->approval_notes }}
+                                        </div>
+                                    @endif
+                                </div>
                             @endif
                         </td>
 
@@ -588,6 +624,16 @@
                                     @endif
                                 @endif
 
+                                <!-- Tombol Tarik Ulang untuk pengajuan yang ditolak -->
+                                @if($bLog->status === 'rejected' && $bLog->archive && $bLog->archive->status === 'in_warehouse' && (auth()->user()->isSuperAdmin() || auth()->user()->isAdmin() || (auth()->user()->isPicDept() && (int)$bLog->archive->department_id === (int)auth()->user()->department_id)))
+                                    <a href="{{ route('borrowings.create', array_merge(['archive_id' => $bLog->archive_id, 'from' => 'borrowings'], request()->has('embed') ? ['embed' => 1] : [])) }}" 
+                                       class="px-2.5 py-1 bg-amber-600 hover:bg-amber-500 text-white text-[11px] font-bold rounded border border-amber-700 transition shadow-sm inline-flex items-center gap-1 cursor-pointer"
+                                       title="Ajukan penarikan ulang untuk box ini">
+                                        <i data-lucide="rotate-ccw" class="w-3 h-3"></i>
+                                        <span>Tarik Ulang</span>
+                                    </a>
+                                @endif
+
                                 <!-- Edit Action Button (Lengkapi file jika kosong / Edit form) -->
                                 <!-- Detail Action Button (Sama seperti katalog arsip) -->
                                 <button type="button" 
@@ -651,6 +697,13 @@
                           }"
                           x-text="detailModalData ? detailModalData.status_label : ''">
                     </span>
+
+                    <template x-if="detailModalData && detailModalData.has_previous_rejections">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30 flex items-center gap-1 font-mono" title="Box ini memiliki riwayat penolakan sebelumnya">
+                            <i data-lucide="history" class="w-3 h-3 text-rose-500"></i>
+                            <span>Pernah Ditolak</span>
+                        </span>
+                    </template>
                     <button type="button" @click="closeBorrowingDetail()" class="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded transition">
                         <i data-lucide="x" class="w-4 h-4"></i>
                     </button>
@@ -815,6 +868,41 @@
                             Catatan Penolakan Pengajuan
                         </legend>
                         <p class="text-rose-700 dark:text-rose-300 font-semibold" x-text="detailModalData.approval_notes || 'Pengajuan penarikan berkas ditolak oleh petugas.'"></p>
+                    </fieldset>
+                </template>
+
+                <!-- GroupBox 6: Log Riwayat Penolakan Sebelumnya -->
+                <template x-if="detailModalData.rejection_history && detailModalData.rejection_history.length > 0">
+                    <fieldset class="border border-rose-500/30 p-2.5 rounded bg-rose-500/5 text-[11px] space-y-2 font-sans">
+                        <legend class="px-1.5 font-bold text-rose-600 dark:text-rose-400 bg-white dark:bg-slate-900 border border-rose-500/30 rounded text-[10px] uppercase tracking-wider flex items-center gap-1 font-mono">
+                            <i data-lucide="history" class="w-3 h-3 text-rose-500"></i>
+                            <span>Log Riwayat Penolakan (<span x-text="detailModalData.rejection_history.length"></span>x Pernah Ditolak)</span>
+                        </legend>
+                        <p class="text-[11px] text-slate-500 dark:text-slate-400">
+                            Riwayat catatan dan alasan penolakan pada permohonan penarikan sebelumnya untuk berkas ini:
+                        </p>
+                        <div class="space-y-1.5">
+                            <template x-for="(rej, idx) in detailModalData.rejection_history" :key="rej.id">
+                                <div class="p-2.5 rounded bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-900/60 shadow-xs space-y-1">
+                                    <div class="flex items-center justify-between text-[10px] font-mono text-slate-500 border-b border-slate-100 dark:border-slate-800 pb-1">
+                                        <span class="font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1">
+                                            <i data-lucide="x-circle" class="w-3 h-3 text-rose-500"></i>
+                                            <span>Penolakan #<span x-text="idx + 1"></span></span>
+                                        </span>
+                                        <span x-text="'Waktu: ' + rej.date"></span>
+                                    </div>
+                                    <div class="pt-0.5">
+                                        <span class="text-[9px] uppercase font-bold text-slate-400 block font-mono">Catatan / Alasan Penolakan:</span>
+                                        <div class="text-rose-700 dark:text-rose-300 font-sans font-medium bg-rose-50 dark:bg-rose-950/40 p-1.5 rounded border border-rose-200 dark:border-rose-900/50 text-[11px] mt-0.5 leading-snug" x-text="rej.notes"></div>
+                                    </div>
+                                    <template x-if="rej.purpose">
+                                        <div class="text-[10px] text-slate-500 font-sans pt-0.5">
+                                            <span class="font-mono text-slate-400">Keperluan Diajukan:</span> <span x-text="rej.purpose"></span>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
                     </fieldset>
                 </template>
             </div>
@@ -1141,9 +1229,9 @@
         }
     };
 
-    window.addEventListener('dms:realtime-sync', function(e) {
-        if (!e.detail || !e.detail.events) return;
-        const hasBorrowingEvents = e.detail.events.some(ev => 
+    function handleBorrowingSync(detail) {
+        if (!detail || !detail.events) return;
+        const hasBorrowingEvents = detail.events.some(ev => 
             ev.event_type === 'borrowing_created' || ev.event_type === 'borrowing_updated'
         );
         if (hasBorrowingEvents) {
@@ -1152,8 +1240,29 @@
                 banner.style.display = 'flex';
                 if (window.lucide) window.lucide.createIcons();
             }
+            const isTyping = document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName);
+            const isModalOpen = document.querySelector('.modal-open') || document.querySelector('[role="dialog"][style*="display: block"]');
+            if (!isTyping && !isModalOpen) {
+                setTimeout(() => window.location.reload(), 400);
+            }
+        }
+    }
+
+    window.addEventListener('dms:realtime-sync', function(e) {
+        handleBorrowingSync(e.detail);
+    });
+    window.addEventListener('message', function(e) {
+        if (e.data && e.data.type === 'dms:realtime-sync') {
+            handleBorrowingSync(e.data.detail);
         }
     });
+    if (window.parent && window.parent !== window) {
+        try {
+            window.parent.addEventListener('dms:realtime-sync', function(e) {
+                handleBorrowingSync(e.detail);
+            });
+        } catch(err) {}
+    }
 </script>
 @endsection
 

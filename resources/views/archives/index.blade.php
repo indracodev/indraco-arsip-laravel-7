@@ -43,6 +43,7 @@
             </button>
             @endif
 
+            @if(!auth()->user()->isPicGudang())
             <!-- Impor Multi-Box Excel (Ctrl+I) -->
             <button type="button" 
                     @click="openImportModal = true; $nextTick(() => { if(window.lucide) window.lucide.createIcons(); });" 
@@ -57,6 +58,7 @@
                 <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-slate-950"></i>
                 <span>Buat Draft (F2)</span>
             </a>
+            @endif
         </div>
     </div>
 
@@ -236,7 +238,8 @@
         </div>
 
         <div class="flex items-center flex-wrap gap-2">
-            <!-- Batch Borrowing Action (Tarik Berkas) — hanya muncul jika ada box yang MEMENUHI SYARAT TARIK (tersimpan di gudang & belum ditarik) -->
+            @if(!auth()->user()->isPicGudang())
+            <!-- Batch Borrowing Action (Tarik Berkas) — hanya muncul untuk non-gudang jika ada box yang MEMENUHI SYARAT TARIK (tersimpan di gudang & belum ditarik) -->
             <template x-if="selectedBorrowable.length > 0">
                 <button 
                     type="button" 
@@ -248,6 +251,7 @@
                     <span>Tarik Berkas (<span x-text="selectedBorrowable.length"></span> Box)</span>
                 </button>
             </template>
+            @endif
 
             <!-- Batch Delete Drafts Action — hanya muncul jika ada draft terpilih -->
             <template x-if="selectedDrafts.length > 0">
@@ -327,7 +331,7 @@
                             <input type="checkbox" x-model="selectAll" @change="toggleAll()" class="rounded border-slate-400 dark:border-slate-700 text-amber-500 focus:ring-0">
                         </th>
                         @php
-                            $curSort = request('sort', 'created_at');
+                            $curSort = request('sort', '');
                             $curDir = request('direction', 'desc');
                             $nextDir = $curDir === 'asc' ? 'desc' : 'asc';
                         @endphp
@@ -451,6 +455,7 @@
                     @forelse($archives as $archive)
                     @php
                         $activeBorrowing = $archive->borrowingLogs ? $archive->borrowingLogs->whereIn('status', ['requested', 'dept_approved', 'approved'])->first() : null;
+                        $rejectedBorrowing = (!$activeBorrowing && $archive->borrowingLogs) ? $archive->borrowingLogs->where('status', 'rejected')->first() : null;
                         $archiveFiles = [];
                         if ($archive->scan_input_form) {
                             $archiveFiles[] = [
@@ -496,6 +501,25 @@
                                 'ext' => strtolower(pathinfo($archive->scan_extension_form, PATHINFO_EXTENSION)),
                             ];
                         }
+                        // Lampiran berkas formulir permohonan / persetujuan penarikan
+                        if ($archive->borrowingLogs && $archive->borrowingLogs->isNotEmpty()) {
+                            $existingPaths = array_column($archiveFiles, 'raw_path');
+                            foreach ($archive->borrowingLogs as $bLogItem) {
+                                if (!empty($bLogItem->effective_approval_file) && !in_array($bLogItem->effective_approval_file, $existingPaths)) {
+                                    $existingPaths[] = $bLogItem->effective_approval_file;
+                                    $archiveFiles[] = [
+                                        'name' => 'Scan Formulir Approval Penarikan',
+                                        'category' => 'Formulir Persetujuan Penarikan',
+                                        'url' => app_storage_url($bLogItem->effective_approval_file),
+                                        'stream_url' => app_preview_stream_url($bLogItem->effective_approval_file),
+                                        'raw_path' => $bLogItem->effective_approval_file,
+                                        'filename' => basename($bLogItem->effective_approval_file),
+                                        'ext' => strtolower(pathinfo($bLogItem->effective_approval_file, PATHINFO_EXTENSION)),
+                                    ];
+                                    break;
+                                }
+                            }
+                        }
                         $hasFiles = count($archiveFiles) > 0;
 
                         // Determine Global Workflow Row Styles & Badges
@@ -513,6 +537,8 @@
                             $isNewSubmission = true;
                         } elseif ($activeBorrowing || in_array($archive->status, ['borrowed', 'taken', 'out'])) {
                             $rowColorClass = 'border-l-4 border-l-purple-500 bg-purple-500/[0.07] dark:bg-purple-500/15 hover:bg-purple-500/20';
+                        } elseif ($rejectedBorrowing && $archive->status === 'in_warehouse') {
+                            $rowColorClass = 'border-l-4 border-l-rose-500 bg-rose-500/[0.05] dark:bg-rose-500/10 hover:bg-rose-500/15';
                         } elseif ($archive->status === 'pending_extension') {
                             $rowColorClass = 'border-l-4 border-l-blue-500 bg-blue-500/[0.07] dark:bg-blue-500/15 hover:bg-blue-500/20';
                         } elseif (in_array($archive->status, ['pending_destruction', 'destroyed'])) {
@@ -538,6 +564,8 @@
                                     <span class="px-1.5 py-0.2 rounded bg-amber-500 text-slate-950 font-black text-[9px] uppercase tracking-wider animate-pulse shadow-xs" title="Pengajuan Arsip Baru Menunggu Verifikasi">BARU</span>
                                 @elseif($activeBorrowing || in_array($archive->status, ['borrowed', 'taken', 'out']))
                                     <span class="px-1.5 py-0.2 rounded bg-purple-500 text-white font-black text-[9px] uppercase tracking-wider shadow-xs" title="Berkas Sedang Ditarik">DITARIK</span>
+                                @elseif($rejectedBorrowing && $archive->status === 'in_warehouse')
+                                    <span class="px-1.5 py-0.2 rounded bg-rose-600 text-white font-black text-[9px] uppercase tracking-wider shadow-xs animate-pulse" title="Pengajuan Penarikan Berkas Ditolak Gudang">TOLAK TARIK</span>
                                 @elseif($archive->status === 'pending_extension')
                                     <span class="px-1.5 py-0.2 rounded bg-blue-500 text-white font-black text-[9px] uppercase tracking-wider shadow-xs" title="Menunggu Konfirmasi Perpanjangan">PERPANJANG</span>
                                 @elseif(in_array($archive->status, ['pending_destruction', 'destroyed']))
@@ -566,6 +594,15 @@
                                         <div>
                                             <span class="font-bold uppercase tracking-wider text-rose-700 dark:text-rose-300">Catatan Revisi Gudang:</span>
                                             <span class="block text-slate-700 dark:text-slate-300">{{ $archive->rejection_note }}</span>
+                                        </div>
+                                    </div>
+                                @endif
+                                @if($rejectedBorrowing && $archive->status === 'in_warehouse')
+                                    <div class="mt-1 p-1.5 rounded bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-200 text-[10px] font-mono flex items-start gap-1.5 shadow-2xs">
+                                        <i data-lucide="ban" class="w-3.5 h-3.5 text-rose-500 shrink-0 mt-0.5"></i>
+                                        <div>
+                                            <span class="font-bold uppercase tracking-wider text-rose-700 dark:text-rose-300">Penarikan Ditolak Gudang:</span>
+                                            <span class="block text-slate-700 dark:text-slate-300">{{ $rejectedBorrowing->approval_notes ?: 'Formulir atau berkas permohonan penarikan tidak memenuhi syarat.' }}</span>
                                         </div>
                                     </div>
                                 @endif
@@ -628,23 +665,35 @@
                                 @endif
                             @else
                                 @if(auth()->user()->isPicGudang() || auth()->user()->isSuperAdmin())
-                                <button 
-                                    type="button" 
-                                    @click="openQuickSlotModal({
-                                        id: {{ $archive->id }},
-                                        title: {{ json_encode($archive->title) }},
-                                        box_number: {{ json_encode($archive->box_number ?: 'Belum ada code') }},
-                                        department_id: {{ $archive->department_id ?? 0 }},
-                                        department_code: {{ json_encode($archive->department->code ?? 'GEN') }},
-                                        department_name: {{ json_encode($archive->department->name ?? '') }}
-                                    })"
-                                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/40 animate-pulse hover:bg-rose-500/25 transition shadow-xs cursor-pointer" 
-                                    title="Lokasi belum ditentukan! Klik untuk buka Alokasi Slot Rak 2D Cepat"
-                                >
-                                    <span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span>
-                                    <span class="underline decoration-dotted underline-offset-2">Belum Ditentukan</span>
-                                    <i data-lucide="map-pin" class="w-3 h-3 text-rose-500"></i>
-                                </button>
+                                    @if(in_array($archive->status, ['approved_booked', 'in_warehouse', 'pending_extension']))
+                                    <button 
+                                        type="button" 
+                                        @click="openQuickSlotModal({
+                                            id: {{ $archive->id }},
+                                            title: {{ json_encode($archive->title) }},
+                                            box_number: {{ json_encode($archive->box_number ?: 'Belum ada code') }},
+                                            department_id: {{ $archive->department_id ?? 0 }},
+                                            department_code: {{ json_encode($archive->department->code ?? 'GEN') }},
+                                            department_name: {{ json_encode($archive->department->name ?? '') }}
+                                        })"
+                                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/40 animate-pulse hover:bg-rose-500/25 transition shadow-xs cursor-pointer" 
+                                        title="Lokasi belum ditentukan! Klik untuk buka Alokasi Slot Rak 2D Cepat"
+                                    >
+                                        <span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span>
+                                        <span class="underline decoration-dotted underline-offset-2">Belum Ditentukan</span>
+                                        <i data-lucide="map-pin" class="w-3 h-3 text-rose-500"></i>
+                                    </button>
+                                    @else
+                                    <button 
+                                        type="button" 
+                                        disabled
+                                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500 border border-slate-200 dark:border-slate-700 opacity-60 cursor-not-allowed select-none" 
+                                        title="Lokasi belum dapat ditentukan: Harap verifikasi & setujui pengajuan arsip terlebih dahulu pada tombol Antrean Verifikasi"
+                                    >
+                                        <i data-lucide="lock" class="w-3 h-3 text-slate-400"></i>
+                                        <span>Belum Ditentukan</span>
+                                    </button>
+                                    @endif
                                 @else
                                 <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30 select-none" title="Lokasi rak gudang belum ditentukan">
                                     <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
@@ -782,6 +831,7 @@
                                             @click="openVerifyModal({
                                                 id: {{ $archive->id }},
                                                 title: {{ json_encode($archive->title) }},
+                                                department_id: {{ $archive->department_id ?? 0 }},
                                                 department: {{ json_encode($archive->department->name ?? 'Dept') }},
                                                 department_code: {{ json_encode($archive->department->code ?? 'GEN') }},
                                                 creator: {{ json_encode($archive->creator->name ?? 'User') }},
@@ -922,10 +972,22 @@
 
                                 {{-- Tombol Penarikan Box di Gudang (Hanya jika tersimpan di gudang & tidak sedang ditarik) --}}
                                 @if(!$activeBorrowing && $archive->status === 'in_warehouse' && (auth()->user()->isSuperAdmin() || auth()->user()->isAdmin() || (auth()->user()->isPicDept() && (int)$archive->department_id === (int)auth()->user()->department_id)))
-                                <a href="{{ route('borrowings.create', array_merge(['archive_ids' => $archive->id, 'from' => 'archives'], request()->has('embed') ? ['embed' => 1] : [])) }}" class="px-2 py-0.5 rounded bg-purple-500/15 hover:bg-purple-500/25 text-purple-700 dark:text-purple-300 border border-purple-500/40 font-bold text-[11px] transition inline-flex items-center gap-1 shadow-xs" title="Ajukan Penarikan Box Ini">
-                                    <i data-lucide="corner-up-right" class="w-3 h-3 text-purple-600 dark:text-purple-400"></i>
-                                    <span>Tarik</span>
-                                </a>
+                                    @if($rejectedBorrowing)
+                                    <a href="{{ route('borrowings.create', array_merge(['archive_ids' => $archive->id, 'from' => 'archives'], request()->has('embed') ? ['embed' => 1] : [])) }}" class="px-2 py-0.5 rounded bg-amber-500 hover:bg-amber-400 text-slate-950 border border-amber-600 font-bold text-[11px] transition inline-flex items-center gap-1 shadow-xs" title="Penarikan sebelumnya ditolak. Klik untuk ajukan penarikan ulang dengan melengkapi syarat">
+                                        <i data-lucide="rotate-ccw" class="w-3 h-3 text-slate-950"></i>
+                                        <span>Tarik Ulang</span>
+                                    </a>
+                                    @else
+                                    <a href="{{ route('borrowings.create', array_merge(['archive_ids' => $archive->id, 'from' => 'archives'], request()->has('embed') ? ['embed' => 1] : [])) }}" class="px-2 py-0.5 rounded bg-purple-500/15 hover:bg-purple-500/25 text-purple-700 dark:text-purple-300 border border-purple-500/40 font-bold text-[11px] transition inline-flex items-center gap-1 shadow-xs" title="Ajukan Penarikan Box Ini">
+                                        <i data-lucide="corner-up-right" class="w-3 h-3 text-purple-600 dark:text-purple-400"></i>
+                                        <span>Tarik</span>
+                                    </a>
+                                    @endif
+                                @elseif($activeBorrowing && (auth()->user()->isPicDept() && (int)$archive->department_id === (int)auth()->user()->department_id))
+                                    <span class="px-2 py-0.5 rounded bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/30 font-bold text-[10px] inline-flex items-center gap-1 select-none" title="Sedang dalam proses penarikan">
+                                        <i data-lucide="clock" class="w-2.5 h-2.5 text-purple-500"></i>
+                                        <span>Sedang Ditarik</span>
+                                    </span>
                                 @endif
 
                                 @if(!auth()->user()->isPicGudang() && (auth()->user()->isSuperAdmin() || auth()->user()->isAdmin() || (auth()->user()->isPicDept() && (int)$archive->department_id === (int)auth()->user()->department_id && $archive->status === 'draft')))
@@ -952,13 +1014,14 @@
 
                                 @if(!auth()->user()->isPicDept())
                                     @php
-                                        $canPrintLabel = in_array($archive->status, ['approved_booked', 'in_warehouse', 'pending_extension']);
+                                        $hasRackLocation = !empty($archive->warehouse_location_id);
+                                        $canPrintLabel = in_array($archive->status, ['approved_booked', 'in_warehouse', 'pending_extension']) && $hasRackLocation;
                                     @endphp
                                     @if(!$canPrintLabel)
                                         <button 
                                             type="button" 
                                             disabled 
-                                            title="Label dinonaktifkan: Hanya dapat dicetak untuk arsip yang telah disetujui (Approved / Booked), tersimpan di gudang, atau perpanjangan (status saat ini: {{ $archive->status_label }})" 
+                                            title="{{ !$hasRackLocation ? 'Label dinonaktifkan: Lokasi rak gudang belum ditentukan (tahap verifikasi/approval atau belum check-in ke rak)' : 'Label dinonaktifkan: Hanya dapat dicetak untuk arsip yang tersimpan di rak gudang atau perpanjangan (status saat ini: ' . $archive->status_label . ')' }}" 
                                             class="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 border border-slate-200 dark:border-slate-800 text-[11px] font-bold inline-flex items-center gap-1 shadow-2xs opacity-40 cursor-not-allowed"
                                         >
                                             <i data-lucide="printer" class="w-3 h-3 text-slate-400 dark:text-slate-600"></i>
@@ -2592,7 +2655,11 @@
                                 Petunjuk Pengisian Multi-Box:
                             </div>
                             <p class="text-slate-600 dark:text-slate-400 text-[11px] leading-relaxed">
-                                Gunakan kolom <span class="font-mono font-bold text-blue-600 dark:text-blue-400">NO_BOX_SEMENTARA</span> (misal: <code>BOX-01</code>, <code>BOX-02</code>) untuk mengelompokkan butir berkas ke dalam box yang berbeda. Periode box akan dihitung otomatis dari tanggal terawal & terakhir butir di dalamnya.
+                                @if(Auth::user() && Auth::user()->isPicDept())
+                                    Identitas box (<span class="font-mono font-bold text-blue-600 dark:text-blue-400">NO_BOX_SEMENTARA</span>, Judul, Dept) cukup diisi <strong>1 kali</strong> pada baris pertama box. Baris butir dokumen berikutnya cukup isi Nama Dokumen &amp; Periode. Kolom <span class="font-mono font-bold text-slate-700 dark:text-slate-300">NO_BUTIR</span> otomatis urut (1, 2, 3...) jika dikosongkan. Kolom <span class="font-mono font-bold text-slate-700 dark:text-slate-300">MASA_SIMPAN_BULAN</span> diisi angka bulan murni (contoh: <code>60</code> untuk 60 bulan/5 tahun, <code>12</code> untuk 12 bulan). Tab <span class="font-mono font-bold text-emerald-600 dark:text-emerald-400">REFERENSI_KODE</span> tersedia sebagai panduan kode departemen.
+                                @else
+                                    Identitas box (<span class="font-mono font-bold text-blue-600 dark:text-blue-400">NO_BOX_SEMENTARA</span>, Judul, Dept, Rak) cukup diisi <strong>1 kali</strong> pada baris pertama box. Baris butir berikutnya dalam box yang sama cukup isi Nama Dokumen &amp; Periode. Kolom <span class="font-mono font-bold text-slate-700 dark:text-slate-300">NO_BUTIR</span> otomatis urut jika dikosongkan. Kolom <span class="font-mono font-bold text-slate-700 dark:text-slate-300">MASA_SIMPAN_BULAN</span> diisi angka bulan murni (contoh: <code>60</code>). Tab <span class="font-mono font-bold text-emerald-600 dark:text-emerald-400">REFERENSI_KODE</span> untuk panduan kode departemen &amp; rak gudang.
+                                @endif
                             </p>
                         </div>
                         <div class="flex items-center gap-2 shrink-0">
@@ -2622,12 +2689,13 @@
                                     @click="submitImportPreview()" 
                                     :disabled="!importFile || importPreviewing" 
                                     class="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold text-xs shadow-sm transition flex items-center justify-center gap-1.5 shrink-0 disabled:opacity-50">
-                                <template x-if="importPreviewing">
-                                    <span class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                                </template>
-                                <template x-if="!importPreviewing">
-                                    <i data-lucide="scan" class="w-4 h-4"></i>
-                                </template>
+                                <span x-show="importPreviewing" class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                                <svg x-show="!importPreviewing" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M3 7V5a2 2 0 0 1 2-2h2"/>
+                                    <path d="M17 3h2a2 2 0 0 1 2 2v2"/>
+                                    <path d="M21 17v2a2 2 0 0 1-2 2h-2"/>
+                                    <path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+                                </svg>
                                 <span x-text="importPreviewing ? 'Menganalisis...' : 'Validasi File'"></span>
                             </button>
                         </div>
@@ -2699,6 +2767,12 @@
                                             <input type="radio" value="pending_verification" x-model="importTargetStatus" class="text-blue-600">
                                             <span class="font-bold text-amber-600 dark:text-amber-400">Verifikasi Gudang</span>
                                         </label>
+                                        @if(Auth::check() && !Auth::user()->isPicDept())
+                                        <label class="flex items-center gap-2 text-xs cursor-pointer">
+                                            <input type="radio" value="in_warehouse" x-model="importTargetStatus" class="text-blue-600">
+                                            <span class="font-bold text-emerald-600 dark:text-emerald-400">Tersimpan di Gudang (Data Existing)</span>
+                                        </label>
+                                        @endif
                                     </div>
                                 </div>
                             </div>
@@ -2717,7 +2791,7 @@
                                             <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800/80 pb-2">
                                                 <div class="flex items-center gap-2">
                                                     <span class="px-2 py-0.5 bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 rounded font-mono font-bold text-xs" x-text="box.temp_box_id"></span>
-                                                    <h4 class="font-bold text-xs text-slate-900 dark:text-white" x-text="box.name"></h4>
+                                                    <h4 class="font-bold text-xs text-slate-900 dark:text-white" x-text="box.title || box.name"></h4>
                                                 </div>
                                                 <div class="flex items-center gap-1.5 text-[11px] font-mono">
                                                     <span class="px-2 py-0.5 bg-slate-200 dark:bg-slate-800 rounded text-slate-700 dark:text-slate-300" x-text="'Dept: ' + box.department_code + (box.sub_department_code ? ' / ' + box.sub_department_code : '')"></span>
@@ -2758,11 +2832,11 @@
                                                     </thead>
                                                     <tbody class="divide-y divide-slate-100 dark:divide-slate-800/40">
                                                         <template x-for="(itm, iIdx) in box.items" :key="iIdx">
-                                                            <tr class="hover:bg-white/50 dark:hover:bg-slate-800/30">
+                                                             <tr class="hover:bg-white/50 dark:hover:bg-slate-800/30">
                                                                 <td class="py-1 px-2 font-bold text-slate-500" x-text="itm.item_number || (iIdx + 1)"></td>
-                                                                <td class="py-1 px-2 font-semibold text-slate-900 dark:text-slate-100" x-text="itm.name"></td>
-                                                                <td class="py-1 px-2 text-slate-600 dark:text-slate-400" x-text="(itm.period_start || '-') + ' s/d ' + (itm.period_end || '-')"></td>
-                                                                <td class="py-1 px-2 text-slate-500 italic" x-text="itm.description || '-'"></td>
+                                                                <td class="py-1 px-2 font-semibold text-slate-900 dark:text-slate-100" x-text="itm.document_name || itm.name || '-'"></td>
+                                                                <td class="py-1 px-2 text-slate-600 dark:text-slate-400" x-text="itm.period_text || ((itm.period_start || '-') + (itm.period_end && itm.period_end !== itm.period_start ? ' s/d ' + itm.period_end : ''))"></td>
+                                                                <td class="py-1 px-2 text-slate-500 italic" x-text="itm.notes || itm.description || '-'"></td>
                                                             </tr>
                                                         </template>
                                                     </tbody>
@@ -2777,31 +2851,52 @@
                 </div>
 
                 <!-- Modal Footer -->
-                <div class="flex items-center justify-between px-5 py-3.5 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800">
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 px-5 py-3.5 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800">
                     <div class="text-[11px] text-slate-500 font-mono">
                         <template x-if="importPreviewResult">
-                            <span>Siap mengimpor <strong class="text-slate-900 dark:text-white" x-text="importPreviewResult.total_boxes"></strong> box arsip.</span>
+                            <span>Siap diproses: <strong class="text-slate-900 dark:text-white" x-text="importPreviewResult.total_boxes"></strong> box (<strong x-text="importPreviewResult.total_items"></strong> berkas).</span>
                         </template>
                     </div>
-                    <div class="flex items-center gap-2">
+                    <div class="flex flex-wrap items-center gap-2 justify-end">
                         <button type="button" 
                                 @click="openImportModal = false" 
-                                :disabled="importSubmitting" 
-                                class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs transition">
+                                :disabled="importSubmitting || importLoadingToForm" 
+                                class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs transition cursor-pointer">
                             Tutup
                         </button>
+
+                        <!-- ALUR 1: Lanjutkan ke Formulir Pengajuan (Alur Biasa Pengajuan Arsip) -->
                         <button type="button" 
-                                @click="submitImportCommit()" 
-                                :disabled="!importPreviewResult || importPreviewResult.boxes.length === 0 || importSubmitting" 
-                                class="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-500/20 transition flex items-center gap-1.5 disabled:opacity-50">
-                            <template x-if="importSubmitting">
-                                <span class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                            </template>
-                            <template x-if="!importSubmitting">
-                                <i data-lucide="check-circle" class="w-4 h-4"></i>
-                            </template>
-                            <span x-text="importSubmitting ? 'Mengimpor Box...' : 'Eksekusi Simpan Impor'"></span>
+                                @click="continueToCreateForm()" 
+                                :disabled="!importPreviewResult || importPreviewResult.boxes.length === 0 || importSubmitting || importLoadingToForm" 
+                                class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-blue-500/20 transition flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                                title="Bawa data dari Excel ini ke Formulir Pengajuan Dokumen Arsip untuk alur pengajuan biasa">
+                            <span x-show="importLoadingToForm" class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                            <svg x-show="!importLoadingToForm" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                                <line x1="12" y1="18" x2="12" y2="12"/>
+                                <line x1="9" y1="15" x2="15" y2="15"/>
+                            </svg>
+                            <span x-text="importLoadingToForm ? 'Memuat Form...' : 'Lanjutkan ke Form Pengajuan'"></span>
                         </button>
+
+                        <!-- ALUR 2: Simpan Langsung ke Gudang (Khusus Data yang Sudah Ada di Gudang Sebelumnya) -->
+                        @if(Auth::check() && !Auth::user()->isPicDept())
+                        <button type="button" 
+                                @click="submitImportCommitDirect()" 
+                                :disabled="!importPreviewResult || importPreviewResult.boxes.length === 0 || importSubmitting || importLoadingToForm" 
+                                class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-500/20 transition flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                                title="Khusus data arsip fisik yang sudah ada di rak gudang sebelumnya (tanpa alur pengajuan baru)">
+                            <span x-show="importSubmitting" class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                            <svg x-show="!importSubmitting" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                                <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+                                <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+                            </svg>
+                            <span x-text="importSubmitting ? 'Mengimpor...' : 'Simpan Langsung ke Gudang'"></span>
+                        </button>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -2813,12 +2908,18 @@
 @push('scripts')
 @php
     $borrowableArchiveIds = [];
+    $printableArchiveIds = [];
     foreach ($archives as $arc) {
         $hasActiveBorrowing = $arc->borrowingLogs && $arc->borrowingLogs->whereIn('status', ['requested', 'dept_approved', 'approved'])->isNotEmpty();
         $isStoredInWh = $arc->status === 'in_warehouse';
         $isDeptAllowed = !auth()->user()->isPicDept() || ((int)$arc->department_id === (int)auth()->user()->department_id);
         if ($isStoredInWh && !$hasActiveBorrowing && $isDeptAllowed) {
             $borrowableArchiveIds[] = (int) $arc->id;
+        }
+
+        $hasRackLocation = !empty($arc->warehouse_location_id);
+        if (in_array($arc->status, ['approved_booked', 'in_warehouse', 'pending_extension']) && $hasRackLocation) {
+            $printableArchiveIds[] = (int) $arc->id;
         }
     }
 @endphp
@@ -2859,11 +2960,45 @@ function archiveCatalog() {
         },
 
         init() {
-            window.addEventListener('dms:realtime-sync', (e) => {
-                if (e.detail && e.detail.new_archives && e.detail.new_archives.length > 0) {
-                    this.handleIncomingArchives(e.detail.new_archives);
+            const onRealtimeSync = (detail) => {
+                if (!detail) return;
+                // If there are new archives or status changes
+                if (detail.has_new || detail.has_changes) {
+                    // Check if user is currently interacting with any modal or form
+                    const isAnyModalOpen = this.verifyModalOpen || 
+                                           this.quickSlotModalOpen || 
+                                           this.checkoutModalOpen || 
+                                           this.superAdminStatusModalOpen || 
+                                           this.openImportModal ||
+                                           (this.dispatchModalLog !== null);
+                    
+                    const isTyping = document.activeElement && 
+                                     ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName);
+                    
+                    const hasSelected = this.selected && this.selected.length > 0;
+
+                    // If user is idle (not typing, no modal open, no bulk items selected):
+                    // Auto-refresh table seamlessly so newly submitted archives appear immediately
+                    if (!isAnyModalOpen && !isTyping && !hasSelected) {
+                        window.location.reload();
+                    } else if (detail.new_archives && detail.new_archives.length > 0) {
+                        // If user is busy typing or has modal open, fall back to handleIncomingArchives without disturbing them
+                        this.handleIncomingArchives(detail.new_archives);
+                    }
+                }
+            };
+
+            window.addEventListener('dms:realtime-sync', (e) => onRealtimeSync(e.detail));
+            window.addEventListener('message', (e) => {
+                if (e.data && e.data.type === 'dms:realtime-sync') {
+                    onRealtimeSync(e.data.detail);
                 }
             });
+            if (window.parent && window.parent !== window) {
+                try {
+                    window.parent.addEventListener('dms:realtime-sync', (e) => onRealtimeSync(e.detail));
+                } catch(err) {}
+            }
         },
 
         handleIncomingArchives(newItems) {
@@ -2907,6 +3042,7 @@ function archiveCatalog() {
         // Archive status map for batch action filtering (id -> status)
         archiveStatuses: @json($archives->pluck('status', 'id')),
         borrowableArchiveIds: @json($borrowableArchiveIds),
+        printableArchiveIds: @json($printableArchiveIds),
 
         get selectedBorrowable() {
             return this.selected.filter(id => this.borrowableArchiveIds.includes(Number(id)));
@@ -2921,7 +3057,7 @@ function archiveCatalog() {
             return this.selected.filter(id => !this.borrowableArchiveIds.includes(Number(id)) && this.archiveStatuses[id] !== 'draft');
         },
         get selectedPrintable() {
-            return this.selected.filter(id => ['approved_booked', 'in_warehouse', 'pending_extension'].includes(this.archiveStatuses[id]));
+            return this.selected.filter(id => this.printableArchiveIds.includes(Number(id)));
         },
 
         // Super Admin Status Override State
@@ -3006,20 +3142,63 @@ function archiveCatalog() {
             }
         },
 
-        async submitImportCommit() {
+        importLoadingToForm: false,
+
+        async continueToCreateForm() {
+            if (!this.importPreviewResult || !this.importPreviewResult.boxes || this.importPreviewResult.boxes.length === 0) {
+                alert('Silakan pilih dan validasi file Excel terlebih dahulu.');
+                return;
+            }
+
+            this.importLoadingToForm = true;
+            try {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
+                const res = await fetch('{{ route("archives.import.load_to_form") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({
+                        boxes: this.importPreviewResult.boxes
+                    })
+                });
+
+                const json = await res.json();
+                if (res.ok && json.success && json.redirect_url) {
+                    window.location.href = json.redirect_url;
+                } else {
+                    alert(json.message || 'Gagal memuat data ke formulir pengajuan.');
+                    this.importLoadingToForm = false;
+                }
+            } catch (err) {
+                console.error('Continue to create form error:', err);
+                alert('Terjadi kesalahan koneksi saat memuat formulir: ' + err.message);
+                this.importLoadingToForm = false;
+            }
+        },
+
+        async submitImportCommitDirect() {
             if (!this.importPreviewResult || !this.importPreviewResult.boxes || this.importPreviewResult.boxes.length === 0) {
                 return;
             }
 
             const boxCount = this.importPreviewResult.total_boxes;
             const itemCount = this.importPreviewResult.total_items;
-            const statusLabel = this.importTargetStatus === 'draft' ? 'Draft Sementara' : 'Antrean Verifikasi Gudang';
+            const statusLabels = {
+                'draft': 'Draft Sementara',
+                'pending_verification': 'Antrean Verifikasi Gudang',
+                'in_warehouse': 'Tersimpan di Rak Gudang (Data Existing)'
+            };
+            const currentLabel = statusLabels[this.importTargetStatus] || this.importTargetStatus;
 
             const ok = await window.showConfirmModal({
-                title: 'Konfirmasi Impor Multi-Box Arsip',
-                message: `Apakah Anda yakin ingin mengimpor ${boxCount} Box Arsip (${itemCount} Butir Dokumen) dengan status "${statusLabel}"?`,
+                title: 'Konfirmasi Impor Langsung ke Gudang',
+                message: `Data ini akan langsung disimpan ke database gudang sebagai data fisik yang sudah ada di gudang sebelumnya (${boxCount} Box, ${itemCount} Butir Dokumen, Status: "${currentLabel}"). Lanjutkan?`,
                 type: 'info',
-                confirmText: 'Ya, Eksekusi Impor'
+                confirmText: 'Ya, Simpan ke Gudang'
             });
             if (!ok) return;
 
@@ -3061,6 +3240,10 @@ function archiveCatalog() {
             } finally {
                 this.importSubmitting = false;
             }
+        },
+
+        async submitImportCommit() {
+            return this.submitImportCommitDirect();
         },
 
         resetImport() {
@@ -3380,13 +3563,34 @@ function archiveCatalog() {
 
                 const result = await response.json();
                 if (response.ok && result.success) {
+                    const currentData = this.verifyModalData;
                     this.verifyModalOpen = false;
-                    if (window.showToast) {
-                        window.showToast(result.message, 'success');
+                    this.showRejectInput = false;
+                    this.rejectionNote = '';
+
+                    if (action === 'approve') {
+                        if (window.showToast) {
+                            window.showToast(result.message || 'Pengajuan arsip disetujui! Silakan tentukan slot rak pada denah 2D.', 'success');
+                        }
+                        const targetData = {
+                            id: currentData.id,
+                            title: currentData.title,
+                            box_number: result.box_number || 'Belum ada code',
+                            department_id: currentData.department_id || 0,
+                            department_code: currentData.department_code || 'GEN',
+                            department_name: currentData.department || ''
+                        };
+                        this.$nextTick(() => {
+                            this.openQuickSlotModal(targetData);
+                        });
+                    } else {
+                        if (window.showToast) {
+                            window.showToast(result.message, 'success');
+                        }
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 500);
                     }
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 500);
                 } else {
                     await window.showNotificationModal(result.message || 'Gagal memproses verifikasi.', 'Gagal Verifikasi', 'danger');
                 }

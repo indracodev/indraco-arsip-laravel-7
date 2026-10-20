@@ -14,9 +14,11 @@ class WarehouseLockAndCustomDeptTest extends TestCase
 {
     use DatabaseTransactions;
 
+    protected $superAdmin;
     protected $adminGudang;
     protected $deptA;
     protected $deptB;
+    protected $deptC;
     protected $warehouse;
     protected $location;
 
@@ -25,6 +27,12 @@ class WarehouseLockAndCustomDeptTest extends TestCase
         parent::setUp();
         $this->withoutMiddleware(\App\Http\Middleware\VerifyCsrfToken::class);
 
+        $this->superAdmin = User::where('role', 'admin')->first() ?: User::create([
+            'name' => 'Super Admin Test',
+            'email' => 'sa_wh_test@test.com',
+            'password' => bcrypt('password'),
+            'role' => 'admin',
+        ]);
         $this->adminGudang = User::where('role', 'pic_gudang')->first() ?: User::create([
             'name' => 'PIC Gudang Test',
             'email' => 'pic_wh_test@test.com',
@@ -33,6 +41,7 @@ class WarehouseLockAndCustomDeptTest extends TestCase
         ]);
         $this->deptA = Department::first() ?: Department::create(['code' => 'DPTA', 'name' => 'Dept A']);
         $this->deptB = Department::where('id', '!=', $this->deptA->id)->first() ?: Department::create(['code' => 'DPTB', 'name' => 'Dept B']);
+        $this->deptC = Department::whereNotIn('id', [$this->deptA->id, $this->deptB->id])->first() ?: Department::create(['code' => 'DPTC', 'name' => 'Dept C']);
         $this->warehouse = Warehouse::first() ?: Warehouse::create(['code' => 'WH1', 'name' => 'Gudang Utama', 'address' => 'Jl. Test']);
 
         $this->location = WarehouseLocation::create([
@@ -50,6 +59,7 @@ class WarehouseLockAndCustomDeptTest extends TestCase
             'canvas_height' => 30,
             'is_locked' => false,
             'assigned_department_id' => null,
+            'assigned_department_ids' => null,
         ]);
         $this->location->generateStandardSlots();
     }
@@ -57,9 +67,9 @@ class WarehouseLockAndCustomDeptTest extends TestCase
     public function test_assign_slot_allowed_even_when_canvas_is_locked()
     {
         // Posisi canvas terkunci (is_locked = true), penempatan slot box tetap diperbolehkan
-        $this->location->update(['is_locked' => true, 'assigned_department_id' => null]);
+        $this->location->update(['is_locked' => true, 'assigned_department_id' => null, 'assigned_department_ids' => null]);
 
-        $response = $this->actingAs($this->adminGudang)->postJson("/api/warehouse/locations/{$this->location->id}/slots/assign", [
+        $response = $this->actingAs($this->superAdmin)->postJson("/api/warehouse/locations/{$this->location->id}/slots/assign", [
             'sap_level' => 1,
             'layer' => 'bottom',
             'slot_number' => 1,
@@ -80,10 +90,10 @@ class WarehouseLockAndCustomDeptTest extends TestCase
     public function test_assign_slot_rejected_when_custom_department_mismatches()
     {
         // Set location custom for deptA
-        $this->location->update(['is_locked' => false, 'assigned_department_id' => $this->deptA->id]);
+        $this->location->update(['is_locked' => false, 'assigned_department_id' => $this->deptA->id, 'assigned_department_ids' => [$this->deptA->id]]);
 
         // Try assigning document from deptB
-        $response = $this->actingAs($this->adminGudang)->postJson("/api/warehouse/locations/{$this->location->id}/slots/assign", [
+        $response = $this->actingAs($this->superAdmin)->postJson("/api/warehouse/locations/{$this->location->id}/slots/assign", [
             'sap_level' => 1,
             'layer' => 'bottom',
             'slot_number' => 2,
@@ -103,10 +113,10 @@ class WarehouseLockAndCustomDeptTest extends TestCase
     public function test_assign_slot_allowed_when_custom_department_matches()
     {
         // Set location custom for deptA
-        $this->location->update(['is_locked' => false, 'assigned_department_id' => $this->deptA->id]);
+        $this->location->update(['is_locked' => false, 'assigned_department_id' => $this->deptA->id, 'assigned_department_ids' => [$this->deptA->id]]);
 
         // Assign document from deptA
-        $response = $this->actingAs($this->adminGudang)->postJson("/api/warehouse/locations/{$this->location->id}/slots/assign", [
+        $response = $this->actingAs($this->superAdmin)->postJson("/api/warehouse/locations/{$this->location->id}/slots/assign", [
             'sap_level' => 1,
             'layer' => 'bottom',
             'slot_number' => 3,
@@ -122,13 +132,65 @@ class WarehouseLockAndCustomDeptTest extends TestCase
         $response->assertJson(['success' => true]);
     }
 
+    public function test_multi_department_allocation_allows_either_and_rejects_third()
+    {
+        // Set location allowed for deptA and deptB (multi-department)
+        $this->location->update([
+            'is_locked' => false,
+            'assigned_department_id' => $this->deptA->id,
+            'assigned_department_ids' => [$this->deptA->id, $this->deptB->id]
+        ]);
+
+        // Dept A is allowed
+        $resA = $this->actingAs($this->superAdmin)->postJson("/api/warehouse/locations/{$this->location->id}/slots/assign", [
+            'sap_level' => 1,
+            'layer' => 'bottom',
+            'slot_number' => 6,
+            'mode' => 'create_new',
+            'department_id' => $this->deptA->id,
+            'title' => 'Dokumen Multi Dept A',
+            'document_type' => 'UMUM',
+            'periode_doc' => '2026/10',
+            'retention_years' => 5,
+        ]);
+        $resA->assertStatus(200);
+
+        // Dept B is allowed
+        $resB = $this->actingAs($this->superAdmin)->postJson("/api/warehouse/locations/{$this->location->id}/slots/assign", [
+            'sap_level' => 1,
+            'layer' => 'bottom',
+            'slot_number' => 7,
+            'mode' => 'create_new',
+            'department_id' => $this->deptB->id,
+            'title' => 'Dokumen Multi Dept B',
+            'document_type' => 'UMUM',
+            'periode_doc' => '2026/10',
+            'retention_years' => 5,
+        ]);
+        $resB->assertStatus(200);
+
+        // Dept C is NOT allowed -> 403
+        $resC = $this->actingAs($this->superAdmin)->postJson("/api/warehouse/locations/{$this->location->id}/slots/assign", [
+            'sap_level' => 1,
+            'layer' => 'bottom',
+            'slot_number' => 8,
+            'mode' => 'create_new',
+            'department_id' => $this->deptC->id,
+            'title' => 'Dokumen Dept C Rejected',
+            'document_type' => 'UMUM',
+            'periode_doc' => '2026/10',
+            'retention_years' => 5,
+        ]);
+        $resC->assertStatus(403);
+    }
+
     public function test_assign_slot_general_location_accepts_any_department()
     {
         // General location (assigned_department_id = null)
-        $this->location->update(['is_locked' => false, 'assigned_department_id' => null]);
+        $this->location->update(['is_locked' => false, 'assigned_department_id' => null, 'assigned_department_ids' => null]);
 
         // Dept A
-        $resA = $this->actingAs($this->adminGudang)->postJson("/api/warehouse/locations/{$this->location->id}/slots/assign", [
+        $resA = $this->actingAs($this->superAdmin)->postJson("/api/warehouse/locations/{$this->location->id}/slots/assign", [
             'sap_level' => 1,
             'layer' => 'bottom',
             'slot_number' => 4,
@@ -142,7 +204,7 @@ class WarehouseLockAndCustomDeptTest extends TestCase
         $resA->assertStatus(200);
 
         // Dept B
-        $resB = $this->actingAs($this->adminGudang)->postJson("/api/warehouse/locations/{$this->location->id}/slots/assign", [
+        $resB = $this->actingAs($this->superAdmin)->postJson("/api/warehouse/locations/{$this->location->id}/slots/assign", [
             'sap_level' => 1,
             'layer' => 'bottom',
             'slot_number' => 5,

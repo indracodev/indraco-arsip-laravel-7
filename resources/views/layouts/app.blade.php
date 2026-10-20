@@ -278,7 +278,63 @@
 
         <script>
             document.addEventListener("DOMContentLoaded", function() {
-                lucide.createIcons();
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+
+                // Intercept navigation from inside embedded iframes (e.g. Dashboard) to open proper outer MDI windows
+                if (window.parent && window.parent !== window) {
+                    document.addEventListener('click', function(e) {
+                        const link = e.target.closest('a');
+                        if (!link || !link.href) return;
+                        if (link.getAttribute('target') === '_blank') return;
+                        if (link.getAttribute('onclick')) return;
+
+                        try {
+                            const url = new URL(link.href, window.location.origin);
+                            if (url.origin !== window.location.origin) return;
+
+                            const path = url.pathname;
+                            let formId = null;
+                            let title = null;
+
+                            if (path.includes('/master/warehouses/layout')) {
+                                formId = 'warehouse_layout';
+                                title = 'Denah Visual Gudang 2D';
+                            } else if (path.includes('/master/warehouses')) {
+                                formId = 'warehouses';
+                                title = 'Master Gudang';
+                            } else if (path.includes('/archives/create')) {
+                                formId = 'archive_create';
+                                title = 'Pengajuan Box Baru';
+                            } else if (path === '/archives' || path.startsWith('/archives?')) {
+                                formId = 'archives';
+                                title = 'Katalog Arsip';
+                            } else if (path.startsWith('/borrowings/create')) {
+                                formId = 'borrowing_create';
+                                title = 'Pengajuan Penarikan';
+                            } else if (path === '/borrowings' || path.startsWith('/borrowings?')) {
+                                formId = 'borrowings';
+                                title = 'Penarikan Berkas';
+                            } else if (path.startsWith('/destructions')) {
+                                formId = 'destructions';
+                                title = 'Retensi & Pemusnahan';
+                            } else if (path.startsWith('/logs')) {
+                                formId = 'logs';
+                                title = 'Audit Log';
+                            }
+
+                            if (formId) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                window.parent.postMessage({
+                                    type: 'OPEN_MDI_WINDOW',
+                                    formId: formId,
+                                    title: title,
+                                    url: link.href
+                                }, '*');
+                            }
+                        } catch (err) {}
+                    }, true);
+                }
             });
         </script>
         @include('layouts.partials.confirm_modal')
@@ -1025,11 +1081,8 @@
                             </template>
 
                             <template x-for="item in realtimeNotifications" :key="item.id">
-                                <div
-                                    @if (!auth()->check() || !auth()->user()->isPicGudang()) @click="openArchiveFromNotification(item)" 
-                                    class="p-2.5 hover:bg-amber-500/10 dark:hover:bg-slate-800/80 cursor-pointer transition flex flex-col gap-1 border-b border-slate-100 dark:border-slate-800"
-                                @else
-                                    class="p-2.5 bg-slate-50/50 dark:bg-slate-900/40 flex flex-col gap-1 border-b border-slate-100 dark:border-slate-800" @endif>
+                                <div @click="openArchiveFromNotification(item)"
+                                    class="p-2.5 hover:bg-amber-500/10 dark:hover:bg-slate-800/80 cursor-pointer transition flex flex-col gap-1 border-b border-slate-100 dark:border-slate-800 group">
                                     <div class="flex items-center justify-between">
                                         <div class="flex items-center gap-1.5">
                                             <span
@@ -1040,23 +1093,17 @@
                                         </div>
                                         <span class="text-[10px] text-slate-400" x-text="item.time"></span>
                                     </div>
-                                    <div class="text-xs font-bold text-slate-900 dark:text-white truncate"
+                                    <div class="text-xs font-bold text-slate-900 dark:text-white truncate group-hover:text-amber-500 transition-colors"
                                         x-text="item.title"></div>
                                     <div
                                         class="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 pt-0.5">
                                         <span>Oleh: <strong class="text-slate-700 dark:text-slate-300"
                                                 x-text="item.creatorName"></strong></span>
-                                        @if (auth()->check() && auth()->user()->isPicGudang())
-                                            <span
-                                                class="text-[9px] px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold">
-                                                Incoming Alert
-                                            </span>
-                                        @else
-                                            <span
-                                                class="text-amber-500 font-bold hover:underline flex items-center gap-0.5">
-                                                Buka Form <i data-lucide="chevron-right" class="w-3 h-3"></i>
-                                            </span>
-                                        @endif
+                                        <span
+                                            class="text-amber-500 font-bold group-hover:underline flex items-center gap-0.5">
+                                            <span x-text="(item.archiveId || (item.url && item.url.includes('/archives/'))) ? 'Buka Detail' : 'Buka Halaman'"></span>
+                                            <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                                        </span>
                                     </div>
                                 </div>
                             </template>
@@ -1148,15 +1195,15 @@
             class="bg-slate-200/80 dark:bg-slate-950 border-b border-slate-300 dark:border-slate-800 px-2 pt-1 flex items-center justify-start gap-1 shrink-0 font-mono text-[11px] select-none relative z-20 overflow-x-auto no-scrollbar">
             <template x-for="form in availableForms" :key="form.id">
                 <button @click="openFormWindow(form.id)" type="button"
-                    :class="activeWinId === form.id ?
+                    :class="isTabActive(form.id) ?
                         'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 border-t-2 border-t-amber-500 border-x border-slate-300 dark:border-slate-700 font-bold shadow-sm' :
                         (isWindowOpen(form.id) ?
-                            'bg-slate-100 dark:bg-slate-900/80 text-slate-900 dark:text-slate-100 border-t-2 border-t-transparent border-x border-slate-300 dark:border-slate-700 font-bold' :
-                            'bg-slate-200/60 dark:bg-slate-950 text-slate-600 dark:text-slate-400 border-t-2 border-t-transparent border-x border-transparent font-bold hover:bg-slate-100 dark:hover:bg-slate-850'
+                            'bg-slate-300/70 dark:bg-slate-800/90 text-slate-700 dark:text-slate-300 border-t-2 border-t-transparent border-x border-slate-300 dark:border-slate-700 font-semibold hover:bg-slate-200' :
+                            'bg-slate-200/50 dark:bg-slate-950 text-slate-500 dark:text-slate-500 border-t-2 border-t-transparent border-x border-transparent font-medium hover:bg-slate-200/80'
                             )"
                     class="px-3 py-1.5 rounded-t text-xs transition-colors flex items-center gap-2 shrink-0 cursor-pointer whitespace-nowrap">
                     <i :data-lucide="form.icon" class="w-3.5 h-3.5"
-                        :class="activeWinId === form.id ? 'text-amber-500' : (isWindowOpen(form.id) ? 'text-amber-500/80' :
+                        :class="isTabActive(form.id) ? 'text-amber-500' : (isWindowOpen(form.id) ? 'text-amber-500/70' :
                             'text-slate-400')"></i>
                     <span x-text="form.title"></span>
                     <span x-show="form.badgeCount && form.badgeCount > 0" x-text="form.badgeCount"
@@ -1321,7 +1368,8 @@
                         </div>
 
                         <!-- Toast Body Details -->
-                        <div class="space-y-1">
+                        <div @click="openArchiveFromNotification(toast)"
+                            class="space-y-1 cursor-pointer hover:opacity-90 transition group">
                             <div class="flex items-center gap-1.5 flex-wrap">
                                 <span
                                     class="px-1.5 py-0.2 rounded text-[10px] font-black bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-500/30"
@@ -1333,7 +1381,7 @@
                                     class="px-1.5 py-0.5 rounded text-xs font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/20"
                                     x-text="toast.statusLabel || 'Tersimpan'"></span>
                             </div>
-                            <div class="text-xs font-bold text-slate-900 dark:text-white leading-tight line-clamp-2 font-sans"
+                            <div class="text-xs font-bold text-slate-900 dark:text-white leading-tight line-clamp-2 font-sans group-hover:text-amber-500 transition-colors"
                                 x-text="toast.title"></div>
                             <div x-show="toast.creatorName" class="text-[11px] text-slate-500 dark:text-slate-400">
                                 Diproses oleh: <strong class="text-slate-800 dark:text-slate-200"
@@ -1350,28 +1398,18 @@
                                 Sync
                             </span>
                             <div class="flex items-center gap-1.5">
-                                @if (auth()->check() && auth()->user()->isPicGudang())
-                                    <button @click="dismissToast(toast.id)" type="button"
-                                        class="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded border border-slate-300 dark:border-slate-700 text-xs transition flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer">
-                                        <i data-lucide="check" class="w-3.5 h-3.5"></i>
-                                        <span>Tutup</span>
+                                <template x-if="toast.url || toast.archiveId">
+                                    <button @click="openArchiveFromNotification(toast)" type="button"
+                                        class="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded border border-amber-600 text-xs transition flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer">
+                                        <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                                        <span x-text="(toast.archiveId || (toast.url && toast.url.includes('/archives/'))) ? 'Buka Detail' : 'Buka Halaman'"></span>
                                     </button>
-                                @else
-                                    <template x-if="toast.url">
-                                        <button @click="openArchiveFromNotification(toast)" type="button"
-                                            class="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded border border-amber-600 text-xs transition flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer">
-                                            <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
-                                            <span>Buka Dokumen</span>
-                                        </button>
-                                    </template>
-                                    <template x-if="!toast.url">
-                                        <span
-                                            class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
-                                            <i data-lucide="check-check" class="w-3.5 h-3.5 text-emerald-500"></i>
-                                            <span>Tersimpan Sukses</span>
-                                        </span>
-                                    </template>
-                                @endif
+                                </template>
+                                <button @click="dismissToast(toast.id)" type="button"
+                                    class="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded border border-slate-300 dark:border-slate-700 text-xs transition flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer">
+                                    <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                                    <span>Tutup</span>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -2074,6 +2112,17 @@
 
                         // Listen to cross-frame toast notifications and badge updates from forms in iframes
                         window.addEventListener('message', (event) => {
+                            if (event.data && event.data.type === 'OPEN_MDI_WINDOW') {
+                                const formId = event.data.formId;
+                                const customUrl = event.data.url;
+                                const customTitle = event.data.title;
+                                if (formId && this.availableForms.some(f => f.id === formId)) {
+                                    this.openFormWindow(formId);
+                                } else if (customUrl) {
+                                    this.openFormWindowWithCustom(formId || ('win_' + Date.now()), customTitle || 'Dokumen', 'file-text', customUrl);
+                                }
+                                return;
+                            }
                             if (event.data && event.data.type === 'DMS_HARD_REFRESH') {
                                 this.saveMdiState();
                                 window.location.reload();
@@ -2603,6 +2652,14 @@
                                 window.dispatchEvent(new CustomEvent('dms:realtime-sync', {
                                     detail: data
                                 }));
+                                document.querySelectorAll('iframe').forEach(ifr => {
+                                    try {
+                                        if (ifr.contentWindow) {
+                                            ifr.contentWindow.dispatchEvent(new CustomEvent('dms:realtime-sync', { detail: data }));
+                                            ifr.contentWindow.postMessage({ type: 'dms:realtime-sync', detail: data }, '*');
+                                        }
+                                    } catch(e) {}
+                                });
                             }
 
                             if (data.events && data.events.length > 0) {
@@ -2630,6 +2687,7 @@
 
                                         const toast = {
                                             id: 'toast_ev_' + ev.id + '_' + Date.now(),
+                                            type: 'borrowing',
                                             archiveId: null,
                                             title: isCreated ? 'Permohonan Penarikan Berkas Masuk' : 'Status Penarikan Berkas Berubah',
                                             boxNumber: payload.box_number || 'Box Arsip',
@@ -2710,17 +2768,44 @@
                     },
 
                     openArchiveFromNotification(item) {
-                        @if (auth()->check() && auth()->user()->isPicGudang())
+                        if (!item) return;
+
+                        // 1. Check if this is a borrowing notification
+                        const isBorrowing = (item.type === 'borrowing') ||
+                            (item.url && item.url.includes('borrowing')) ||
+                            (item.title && (item.title.toLowerCase().includes('penarikan') || item.title.toLowerCase().includes('peminjaman'))) ||
+                            (item.id && typeof item.id === 'string' && item.id.includes('borrowing'));
+
+                        if (isBorrowing) {
+                            this.openFormWindow('borrowings');
                             if (item.id) {
                                 this.dismissToast(item.id);
                             }
                             this.showNotificationDropdown = false;
                             return;
-                        @else
-                            const detailId = 'archive_detail_' + (item.archiveId || item.id);
-                            const boxLabel = item.boxNumber || item.box_number || ('ID #' + (item.archiveId || item.id));
-                            const title = `[Detail] ${boxLabel} - ${item.title || 'Dokumen'}`;
-                            let url = item.url || ('{{ url('/archives') }}/' + (item.archiveId || item.id));
+                        }
+
+                        // 2. Check if this is a destruction / extension notification
+                        const isDestruction = (item.type === 'destruction') ||
+                            (item.url && item.url.includes('destruction')) ||
+                            (item.title && (item.title.toLowerCase().includes('pemusnahan') || item.title.toLowerCase().includes('perpanjangan')));
+
+                        if (isDestruction) {
+                            this.openFormWindow('destructions');
+                            if (item.id) {
+                                this.dismissToast(item.id);
+                            }
+                            this.showNotificationDropdown = false;
+                            return;
+                        }
+
+                        // 3. Specific archive detail (e.g. from archive submission / review)
+                        const arcId = item.archiveId || (item.url ? (item.url.match(/\/archives\/(\d+)/) || [])[1] : null);
+                        if (arcId) {
+                            const detailId = 'archive_detail_' + arcId;
+                            const boxLabel = item.boxNumber || item.box_number || ('ID #' + arcId);
+                            const title = `[Detail/Verifikasi] ${boxLabel} - ${item.title || 'Dokumen'}`;
+                            let url = item.url || ('{{ url('/archives') }}/' + arcId);
                             if (!url.includes('embed=1')) {
                                 url += (url.includes('?') ? '&embed=1' : '?embed=1');
                             }
@@ -2730,7 +2815,15 @@
                                 this.dismissToast(item.id);
                             }
                             this.showNotificationDropdown = false;
-                        @endif
+                            return;
+                        }
+
+                        // 4. Default: Open archive catalog
+                        this.openFormWindow('archives');
+                        if (item.id) {
+                            this.dismissToast(item.id);
+                        }
+                        this.showNotificationDropdown = false;
                     },
 
                     toggleSound() {
@@ -2804,6 +2897,14 @@
                         }
                     },
 
+                    isTabActive(formId) {
+                        if (this.activeWinId === formId) return true;
+                        if (formId === 'archives' && this.activeWinId && (this.activeWinId.startsWith('archive_detail_') || this.activeWinId === 'archives_create')) return true;
+                        if (formId === 'borrowings' && this.activeWinId && (this.activeWinId.startsWith('borrowing_') || this.activeWinId.includes('borrowing'))) return true;
+                        if (formId === 'destructions' && this.activeWinId && (this.activeWinId.startsWith('destruction_') || this.activeWinId.includes('destruction'))) return true;
+                        return false;
+                    },
+
                     isWindowOpen(formId) {
                         return this.openWindows.some(w => w.id === formId);
                     },
@@ -2813,6 +2914,12 @@
                         if (win) {
                             win.minimized = false;
                             this.focusWindow(win.id);
+                            const ifr = document.getElementById('iframe-' + formId);
+                            if (ifr && ifr.contentWindow) {
+                                try {
+                                    ifr.contentWindow.location.reload();
+                                } catch(e) {}
+                            }
                         } else {
                             const form = this.availableForms.find(f => f.id === formId);
                             if (!form) return;

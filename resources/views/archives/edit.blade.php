@@ -46,7 +46,9 @@
                 <span>Form Pengajuan</span>
             </button>
 
-            <a href="{{ route($backRoute, request()->has('embed') ? ['embed' => 1] : []) }}" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded text-xs font-bold transition flex items-center gap-1 shadow-sm whitespace-nowrap shrink-0">
+            <a href="{{ route($backRoute, request()->has('embed') ? ['embed' => 1] : []) }}" 
+               onclick="if (window.history.length > 1 && document.referrer && document.referrer !== window.location.href) { window.history.back(); return false; }"
+               class="px-3 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded text-xs font-bold transition flex items-center gap-1 shadow-sm whitespace-nowrap shrink-0 cursor-pointer">
                 <i data-lucide="arrow-left" class="w-3.5 h-3.5 text-amber-500 shrink-0"></i>
                 <span>Kembali (Esc)</span>
             </a>
@@ -301,7 +303,7 @@
 
             <!-- CONTAINER FOR ALL BOXES -->
             <template x-for="(box, bIdx) in boxes" :key="box.id">
-                <div x-show="activeBoxIndex === bIdx" class="space-y-4 pt-2">
+                <div x-show="activeBoxIndex === bIdx" :id="'box_container_' + bIdx" class="space-y-4 pt-2">
                     
                     <!-- BOX METADATA CARD -->
                     <div class="p-3.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl space-y-3">
@@ -335,6 +337,7 @@
                                 </label>
                                 <input 
                                     type="text" 
+                                    :id="'box_title_' + bIdx"
                                     :name="'boxes[' + bIdx + '][title]'" 
                                     x-model="box.title"
                                     @input="checkSimilarity(bIdx)"
@@ -431,6 +434,7 @@
                                 </label>
                                 <input 
                                     type="text" 
+                                    :id="'box_condition_' + bIdx"
                                     :name="'boxes[' + bIdx + '][physical_condition]'" 
                                     x-model="box.physical_condition"
                                     required 
@@ -556,19 +560,36 @@
                                 </thead>
                                 <tbody class="divide-y divide-slate-200 dark:divide-slate-800 font-mono">
                                     <template x-for="(item, iIdx) in box.items" :key="item.id">
-                                        <tr class="hover:bg-emerald-500/5 transition">
-                                            <td class="py-2 px-2.5 text-center font-bold text-slate-500" x-text="iIdx + 1"></td>
+                                        <tr 
+                                            :id="'item_row_' + bIdx + '_' + iIdx"
+                                            class="transition"
+                                            :class="getItemDuplicateInfo(box, item, iIdx) 
+                                                ? 'bg-rose-50/80 dark:bg-rose-950/30 border-l-4 border-l-rose-500' 
+                                                : 'hover:bg-emerald-500/5'"
+                                        >
+                                            <td class="py-2 px-2.5 text-center font-bold text-slate-500">
+                                                <div class="flex flex-col items-center">
+                                                    <span x-text="iIdx + 1"></span>
+                                                    <template x-if="getItemDuplicateInfo(box, item, iIdx)">
+                                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-rose-100 text-rose-700 dark:bg-rose-900/60 dark:text-rose-200 mt-1 shadow-xs tracking-tighter" title="Data kembar identik dengan baris lain di box ini">
+                                                            DUPLIKAT
+                                                        </span>
+                                                    </template>
+                                                </div>
+                                            </td>
                                             
                                             <!-- Nama Dokumen Input / Select (Tetap Dropdown Seperti Biasa) -->
                                             <td class="py-2 px-3">
                                                 <div class="flex items-center gap-1.5">
                                                     <select 
+                                                        :id="'item_doc_name_' + bIdx + '_' + iIdx"
                                                         :name="'boxes[' + bIdx + '][items][' + iIdx + '][document_name]'" 
                                                         x-model="item.document_name"
                                                         @change="onMasterDocChange(box, item)"
                                                         x-init="$nextTick(() => { if (item.document_name && $el.value !== item.document_name) $el.value = item.document_name; })"
                                                         x-effect="$nextTick(() => { if (item.document_name && $el.value !== item.document_name) $el.value = item.document_name; })"
-                                                        class="w-full px-2 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
+                                                        class="w-full px-2 py-1.5 bg-slate-50 dark:bg-slate-900 border rounded text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none transition"
+                                                        :class="getItemDuplicateInfo(box, item, iIdx) ? 'border-rose-400 dark:border-rose-600 focus:border-rose-500 bg-rose-50/30' : 'border-slate-300 dark:border-slate-700 focus:border-emerald-500'"
                                                     >
                                                         <option value="" x-text="getBoxMasterArchives(box).length > 0 ? '-- Pilih dari Master Berkas Arsip --' : '-- Tidak ada master berkas untuk sub-departemen ini --'">-- Pilih dari Master Berkas Arsip --</option>
                                                         <template x-for="m in getBoxMasterArchives(box)" :key="m.id">
@@ -595,11 +616,13 @@
                                             <td class="py-2 px-2.5">
                                                 <input 
                                                     type="month" 
+                                                    :id="'item_period_start_' + bIdx + '_' + iIdx"
                                                     :name="'boxes[' + bIdx + '][items][' + iIdx + '][period_start]'" 
                                                     x-model="item.period_start"
                                                     :max="currentMonth"
                                                     @change="validatePeriod(item)"
-                                                    class="w-full px-2 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-purple-700 dark:text-purple-300 focus:outline-none focus:border-emerald-500"
+                                                    class="w-full px-2 py-1.5 bg-slate-50 dark:bg-slate-900 border rounded text-xs font-mono font-bold text-purple-700 dark:text-purple-300 focus:outline-none transition"
+                                                    :class="getItemDuplicateInfo(box, item, iIdx) ? 'border-rose-400 dark:border-rose-600 focus:border-rose-500 bg-rose-50/30' : 'border-slate-300 dark:border-slate-700 focus:border-emerald-500'"
                                                 >
                                             </td>
 
@@ -607,27 +630,37 @@
                                             <td class="py-2 px-2.5">
                                                 <input 
                                                     type="month" 
+                                                    :id="'item_period_end_' + bIdx + '_' + iIdx"
                                                     :name="'boxes[' + bIdx + '][items][' + iIdx + '][period_end]'" 
                                                     x-model="item.period_end"
                                                     :max="currentMonth"
                                                     :min="item.period_start || null"
                                                     @change="validatePeriod(item)"
-                                                    class="w-full px-2 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono font-bold text-purple-700 dark:text-purple-300 focus:outline-none focus:border-emerald-500"
+                                                    class="w-full px-2 py-1.5 bg-slate-50 dark:bg-slate-900 border rounded text-xs font-mono font-bold text-purple-700 dark:text-purple-300 focus:outline-none transition"
+                                                    :class="getItemDuplicateInfo(box, item, iIdx) ? 'border-rose-400 dark:border-rose-600 focus:border-rose-500 bg-rose-50/30' : 'border-slate-300 dark:border-slate-700 focus:border-emerald-500'"
                                                 >
                                             </td>
 
                                             <!-- Keterangan Butir (Textarea Auto-expand, bisa di-Enter) -->
                                             <td class="py-2 px-3 align-top">
                                                 <textarea 
+                                                    :id="'item_notes_' + bIdx + '_' + iIdx"
                                                     :name="'boxes[' + bIdx + '][items][' + iIdx + '][notes]'" 
                                                     x-model="item.notes" 
                                                     rows="1"
                                                     placeholder="No. berkas fisik / catatan" 
                                                     @input="$el.style.height = 'auto'; $el.style.height = Math.max(34, $el.scrollHeight) + 'px'"
                                                     x-init="$nextTick(() => { $el.style.height = 'auto'; $el.style.height = Math.max(34, $el.scrollHeight) + 'px'; })"
-                                                    class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-700 dark:text-slate-300 placeholder-slate-400 focus:outline-none focus:border-emerald-500 transition resize-none overflow-hidden leading-relaxed block shadow-2xs"
+                                                    class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border rounded text-xs font-mono text-slate-700 dark:text-slate-300 placeholder-slate-400 focus:outline-none transition resize-none overflow-hidden leading-relaxed block shadow-2xs"
+                                                    :class="getItemDuplicateInfo(box, item, iIdx) ? 'border-rose-400 dark:border-rose-600 focus:border-rose-500 bg-rose-50/30' : 'border-slate-300 dark:border-slate-700 focus:border-emerald-500'"
                                                     style="min-height: 34px;"
                                                 ></textarea>
+                                                <template x-if="getItemDuplicateInfo(box, item, iIdx)">
+                                                    <div class="flex items-center gap-1 mt-1 text-[10px] font-bold text-rose-600 dark:text-rose-400">
+                                                        <i data-lucide="alert-triangle" class="w-3 h-3 shrink-0"></i>
+                                                        <span>Kembar identik dgn <strong x-text="getItemDuplicateInfo(box, item, iIdx).targetLabel"></strong> (Nama, Periode & Ket. sama)</span>
+                                                    </div>
+                                                </template>
                                             </td>
 
                                             <!-- Aksi Row -->
@@ -771,7 +804,9 @@
             </div>
 
             <div class="flex items-center gap-2">
-                <a href="{{ route($backRoute, request()->has('embed') ? ['embed' => 1] : []) }}" class="px-3.5 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded text-xs font-bold border border-slate-300 dark:border-slate-700 transition">
+                <a href="{{ route($backRoute, request()->has('embed') ? ['embed' => 1] : []) }}" 
+                   onclick="if (window.history.length > 1 && document.referrer && document.referrer !== window.location.href) { window.history.back(); return false; }"
+                   class="px-3.5 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded text-xs font-bold border border-slate-300 dark:border-slate-700 transition cursor-pointer">
                     Batal
                 </a>
 
@@ -1495,63 +1530,198 @@ function archiveEditApp() {
             });
         },
 
-        submitFinal(action) {
-            // Check that all boxes have at least 1 item with document_name
-            let missingName = false;
-            let missingBoxIdx = -1;
-            this.boxes.forEach((box, bIdx) => {
-                box.items.forEach(it => {
-                    if (!it.document_name || !it.document_name.trim()) {
-                        missingName = true;
-                        if (missingBoxIdx === -1) missingBoxIdx = bIdx;
+        getItemDuplicateInfo(box, item, iIdx) {
+            if (!box || !box.items || !item) return null;
+            const docName = (item.document_name || '').trim().toLowerCase();
+            const pStart = (item.period_start || '').trim();
+            const pEnd = (item.period_end || '').trim();
+            const notes = (item.notes || '').trim().toLowerCase();
+
+            // Jika baris masih belum memiliki nama dokumen dan keterangan, jangan tandai duplikat
+            if (!docName && !notes) return null;
+
+            for (let k = 0; k < box.items.length; k++) {
+                if (k === iIdx) continue;
+                const other = box.items[k];
+                if (!other) continue;
+                const oDocName = (other.document_name || '').trim().toLowerCase();
+                const oPStart = (other.period_start || '').trim();
+                const oPEnd = (other.period_end || '').trim();
+                const oNotes = (other.notes || '').trim().toLowerCase();
+
+                // Kembar identik jika Nama Berkas, Periode Mulai, Periode Selesai, dan Keterangan sama persis
+                if (docName === oDocName && pStart === oPStart && pEnd === oPEnd && notes === oNotes) {
+                    return {
+                        targetIndex: k,
+                        targetRow: k + 1,
+                        targetLabel: `Baris #${k + 1}`
+                    };
+                }
+            }
+            return null;
+        },
+
+        focusAndHighlightElement(elementId, boxIndex = null) {
+            if (boxIndex !== null && this.activeBoxIndex !== boxIndex) {
+                this.activeBoxIndex = boxIndex;
+            }
+            this.$nextTick(() => {
+                setTimeout(() => {
+                    const el = document.getElementById(elementId);
+                    if (el) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        el.classList.add('ring-4', 'ring-rose-500', 'border-rose-500', 'animate-pulse');
+                        try {
+                            el.focus();
+                        } catch(e) {}
+                        setTimeout(() => {
+                            el.classList.remove('animate-pulse');
+                            setTimeout(() => {
+                                el.classList.remove('ring-4', 'ring-rose-500');
+                            }, 3000);
+                        }, 1500);
                     }
-                });
+                }, 80);
             });
+        },
 
-            if (missingName) {
-                alert(`⚠️ Terdapat butir dokumen pada Box #${missingBoxIdx + 1} yang belum memiliki nama berkas arsip. Silakan pilih atau lengkapi nama dokumen.`);
-                this.activeBoxIndex = missingBoxIdx;
+        validateAllFormRequirements(isFinal = true) {
+            // 1. Departemen
+            if (!this.selectedDeptId) {
+                alert('⚠️ PERINGATAN: Departemen belum dipilih. Silakan pilih departemen terlebih dahulu.');
+                return false;
+            }
+
+            // 2. Tanggal Serah Terima Fisik
+            if (!this.tglPenyerahan) {
+                alert('⚠️ PERINGATAN FORM WAJIB:\n\nTanggal Serah Terima Fisik ke Gudang wajib diisi sebelum menyimpan/mengajukan.');
+                this.focusAndHighlightElement('tgl_penyerahan');
+                return false;
+            }
+
+            // 3. Validasi Tiap Box
+            if (!this.boxes || this.boxes.length === 0) {
+                alert('⚠️ Minimal harus ada 1 Box Arsip.');
+                return false;
+            }
+
+            for (let b = 0; b < this.boxes.length; b++) {
+                const box = this.boxes[b];
+                const boxNum = b + 1;
+
+                // Judul Box (Wajib)
+                if (!box.title || !box.title.trim()) {
+                    alert(`⚠️ PERINGATAN FORM WAJIB:\n\nNama / Judul Box untuk Box #${boxNum} masih kosong.\nSilakan lengkapi judul box terlebih dahulu.`);
+                    this.focusAndHighlightElement('box_title_' + b, b);
+                    return false;
+                }
+
+                // Kondisi Fisik Wadah (Wajib)
+                if (!box.physical_condition || !box.physical_condition.trim()) {
+                    alert(`⚠️ PERINGATAN FORM WAJIB:\n\nKondisi Fisik Wadah Box untuk Box #${boxNum} wajib diisi.`);
+                    this.focusAndHighlightElement('box_condition_' + b, b);
+                    return false;
+                }
+
+                // Periode Dokumen Bulan (Wajib)
+                if (!box.periode_bulan || parseInt(box.periode_bulan) < 1) {
+                    alert(`⚠️ PERINGATAN FORM WAJIB:\n\nPeriode Dokumen (Bulan) untuk Box #${boxNum} wajib diisi minimal 1 bulan.`);
+                    this.focusAndHighlightElement('periode_bulan_' + b, b);
+                    return false;
+                }
+
+                // Butir Berkas Minimal 1
+                if (!box.items || box.items.length === 0) {
+                    alert(`⚠️ Box #${boxNum} minimal harus memiliki 1 butir berkas arsip.`);
+                    this.activeBoxIndex = b;
+                    return false;
+                }
+
+                // Validasi Tiap Butir Dokumen
+                for (let i = 0; i < box.items.length; i++) {
+                    const it = box.items[i];
+                    const rowNum = i + 1;
+
+                    // Nama Berkas
+                    if (!it.document_name || !it.document_name.trim()) {
+                        alert(`⚠️ PERINGATAN FORM WAJIB:\n\nNama Dokumen / Berkas Arsip pada Box #${boxNum} Baris #${rowNum} masih kosong.\nSilakan pilih dari Master Berkas atau lengkapi nama dokumen.`);
+                        this.focusAndHighlightElement('item_doc_name_' + b + '_' + i, b);
+                        return false;
+                    }
+
+                    // Periode Mulai
+                    if (!it.period_start || !it.period_start.trim()) {
+                        alert(`⚠️ PERINGATAN FORM WAJIB:\n\nPeriode Mulai pada Box #${boxNum} Baris #${rowNum} masih kosong.`);
+                        this.focusAndHighlightElement('item_period_start_' + b + '_' + i, b);
+                        return false;
+                    }
+
+                    // Periode Selesai
+                    if (!it.period_end || !it.period_end.trim()) {
+                        alert(`⚠️ PERINGATAN FORM WAJIB:\n\nPeriode Selesai pada Box #${boxNum} Baris #${rowNum} masih kosong.`);
+                        this.focusAndHighlightElement('item_period_end_' + b + '_' + i, b);
+                        return false;
+                    }
+
+                    // Keterangan
+                    if (!it.notes || !it.notes.trim()) {
+                        alert(`⚠️ PERINGATAN FORM WAJIB:\n\nKeterangan pada Box #${boxNum} Baris #${rowNum} masih kosong.\nSilakan isi rincian berkas fisik atau catatan.`);
+                        this.focusAndHighlightElement('item_notes_' + b + '_' + i, b);
+                        return false;
+                    }
+
+                    // Pengecekan Data Sama / Duplikat Identik ("Kembar Identik")
+                    const dupInfo = this.getItemDuplicateInfo(box, it, i);
+                    if (dupInfo) {
+                        alert(`⚠️ DITEMUKAN DATA DUPLIKAT (KEMBAR IDENTIK):\n\nPada Box #${boxNum}, data Baris #${rowNum} kembar identik dengan ${dupInfo.targetLabel}.\n\nNama Berkas: "${it.document_name}"\nPeriode: ${it.period_start} s/d ${it.period_end}\nKeterangan: "${it.notes}"\n\nData kembar identik tidak dapat disubmit. Silakan ubah agar berbeda atau hapus baris duplikat tersebut.`);
+                        this.focusAndHighlightElement('item_notes_' + b + '_' + i, b);
+                        return false;
+                    }
+                }
+            }
+
+            // 4. Cek duplikasi nama box di dalam batch
+            const seenTitles = {};
+            for (let i = 0; i < this.boxes.length; i++) {
+                const rawTitle = (this.boxes[i].title || '').trim().toLowerCase();
+                if (seenTitles[rawTitle] !== undefined) {
+                    alert(`⚠️ DUPLIKASI NAMA BOX:\n\nBox #${i + 1} memiliki nama yang sama dengan Box #${seenTitles[rawTitle] + 1} ("${this.boxes[i].title}").\nSetiap box dalam pengajuan harus memiliki nama yang berbeda.`);
+                    this.focusAndHighlightElement('box_title_' + i, i);
+                    return false;
+                }
+                seenTitles[rawTitle] = i;
+            }
+
+            // 5. Cek duplikasi dengan DB (similarityInfo) untuk final pengajuan
+            if (isFinal) {
+                for (let i = 0; i < this.boxes.length; i++) {
+                    const b = this.boxes[i];
+                    if (b.similarityInfo && b.similarityInfo.is_duplicate && !b.origin_archive_id) {
+                        alert(`⚠️ PENGAJUAN DITOLAK:\n\nNama Box #${i + 1} ("${b.title}") sudah digunakan oleh arsip lain yang aktif di sistem.\nHarap ubah nama box agar berbeda.`);
+                        this.focusAndHighlightElement('box_title_' + i, i);
+                        return false;
+                    }
+                }
+
+                // 6. Scan Formulir Wajib untuk Final Submit jika belum ada
+                if (!this.hasScanForm && !this.hasExistingScanForm) {
+                    alert('⚠️ PERHATIAN: BERKAS BELUM LENGKAP!\n\n"Scan Formulir Input" wajib diunggah sebelum mengajukan verifikasi box arsip ke Gudang.\n\nSilakan unggah Scan Formulir Input pada Bagian 3, atau klik tombol "Simpan Sementara (Draft)" jika ingin menyimpan draft terlebih dahulu.');
+                    this.focusAndHighlightElement('scan_input_form');
+                    return false;
+                }
+            }
+
+            return true;
+        },
+
+        submitFinal(action) {
+            if (this.isSubmitting) return;
+
+            if (!this.validateAllFormRequirements(true)) {
                 return;
             }
 
-            if (action === 'submit' && !this.hasScanForm && !this.hasExistingScanForm) {
-                alert('⚠️ PERHATIAN: BERKAS BELUM LENGKAP!\n\n"Scan Formulir Input" wajib diunggah sebelum mengajukan verifikasi box arsip ke Gudang.\n\nSilakan unggah Scan Formulir Input pada Bagian 3, atau klik tombol "Simpan Sementara (Draft)" jika ingin menyimpan data tanpa pengajuan.');
-                const fileInput = document.getElementById('scan_input_form');
-                if (fileInput) {
-                    fileInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    fileInput.focus();
-                }
-                return;
-            }
-
-            // 1. Cek judul box tidak boleh kosong dan tidak boleh duplikat di dalam batch pengajuan yang sama
-            const seenFormTitles = {};
-            for (let i = 0; i < this.boxes.length; i++) {
-                const rawTitle = (this.boxes[i].title || '').trim();
-                if (!rawTitle) {
-                    alert(`⚠️ Nama / Judul Box untuk Box #${i + 1} belum diisi. Silakan lengkapi judul box.`);
-                    this.activeBoxIndex = i;
-                    return;
-                }
-                const normTitle = rawTitle.toLowerCase();
-                if (seenFormTitles[normTitle] !== undefined) {
-                    alert(`⚠️ DUPLIKASI NAMA BOX:\n\nBox #${i + 1} memiliki nama yang sama dengan Box #${seenFormTitles[normTitle] + 1} ("${rawTitle}").\n\nSetiap box dalam pengajuan harus memiliki nama yang berbeda.`);
-                    this.activeBoxIndex = i;
-                    return;
-                }
-                seenFormTitles[normTitle] = i;
-            }
-
-            // 2. Cek apakah ada box yang duplikat dengan database (kecuali jika berasal dari penarikan)
-            for (let i = 0; i < this.boxes.length; i++) {
-                const b = this.boxes[i];
-                if (b.similarityInfo && b.similarityInfo.is_duplicate && !b.origin_archive_id) {
-                    alert(`⚠️ PENGAJUAN DITOLAK:\n\nNama Box #${i + 1} ("${b.title}") sudah digunakan oleh arsip lain yang aktif di sistem.\n\nHarap ubah nama box agar berbeda.`);
-                    this.activeBoxIndex = i;
-                    return;
-                }
-            }
-
+            this.isSubmitting = true;
             const form = document.getElementById('archiveEditForm');
             if (form) {
                 let actionInput = form.querySelector('input[name="submit_action"]');
@@ -1567,23 +1737,16 @@ function archiveEditApp() {
         },
 
         submitDraft() {
-            // Cek duplikasi nama box di dalam batch form
-            const seenDraftTitles = {};
-            for (let i = 0; i < this.boxes.length; i++) {
-                const rawTitle = (this.boxes[i].title || '').trim();
-                if (rawTitle) {
-                    const normTitle = rawTitle.toLowerCase();
-                    if (seenDraftTitles[normTitle] !== undefined) {
-                        alert(`⚠️ DUPLIKASI NAMA BOX:\n\nBox #${i + 1} memiliki nama yang sama dengan Box #${seenDraftTitles[normTitle] + 1} ("${rawTitle}").\n\nSetiap box dalam pengajuan harus memiliki nama yang berbeda.`);
-                        this.activeBoxIndex = i;
-                        return;
-                    }
-                    seenDraftTitles[normTitle] = i;
-                }
+            if (this.isSubmitting) return;
+
+            if (!this.validateAllFormRequirements(false)) {
+                return;
             }
 
+            this.isSubmitting = true;
             const form = document.getElementById('archiveEditForm');
             if (form) {
+                form.noValidate = true;
                 let actionInput = form.querySelector('input[name="submit_action"]');
                 if (!actionInput) {
                     actionInput = document.createElement('input');

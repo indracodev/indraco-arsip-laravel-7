@@ -29,8 +29,7 @@ class ArchiveController extends Controller
             'creator',
             'extensionLogs',
             'borrowingLogs' => function ($q) {
-                $q->whereIn('status', ['requested', 'dept_approved', 'approved', 'dispatched'])
-                  ->orderBy('created_at', 'desc');
+                $q->orderBy('created_at', 'desc')->orderBy('id', 'desc');
             },
             'borrowingLogs.borrower',
             'borrowingLogs.departmentApprovedBy'
@@ -43,13 +42,25 @@ class ArchiveController extends Controller
         // Filters
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('title', 'like', "%{$search}%")
-                  ->orWhere('custom_doc_name', 'like', "%{$search}%")
-                  ->orWhere('box_number', 'like', "%{$search}%")
-                  ->orWhere('periode_doc', 'like', "%{$search}%")
-                  ->orWhere('period_text', 'like', "%{$search}%")
-                  ->orWhere('content_description', 'like', "%{$search}%");
+            $query->where(function ($q) use ($search, $user) {
+                if ($user && $user->isPicGudang()) {
+                    // Role Gudang HANYA boleh mencari nomor box, judul label box, dan lokasi rak
+                    $q->where('box_number', 'like', "%{$search}%")
+                      ->orWhere('title', 'like', "%{$search}%")
+                      ->orWhereHas('location', function ($lq) use ($search) {
+                          $lq->where('rack_code', 'like', "%{$search}%");
+                      });
+                } else {
+                    $q->where('title', 'like', "%{$search}%")
+                      ->orWhere('custom_doc_name', 'like', "%{$search}%")
+                      ->orWhere('box_number', 'like', "%{$search}%")
+                      ->orWhere('periode_doc', 'like', "%{$search}%")
+                      ->orWhere('period_text', 'like', "%{$search}%")
+                      ->orWhere('content_description', 'like', "%{$search}%")
+                      ->orWhereHas('location', function ($lq) use ($search) {
+                          $lq->where('rack_code', 'like', "%{$search}%");
+                      });
+                }
             });
         }
 
@@ -90,21 +101,31 @@ class ArchiveController extends Controller
             }
         }
 
-        // Sorting
-        $sortColumn = $request->get('sort', 'created_at');
-        $sortDirection = strtolower($request->get('direction', 'desc')) === 'asc' ? 'asc' : 'desc';
-        $allowedSorts = ['box_number', 'title', 'created_at', 'retention_expiry_date', 'status'];
+        // Sorting: Data yang diajukan / aktif (non-draft) selalu di atas diurutkan berdasarkan updated_at terbaru
+        if ($request->filled('sort')) {
+            $sortColumn = $request->get('sort');
+            $sortDirection = strtolower($request->get('direction', 'desc')) === 'asc' ? 'asc' : 'desc';
+            $allowedSorts = ['box_number', 'title', 'created_at', 'updated_at', 'retention_expiry_date', 'status'];
 
-        if (in_array($sortColumn, $allowedSorts)) {
-            $query->orderBy($sortColumn, $sortDirection);
-            if ($sortColumn === 'created_at') {
-                $query->orderBy('id', $sortDirection);
+            if (in_array($sortColumn, $allowedSorts)) {
+                $query->orderBy($sortColumn, $sortDirection);
+                if (in_array($sortColumn, ['created_at', 'updated_at'])) {
+                    $query->orderBy('id', $sortDirection);
+                }
+            } else {
+                $query->orderByRaw("CASE WHEN status = 'draft' THEN 1 ELSE 0 END ASC")
+                      ->orderBy('updated_at', 'desc')
+                      ->orderBy('id', 'desc');
             }
         } else {
-            $query->latest();
+            // Default: Non-draft (pengajuan baru, penarikan, perpanjangan, pemusnahan, dll) diletakkan di paling atas sendiri by updated_at terbaru, draft di bawah
+            $query->orderByRaw("CASE WHEN status = 'draft' THEN 1 ELSE 0 END ASC")
+                  ->orderBy('updated_at', 'desc')
+                  ->orderBy('id', 'desc');
         }
 
-        $archives = $query->paginate(10)->withQueryString();
+        $perPage = (int) $request->get('per_page', 10);
+        $archives = $query->paginate($perPage > 0 ? $perPage : 10)->withQueryString();
 
         $isSuperAdmin = $user && $user->isSuperAdmin();
         $deptQuery = Department::with(['subDepartments' => function ($q) use ($isSuperAdmin) {
@@ -159,6 +180,9 @@ class ArchiveController extends Controller
     public function create(Request $request)
     {
         $user = auth()->user();
+        if ($user && $user->isPicGudang()) {
+            abort(403, 'Akses Ditolak: PIC Gudang tidak memiliki hak untuk membuat pengajuan baru. Wewenang gudang hanya untuk verifikasi fisik dan approval.');
+        }
         $departments = Department::with(['subDepartments' => function ($q) {
             $q->where('is_active', true);
         }, 'masterArchives' => function ($q) {
@@ -255,14 +279,27 @@ class ArchiveController extends Controller
             $originBorrowingIds = $rawIds;
         }
 
+        $fromExcelImport = false;
+        $totalItemsPreloaded = 0;
+        if (($request->query('from') === 'excel_import' || $request->has('from_import')) && session()->has('excel_preloaded_boxes')) {
+            $fromExcelImport = true;
+            $preloadedBoxes = session('excel_preloaded_boxes', []);
+            $targetDeptId = session('excel_target_dept_id') ?: $targetDeptId;
+            $totalItemsPreloaded = session('excel_total_items', 0);
+            session()->forget(['excel_preloaded_boxes', 'excel_target_dept_id', 'excel_total_items', 'excel_from_import']);
+        }
+
         $from = $request->query('from') ?: (!empty($isReStore) ? 'borrowings' : 'archives');
 
-        return view('archives.create', compact('user', 'departments', 'preloadedBoxes', 'isReStore', 'originBorrowingIds', 'targetDeptId', 'from'));
+        return view('archives.create', compact('user', 'departments', 'preloadedBoxes', 'isReStore', 'originBorrowingIds', 'targetDeptId', 'from', 'fromExcelImport', 'totalItemsPreloaded'));
     }
 
     public function store(Request $request)
     {
         $user = auth()->user();
+        if ($user && $user->isPicGudang()) {
+            abort(403, 'Akses Ditolak: PIC Gudang tidak memiliki hak untuk membuat pengajuan baru. Wewenang gudang hanya untuk verifikasi fisik dan approval.');
+        }
 
         if ($request->input('sub_department_id') === 'inti') {
             $request->merge(['sub_department_id' => null]);
@@ -553,6 +590,8 @@ class ArchiveController extends Controller
 
                 $archive = $existingArchive;
                 $archive->fill([
+                    'warehouse_location_id' => null,
+                    'warehouse_rack_slot_id' => null,
                     'department_id' => $validated['department_id'],
                     'sub_department_id' => $validated['sub_department_id'] ?? $archive->sub_department_id,
                     'company_name' => $validated['company_name'] ?? $archive->company_name,
@@ -749,17 +788,17 @@ class ArchiveController extends Controller
                 'scan_input_form' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:500',
                 'file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:500',
                 'boxes' => 'required|array|min:1',
-                'boxes.*.title' => 'nullable|string|max:255',
+                'boxes.*.title' => 'required|string|max:255',
                 'boxes.*.sub_department_id' => 'nullable|exists:sub_departments,id',
                 'boxes.*.document_type' => 'nullable|string|max:100',
                 'boxes.*.periode' => 'nullable|string|max:100',
-                'boxes.*.physical_condition' => 'nullable|string|max:100',
+                'boxes.*.physical_condition' => 'required|string|max:100',
                 'boxes.*.retention_years' => 'nullable|integer|min:1|max:30',
                 'boxes.*.items' => 'required|array|min:1',
                 'boxes.*.items.*.document_name' => 'required|string|max:255',
-                'boxes.*.items.*.period_start' => 'nullable|string|max:50',
-                'boxes.*.items.*.period_end' => 'nullable|string|max:50',
-                'boxes.*.items.*.notes' => 'nullable|string|max:255',
+                'boxes.*.items.*.period_start' => 'required|string|max:50',
+                'boxes.*.items.*.period_end' => 'required|string|max:50',
+                'boxes.*.items.*.notes' => 'required|string|max:255',
             ]);
         }
 
@@ -803,6 +842,33 @@ class ArchiveController extends Controller
                     ]
                 ]
             ];
+        }
+
+        // Cek duplikasi butir berkas kembar identik dalam 1 box
+        foreach ($boxesList as $bIndex => $boxData) {
+            $items = $boxData['items'] ?? [];
+            $seenItems = [];
+            foreach ($items as $iIndex => $item) {
+                $docName = trim(strtolower($item['document_name'] ?? ''));
+                $pStart = trim($item['period_start'] ?? '');
+                $pEnd = trim($item['period_end'] ?? '');
+                $notes = trim(strtolower($item['notes'] ?? ''));
+
+                if ($docName === '' && $notes === '') {
+                    continue;
+                }
+
+                $signature = $docName . '||' . $pStart . '||' . $pEnd . '||' . $notes;
+                if (isset($seenItems[$signature])) {
+                    $firstRow = $seenItems[$signature] + 1;
+                    $currRow = $iIndex + 1;
+                    $boxNum = $bIndex + 1;
+                    return back()->withInput()->withErrors([
+                        'duplicate_item' => "Box #{$boxNum} memiliki data butir berkas kembar identik: Baris #{$currRow} sama persis dengan Baris #{$firstRow} (Nama Berkas, Periode, dan Keterangan sama persis). Data duplikat tidak diperbolehkan."
+                    ]);
+                }
+                $seenItems[$signature] = $iIndex;
+            }
         }
 
         if ($isDraft) {
@@ -1722,17 +1788,17 @@ class ArchiveController extends Controller
                 'scan_input_form' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:500',
                 'file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:500',
                 'boxes' => 'required|array|min:1',
-                'boxes.*.title' => 'nullable|string|max:255',
+                'boxes.*.title' => 'required|string|max:255',
                 'boxes.*.sub_department_id' => 'nullable|exists:sub_departments,id',
                 'boxes.*.document_type' => 'nullable|string|max:100',
                 'boxes.*.periode' => 'nullable|string|max:100',
-                'boxes.*.physical_condition' => 'nullable|string|max:100',
+                'boxes.*.physical_condition' => 'required|string|max:100',
                 'boxes.*.retention_years' => 'nullable|integer|min:1|max:30',
                 'boxes.*.items' => 'required|array|min:1',
                 'boxes.*.items.*.document_name' => 'required|string|max:255',
-                'boxes.*.items.*.period_start' => 'nullable|string|max:50',
-                'boxes.*.items.*.period_end' => 'nullable|string|max:50',
-                'boxes.*.items.*.notes' => 'nullable|string|max:255',
+                'boxes.*.items.*.period_start' => 'required|string|max:50',
+                'boxes.*.items.*.period_end' => 'required|string|max:50',
+                'boxes.*.items.*.notes' => 'required|string|max:255',
             ]);
         }
 
@@ -1783,6 +1849,33 @@ class ArchiveController extends Controller
                     ]
                 ]
             ];
+        }
+
+        // Cek duplikasi butir berkas kembar identik dalam 1 box
+        foreach ($boxesList as $bIndex => $boxData) {
+            $items = $boxData['items'] ?? [];
+            $seenItems = [];
+            foreach ($items as $iIndex => $item) {
+                $docName = trim(strtolower($item['document_name'] ?? ''));
+                $pStart = trim($item['period_start'] ?? '');
+                $pEnd = trim($item['period_end'] ?? '');
+                $notes = trim(strtolower($item['notes'] ?? ''));
+
+                if ($docName === '' && $notes === '') {
+                    continue;
+                }
+
+                $signature = $docName . '||' . $pStart . '||' . $pEnd . '||' . $notes;
+                if (isset($seenItems[$signature])) {
+                    $firstRow = $seenItems[$signature] + 1;
+                    $currRow = $iIndex + 1;
+                    $boxNum = $bIndex + 1;
+                    return back()->withInput()->withErrors([
+                        'duplicate_item' => "Box #{$boxNum} memiliki data butir berkas kembar identik: Baris #{$currRow} sama persis dengan Baris #{$firstRow} (Nama Berkas, Periode, dan Keterangan sama persis). Data duplikat tidak diperbolehkan."
+                    ]);
+                }
+                $seenItems[$signature] = $iIndex;
+            }
         }
 
         $now = now();
@@ -2298,42 +2391,31 @@ class ArchiveController extends Controller
             $expDate = '12-' . ($archive->end_year + $archive->retention_years);
         }
 
-        $rackLetter = '';
+        $isAllocated = !empty($archive->warehouse_location_id) || !empty($archive->warehouse_rack_slot_id);
+
+        $rackLetter = '-';
         if ($archive->location && !empty($archive->location->rack_code)) {
-            if (preg_match('/([A-Za-z]+)$/i', $archive->location->rack_code, $m)) {
-                $rackLetter = strtoupper($m[1]);
-            }
+            $rackLetter = strtoupper(trim($archive->location->rack_code));
         } elseif ($archive->rackSlot && !empty($archive->rackSlot->slot_code) && preg_match('/^([A-Za-z]+)/', $archive->rackSlot->slot_code, $m)) {
             $rackLetter = strtoupper($m[1]);
         }
 
-        if (empty($rackLetter)) {
-            if (!empty($archive->box_number) && preg_match('/([A-Za-z]{1,3})/i', $archive->box_number, $bm)) {
-                $rackLetter = strtoupper($bm[1]);
-            } else {
-                $letterIdx = intval(($archive->id - 1) / 20) % 26;
-                $rackLetter = chr(65 + $letterIdx);
-            }
-        }
-
-        $slotNo = '';
+        $slotNo = '-';
         if ($archive->rackSlot && !empty($archive->rackSlot->slot_number)) {
             $slotNo = str_pad($archive->rackSlot->slot_number, 2, '0', STR_PAD_LEFT);
         } elseif ($archive->location && !empty($archive->location->shelf_code) && preg_match('/(\d+)/', $archive->location->shelf_code, $m)) {
             $slotNo = str_pad($m[1], 2, '0', STR_PAD_LEFT);
         }
 
-        if (empty($slotNo)) {
-            if (!empty($archive->box_number) && preg_match('/(\d{1,3})$/', $archive->box_number, $nm)) {
-                $slotNo = str_pad(intval($nm[1]) % 100 ?: 1, 2, '0', STR_PAD_LEFT);
-            } else {
-                $slotNo = str_pad((($archive->id - 1) % 20) + 1, 2, '0', STR_PAD_LEFT);
-            }
+        if ($isAllocated && $rackLetter !== '-' && $slotNo !== '-') {
+            $boxCode = $rackLetter . ' / ' . $slotNo;
+        } elseif ($isAllocated && $rackLetter !== '-') {
+            $boxCode = $rackLetter;
+        } else {
+            $boxCode = '-';
+            $rackLetter = '-';
+            $slotNo = '-';
         }
-
-        $boxCode = $rackLetter . $slotNo;
-
-        $isAllocated = !empty($archive->warehouse_location_id) || !empty($archive->location_id);
         $whName = $archive->location && $archive->location->warehouse ? ($archive->location->warehouse->name ?: $archive->location->warehouse->code) : ($archive->location->room_sector ?? null);
         $rackCode = $archive->location ? $archive->location->rack_code : null;
         $slotLabel = $archive->rackSlot ? ("Sap {$archive->rackSlot->sap_level}, {$archive->rackSlot->layer_label} Slot {$archive->rackSlot->slot_number}") : null;
@@ -2370,9 +2452,11 @@ class ArchiveController extends Controller
             abort(403, 'Anda tidak memiliki akses ke label arsip departemen lain.');
         }
 
-        // Label box boleh dicetak untuk arsip yang sudah disetujui/booking, tersimpan di gudang, atau perpanjangan
-        if (!in_array($archive->status, ['approved_booked', 'in_warehouse', 'pending_extension'])) {
-            $msg = 'Label box hanya dapat dicetak untuk arsip yang telah disetujui (Approved / Booked), tersimpan di gudang, atau dalam perpanjangan (status saat ini: ' . $archive->status_label . ').';
+        // Label box boleh dicetak untuk arsip yang sudah disetujui/booking, tersimpan di gudang, atau perpanjangan dan sudah ada lokasi rak
+        if (!in_array($archive->status, ['approved_booked', 'in_warehouse', 'pending_extension']) || empty($archive->warehouse_location_id)) {
+            $msg = empty($archive->warehouse_location_id)
+                ? 'Label box belum dapat dicetak karena lokasi rak gudang belum ditentukan.'
+                : 'Label box hanya dapat dicetak untuk arsip yang telah disetujui (Approved / Booked), tersimpan di gudang, atau dalam perpanjangan (status saat ini: ' . $archive->status_label . ').';
             if ($request->wantsJson() || $request->has('json') || $request->ajax()) {
                 return response()->json(['success' => false, 'error' => $msg], 403);
             }
@@ -2590,12 +2674,15 @@ class ArchiveController extends Controller
                 ->first();
         }
 
-        $customDeptId = $location->assigned_department_id ?? ($parentRoom ? $parentRoom->assigned_department_id : null);
-        if ($customDeptId && $archive->department_id && $customDeptId != $archive->department_id) {
-            $customDept = \App\Models\Department::find($customDeptId);
-            $customDeptName = $customDept ? "{$customDept->code} ({$customDept->name})" : "Departemen Khusus";
+        $allowedDeptIds = $location->allowed_department_ids;
+        if (empty($allowedDeptIds) && $parentRoom) {
+            $allowedDeptIds = $parentRoom->allowed_department_ids;
+        }
+
+        if (!empty($allowedDeptIds) && $archive->department_id && !in_array((int)$archive->department_id, $allowedDeptIds, true)) {
+            $deptNames = \App\Models\Department::whereIn('id', $allowedDeptIds)->pluck('code')->implode(', ');
             $arcDeptName = $archive->department ? "{$archive->department->code} ({$archive->department->name})" : "Departemen Terkait";
-            return back()->with('error', "Akses Ditolak: Lokasi '{$location->rack_code}' dikhususkan untuk {$customDeptName}. Box dari {$arcDeptName} tidak diizinkan dialokasikan ke lokasi ini.");
+            return back()->with('error', "Akses Ditolak: Lokasi '{$location->rack_code}' dikhususkan untuk [{$deptNames}]. Box dari {$arcDeptName} tidak diizinkan dialokasikan ke lokasi ini.");
         }
 
         // Allocate slot if standard slots exist
@@ -3321,8 +3408,12 @@ class ArchiveController extends Controller
      */
     public function downloadImportTemplate(Request $request, MultiBoxExcelService $excelService)
     {
+        $user = auth()->user();
+        if ($user && $user->isPicGudang()) {
+            abort(403, 'Akses Ditolak: PIC Gudang tidak memiliki hak untuk mengimpor pengajuan box arsip.');
+        }
         $format = $request->input('format', 'xlsx');
-        return $excelService->generateTemplate($format);
+        return $excelService->generateTemplate($format, $user);
     }
 
     /**
@@ -3330,6 +3421,14 @@ class ArchiveController extends Controller
      */
     public function previewImport(Request $request, MultiBoxExcelService $excelService)
     {
+        $user = auth()->user();
+        if ($user && $user->isPicGudang()) {
+            return response()->json([
+                'success' => false,
+                'errors' => ['Akses Ditolak: PIC Gudang tidak memiliki hak untuk mengimpor pengajuan box arsip.'],
+            ], 403);
+        }
+
         $request->validate([
             'file' => 'required|file|max:5120',
         ]);
@@ -3343,7 +3442,7 @@ class ArchiveController extends Controller
             ], 422);
         }
 
-        $result = $excelService->parseFile($file, auth()->user());
+        $result = $excelService->parseFile($file, $user);
 
         return response()->json($result);
     }
@@ -3353,17 +3452,29 @@ class ArchiveController extends Controller
      */
     public function commitImport(Request $request, MultiBoxExcelService $excelService)
     {
+        $user = auth()->user();
+        if ($user && $user->isPicGudang()) {
+            return response()->json([
+                'success' => false,
+                'errors' => ['Akses Ditolak: PIC Gudang tidak memiliki hak untuk mengimpor pengajuan box arsip.'],
+            ], 403);
+        }
+
         $request->validate([
             'boxes' => 'required|array|min:1',
-            'status' => 'required|in:draft,pending_verification',
+            'status' => 'required|in:draft,pending_verification,in_warehouse',
         ]);
 
         $boxes = $request->input('boxes');
         $status = $request->input('status');
-        $user = auth()->user();
 
         // Enforce PIC Dept security
         if ($user->isPicDept()) {
+            // PIC Dept tidak boleh langsung bypass ke in_warehouse
+            if ($status === 'in_warehouse') {
+                $status = 'pending_verification';
+            }
+
             foreach ($boxes as $box) {
                 $targetDeptId = $box['department_id'] ?? null;
                 if (!$targetDeptId && !empty($box['department_code'])) {
@@ -3386,6 +3497,79 @@ class ArchiveController extends Controller
             'success' => true,
             'message' => "Berhasil mengimpor {$result['boxes_count']} box arsip dengan {$result['items_count']} butir dokumen.",
             'data' => $result,
+        ]);
+    }
+
+    /**
+     * Transfer parsed multi-box Excel data into create pengajuan form session.
+     */
+    public function loadImportToCreateForm(Request $request)
+    {
+        $user = auth()->user();
+        if ($user && $user->isPicGudang()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akses Ditolak: PIC Gudang tidak memiliki hak untuk membuat pengajuan baru.',
+            ], 403);
+        }
+
+        $request->validate([
+            'boxes' => 'required|array|min:1',
+        ]);
+
+        $rawBoxes = $request->input('boxes');
+        $preloadedBoxes = [];
+        $targetDeptId = null;
+        $totalItems = 0;
+
+        foreach ($rawBoxes as $idx => $b) {
+            if (!$targetDeptId && !empty($b['department_id'])) {
+                $targetDeptId = $b['department_id'];
+            }
+
+            $boxItems = [];
+            if (!empty($b['items']) && is_array($b['items'])) {
+                foreach ($b['items'] as $iIdx => $it) {
+                    $boxItems[] = [
+                        'id' => $iIdx + 1,
+                        'document_name' => $it['document_name'] ?? $it['name'] ?? '',
+                        'period_start' => $it['period_start'] ?? date('Y-m'),
+                        'period_end' => $it['period_end'] ?? date('Y-m'),
+                        'notes' => $it['notes'] ?? $it['description'] ?? '',
+                    ];
+                    $totalItems++;
+                }
+            }
+
+            if (empty($boxItems)) {
+                $boxItems = [
+                    ['id' => 1, 'document_name' => '', 'period_start' => date('Y-m'), 'period_end' => date('Y-m'), 'notes' => '']
+                ];
+            }
+
+            $preloadedBoxes[] = [
+                'id' => $idx + 1,
+                'temp_box_id' => $b['temp_box_id'] ?? ('BOX-' . str_pad($idx + 1, 2, '0', STR_PAD_LEFT)),
+                'title' => $b['title'] ?? $b['name'] ?? '',
+                'sub_department_id' => !empty($b['sub_department_id']) ? (string)$b['sub_department_id'] : '',
+                'document_type' => $b['document_type'] ?? '',
+                'periode_bulan' => !empty($b['retention_years']) ? (string)($b['retention_years'] * 12) : '1',
+                'follow_previous' => false,
+                'physical_condition' => $b['physical_condition'] ?? 'Baik / Box Karton Standar TB 30g',
+                'items' => $boxItems,
+            ];
+        }
+
+        session([
+            'excel_preloaded_boxes' => $preloadedBoxes,
+            'excel_target_dept_id' => $targetDeptId,
+            'excel_total_items' => $totalItems,
+            'excel_from_import' => true,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'redirect_url' => route('archives.create', ['from' => 'excel_import']),
         ]);
     }
 

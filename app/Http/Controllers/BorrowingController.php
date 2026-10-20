@@ -19,10 +19,24 @@ class BorrowingController extends Controller
             'archive.items',
             'archive.location.warehouse',
             'archive.rackSlot',
+            'archive.borrowingLogs' => function ($q) {
+                $q->where('status', 'rejected')->orderBy('id', 'desc');
+            },
             'borrower',
             'picGudang',
             'departmentApprovedBy'
         ]);
+
+        // Pastikan tetap 1 data per box arsip (ambil record penarikan terkini, log lama yang sudah diajukan ulang masuk ke riwayat detail)
+        $query->where(function ($mainQ) {
+            $mainQ->whereNull('archive_id')
+                  ->orWhereNotExists(function ($sub) {
+                      $sub->select(\Illuminate\Support\Facades\DB::raw(1))
+                          ->from('borrowing_logs as bl2')
+                          ->whereColumn('bl2.archive_id', 'borrowing_logs.archive_id')
+                          ->whereColumn('bl2.id', '>', 'borrowing_logs.id');
+                  });
+        });
 
         if ($user->isPicDept()) {
             $query->where(function ($q) use ($user) {
@@ -35,15 +49,33 @@ class BorrowingController extends Controller
 
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('purpose', 'like', "%{$search}%")
-                  ->orWhereHas('archive', function ($q2) use ($search) {
-                      $q2->where('title', 'like', "%{$search}%")
-                         ->orWhere('box_number', 'like', "%{$search}%");
-                  })
-                  ->orWhereHas('borrower', function ($q3) use ($search) {
-                      $q3->where('name', 'like', "%{$search}%");
-                  });
+            $query->where(function ($q) use ($search, $user) {
+                if ($user && $user->isPicGudang()) {
+                    $q->where('purpose', 'like', "%{$search}%")
+                      ->orWhereHas('archive', function ($q2) use ($search) {
+                          $q2->where('title', 'like', "%{$search}%")
+                             ->orWhere('box_number', 'like', "%{$search}%")
+                             ->orWhereHas('location', function ($lq) use ($search) {
+                                 $lq->where('rack_code', 'like', "%{$search}%");
+                             });
+                      })
+                      ->orWhereHas('borrower', function ($q3) use ($search) {
+                          $q3->where('name', 'like', "%{$search}%");
+                      });
+                } else {
+                    $q->where('purpose', 'like', "%{$search}%")
+                      ->orWhereHas('archive', function ($q2) use ($search) {
+                          $q2->where('title', 'like', "%{$search}%")
+                             ->orWhere('box_number', 'like', "%{$search}%")
+                             ->orWhere('content_description', 'like', "%{$search}%")
+                             ->orWhereHas('location', function ($lq) use ($search) {
+                                 $lq->where('rack_code', 'like', "%{$search}%");
+                             });
+                      })
+                      ->orWhereHas('borrower', function ($q3) use ($search) {
+                          $q3->where('name', 'like', "%{$search}%");
+                      });
+                }
             });
         }
 
@@ -51,7 +83,9 @@ class BorrowingController extends Controller
             $query->where('status', $request->status);
         }
 
-        // Sorting
+        // Sorting: Yang bisa ditarik selalu berada di paling atas
+        $query->orderByRaw("CASE WHEN status IN ('requested', 'dept_approved', 'approved') THEN 0 ELSE 1 END ASC");
+
         $sortColumn = $request->get('sort', 'created_at');
         if ($sortColumn === 'borrowed_at') {
             $sortColumn = 'borrow_date';
@@ -73,6 +107,9 @@ class BorrowingController extends Controller
     public function create(Request $request)
     {
         $user = auth()->user();
+        if ($user && $user->isPicGudang()) {
+            abort(403, 'Akses Ditolak: PIC Gudang tidak memiliki hak untuk membuat pengajuan penarikan. Wewenang gudang hanya untuk pengeluaran (dispatch) dan approval.');
+        }
 
         // Get archives available for borrowing (status in_warehouse)
         $archivesQuery = Archive::select(
@@ -88,7 +125,7 @@ class BorrowingController extends Controller
             'rackSlot:id,warehouse_location_id,sap_level,layer,slot_number,slot_code',
             'items:id,archive_id,item_number,document_name,period_start,period_end,period_text,notes',
             'borrowingLogs' => function ($q) {
-                $q->whereIn('status', ['requested', 'dept_approved', 'approved']);
+                $q->orderBy('id', 'desc');
             }
         ])->where('status', 'in_warehouse');
 
@@ -97,7 +134,11 @@ class BorrowingController extends Controller
         }
 
         $archives = $archivesQuery->get()->map(function ($arc) {
-            $arc->has_active_borrowing = $arc->borrowingLogs->isNotEmpty();
+            $activeLog = $arc->borrowingLogs->whereIn('status', ['requested', 'dept_approved', 'approved'])->first();
+            $rejectedLog = !$activeLog ? $arc->borrowingLogs->where('status', 'rejected')->first() : null;
+            $arc->has_active_borrowing = !empty($activeLog);
+            $arc->has_rejected_borrowing = !empty($rejectedLog);
+            $arc->rejected_note = $rejectedLog ? $rejectedLog->approval_notes : null;
             return $arc;
         });
 
@@ -120,6 +161,9 @@ class BorrowingController extends Controller
     public function store(Request $request)
     {
         $user = auth()->user();
+        if ($user && $user->isPicGudang()) {
+            abort(403, 'Akses Ditolak: PIC Gudang tidak memiliki hak untuk membuat pengajuan penarikan. Wewenang gudang hanya untuk pengeluaran (dispatch) dan approval.');
+        }
 
         // Support both single archive_id and multiple archive_ids (Multi-Box Penarikan)
         $rawArchiveIds = [];
@@ -208,6 +252,9 @@ class BorrowingController extends Controller
                 'is_approval_uploaded' => true,
                 'approval_status' => 'pending',
             ]);
+
+            // Refresh archive updated_at so it jumps to the top of catalog sorting
+            $archive->touch();
 
             $createdLogs[] = $borrowing;
             if ($archive->box_number) {
@@ -406,6 +453,8 @@ class BorrowingController extends Controller
 
         $archive->update([
             'status' => $archiveStatus,
+            'warehouse_location_id' => null,
+            'warehouse_rack_slot_id' => null,
         ]);
 
         // Vacate rack slot when document is issued / dispatched

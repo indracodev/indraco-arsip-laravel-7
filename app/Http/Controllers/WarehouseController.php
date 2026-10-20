@@ -32,20 +32,29 @@ class WarehouseController extends Controller
                 );
             }
 
-            if (count($validCodes) > 0) {
-                Warehouse::whereNotIn('code', $validCodes)->delete();
-            }
+            // Mode hide: Tidak menghapus gudang GA/IT, hanya sinkronisasi room baru jika ada
         }
 
+        $isSuperAdmin = auth()->check() && auth()->user()->isSuperAdmin();
+
         // 2. Fetch all registered racks in ONE single query with eager loading
-        $allRacks = WarehouseLocation::where(function ($q) {
+        $rackQuery = WarehouseLocation::where(function ($q) {
             $q->whereNull('location_type')->orWhere('location_type', 'rack');
-        })
-        ->with(['slots', 'archives'])
-        ->get();
+        });
+        if (!$isSuperAdmin) {
+            $rackQuery->where(function($q) {
+                $q->whereNull('room_sector')
+                  ->orWhereNotIn('room_sector', ['GA', 'IT', 'GUDANG GA', 'GUDANG IT']);
+            });
+        }
+        $allRacks = $rackQuery->with(['slots', 'archives'])->get();
 
         // 3. Map warehouses and assign racks in memory without extra queries
-        $warehouses = Warehouse::all()->map(function ($wh) use ($allRacks) {
+        $whQuery = Warehouse::query();
+        if (!$isSuperAdmin) {
+            $whQuery->whereNotIn('code', ['GUDANG GA', 'GUDANG IT', 'GA', 'IT']);
+        }
+        $warehouses = $whQuery->get()->map(function ($wh) use ($allRacks) {
             $sectorCode = preg_replace('/^gudang\s*/i', '', $wh->code);
             $sectorName = preg_replace('/^gudang\s*/i', '', $wh->name);
 

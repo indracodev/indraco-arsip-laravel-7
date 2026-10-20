@@ -413,6 +413,7 @@
                             </div>
                         </button>
 
+                        @if (auth()->check() && auth()->user()->isSuperAdmin())
                         <button 
                             @click="openBatchDeptModal(); contextMenuOpen = false;" 
                             type="button" 
@@ -423,6 +424,7 @@
                                 <span class="truncate">Set Alokasi Departemen...</span>
                             </div>
                         </button>
+                        @endif
 
                         <button 
                             @click="openBatchColorModal(); contextMenuOpen = false;" 
@@ -743,9 +745,11 @@
                                 <button @click="openBatchResizeModal()" type="button" class="px-2 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 text-xs font-bold rounded border border-blue-500/30 transition flex items-center justify-center gap-1 cursor-pointer">
                                     <i data-lucide="scaling" class="w-3.5 h-3.5"></i> Ubah Ukuran
                                 </button>
+                                @if (auth()->check() && auth()->user()->isSuperAdmin())
                                 <button @click="openBatchDeptModal()" type="button" class="px-2 py-1.5 bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 text-xs font-bold rounded border border-purple-500/30 transition flex items-center justify-center gap-1 cursor-pointer">
                                     <i data-lucide="building-2" class="w-3.5 h-3.5"></i> Set Dept
                                 </button>
+                                @endif
                                 <button @click="openBatchColorModal()" type="button" class="px-2 py-1.5 bg-pink-600/20 hover:bg-pink-600/30 text-pink-400 text-xs font-bold rounded border border-pink-500/30 transition flex items-center justify-center gap-1 col-span-2 cursor-pointer">
                                     <i data-lucide="palette" class="w-3.5 h-3.5"></i> Set Warna Massal
                                 </button>
@@ -806,23 +810,25 @@
                         <div class="p-2.5 bg-indigo-50/50 dark:bg-slate-900 rounded border border-indigo-200/80 dark:border-slate-800 space-y-1 font-sans">
                             <div class="flex items-center justify-between">
                                 <span class="text-indigo-900 dark:text-indigo-300 text-[10px] uppercase font-bold block">Izin Penempatan Box:</span>
+                                @if (auth()->check() && auth()->user()->isSuperAdmin())
                                 <button @click="openEditModal()" type="button" class="text-indigo-600 dark:text-indigo-400 hover:underline text-[10px] font-bold cursor-pointer">
                                     Atur Dept
                                 </button>
+                                @endif
                             </div>
-                            <div class="flex items-center gap-1.5 text-xs font-semibold">
-                                <template x-if="selectedLocation?.assigned_department_id">
-                                    <span class="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-950/70 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 rounded font-mono text-[11px] flex items-center gap-1 truncate max-w-full">
-                                        <i data-lucide="building" class="w-3 h-3 text-indigo-500 shrink-0"></i>
-                                        <span x-text="getDeptName(selectedLocation.assigned_department_id)" class="truncate"></span>
-                                    </span>
-                                </template>
-                                <template x-if="!selectedLocation?.assigned_department_id">
-                                    <span class="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded font-mono text-[11px] flex items-center gap-1">
-                                        <i data-lucide="globe" class="w-3 h-3 text-slate-400 shrink-0"></i>
-                                        <span>Semua Departemen (Bebas)</span>
-                                    </span>
-                                </template>
+                            <div class="flex items-center gap-1.5 text-xs font-semibold flex-wrap">
+                                <div x-show="getAllowedDeptIds(selectedLocation).length > 0" class="flex items-center gap-1 flex-wrap">
+                                    <template x-for="deptId in getAllowedDeptIds(selectedLocation)" :key="deptId">
+                                        <span class="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-950/70 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 rounded font-mono text-[11px] flex items-center gap-1 truncate max-w-full">
+                                            <i data-lucide="building" class="w-3 h-3 text-indigo-500 shrink-0"></i>
+                                            <span x-text="getDeptCode(deptId)" class="truncate font-bold"></span>
+                                        </span>
+                                    </template>
+                                </div>
+                                <span x-show="getAllowedDeptIds(selectedLocation).length === 0" class="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded font-mono text-[11px] flex items-center gap-1">
+                                    <i data-lucide="globe" class="w-3 h-3 text-slate-400 shrink-0"></i>
+                                    <span>Semua Departemen (Bebas)</span>
+                                </span>
                             </div>
                         </div>
                     </template>
@@ -898,11 +904,13 @@
                         <div class="p-2.5 bg-slate-50 dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-800">
                             <div class="flex items-center justify-between mb-0.5">
                                 <span class="text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px]">Alokasi Departemen:</span>
+                                @if (auth()->check() && auth()->user()->isSuperAdmin())
                                 <button @click="openEditModal()" type="button" title="Edit Alokasi Departemen" class="p-0.5 text-slate-400 hover:text-blue-500 transition cursor-pointer">
                                     <i data-lucide="pencil" class="w-3 h-3"></i>
                                 </button>
+                                @endif
                             </div>
-                            <span class="font-bold text-slate-900 dark:text-white text-xs" x-text="selectedLocation?.assigned_department ? (selectedLocation?.assigned_department.code + ' - ' + selectedLocation?.assigned_department.name) : 'Umum (Bebas)'"></span>
+                            <span class="font-bold text-slate-900 dark:text-white text-xs" x-text="getAllowedDeptSummary(selectedLocation)"></span>
                         </div>
 
                         <template x-if="selectedLocation?.is_booked">
@@ -1272,24 +1280,47 @@
                     </select>
                 </div>
 
-                <!-- FITUR BARU: Pembatasan Penempatan Box Berdasarkan Departemen -->
-                <div class="p-3 bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/70 rounded space-y-1.5">
+                @if (auth()->check() && auth()->user()->isSuperAdmin())
+                <!-- FITUR BARU: Pembatasan Penempatan Box Berdasarkan Departemen (Khusus Superadmin) -->
+                <div class="p-3 bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/70 rounded space-y-2">
                     <div class="flex items-center justify-between">
                         <label class="block text-[10px] font-bold uppercase text-indigo-950 dark:text-indigo-300">
                             Departemen yang Diizinkan Menempatkan Box
                         </label>
-                        <span class="text-[9px] font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-100 dark:bg-indigo-900/60 px-1.5 py-0.5 rounded border border-indigo-300 dark:border-indigo-700 font-mono">Fitur Baru</span>
+                        <span class="text-[9px] font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-100 dark:bg-indigo-900/60 px-1.5 py-0.5 rounded border border-indigo-300 dark:border-indigo-700 font-mono">Multi-Dept Superadmin</span>
                     </div>
-                    <select x-model="editForm.assigned_department_id" class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-indigo-300 dark:border-indigo-700 rounded text-xs text-slate-900 dark:text-white font-medium">
-                        <option value="">-- Semua Departemen Diizinkan (Default) --</option>
+
+                    <!-- Checklist Multi-Departemen -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-44 overflow-y-auto p-2 bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-800 rounded">
                         <template x-for="dept in departments" :key="dept.id">
-                            <option :value="dept.id" x-text="dept.code + ' - ' + dept.name"></option>
+                            <label class="flex items-center gap-2 p-1.5 hover:bg-indigo-50 dark:hover:bg-slate-800 rounded cursor-pointer transition select-none text-xs border border-transparent hover:border-indigo-200 dark:hover:border-indigo-900"
+                                :class="isDeptSelected(dept.id) ? 'bg-indigo-50/60 dark:bg-indigo-950/40 border-indigo-300 dark:border-indigo-700' : ''">
+                                <input type="checkbox" :value="dept.id" 
+                                    :checked="isDeptSelected(dept.id)" 
+                                    @change="toggleDeptSelection(dept.id)" 
+                                    class="rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 dark:border-slate-700">
+                                <div class="flex flex-col min-w-0">
+                                    <span class="font-bold font-mono text-indigo-700 dark:text-indigo-300 text-[11px]" x-text="dept.code"></span>
+                                    <span class="text-slate-500 dark:text-slate-400 text-[10px] truncate" x-text="dept.name"></span>
+                                </div>
+                            </label>
                         </template>
-                    </select>
+                    </div>
+
+                    <div class="flex items-center justify-between text-[11px] pt-1">
+                        <span class="text-slate-600 dark:text-slate-400">
+                            Terpilih: <strong class="text-indigo-600 dark:text-indigo-400" x-text="(editForm.assigned_department_ids && editForm.assigned_department_ids.length > 0) ? (editForm.assigned_department_ids.length + ' Departemen') : 'Semua Departemen (Bebas)'"></strong>
+                        </span>
+                        <button type="button" @click="editForm.assigned_department_ids = []; editForm.assigned_department_id = null;" class="text-rose-600 hover:underline font-bold text-[10px] cursor-pointer" x-show="editForm.assigned_department_ids && editForm.assigned_department_ids.length > 0">
+                            Reset ke Bebas (Semua Dept)
+                        </button>
+                    </div>
+
                     <p class="text-[10px] text-slate-600 dark:text-slate-400 leading-tight">
-                        Pilih departemen jika gudang/rak ini dikhususkan (misal: GA / IT). Jika tidak ada departemen yang dipilih, secara default <strong>box dari semua departemen boleh ditempatkan</strong> di sini.
+                        Pilih satu atau beberapa departemen jika rak ini dikhususkan (misal: FAT dan HRD). Jika tidak ada departemen yang dipilih, secara default <strong>box dari semua departemen boleh ditempatkan</strong> di sini.
                     </p>
                 </div>
+                @endif
 
                 <div class="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
                     <button type="button" @click="editModalOpen = false" class="px-3.5 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-300 text-xs rounded font-bold border border-slate-300 dark:border-slate-700 cursor-pointer">Batal</button>
@@ -1396,7 +1427,8 @@
         </div>
     </div>
 
-    <!-- Modal 6: Batch Department Assignment (Alokasi Departemen Massal) -->
+    @if (auth()->check() && auth()->user()->isSuperAdmin())
+    <!-- Modal 6: Batch Department Assignment (Alokasi Departemen Massal - Khusus Superadmin) -->
     <div x-show="batchDeptModalOpen" x-cloak class="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 font-mono">
         <div class="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-5 max-w-md w-full space-y-3 shadow-2xl">
             <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2.5">
@@ -1413,14 +1445,33 @@
             </p>
 
             <form @submit.prevent="submitBatchDepartment()" class="space-y-3">
-                <div>
-                    <label class="block text-[10px] font-bold uppercase text-slate-700 dark:text-slate-400 mb-1">Pilih Departemen <span class="text-rose-500">*</span></label>
-                    <select x-model="batchDeptForm.assigned_department_id" class="w-full px-2.5 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-900 dark:text-white font-medium">
-                        <option value="">-- Umum / Bebas (Tanpa alokasi) --</option>
+                <div class="space-y-1.5">
+                    <label class="block text-[10px] font-bold uppercase text-slate-700 dark:text-slate-400 mb-1">
+                        Pilih Satu atau Lebih Departemen yang Diizinkan:
+                    </label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-44 overflow-y-auto p-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded">
                         <template x-for="dept in departments" :key="dept.id">
-                            <option :value="dept.id" x-text="dept.code + ' - ' + dept.name"></option>
+                            <label class="flex items-center gap-2 p-1.5 hover:bg-purple-50 dark:hover:bg-slate-800 rounded cursor-pointer transition select-none text-xs border border-transparent"
+                                :class="isBatchDeptSelected(dept.id) ? 'bg-purple-50 dark:bg-purple-950/40 border-purple-300 dark:border-purple-700' : ''">
+                                <input type="checkbox" :value="dept.id" 
+                                    :checked="isBatchDeptSelected(dept.id)" 
+                                    @change="toggleBatchDeptSelection(dept.id)" 
+                                    class="rounded text-purple-600 focus:ring-purple-500 border-slate-300 dark:border-slate-700">
+                                <div class="flex flex-col min-w-0">
+                                    <span class="font-bold font-mono text-purple-700 dark:text-purple-300 text-[11px]" x-text="dept.code"></span>
+                                    <span class="text-slate-500 dark:text-slate-400 text-[10px] truncate" x-text="dept.name"></span>
+                                </div>
+                            </label>
                         </template>
-                    </select>
+                    </div>
+                    <div class="flex items-center justify-between text-[11px] pt-0.5">
+                        <span class="text-slate-500 text-[10px]">
+                            Terpilih: <strong class="text-purple-600 dark:text-purple-400" x-text="(batchDeptForm.assigned_department_ids && batchDeptForm.assigned_department_ids.length > 0) ? (batchDeptForm.assigned_department_ids.length + ' Departemen') : 'Semua Departemen (Bebas)'"></strong>
+                        </span>
+                        <button type="button" @click="batchDeptForm.assigned_department_ids = []; batchDeptForm.assigned_department_id = null;" class="text-rose-600 hover:underline font-bold text-[10px] cursor-pointer" x-show="batchDeptForm.assigned_department_ids && batchDeptForm.assigned_department_ids.length > 0">
+                            Reset ke Bebas
+                        </button>
+                    </div>
                 </div>
 
                 <div class="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
@@ -1432,6 +1483,7 @@
             </form>
         </div>
     </div>
+    @endif
 
     <!-- Modal 7: Batch Custom Color (Warna Massal) -->
     <div x-show="batchColorModalOpen" x-cloak class="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 font-mono">
@@ -1555,13 +1607,17 @@
                                 100 Box (TB 30g)
                             </span>
                             <!-- Department Restriction Badge (Fitur Baru) -->
-                            <template x-if="getCurrentRackCustomDept()">
-                                <span class="px-2 py-0.5 bg-indigo-500/15 border border-indigo-500/30 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold rounded flex items-center gap-1 font-mono">
-                                    <i data-lucide="building" class="w-3 h-3 text-indigo-500"></i>
-                                    <span x-text="'KHUSUS ' + getCurrentRackCustomDept().code"></span>
-                                </span>
+                            <template x-if="getCurrentRackAllowedDeptIds().length > 0">
+                                <div class="flex items-center gap-1 flex-wrap">
+                                    <template x-for="deptId in getCurrentRackAllowedDeptIds()" :key="deptId">
+                                        <span class="px-2 py-0.5 bg-indigo-500/15 border border-indigo-500/30 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold rounded flex items-center gap-1 font-mono">
+                                            <i data-lucide="building" class="w-3 h-3 text-indigo-500"></i>
+                                            <span x-text="'KHUSUS ' + getDeptCode(deptId)"></span>
+                                        </span>
+                                    </template>
+                                </div>
                             </template>
-                            <template x-if="!getCurrentRackCustomDept()">
+                            <template x-if="getCurrentRackAllowedDeptIds().length === 0">
                                 <span class="px-2 py-0.5 bg-slate-500/15 border border-slate-500/30 text-slate-700 dark:text-slate-300 text-[10px] font-bold rounded flex items-center gap-1 font-mono">
                                     <i data-lucide="globe" class="w-3 h-3 text-slate-400"></i>
                                     <span>SEMUA DEPT (BEBAS)</span>
@@ -1571,8 +1627,8 @@
                         <p class="text-[11px] text-slate-500 font-sans flex items-center gap-1.5 flex-wrap">
                             <span x-text="'Sektor: ' + (selectedRackForModal?.room_sector || 'Umum')"></span>
                             <span class="text-slate-300 dark:text-slate-700">•</span>
-                            <span :class="getCurrentRackCustomDeptId() ? 'font-bold text-purple-600 dark:text-purple-400' : 'text-slate-600 dark:text-slate-400'" 
-                                  x-text="getCurrentRackCustomDept() ? ('Khusus: ' + getCurrentRackCustomDept().code + ' - ' + getCurrentRackCustomDept().name) : 'Alokasi: Umum (Semua Departemen)'">
+                            <span :class="getCurrentRackAllowedDeptIds().length > 0 ? 'font-bold text-purple-600 dark:text-purple-400' : 'text-slate-600 dark:text-slate-400'" 
+                                  x-text="getCurrentRackAllowedDeptIds().length > 0 ? ('Khusus: ' + getCurrentRackCustomDeptNames()) : 'Alokasi: Umum (Semua Departemen)'">
                             </span>
                         </p>
                     </div>
@@ -1939,10 +1995,10 @@
                                 </div>
 
                                 <!-- Notice Departemen yang Diizinkan (Fitur Baru) -->
-                                <template x-if="getCurrentRackCustomDept()">
+                                <template x-if="getCurrentRackAllowedDeptIds().length > 0">
                                     <div class="p-2 bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800 rounded flex items-center gap-1.5 text-[11px] text-indigo-700 dark:text-indigo-300 font-medium font-sans">
                                         <svg class="w-3.5 h-3.5 text-indigo-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/></svg>
-                                        <span>Penempatan Dikhususkan untuk: <strong class="font-bold font-mono" x-text="getCurrentRackCustomDept().code + ' - ' + getCurrentRackCustomDept().name"></strong></span>
+                                        <span>Penempatan Dikhususkan untuk: <strong class="font-bold font-mono" x-text="getCurrentRackCustomDeptNames()"></strong></span>
                                     </div>
                                 </template>
 
@@ -1978,7 +2034,7 @@
                                         >
                                             <option value="">-- Pilih Departemen --</option>
                                             <template x-for="dept in departments" :key="dept.id">
-                                                <option :value="dept.id" x-text="dept.code + ' - ' + dept.name" :disabled="getCurrentRackCustomDeptId() && dept.id != getCurrentRackCustomDeptId()"></option>
+                                                <option :value="dept.id" x-text="dept.code + ' - ' + dept.name" :disabled="getCurrentRackAllowedDeptIds().length > 0 && !getCurrentRackAllowedDeptIds().includes(Number(dept.id))"></option>
                                             </template>
                                         </select>
                                     </div>
@@ -2085,14 +2141,63 @@
                                         <label class="text-[10px] font-mono font-bold uppercase text-slate-700 dark:text-slate-300 block">Pilih Dokumen Arsip Terdaftar:</label>
                                         <select 
                                             x-model="slotAssignForm.archive_id"
+                                            @change="onQueueArchiveSelected($event.target.value)"
                                             class="w-full px-2 py-1 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 font-medium"
                                         >
                                             <option value="">-- Pilih Dari Antrean Arsip --</option>
                                             <template x-for="arc in getFilteredUnassignedArchives()" :key="arc.id">
-                                                <option :value="arc.id" x-text="'[' + (arc.department_code || 'Dept') + '] ' + (arc.box_number ? arc.box_number + ' - ' : '') + arc.title"></option>
+                                                <option :value="arc.id" x-text="(arc.is_approved ? '✅ [Disetujui] ' : '⏳ [Menunggu ACC] ') + '[' + (arc.department_code || 'Dept') + '] ' + (arc.box_number ? arc.box_number + ' - ' : '') + arc.title"></option>
                                             </template>
                                         </select>
                                     </div>
+
+                                    <!-- Card Ringkasan & Status Dokumen Terpilih -->
+                                    <template x-if="getSelectedQueueArchive()">
+                                        <div class="p-2 rounded border text-xs space-y-1.5 transition-all"
+                                             :class="!getSelectedQueueArchive().is_approved 
+                                                ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-700/60 text-amber-900 dark:text-amber-200' 
+                                                : 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-700/60 text-emerald-900 dark:text-emerald-200'">
+                                            <div class="flex items-center justify-between gap-1">
+                                                <span class="font-bold flex items-center gap-1">
+                                                    <template x-if="!getSelectedQueueArchive().is_approved">
+                                                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-200 dark:bg-amber-800 text-amber-900 dark:text-amber-100">
+                                                            ⏳ Antrean Verifikasi (Belum ACC)
+                                                        </span>
+                                                    </template>
+                                                    <template x-if="getSelectedQueueArchive().is_approved">
+                                                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-200 dark:bg-emerald-800 text-emerald-900 dark:text-emerald-100">
+                                                            ✅ Sudah Disetujui (Siap Alokasi)
+                                                        </span>
+                                                    </template>
+                                                </span>
+                                                <span class="font-mono text-[10px] font-semibold opacity-80" x-text="getSelectedQueueArchive().department_code"></span>
+                                            </div>
+                                            <div class="text-[11px] leading-tight">
+                                                <div class="font-bold truncate" x-text="getSelectedQueueArchive().title"></div>
+                                                <div class="text-[10px] opacity-80 mt-0.5">
+                                                    Pengaju: <strong x-text="getSelectedQueueArchive().creator || '-'"></strong> | Periode: <span x-text="getSelectedQueueArchive().periode || getSelectedQueueArchive().periode_doc || '-'"></span>
+                                                </div>
+                                                <template x-if="getSelectedQueueArchive().box_number">
+                                                    <div class="text-[10px] font-mono text-emerald-700 dark:text-emerald-300 font-bold mt-0.5">
+                                                        Nomor Box: <span x-text="getSelectedQueueArchive().box_number"></span>
+                                                    </div>
+                                                </template>
+                                            </div>
+
+                                            <!-- Tombol Buka Verifikasi Jika Belum di-ACC -->
+                                            <template x-if="!getSelectedQueueArchive().is_approved">
+                                                <div class="pt-1 border-t border-amber-200 dark:border-amber-800/60 flex items-center justify-between gap-2">
+                                                    <span class="text-[10px] text-amber-700 dark:text-amber-300 italic">Perlu verifikasi pengajuan:</span>
+                                                    <button type="button" 
+                                                            @click="openVerifyModal(getSelectedQueueArchive())" 
+                                                            class="px-2 py-0.5 bg-amber-600 hover:bg-amber-500 text-white rounded text-[10px] font-bold flex items-center gap-1 shadow-xs cursor-pointer">
+                                                        <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+                                                        <span>Buka Verifikasi</span>
+                                                    </button>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </template>
 
                                     <template x-if="getFilteredUnassignedArchives().length === 0">
                                         <p class="text-[10px] text-slate-500 italic pt-0.5 font-sans">Tidak ada antrean arsip yang belum memiliki rak. Gunakan tab 'Input Dokumen Baru'.</p>
@@ -2105,10 +2210,30 @@
                                         type="button" 
                                         @click="submitAssignSlot()"
                                         :disabled="slotAssignLoading || !slotAssignForm.archive_id"
-                                        class="w-full py-1.5 font-bold text-xs rounded border shadow-xs transition flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-700 cursor-pointer disabled:opacity-50"
+                                        class="w-full py-1.5 font-bold text-xs rounded border shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                                        :class="getSelectedQueueArchive() && !getSelectedQueueArchive().is_approved 
+                                            ? 'bg-amber-600 hover:bg-amber-500 text-white border-amber-700' 
+                                            : 'bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-700'"
                                     >
-                                        <i data-lucide="folder-check" class="w-3.5 h-3.5"></i>
-                                        <span x-text="slotAssignLoading ? 'Menempatkan...' : 'Alokasikan Arsip ke Slot'"></span>
+                                        <template x-if="slotAssignLoading">
+                                            <span>Memproses...</span>
+                                        </template>
+                                        <template x-if="!slotAssignLoading">
+                                            <span class="flex items-center gap-1.5">
+                                                <template x-if="getSelectedQueueArchive() && !getSelectedQueueArchive().is_approved">
+                                                    <span class="flex items-center gap-1">
+                                                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+                                                        <span>Verifikasi & Setujui (Approve)</span>
+                                                    </span>
+                                                </template>
+                                                <template x-if="!getSelectedQueueArchive() || getSelectedQueueArchive().is_approved">
+                                                    <span class="flex items-center gap-1">
+                                                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 8 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/><polyline points="9 13 12 16 16 11"/></svg>
+                                                        <span>Alokasikan Box ke Slot</span>
+                                                    </span>
+                                                </template>
+                                            </span>
+                                        </template>
                                     </button>
                                 </div>
                             </div>
@@ -2128,6 +2253,155 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- MODAL VERIFIKASI PENGAJUAN ARSIP (PIC GUDANG) -->
+    <div x-show="verifyModalOpen" 
+         x-cloak
+         x-transition.opacity 
+         class="fixed inset-0 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm overflow-y-auto"
+         style="display: none; z-index: 100000 !important;"
+         @keydown.escape.window="if(!verifyingArchive) closeVerifyModal()">
+        
+        <div class="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-4 font-mono text-xs my-auto"
+             @click.away="if(!verifyingArchive) closeVerifyModal()">
+            
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                <div class="flex items-center gap-2.5">
+                    <div class="p-2 bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded-xl">
+                        <i data-lucide="shield-check" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                            Verifikasi Pengajuan Box Arsip
+                        </h3>
+                        <p class="text-[11px] text-slate-500">Persetujuan PIC Gudang & generate Nomor Box resmi.</p>
+                    </div>
+                </div>
+                <button type="button" @click="closeVerifyModal()" :disabled="verifyingArchive" class="text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <template x-if="verifyModalData">
+                <div class="space-y-3">
+                    <div class="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl space-y-1.5">
+                        <div class="flex items-center justify-between text-[11px]">
+                            <span class="text-slate-500 uppercase font-bold">Departemen:</span>
+                            <span class="px-2 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30 font-bold" x-text="(verifyModalData.department_code || 'DEPT') + ' - ' + (verifyModalData.department_name || verifyModalData.department || '')"></span>
+                        </div>
+                        <div class="flex items-center justify-between text-[11px]">
+                            <span class="text-slate-500 uppercase font-bold">Pengaju:</span>
+                            <span class="font-bold text-slate-900 dark:text-white" x-text="verifyModalData.creator || '-'"></span>
+                        </div>
+                        <div class="flex items-center justify-between text-[11px]">
+                            <span class="text-slate-500 uppercase font-bold">Periode Arsip:</span>
+                            <span class="font-bold text-amber-600 dark:text-amber-400" x-text="verifyModalData.periode || verifyModalData.periode_doc || '-'"></span>
+                        </div>
+                        <div class="pt-1 border-t border-slate-200 dark:border-slate-800">
+                            <span class="text-[10px] text-slate-400 uppercase font-bold block mb-0.5">Judul Berkas:</span>
+                            <h4 class="font-bold text-slate-900 dark:text-white text-xs" x-text="verifyModalData.title"></h4>
+                        </div>
+                    </div>
+
+                    <!-- Status Berkas Lampiran / Scan -->
+                    <div class="p-3 rounded-xl border" :class="verifyModalData.has_files ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-900 dark:text-emerald-200' : 'bg-rose-500/10 border-rose-500/30 text-rose-900 dark:text-rose-200'">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="font-bold text-[11px] flex items-center gap-1.5">
+                                <i data-lucide="paperclip" class="w-3.5 h-3.5"></i>
+                                <span>Kelengkapan Berkas Scan:</span>
+                            </span>
+                            <template x-if="verifyModalData.has_files">
+                                <span class="px-2 py-0.5 rounded bg-emerald-600 text-white font-black text-[10px]" x-text="(verifyModalData.files ? verifyModalData.files.length : 0) + ' Berkas Terlampir'"></span>
+                            </template>
+                            <template x-if="!verifyModalData.has_files">
+                                <span class="px-2 py-0.5 rounded bg-rose-600 text-white font-black text-[10px]">Belum Ada Berkas</span>
+                            </template>
+                        </div>
+
+                        <!-- Daftar Berkas Lampiran dengan Tombol Preview Langsung -->
+                        <template x-if="verifyModalData.has_files && verifyModalData.files && verifyModalData.files.length > 0">
+                            <div class="space-y-1.5 pt-1.5 border-t border-emerald-500/20">
+                                <template x-for="(f, fIdx) in verifyModalData.files" :key="fIdx">
+                                    <div class="flex items-center justify-between p-2 rounded-lg bg-white/80 dark:bg-slate-900/80 border border-emerald-500/30 gap-2">
+                                        <div class="min-w-0 flex items-center gap-2">
+                                            <span class="p-1 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 shrink-0">
+                                                <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+                                            </span>
+                                            <div class="truncate">
+                                                <span class="font-bold text-xs text-slate-900 dark:text-white block truncate" x-text="f.name"></span>
+                                                <span class="text-[10px] text-slate-500 dark:text-slate-400 block truncate" x-text="(f.category || '') + ' (' + (f.ext ? f.ext.toUpperCase() : 'FILE') + ')'"></span>
+                                            </div>
+                                        </div>
+                                        <button type="button"
+                                                @click="dmsPreviewFile({
+                                                    box_number: verifyModalData.box_number || '',
+                                                    title: verifyModalData.title,
+                                                    department: verifyModalData.department_code,
+                                                    files: verifyModalData.files,
+                                                    raw_path: f.raw_path,
+                                                    url: f.url,
+                                                    stream_url: f.stream_url,
+                                                    name: f.name,
+                                                    ext: f.ext
+                                                })"
+                                                class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer shrink-0 shadow-xs">
+                                            <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                                            <span>Lihat Berkas</span>
+                                        </button>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+                    </div>
+
+                    <!-- Rejection Form Input (If rejecting) -->
+                    <div x-show="showRejectInput" x-transition class="space-y-1.5 p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl">
+                        <label class="block text-[11px] font-bold text-rose-700 dark:text-rose-300 uppercase">Alasan / Catatan Penolakan <span class="text-rose-500">*</span></label>
+                        <textarea x-model="rejectionNote" rows="2" placeholder="Tuliskan alasan penolakan untuk PIC Departemen..." class="w-full p-2 bg-white dark:bg-slate-900 border border-rose-400 rounded-lg text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-rose-600"></textarea>
+                    </div>
+
+                    <!-- Notice -->
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed font-sans">
+                        Persetujuan verifikasi akan secara otomatis men-generate <strong>Nomor Box Arsip</strong> resmi dan menempatkan box ke <strong class="font-mono text-indigo-600 dark:text-indigo-400" x-text="selectedSlotDetail ? 'Slot ' + selectedSlotDetail.slot_code : 'Slot Rak'"></strong>.
+                    </p>
+
+                    <!-- Actions -->
+                    <div class="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+                        <button type="button" @click="closeVerifyModal()" :disabled="verifyingArchive" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs transition cursor-pointer">
+                            Batal
+                        </button>
+
+                        <template x-if="!showRejectInput">
+                            <button type="button" @click="showRejectInput = true" :disabled="verifyingArchive" class="px-3.5 py-2 bg-rose-500/20 hover:bg-rose-500/30 text-rose-700 dark:text-rose-300 border border-rose-500/30 rounded-xl font-bold text-xs transition flex items-center gap-1.5 cursor-pointer">
+                                <i data-lucide="x-circle" class="w-3.5 h-3.5"></i>
+                                <span>Tolak & Revisi</span>
+                            </button>
+                        </template>
+
+                        <template x-if="showRejectInput">
+                            <button type="button" @click="submitVerification('reject')" :disabled="verifyingArchive || !rejectionNote.trim()" class="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-bold text-xs shadow-md transition flex items-center gap-1.5 disabled:opacity-50 cursor-pointer">
+                                <i data-lucide="send" class="w-3.5 h-3.5"></i>
+                                <span>Kirim Penolakan</span>
+                            </button>
+                        </template>
+
+                        <button type="button" 
+                                @click="submitVerification('approve')" 
+                                :disabled="verifyingArchive"
+                                class="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl font-black text-xs shadow-lg shadow-emerald-500/20 transition flex items-center gap-1.5 disabled:opacity-50 cursor-pointer">
+                            <template x-if="verifyingArchive">
+                                <span class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                            </template>
+                            <template x-if="!verifyingArchive">
+                                <i data-lucide="check-circle" class="w-4 h-4"></i>
+                            </template>
+                            <span x-text="verifyingArchive ? 'Memverifikasi...' : 'Setujui & Tempatkan di Slot'"></span>
+                        </button>
+                    </div>
+                </div>
+            </template>
         </div>
     </div>
 
@@ -2180,7 +2454,11 @@ function warehouseCanvasApp() {
             if (!val) {
                 this.selectedLocations = [];
             } else {
-                if (!this.selectedLocations.some(l => l.id === val.id)) {
+                const idx = this.selectedLocations.findIndex(l => Number(l.id) === Number(val.id));
+                if (idx >= 0) {
+                    this.selectedLocations[idx] = val;
+                    this.selectedLocations = [...this.selectedLocations];
+                } else {
                     this.selectedLocations = [val];
                 }
             }
@@ -2224,6 +2502,11 @@ function warehouseCanvasApp() {
             archive_id: '',
         },
         unassignedArchivesList: [],
+        verifyModalOpen: false,
+        verifyModalData: null,
+        verifyingArchive: false,
+        showRejectInput: false,
+        rejectionNote: '',
         canvasWidth: parseInt(localStorage.getItem('wh_canvas_w')) || 950,
         canvasHeight: parseInt(localStorage.getItem('wh_canvas_h')) || 750,
         canvasResizeModalOpen: false,
@@ -2358,7 +2641,7 @@ function warehouseCanvasApp() {
         batchResizeForm: { canvas_width: 25, canvas_height: 140 },
 
         batchDeptModalOpen: false,
-        batchDeptForm: { assigned_department_id: '' },
+        batchDeptForm: { assigned_department_id: '', assigned_department_ids: [] },
 
         batchColorModalOpen: false,
         batchColorForm: { custom_color: '#3b82f6' },
@@ -2377,11 +2660,33 @@ function warehouseCanvasApp() {
         openBatchDeptModal() {
             if (this.selectedLocations.length === 0) return;
             const refObj = this.selectedLocation || this.selectedLocations[0];
+            const deptIds = this.getAllowedDeptIds(refObj);
             this.batchDeptForm = {
-                assigned_department_id: refObj.assigned_department_id || '',
+                assigned_department_id: deptIds.length > 0 ? deptIds[0] : (refObj.assigned_department_id || null),
+                assigned_department_ids: deptIds.map(Number),
             };
             this.batchDeptModalOpen = true;
             if (window.lucide) setTimeout(() => lucide.createIcons(), 50);
+        },
+
+        isBatchDeptSelected(deptId) {
+            if (!this.batchDeptForm || !Array.isArray(this.batchDeptForm.assigned_department_ids)) return false;
+            return this.batchDeptForm.assigned_department_ids.map(Number).includes(Number(deptId));
+        },
+
+        toggleBatchDeptSelection(deptId) {
+            const id = Number(deptId);
+            let current = Array.isArray(this.batchDeptForm.assigned_department_ids)
+                ? this.batchDeptForm.assigned_department_ids.map(Number)
+                : [];
+            const idx = current.indexOf(id);
+            if (idx >= 0) {
+                current.splice(idx, 1);
+            } else {
+                current.push(id);
+            }
+            this.batchDeptForm.assigned_department_ids = [...current];
+            this.batchDeptForm.assigned_department_id = current.length > 0 ? current[0] : null;
         },
 
         openBatchColorModal() {
@@ -2474,13 +2779,12 @@ function warehouseCanvasApp() {
 
         async submitBatchDepartment() {
             if (this.selectedLocations.length === 0) return;
-            const deptId = this.batchDeptForm.assigned_department_id;
-            const toUpdate = [...this.selectedLocations];
+            const deptIds = (this.batchDeptForm.assigned_department_ids || []).map(Number);
+            const primaryDeptId = deptIds.length > 0 ? deptIds[0] : null;
+            const targetIds = this.selectedLocations.map(l => l.id);
             this.batchDeptModalOpen = false;
 
-            for (const loc of toUpdate) {
-                loc.assigned_department_id = deptId || null;
-
+            for (const loc of this.selectedLocations) {
                 try {
                     await fetch(`/api/warehouse/locations/${loc.id}/update`, {
                         method: 'POST',
@@ -2496,7 +2800,8 @@ function warehouseCanvasApp() {
                             canvas_y: loc.canvas_y,
                             canvas_width: loc.canvas_width,
                             canvas_height: loc.canvas_height,
-                            assigned_department_id: deptId || null,
+                            assigned_department_id: primaryDeptId,
+                            assigned_department_ids: deptIds,
                         })
                     });
                 } catch (err) {
@@ -2504,8 +2809,11 @@ function warehouseCanvasApp() {
                 }
             }
 
-            this.showToast(`🏢 Alokasi Departemen ${toUpdate.length} object berhasil diperbarui.`);
+            this.showToast(`🏢 Alokasi Departemen ${targetIds.length} object berhasil diperbarui.`);
             await this.fetchData();
+            this.selectedLocations = this.locations.filter(l => targetIds.includes(l.id));
+            this.renderCanvas();
+            if (window.lucide) setTimeout(() => lucide.createIcons(), 50);
         },
 
         async submitBatchColor() {
@@ -2662,7 +2970,7 @@ function warehouseCanvasApp() {
         },
 
         editModalOpen: false,
-        editForm: { room_sector: '', rack_code: '', shelf_code: '', box_capacity: 50, assigned_department_id: '', custom_color: '', canvas_width: 100, canvas_height: 100, orientation: 'horizontal' },
+        editForm: { room_sector: '', rack_code: '', shelf_code: '', box_capacity: 50, assigned_department_id: '', assigned_department_ids: [], custom_color: '', canvas_width: 100, canvas_height: 100, orientation: 'horizontal' },
 
         colorPresets: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#6366f1', '#14b8a6', '#f97316', '#334155'],
 
@@ -3547,12 +3855,12 @@ function warehouseCanvasApp() {
             const racks = this.locations.filter(l => l.location_type !== 'room');
 
             rooms.forEach(loc => {
-                let isFilteredOut = (this.filterDepartment && loc.assigned_department_id != this.filterDepartment);
+                let isFilteredOut = (this.filterDepartment && !this.getAllowedDeptIds(loc).includes(Number(this.filterDepartment)));
                 this.drawRoomObject(loc, isFilteredOut);
             });
 
             racks.forEach(loc => {
-                let isFilteredOut = (this.filterDepartment && loc.assigned_department_id != this.filterDepartment);
+                let isFilteredOut = (this.filterDepartment && !this.getAllowedDeptIds(loc).includes(Number(this.filterDepartment)));
                 this.drawRackObject(loc, isFilteredOut);
             });
 
@@ -4789,8 +5097,10 @@ function warehouseCanvasApp() {
                 if (data.success) {
                     alert(data.message);
                     this.bookingModalOpen = false;
+                    const targetId = this.selectedLocation.id;
                     await this.fetchData();
-                    this.selectedLocation = this.locations.find(l => l.id === this.selectedLocation.id);
+                    const updated = this.locations.find(l => Number(l.id) === Number(targetId));
+                    if (updated) this.selectedLocations = [updated];
                 }
             } catch (err) {
                 alert('Gagal memproses booking slot rak.');
@@ -4807,7 +5117,8 @@ function warehouseCanvasApp() {
             });
             if (!ok) return;
             try {
-                const res = await fetch(`/api/warehouse/locations/${this.selectedLocation.id}/unbook`, {
+                const targetId = this.selectedLocation.id;
+                const res = await fetch(`/api/warehouse/locations/${targetId}/unbook`, {
                     method: 'POST',
                     headers: {
                         'X-CSRF-TOKEN': '{{ csrf_token() }}'
@@ -4817,7 +5128,8 @@ function warehouseCanvasApp() {
                 if (data.success) {
                     alert(data.message);
                     await this.fetchData();
-                    this.selectedLocation = this.locations.find(l => l.id === this.selectedLocation.id);
+                    const updated = this.locations.find(l => Number(l.id) === Number(targetId));
+                    if (updated) this.selectedLocations = [updated];
                 }
             } catch (err) {
                 alert('Gagal melepas status booking.');
@@ -4826,12 +5138,14 @@ function warehouseCanvasApp() {
 
         openEditModal() {
             if (!this.selectedLocation) return;
+            const deptIds = this.getAllowedDeptIds(this.selectedLocation);
             this.editForm = {
                 room_sector: this.selectedLocation.room_sector || 'R1',
                 rack_code: this.selectedLocation.rack_code,
                 shelf_code: this.selectedLocation.shelf_code,
                 box_capacity: this.selectedLocation.box_capacity,
-                assigned_department_id: this.selectedLocation.assigned_department_id || '',
+                assigned_department_id: deptIds.length > 0 ? deptIds[0] : (this.selectedLocation.assigned_department_id || null),
+                assigned_department_ids: deptIds.map(Number),
                 is_locked: this.selectedLocation.is_locked !== false,
                 custom_color: this.selectedLocation.custom_color || '',
                 canvas_width: this.selectedLocation.canvas_width,
@@ -4840,10 +5154,32 @@ function warehouseCanvasApp() {
                 rotation_angle: this.selectedLocation.rotation_angle || 0,
             };
             this.editModalOpen = true;
+            if (window.lucide) setTimeout(() => lucide.createIcons(), 50);
+        },
+
+        isDeptSelected(deptId) {
+            if (!this.editForm || !Array.isArray(this.editForm.assigned_department_ids)) return false;
+            return this.editForm.assigned_department_ids.map(Number).includes(Number(deptId));
+        },
+
+        toggleDeptSelection(deptId) {
+            const id = Number(deptId);
+            let current = Array.isArray(this.editForm.assigned_department_ids)
+                ? this.editForm.assigned_department_ids.map(Number)
+                : [];
+            const idx = current.indexOf(id);
+            if (idx >= 0) {
+                current.splice(idx, 1);
+            } else {
+                current.push(id);
+            }
+            this.editForm.assigned_department_ids = [...current];
+            this.editForm.assigned_department_id = current.length > 0 ? current[0] : null;
         },
 
         async submitEdit() {
             if (!this.selectedLocation) return;
+            const targetId = this.selectedLocation.id;
             if (this.selectedLocation.location_type !== 'room') {
                 const testW = parseInt(this.editForm.canvas_width);
                 const testH = parseInt(this.editForm.canvas_height);
@@ -4859,7 +5195,9 @@ function warehouseCanvasApp() {
                 }
             }
             try {
-                const res = await fetch(`/api/warehouse/locations/${this.selectedLocation.id}/update`, {
+                this.editForm.assigned_department_ids = (this.editForm.assigned_department_ids || []).map(Number);
+                this.editForm.assigned_department_id = this.editForm.assigned_department_ids.length > 0 ? this.editForm.assigned_department_ids[0] : null;
+                const res = await fetch(`/api/warehouse/locations/${targetId}/update`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -4872,7 +5210,17 @@ function warehouseCanvasApp() {
                     alert(data.message);
                     this.editModalOpen = false;
                     await this.fetchData();
-                    this.selectedLocation = this.locations.find(l => l.id === this.selectedLocation.id);
+                    const updated = this.locations.find(l => Number(l.id) === Number(targetId));
+                    if (updated) {
+                        this.selectedLocations = [updated];
+                        if (this.selectedRackForModal && Number(this.selectedRackForModal.id) === Number(targetId)) {
+                            this.selectedRackForModal = updated;
+                        }
+                    }
+                    this.renderCanvas();
+                    if (window.lucide) setTimeout(() => lucide.createIcons(), 50);
+                } else {
+                    alert(data.message || 'Gagal menyimpan perubahan.');
                 }
             } catch (err) {
                 alert('Gagal mengedit data object.');
@@ -5138,46 +5486,193 @@ function warehouseCanvasApp() {
             return false;
         },
 
-        getCurrentRackCustomDeptId() {
-            if (!this.selectedRackForModal) return null;
-            if (this.selectedRackForModal.assigned_department_id) {
-                return this.selectedRackForModal.assigned_department_id;
+        getAllowedDeptIds(loc) {
+            if (!loc) return [];
+            let ids = [];
+            if (Array.isArray(loc.assigned_department_ids)) {
+                ids = loc.assigned_department_ids.map(Number).filter(Boolean);
+            } else if (loc.assigned_department_ids && typeof loc.assigned_department_ids === 'string') {
+                try {
+                    const parsed = JSON.parse(loc.assigned_department_ids);
+                    if (Array.isArray(parsed)) {
+                        ids = parsed.map(Number).filter(Boolean);
+                    } else if (Number(parsed)) {
+                        ids = [Number(parsed)];
+                    }
+                } catch(e) {
+                    if (Number(loc.assigned_department_ids)) {
+                        ids = [Number(loc.assigned_department_ids)];
+                    }
+                }
+            } else if (typeof loc.assigned_department_ids === 'number' && loc.assigned_department_ids > 0) {
+                ids = [loc.assigned_department_ids];
             }
+            if (ids.length === 0 && loc.assigned_department_id) {
+                ids = [Number(loc.assigned_department_id)];
+            }
+            return ids;
+        },
+
+        getCurrentRackAllowedDeptIds() {
+            if (!this.selectedRackForModal) return [];
+            const rackIds = this.getAllowedDeptIds(this.selectedRackForModal);
+            if (rackIds.length > 0) return rackIds;
+
             const parentRoom = this.locations.find(l => l.location_type === 'room' && l.room_sector === this.selectedRackForModal.room_sector);
-            if (parentRoom && parentRoom.assigned_department_id) {
-                return parentRoom.assigned_department_id;
+            if (parentRoom) {
+                return this.getAllowedDeptIds(parentRoom);
             }
-            return null;
+            return [];
+        },
+
+        getDeptCode(deptId) {
+            if (!deptId) return 'BEBAS';
+            const d = (this.departments || []).find(x => Number(x.id) === Number(deptId));
+            return d ? d.code : `#${deptId}`;
         },
 
         getDeptName(deptId) {
             if (!deptId) return 'Semua Departemen (Bebas)';
-            const d = this.departments.find(x => x.id == deptId);
+            const d = (this.departments || []).find(x => Number(x.id) === Number(deptId));
             return d ? `${d.code} - ${d.name}` : `Dept #${deptId}`;
+        },
+
+        getAllowedDeptSummary(loc) {
+            const ids = this.getAllowedDeptIds(loc);
+            if (ids.length === 0) return 'Semua Departemen (Bebas)';
+            return ids.map(id => this.getDeptCode(id)).join(', ');
+        },
+
+        getCurrentRackCustomDeptNames() {
+            const ids = this.getCurrentRackAllowedDeptIds();
+            if (ids.length === 0) return 'Semua Departemen (Bebas)';
+            return ids.map(id => this.getDeptName(id)).join(', ');
+        },
+
+        getCurrentRackCustomDeptId() {
+            const ids = this.getCurrentRackAllowedDeptIds();
+            return ids.length > 0 ? ids[0] : null;
         },
 
         getCurrentRackCustomDept() {
             const id = this.getCurrentRackCustomDeptId();
             if (!id) return null;
-            return this.departments.find(d => d.id == id) || null;
+            return this.departments.find(d => Number(d.id) === Number(id)) || null;
         },
 
         getFilteredUnassignedArchives() {
             if (!this.unassignedArchivesList) return [];
-            const customDeptId = this.getCurrentRackCustomDeptId();
-            if (!customDeptId) {
-                return this.unassignedArchivesList;
+            let list = this.unassignedArchivesList;
+            const allowedDeptIds = this.getCurrentRackAllowedDeptIds();
+            if (allowedDeptIds.length > 0) {
+                list = list.filter(arc => allowedDeptIds.includes(Number(arc.department_id)));
             }
-            return this.unassignedArchivesList.filter(arc => arc.department_id == customDeptId);
+            if (this.selectedRackForModal) {
+                const sector = (this.selectedRackForModal.room_sector || '').toUpperCase().trim();
+                const isFatSector = this.selectedRackForModal.is_fat_locked || ['R1', 'R2', 'RUANG 1', 'RUANG 2', 'RUANG R1', 'RUANG R2', 'SEKTOR R1', 'SEKTOR R2'].includes(sector) || /^R[12]$/i.test(sector);
+                if (isFatSector) {
+                    list = list.filter(arc => {
+                        const code = (arc.department_code || '').toUpperCase().trim();
+                        const name = (arc.department_name || '').toUpperCase();
+                        return code === 'FAT' || code === 'FIN' || name.includes('FINANCE') || name.includes('ACCOUNTING');
+                    });
+                }
+            }
+            return list;
+        },
+
+        getSelectedQueueArchive() {
+            if (!this.slotAssignForm.archive_id) return null;
+            return (this.unassignedArchivesList || []).find(a => a.id == this.slotAssignForm.archive_id) || null;
+        },
+
+        onQueueArchiveSelected(archiveId) {
+            if (!archiveId) return;
+            const arc = (this.unassignedArchivesList || []).find(a => a.id == archiveId);
+            if (arc && !arc.is_approved) {
+                this.openVerifyModal(arc);
+            }
+        },
+
+        openVerifyModal(archiveData) {
+            this.verifyModalData = archiveData;
+            this.showRejectInput = false;
+            this.rejectionNote = '';
+            this.verifyModalOpen = true;
+            this.$nextTick(() => {
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            });
+        },
+
+        closeVerifyModal() {
+            this.verifyModalOpen = false;
+            this.verifyModalData = null;
+            this.showRejectInput = false;
+            this.rejectionNote = '';
+        },
+
+        async submitVerification(action) {
+            if (!this.verifyModalData) return;
+            if (action === 'reject') {
+                if (!this.rejectionNote.trim()) {
+                    alert('Mohon masukkan alasan penolakan.');
+                    return;
+                }
+                this.verifyingArchive = true;
+                try {
+                    const csrfToken = '{{ csrf_token() }}';
+                    const response = await fetch(`/archives/${this.verifyModalData.id}/verify`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken,
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({
+                            action: 'reject',
+                            rejection_note: this.rejectionNote
+                        })
+                    });
+                    const result = await response.json();
+                    if (response.ok && result.success) {
+                        this.showToast('Pengajuan arsip ditolak dan dikembalikan ke draft.');
+                        this.closeVerifyModal();
+                        this.slotAssignForm.archive_id = '';
+                        await this.fetchData();
+                    } else {
+                        alert(result.message || 'Gagal memproses penolakan arsip.');
+                    }
+                } catch(e) {
+                    console.error('Error rejecting archive:', e);
+                    alert('Terjadi kesalahan koneksi saat menolak pengajuan.');
+                } finally {
+                    this.verifyingArchive = false;
+                }
+                return;
+            }
+
+            // Action === 'approve'
+            this.verifyingArchive = true;
+            try {
+                this.slotAssignForm.archive_id = this.verifyModalData.id;
+                this.slotAssignMode = 'existing_archive';
+                this.closeVerifyModal();
+                await this.executeAssignSlot(true);
+            } catch(e) {
+                console.error('Error approving and placing archive:', e);
+            } finally {
+                this.verifyingArchive = false;
+            }
         },
 
         selectSlotForDetail(slot) {
             this.selectedSlotDetail = slot;
             if (!slot.archive) {
                 let defaultDeptId = '';
-                const customDeptId = this.getCurrentRackCustomDeptId();
-                if (customDeptId) {
-                    defaultDeptId = customDeptId;
+                const allowedDeptIds = this.getCurrentRackAllowedDeptIds();
+                if (allowedDeptIds.length === 1) {
+                    defaultDeptId = allowedDeptIds[0];
                 }
 
                 const now = new Date();
@@ -5208,20 +5703,19 @@ function warehouseCanvasApp() {
         async submitAssignSlot() {
             if (!this.selectedSlotDetail || !this.selectedRackForModal) return;
 
-            const customDeptId = this.getCurrentRackCustomDeptId();
-            if (customDeptId) {
-                const customDept = this.departments.find(d => d.id == customDeptId);
-                const customDeptLabel = customDept ? `${customDept.code} - ${customDept.name}` : 'Departemen Khusus';
+            const allowedDeptIds = this.getCurrentRackAllowedDeptIds();
+            if (allowedDeptIds.length > 0) {
+                const allowedDeptNames = this.getCurrentRackCustomDeptNames();
 
                 if (this.slotAssignMode === 'create_new') {
-                    if (this.slotAssignForm.department_id != customDeptId) {
-                        alert(`⚠️ Akses Ditolak: Lokasi ini dikhususkan (Custom) untuk ${customDeptLabel}. Dokumen dari departemen lain tidak diizinkan.`);
+                    if (!allowedDeptIds.includes(Number(this.slotAssignForm.department_id))) {
+                        alert(`⚠️ Akses Ditolak: Lokasi ini dikhususkan (Custom) untuk ${allowedDeptNames}. Dokumen dari departemen lain tidak diizinkan.`);
                         return;
                     }
                 } else {
                     const selectedArc = this.unassignedArchivesList.find(a => a.id == this.slotAssignForm.archive_id);
-                    if (selectedArc && selectedArc.department_id != customDeptId) {
-                        alert(`⚠️ Akses Ditolak: Lokasi ini dikhususkan (Custom) untuk ${customDeptLabel}. Dokumen dari departemen lain (${selectedArc.department_code || 'Lain'}) tidak dapat dialokasikan ke sini.`);
+                    if (selectedArc && !allowedDeptIds.includes(Number(selectedArc.department_id))) {
+                        alert(`⚠️ Akses Ditolak: Lokasi ini dikhususkan (Custom) untuk ${allowedDeptNames}. Dokumen dari departemen lain (${selectedArc.department_code || 'Lain'}) tidak dapat dialokasikan ke sini.`);
                         return;
                     }
                 }
@@ -5236,13 +5730,35 @@ function warehouseCanvasApp() {
                     alert('Silakan isi Judul Dokumen!');
                     return;
                 }
+                await this.executeAssignSlot(false);
             } else {
                 if (!this.slotAssignForm.archive_id) {
                     alert('Silakan pilih salah satu box arsip dari antrean!');
                     return;
                 }
-            }
+                const selectedArc = this.getSelectedQueueArchive() || this.unassignedArchivesList.find(a => a.id == this.slotAssignForm.archive_id);
+                if (!selectedArc) {
+                    alert('Data arsip terpilih tidak ditemukan.');
+                    return;
+                }
 
+                // Jika belum di-approve, buka modal verifikasi pengajuan
+                if (!selectedArc.is_approved) {
+                    this.openVerifyModal(selectedArc);
+                    return;
+                }
+
+                // Jika sudah di-approve, langsung konfirmasi penempatan ke slot
+                const boxInfo = `[${selectedArc.department_code || 'Dept'}] ${selectedArc.box_number || 'Box #' + selectedArc.id} - ${selectedArc.title}`;
+                const confirmMsg = `VERIFIKASI FISIK & CHECKLIST PENEMPATAN:\n\n1. Kondisi fisik wadah box baik dan tersegel?\n2. Berkas sesuai dokumen pengajuan?\n\nTempatkan box ${boxInfo} ke Slot ${this.selectedSlotDetail.slot_code} pada Rak ${this.selectedRackForModal.rack_code}?`;
+                if (!confirm(confirmMsg)) {
+                    return;
+                }
+                await this.executeAssignSlot(false);
+            }
+        },
+
+        async executeAssignSlot(isFromVerification = false) {
             this.slotAssignLoading = true;
             try {
                 const payload = {
@@ -5277,6 +5793,7 @@ function warehouseCanvasApp() {
                         }
                         this.selectedSlotDetail = data.slot;
                     }
+                    this.slotAssignForm.archive_id = '';
                     await this.fetchData();
                 } else {
                     alert(data.message || 'Gagal menyimpan dokumen ke slot.');

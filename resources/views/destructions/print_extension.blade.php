@@ -18,12 +18,14 @@
 
     <!-- Control Header -->
     <div class="w-full max-w-4xl flex items-center justify-between mb-6 no-print">
-        <a href="{{ route('destructions.index') }}" class="text-xs text-amber-400 font-semibold hover:underline flex items-center gap-1">
-            &larr; Kembali ke Retention Expiry
-        </a>
         <button onclick="window.print()" class="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl shadow-lg transition flex items-center gap-2">
             Cetak Formulir Perpanjangan
         </button>
+        <a href="{{ route('destructions.index') }}" 
+           onclick="if (window.opener) { window.close(); return false; } else if (window.history.length > 1) { window.history.back(); return false; }"
+           class="text-xs text-amber-400 font-semibold hover:underline flex items-center gap-1">
+            Kembali ke Retention Expiry &rarr;
+        </a>
     </div>
 
     <!-- Printable Form Card -->

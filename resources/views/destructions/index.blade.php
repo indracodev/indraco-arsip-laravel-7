@@ -10,7 +10,7 @@
     } elseif (request('view') === 'expiry') {
         $defaultTab = 'h30';
     } elseif (!request()->has('tab') && !session()->has('active_tab')) {
-        if ($destructionLogs->whereIn('approval_status', ['pending', 'approved'])->isNotEmpty() || $expiredArchives->isEmpty()) {
+        if (collect($destructionLogs)->whereIn('approval_status', ['pending', 'approved'])->isNotEmpty() || collect($expiredArchives)->isEmpty()) {
             $defaultTab = 'destructions';
         }
     }
@@ -98,13 +98,15 @@
         this.selectedLogToUploadBap = null;
     },
 
-    // Modal Tolak Pengajuan Perpanjangan
+    // Modal Tolak Pengajuan Perpanjangan & Pemusnahan
     rejectModalOpen: false,
     selectedLogToReject: null,
+    rejectType: 'extension',
     rejectReason: '',
 
-    openRejectModal(ext) {
-        this.selectedLogToReject = ext;
+    openRejectModal(log, type = 'extension') {
+        this.selectedLogToReject = log;
+        this.rejectType = type;
         this.rejectReason = '';
         this.rejectModalOpen = true;
         this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
@@ -113,6 +115,7 @@
     closeRejectModal() {
         this.rejectModalOpen = false;
         this.selectedLogToReject = null;
+        this.rejectType = 'extension';
     },
 
     get filteredExpired() {
@@ -205,6 +208,7 @@
                 <span>Refresh (F5)</span>
             </button>
 
+            @if(!auth()->user()->isPicGudang())
             <!-- Tombol Pengajuan Perpanjangan Mandiri -->
             <a href="{{ route('destructions.extend_form', request()->has('embed') ? ['embed' => 1] : []) }}" class="px-3 py-1 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white font-mono font-bold text-xs rounded border border-purple-700 shadow-sm transition flex items-center gap-1.5 shrink-0" title="Ajukan Perpanjangan Masa Simpan Berkas">
                 <i data-lucide="clock" class="w-3.5 h-3.5"></i>
@@ -216,6 +220,7 @@
                 <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                 <span>+ Pemusnahan</span>
             </a>
+            @endif
         </div>
     </div>
 
@@ -298,6 +303,7 @@
             </div>
 
             <div class="flex flex-wrap items-center gap-2 justify-end">
+                @if(!auth()->user()->isPicGudang())
                 <!-- Batch Actions Buttons (Show when >= 1 box selected) -->
                 <div x-show="selectedExpiredIds.length > 0" x-cloak class="flex items-center gap-1.5 animate-fadeIn">
                     <button 
@@ -319,6 +325,7 @@
                         <span x-text="'Pemusnahan (' + selectedExpiredIds.length + ' Box)'"></span>
                     </button>
                 </div>
+                @endif
 
                 <!-- Search Input H-30 -->
                 <div class="relative w-full sm:w-60">
@@ -425,6 +432,7 @@
                             </td>
                             <td class="py-2.5 px-3 text-right whitespace-nowrap">
                                 <div class="flex items-center justify-end gap-1.5">
+                                    @if(!auth()->user()->isPicGudang())
                                     <!-- Tombol 1: Perpanjangan -->
                                     <a 
                                         :href="'{{ url('/destructions/extend') }}/' + arc.id + '{{ request()->has('embed') ? '?embed=1' : '' }}'" 
@@ -443,6 +451,9 @@
                                         <i data-lucide="trash-2" class="w-3 h-3"></i>
                                         <span>Pemusnahan</span>
                                     </a>
+                                    @else
+                                    <span class="text-[11px] font-mono text-slate-400 italic">Menunggu Dept</span>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
@@ -677,12 +688,29 @@
                                             x-text="dLog.status_label">
                                         </span>
                                     </template>
+                                    <template x-if="dLog.approval_status === 'rejected'">
+                                        <div>
+                                            <span 
+                                                class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border" 
+                                                :class="dLog.status_badge"
+                                                x-text="dLog.status_label">
+                                            </span>
+                                            <template x-if="dLog.rejection_note">
+                                                <p class="text-[9px] text-rose-500 max-w-[150px] truncate mt-0.5" :title="dLog.rejection_note" x-text="'Alasan: ' + dLog.rejection_note"></p>
+                                            </template>
+                                        </div>
+                                    </template>
                                 @else
-                                    <span 
-                                        class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border" 
-                                        :class="dLog.status_badge"
-                                        x-text="dLog.status_label">
-                                    </span>
+                                    <div>
+                                        <span 
+                                            class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border" 
+                                            :class="dLog.status_badge"
+                                            x-text="dLog.status_label">
+                                        </span>
+                                        <template x-if="dLog.approval_status === 'rejected' && dLog.rejection_note">
+                                            <p class="text-[9px] text-rose-500 max-w-[150px] truncate mt-0.5" :title="dLog.rejection_note" x-text="'Alasan: ' + dLog.rejection_note"></p>
+                                        </template>
+                                    </div>
                                 @endif
                             </td>
                             <td class="py-2.5 px-3 border-r border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 text-[11px] whitespace-nowrap" x-text="dLog.destruction_date"></td>
@@ -770,6 +798,17 @@
                                                     title="Eksekusi Fisik Pemusnahan & Terbitkan No. BAP">
                                                 <i data-lucide="trash-2" class="w-3 h-3"></i>
                                                 <span>Eksekusi BAP</span>
+                                            </button>
+                                        </template>
+
+                                        <!-- Tombol Tolak Pemusnahan (Tahap 1 Pending atau Tahap 2 Approved) -->
+                                        <template x-if="dLog.can_reject">
+                                            <button type="button" 
+                                                    @click="openRejectModal(dLog, 'destruction')"
+                                                    class="px-2 py-0.5 rounded bg-rose-600 hover:bg-rose-500 text-white font-bold text-[10px] border border-rose-700 shadow-sm inline-flex items-center gap-1 cursor-pointer" 
+                                                    title="Tolak usulan / pengajuan pemusnahan berkas">
+                                                <i data-lucide="x" class="w-3 h-3"></i>
+                                                <span>Tolak</span>
                                             </button>
                                         </template>
                                     @endif
@@ -1010,7 +1049,7 @@
         </div>
     </div>
 
-    <!-- MODAL TOLAK PENGAJUAN PERPANJANGAN (GUDANG / SUPERADMIN) -->
+    <!-- MODAL TOLAK PENGAJUAN PERPANJANGAN & PEMUSNAHAN (GUDANG / SUPERADMIN) -->
     <div x-show="rejectModalOpen" 
          x-cloak 
          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs font-mono"
@@ -1024,11 +1063,11 @@
                         <i data-lucide="x-circle" class="w-4 h-4"></i>
                     </span>
                     <div>
-                        <h3 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-                            Tolak Pengajuan Perpanjangan
+                        <h3 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider" 
+                            x-text="rejectType === 'destruction' ? 'Tolak Pengajuan Pemusnahan' : 'Tolak Pengajuan Perpanjangan'">
                         </h3>
-                        <p class="text-[10px] text-slate-500 font-sans">
-                            Berikan alasan penolakan perpanjangan masa retensi berkas arsip.
+                        <p class="text-[10px] text-slate-500 font-sans" 
+                           x-text="rejectType === 'destruction' ? 'Berikan alasan penolakan usulan pemusnahan berkas arsip.' : 'Berikan alasan penolakan perpanjangan masa retensi berkas arsip.'">
                         </p>
                     </div>
                 </div>
@@ -1048,7 +1087,7 @@
                 </div>
             </div>
 
-            <form :action="selectedLogToReject ? '{{ url('/destructions/extensions') }}/' + selectedLogToReject.id + '/reject' : '#'" 
+            <form :action="selectedLogToReject ? (rejectType === 'destruction' ? '{{ url('/destructions') }}/' + selectedLogToReject.id + '/reject' : '{{ url('/destructions/extensions') }}/' + selectedLogToReject.id + '/reject') : '#'" 
                   method="POST" 
                   class="space-y-3.5 text-xs">
                 @csrf
@@ -1061,7 +1100,7 @@
                               x-model="rejectReason" 
                               rows="3" 
                               required
-                              placeholder="Jelaskan alasan pengajuan perpanjangan ditolak..."
+                              :placeholder="rejectType === 'destruction' ? 'Jelaskan alasan pengajuan pemusnahan ditolak...' : 'Jelaskan alasan pengajuan perpanjangan ditolak...'"
                               class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-rose-500 transition"></textarea>
                 </div>
 
@@ -1079,4 +1118,39 @@
     </div>
     @endif
 </div>
+
+<script>
+    function handleDestructionSync(detail) {
+        if (!detail) return;
+        const hasDestructionEvents = detail.events && detail.events.some(ev => 
+            ev.event_type === 'destruction_requested' || 
+            ev.event_type === 'destruction_approved' || 
+            ev.event_type === 'extension_requested' ||
+            ev.event_type === 'archive_destroyed'
+        );
+        if (hasDestructionEvents || (detail.badges && detail.badges.destructions !== undefined)) {
+            const isTyping = document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName);
+            const isModalOpen = document.querySelector('.modal-open') || document.querySelector('[role="dialog"][style*="display: block"]');
+            if (!isTyping && !isModalOpen) {
+                setTimeout(() => window.location.reload(), 400);
+            }
+        }
+    }
+
+    window.addEventListener('dms:realtime-sync', function(e) {
+        handleDestructionSync(e.detail);
+    });
+    window.addEventListener('message', function(e) {
+        if (e.data && e.data.type === 'dms:realtime-sync') {
+            handleDestructionSync(e.data.detail);
+        }
+    });
+    if (window.parent && window.parent !== window) {
+        try {
+            window.parent.addEventListener('dms:realtime-sync', function(e) {
+                handleDestructionSync(e.detail);
+            });
+        } catch(err) {}
+    }
+</script>
 @endsection
