@@ -146,7 +146,22 @@ class ArchiveStatusController extends Controller
 
         } elseif ($targetStatus === 'in_warehouse' || $targetStatus === 'approved_booked') {
             if ($request->filled('box_number')) {
-                $archive->box_number = trim($request->input('box_number'));
+                $manualBox = trim($request->input('box_number'));
+                // Validasi unique box_number (abaikan arsip berstatus taken/destroyed/borrowed dan arsip itu sendiri)
+                $boxConflict = Archive::where('box_number', $manualBox)
+                    ->where('id', '!=', $archive->id)
+                    ->whereNotIn('status', ['taken', 'destroyed', 'borrowed'])
+                    ->first();
+                if ($boxConflict) {
+                    if ($request->wantsJson() || $request->ajax()) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => "Nomor Box '{$manualBox}' sudah digunakan oleh arsip aktif lain (#{$boxConflict->id} - {$boxConflict->title})."
+                        ], 422);
+                    }
+                    return back()->withInput()->with('error', "Nomor Box '{$manualBox}' sudah digunakan oleh arsip aktif lain (#{$boxConflict->id} - {$boxConflict->title}). Harap gunakan nomor box lain.");
+                }
+                $archive->box_number = $manualBox;
             } elseif (empty($archive->box_number)) {
                 $archive->box_number = $numberingService->generateBoxCode($archive);
             }

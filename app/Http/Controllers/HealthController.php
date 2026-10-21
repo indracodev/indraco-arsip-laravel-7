@@ -340,6 +340,34 @@ class HealthController extends Controller
     }
 
     /**
+     * Trigger PRAGMA wal_checkpoint(TRUNCATE) to optimize SQLite WAL file.
+     * Usage: POST /api/health/wal-checkpoint
+     */
+    public function checkpointWal(Request $request): JsonResponse
+    {
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+            return response()->json([
+                'status' => 'ignored',
+                'message' => 'Checkpoint WAL hanya berlaku untuk engine SQLite.'
+            ]);
+        }
+
+        try {
+            $result = DB::select('PRAGMA wal_checkpoint(TRUNCATE);');
+            return response()->json([
+                'status' => 'ok',
+                'message' => 'Checkpoint WAL berhasil dijalankan.',
+                'result' => $result[0] ?? null,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal menjalankan checkpoint WAL: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Visual Live Diagnostics Dashboard View
      */
     public function diagnosticsView()

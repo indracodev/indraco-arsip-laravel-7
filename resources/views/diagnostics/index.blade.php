@@ -580,6 +580,17 @@
                         <span class="text-slate-500 dark:text-slate-400 font-medium">Shared-Memory (.sqlite-shm):</span>
                         <span class="font-mono font-bold text-slate-700 dark:text-slate-300" x-text="(metrics.database?.shm_size_kb || 0) + ' KB'"></span>
                     </div>
+
+                    <div class="pt-1">
+                        <button type="button" 
+                                @click="runWalCheckpoint()" 
+                                :disabled="runningCheckpoint"
+                                class="w-full py-1.5 px-3 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/50 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50">
+                            <i data-lucide="refresh-ccw" class="w-3.5 h-3.5" :class="runningCheckpoint ? 'animate-spin' : ''"></i>
+                            <span x-text="runningCheckpoint ? 'Mengosongkan WAL...' : 'Jalankan Checkpoint WAL (TRUNCATE)'"></span>
+                        </button>
+                        <p x-show="checkpointMessage" x-text="checkpointMessage" class="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1 font-mono text-center font-bold"></p>
+                    </div>
                 </div>
 
                 <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">

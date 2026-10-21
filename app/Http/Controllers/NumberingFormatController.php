@@ -32,7 +32,7 @@ class NumberingFormatController extends Controller
         $sampleArchive->department = (object) ['code' => 'FIN'];
 
         $numberingService = new NumberingService();
-        $previewCode = $numberingService->generateBoxCode($sampleArchive);
+        $previewCode = $numberingService->generateBoxCode($sampleArchive, true);
 
         return view('master.numbering', compact('formats', 'activeFormat', 'previewCode'));
     }

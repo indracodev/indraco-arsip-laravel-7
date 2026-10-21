@@ -17,6 +17,17 @@ trait HandlesMultiBoxUpdate
 {
     protected function updateMultiBox(Request $request, Archive $archive, $user)
     {
+        // Concurrency Guard (Optimistic Locking): deteksi modifikasi oleh user lain
+        if ($request->filled('original_updated_at') && $archive->updated_at) {
+            try {
+                $clientTime = Carbon::parse($request->input('original_updated_at'))->timestamp;
+                $dbTime = $archive->updated_at->timestamp;
+                if ($dbTime > $clientTime) {
+                    return back()->withInput()->with('error', 'Konflik Perubahan: Data arsip ini baru saja diubah oleh pengguna lain saat Anda sedang membuka form. Silakan muat ulang (refresh) halaman untuk melihat versi terbaru sebelum menyimpan kembali.');
+                }
+            } catch (\Throwable $e) {}
+        }
+
         $isDraft = ($request->input('submit_action') === 'draft' || $request->has('save_draft') || $request->input('action') === 'draft' || $request->input('status') === 'draft');
 
         if ($isDraft) {

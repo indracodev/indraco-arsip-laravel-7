@@ -76,6 +76,7 @@
             <input type="hidden" name="embed" value="1">
         @endif
         <input type="hidden" name="from" value="{{ $from }}">
+        <input type="hidden" name="original_updated_at" value="{{ $archive->updated_at ? $archive->updated_at->toISOString() : '' }}">
 
         @include('archives.partials.edit_unit_section')
 

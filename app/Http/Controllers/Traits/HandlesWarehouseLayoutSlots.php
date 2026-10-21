@@ -140,7 +140,19 @@ trait HandlesWarehouseLayoutSlots
 
             $expiryDate = Carbon::now()->addYears($retentionYears)->endOfYear();
 
-            $boxNum = $validated['box_number'] ?? null;
+            $boxNum = !empty($validated['box_number']) ? trim($validated['box_number']) : null;
+            if ($boxNum) {
+                // Validasi unique box_number (abaikan arsip berstatus taken/destroyed/borrowed)
+                $boxConflict = Archive::where('box_number', $boxNum)
+                    ->whereNotIn('status', ['taken', 'destroyed', 'borrowed'])
+                    ->first();
+                if ($boxConflict) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Nomor Box '{$boxNum}' sudah digunakan oleh arsip aktif lain (#{$boxConflict->id} - {$boxConflict->title}). Harap gunakan nomor box lain.",
+                    ], 422);
+                }
+            }
 
             $periodText = $validated['periode_doc'] ?? date('Y/m');
             $periodStart = Carbon::now()->startOfMonth();
@@ -202,7 +214,19 @@ trait HandlesWarehouseLayoutSlots
             ];
 
             if (!empty($validated['box_number'])) {
-                $archive->box_number = trim($validated['box_number']);
+                $manualBox = trim($validated['box_number']);
+                // Validasi unique box_number (abaikan arsip berstatus taken/destroyed/borrowed dan arsip itu sendiri)
+                $boxConflict = Archive::where('box_number', $manualBox)
+                    ->where('id', '!=', $archive->id)
+                    ->whereNotIn('status', ['taken', 'destroyed', 'borrowed'])
+                    ->first();
+                if ($boxConflict) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Nomor Box '{$manualBox}' sudah digunakan oleh arsip aktif lain (#{$boxConflict->id} - {$boxConflict->title}). Harap gunakan nomor box lain.",
+                    ], 422);
+                }
+                $archive->box_number = $manualBox;
                 $updateData['box_number'] = $archive->box_number;
             }
 

@@ -21,6 +21,17 @@ trait HandlesSingleBoxUpdate
             abort(403, 'Anda tidak memiliki hak akses untuk mengedit arsip departemen ini.');
         }
 
+        // Concurrency Guard (Optimistic Locking): deteksi modifikasi oleh user lain
+        if ($request->filled('original_updated_at') && $archive->updated_at) {
+            try {
+                $clientTime = Carbon::parse($request->input('original_updated_at'))->timestamp;
+                $dbTime = $archive->updated_at->timestamp;
+                if ($dbTime > $clientTime) {
+                    return back()->withInput()->with('error', 'Konflik Perubahan: Data arsip ini baru saja diubah oleh pengguna lain saat Anda sedang membuka form. Silakan muat ulang (refresh) halaman untuk melihat versi terbaru sebelum menyimpan kembali.');
+                }
+            } catch (\Throwable $e) {}
+        }
+
         // Tangani update pengajuan multi-box
         if ($request->has('boxes') && is_array($request->input('boxes')) && count($request->input('boxes')) > 0) {
             return $this->updateMultiBox($request, $archive, $user);

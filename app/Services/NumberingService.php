@@ -6,6 +6,7 @@ use App\Models\Archive;
 use App\Models\Department;
 use App\Models\NumberingFormat;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class NumberingService
 {
@@ -25,21 +26,28 @@ class NumberingService
     /**
      * Generate the next box code for an archive based on active format.
      */
-    public function generateBoxCode(Archive $archive): string
+    public function generateBoxCode(Archive $archive, bool $preview = false): string
     {
         $format = NumberingFormat::where('is_active', true)->first();
 
         if (!$format) {
+            // ponytail: count()+1 is racy; only used when no active format exists
             $pattern = '{COMPANY}/{DEPT}/{YEAR}/{ROMAN_MONTH}/{COUNTER}';
             $padding = 4;
             $counter = Archive::whereNotNull('box_number')->count() + 1;
         } else {
             $pattern = $format->pattern;
             $padding = $format->padding ?? 4;
-            $counter = $format->current_counter + 1;
 
-            // Increment format counter
-            $format->increment('current_counter');
+            if ($preview) {
+                $counter = $format->current_counter + 1;
+            } else {
+                // Atomic increment + read in one statement so concurrent requests never share a counter
+                $counter = (int) DB::selectOne(
+                    'UPDATE numbering_formats SET current_counter = current_counter + 1 WHERE id = ? RETURNING current_counter',
+                    [$format->id]
+                )->current_counter;
+            }
         }
 
         $department = $archive->department ? $archive->department->code : 'GEN';
@@ -58,6 +66,24 @@ class NumberingService
             '{COUNTER_BOX}' => $paddedCounter,
         ];
 
-        return strtr($pattern, $replacements);
+        $code = strtr($pattern, $replacements);
+
+        if (!$preview) {
+            // Self-healing collision guard: pastikan kode unik terhadap arsip aktif
+            while (Archive::where('box_number', $code)->whereNotIn('status', ['taken', 'destroyed', 'borrowed'])->exists()) {
+                if ($format) {
+                    $updated = DB::select("UPDATE numbering_formats SET current_counter = current_counter + 1 WHERE id = ? RETURNING current_counter", [$format->id]);
+                    $counter = !empty($updated) ? (int) $updated[0]->current_counter : ($counter + 1);
+                } else {
+                    $counter++;
+                }
+                $paddedCounter = str_pad((string) $counter, $padding, '0', STR_PAD_LEFT);
+                $replacements['{COUNTER}'] = $paddedCounter;
+                $replacements['{COUNTER_BOX}'] = $paddedCounter;
+                $code = strtr($pattern, $replacements);
+            }
+        }
+
+        return $code;
     }
 }

@@ -80,7 +80,7 @@
     @endif
 
     <!-- MAIN FORM WINDOW CARD -->
-    <form @submit="clearDraft()" action="{{ route('borrowings.store', request()->has('embed') ? ['embed' => 1] : []) }}" method="POST" enctype="multipart/form-data" class="space-y-3">
+    <form @submit="handleSubmit($event)" action="{{ route('borrowings.store', request()->has('embed') ? ['embed' => 1] : []) }}" method="POST" enctype="multipart/form-data" class="space-y-3">
         @csrf
         @if(request()->has('embed'))
             <input type="hidden" name="embed" value="1">
@@ -427,12 +427,18 @@
                     Batal
                 </a>
                 <button type="submit" 
-                        :disabled="!canSubmit" 
-                        :class="canSubmit ? 'bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-black border-emerald-700 shadow-md cursor-pointer' : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-300 dark:border-slate-700 cursor-not-allowed font-bold'"
+                        :disabled="!canSubmit || isSubmitting" 
+                        :class="(!canSubmit || isSubmitting) ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-300 dark:border-slate-700 cursor-not-allowed font-bold pointer-events-none' : 'bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-black border-emerald-700 shadow-md cursor-pointer'"
                         class="px-5 py-2 text-xs rounded border transition flex items-center gap-1.5">
-                    <i data-lucide="send" class="w-3.5 h-3.5"></i>
-                    <span x-show="selectedArchives.length <= 1">Ajukan Penarikan Arsip</span>
-                    <span x-show="selectedArchives.length > 1" x-text="'Ajukan Penarikan (' + selectedArchives.length + ' Box Arsip)'"></span>
+                    <span x-show="!isSubmitting" class="flex items-center gap-1.5">
+                        <i data-lucide="send" class="w-3.5 h-3.5"></i>
+                        <span x-show="selectedArchives.length <= 1">Ajukan Penarikan Arsip</span>
+                        <span x-show="selectedArchives.length > 1" x-text="'Ajukan Penarikan (' + selectedArchives.length + ' Box Arsip)'"></span>
+                    </span>
+                    <span x-show="isSubmitting" x-cloak class="flex items-center gap-1.5">
+                        <svg class="animate-spin w-3.5 h-3.5 text-white shrink-0" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        <span>Memproses...</span>
+                    </span>
                 </button>
             </div>
         </div>
@@ -447,6 +453,7 @@
 <script>
 function borrowingCreateApp() {
     return {
+        isSubmitting: false,
         selectedArchives: [],
         globalSearch: '',
         purposeText: @json(old('purpose', '')),
@@ -454,6 +461,15 @@ function borrowingCreateApp() {
         openAccordionIndex: null, // null = default semua menutup
         hasApprovalFile: false,
         archives: window.borrowingArchives || [],
+
+        handleSubmit(e) {
+            if (this.isSubmitting || !this.canSubmit) {
+                e.preventDefault();
+                return false;
+            }
+            this.isSubmitting = true;
+            this.clearDraft();
+        },
 
         saveDraft() {
             if (window.formSubmitted) return;

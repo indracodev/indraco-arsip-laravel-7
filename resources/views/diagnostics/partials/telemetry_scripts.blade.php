@@ -13,6 +13,10 @@
             userSearchQuery: '',
             userStatusFilter: 'all',
 
+            // WAL Checkpoint state
+            runningCheckpoint: false,
+            checkpointMessage: '',
+
             toggleTheme() {
                 this.currentTheme = this.currentTheme === 'dark' ? 'light' : 'dark';
                 localStorage.setItem('theme', this.currentTheme);
@@ -238,6 +242,37 @@
                     });
                 } else {
                     prompt('Salin token berikut:', token);
+                }
+            },
+
+            async runWalCheckpoint() {
+                if (this.runningCheckpoint) return;
+                this.runningCheckpoint = true;
+                this.checkpointMessage = '';
+                try {
+                    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                    const res = await fetch('{{ route("api.health.wal_checkpoint") }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': token || '',
+                            'Accept': 'application/json'
+                        }
+                    });
+                    const data = await res.json();
+                    if (res.ok && data.status === 'success') {
+                        this.checkpointMessage = '✓ ' + (data.message || 'WAL Checkpoint selesai') + ' (' + (data.wal_size_after_kb || 0) + ' KB)';
+                        await this.fetchMetrics();
+                    } else {
+                        this.checkpointMessage = '⚠ Gagal: ' + (data.message || 'Error saat checkpoint');
+                    }
+                } catch (e) {
+                    this.checkpointMessage = '⚠ Terjadi kesalahan koneksi';
+                } finally {
+                    this.runningCheckpoint = false;
+                    setTimeout(() => {
+                        this.checkpointMessage = '';
+                    }, 6000);
                 }
             }
         }

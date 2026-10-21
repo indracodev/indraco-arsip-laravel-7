@@ -239,28 +239,44 @@ class BorrowingController extends Controller
         $boxNumbers = [];
         $titles = [];
 
-        foreach ($archives as $archive) {
-            $borrowing = BorrowingLog::create([
-                'archive_id' => $archive->id,
-                'borrower_user_id' => $user->id,
-                'request_date' => now(),
-                'expected_return_date' => $expectedReturnDate,
-                'purpose' => $validated['purpose'],
-                'status' => 'requested',
-                'approval_file' => $approvalPath,
-                'scan_approval_borrow' => $approvalPath,
-                'is_approval_uploaded' => true,
-                'approval_status' => 'pending',
-            ]);
+        try {
+            db_immediate_transaction(function () use ($archives, $archiveIds, $user, $expectedReturnDate, $validated, $approvalPath, &$createdLogs, &$boxNumbers, &$titles) {
+                // Concurrency guard: pastikan tidak ada log aktif yang baru saja dibuat oleh sesi paralel
+                $alreadyActive = \App\Models\BorrowingLog::whereIn('archive_id', $archiveIds)
+                    ->whereIn('status', ['requested', 'dept_approved', 'approved'])
+                    ->lockForUpdate()
+                    ->exists();
 
-            // Refresh archive updated_at so it jumps to the top of catalog sorting
-            $archive->touch();
+                if ($alreadyActive) {
+                    throw new \DomainException('Satu atau lebih berkas arsip yang dipilih telah diajukan penarikan oleh pengguna lain.');
+                }
 
-            $createdLogs[] = $borrowing;
-            if ($archive->box_number) {
-                $boxNumbers[] = $archive->box_number;
-            }
-            $titles[] = $archive->title;
+                foreach ($archives as $archive) {
+                    $borrowing = BorrowingLog::create([
+                        'archive_id' => $archive->id,
+                        'borrower_user_id' => $user->id,
+                        'request_date' => now(),
+                        'expected_return_date' => $expectedReturnDate,
+                        'purpose' => $validated['purpose'],
+                        'status' => 'requested',
+                        'approval_file' => $approvalPath,
+                        'scan_approval_borrow' => $approvalPath,
+                        'is_approval_uploaded' => true,
+                        'approval_status' => 'pending',
+                    ]);
+
+                    // Refresh archive updated_at so it jumps to the top of catalog sorting
+                    $archive->touch();
+
+                    $createdLogs[] = $borrowing;
+                    if ($archive->box_number) {
+                        $boxNumbers[] = $archive->box_number;
+                    }
+                    $titles[] = $archive->title;
+                }
+            });
+        } catch (\DomainException $e) {
+            return back()->withInput()->with('error', $e->getMessage());
         }
 
         $boxCount = count($archives);

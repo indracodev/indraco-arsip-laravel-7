@@ -248,21 +248,34 @@
                             <div class="space-y-0.5">
                                 <div class="flex items-center gap-1.5 font-bold text-slate-800 dark:text-slate-200">
                                     <i data-lucide="database" class="w-3.5 h-3.5 text-emerald-500"></i>
-                                    <span>Backup Database (.sql)</span>
+                                    <span>Backup Database</span>
                                 </div>
                                 <p class="text-[11px] text-slate-500 dark:text-slate-400 font-sans">
-                                    Mengunduh seluruh skema tabel & data arsip sistem ke dalam file SQL Dump langsung ke komputer Anda.
+                                    Unduh salinan database ke komputer Anda: Snapshot SQLite murni (100% konsisten & instan) atau file teks SQL Dump.
                                 </p>
                             </div>
-                            <a 
-                                href="{{ route('master.settings.backup_database') }}" 
-                                target="_blank"
-                                @click="playClickSound()"
-                                class="shrink-0 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs rounded border border-emerald-700 shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
-                            >
-                                <i data-lucide="download-cloud" class="w-3.5 h-3.5"></i>
-                                <span>Backup Database</span>
-                            </a>
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                <a 
+                                    href="{{ route('master.settings.backup_database', ['format' => 'sqlite']) }}" 
+                                    target="_blank"
+                                    @click="playClickSound()"
+                                    class="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs rounded border border-blue-700 shadow-xs transition flex items-center justify-center gap-1 cursor-pointer"
+                                    title="Snapshot biner SQLite asli via VACUUM INTO (100% konsisten & siap restore)"
+                                >
+                                    <i data-lucide="database" class="w-3.5 h-3.5"></i>
+                                    <span>.SQLite</span>
+                                </a>
+                                <a 
+                                    href="{{ route('master.settings.backup_database') }}" 
+                                    target="_blank"
+                                    @click="playClickSound()"
+                                    class="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs rounded border border-emerald-700 shadow-xs transition flex items-center justify-center gap-1 cursor-pointer"
+                                    title="SQL Dump teks standar"
+                                >
+                                    <i data-lucide="download-cloud" class="w-3.5 h-3.5"></i>
+                                    <span>.SQL</span>
+                                </a>
+                            </div>
                         </div>
 
                         <!-- Action 1: Clear Log History -->

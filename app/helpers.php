@@ -55,3 +55,44 @@ if (!function_exists('app_preview_stream_url')) {
         return url('/files/preview-stream?token=' . urlencode($token));
     }
 }
+
+if (!function_exists('db_immediate_transaction')) {
+    /**
+     * Run database transaction with immediate write lock for SQLite.
+     * Prevents SQLITE_BUSY deadlocks when concurrent transactions read then write.
+     * Automatically falls back to standard DB::transaction for MySQL/PostgreSQL.
+     *
+     * PERINGATAN / PENTING:
+     * Dilarang keras memanggil `DB::transaction()` bertumpuk di dalam closure callback ini
+     * pada SQLite, karena dapat memicu konflik status transaksi atau nesting error.
+     *
+     * @param \Closure $callback
+     * @return mixed
+     * @throws \Throwable
+     */
+    function db_immediate_transaction(\Closure $callback)
+    {
+        $connection = \Illuminate\Support\Facades\DB::connection();
+        if ($connection->getDriverName() === 'sqlite') {
+            if ($connection->getPdo()->inTransaction()) {
+                return $callback();
+            }
+
+            $connection->statement('BEGIN IMMEDIATE;');
+            try {
+                $result = $callback();
+                $connection->statement('COMMIT;');
+                return $result;
+            } catch (\Throwable $e) {
+                try {
+                    $connection->statement('ROLLBACK;');
+                } catch (\Throwable $rollbackError) {
+                    // Ignore if already rolled back
+                }
+                throw $e;
+            }
+        }
+
+        return \Illuminate\Support\Facades\DB::transaction($callback);
+    }
+}

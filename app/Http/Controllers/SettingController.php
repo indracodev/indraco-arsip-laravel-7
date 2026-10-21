@@ -307,6 +307,29 @@ class SettingController extends Controller
             @set_time_limit(300);
 
             $driver = \Illuminate\Support\Facades\DB::connection()->getDriverName();
+
+            // Opsi 1: Unduh Langsung File Snapshot SQLite murni via VACUUM INTO (100% atomik & konsisten)
+            if ($driver === 'sqlite' && $request->query('format') === 'sqlite') {
+                $tempPath = storage_path('app/backup_indraco_' . uniqid() . '.sqlite');
+                if (file_exists($tempPath)) @unlink($tempPath);
+                $safePath = str_replace('\\', '/', $tempPath);
+
+                \Illuminate\Support\Facades\DB::statement("VACUUM INTO '{$safePath}';");
+
+                $filename = 'backup_indraco_dms_' . date('Y_m_d_His') . '.sqlite';
+                ActivityLogger::log(
+                    'SYSTEM_DATABASE_BACKUP',
+                    "Membuat dan mengunduh snapshot database konsisten '{$filename}'.",
+                    'SETTINGS',
+                    ['filename' => $filename, 'driver' => 'sqlite']
+                );
+
+                return response()->download($tempPath, $filename, [
+                    'Content-Type' => 'application/x-sqlite3',
+                    'Cache-Control' => 'no-cache, no-store, must-revalidate',
+                ])->deleteFileAfterSend(true);
+            }
+
             $dbConfig = config("database.connections." . config('database.default', 'mysql'), []);
             $dbName = $dbConfig['database'] ?? env('DB_DATABASE', 'indraco_arsip');
 
@@ -327,6 +350,9 @@ class SettingController extends Controller
 
             if ($driver === 'sqlite') {
                 $sql .= "PRAGMA foreign_keys = OFF;\n\n";
+
+                // Snapshot transaction read lock agar data antar tabel 100% konsisten
+                \Illuminate\Support\Facades\DB::statement('BEGIN DEFERRED;');
 
                 $tables = \Illuminate\Support\Facades\DB::select("SELECT name, sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name;");
 
@@ -379,6 +405,8 @@ class SettingController extends Controller
                         $sql .= "\n";
                     }
                 }
+
+                \Illuminate\Support\Facades\DB::statement('COMMIT;');
 
                 $sql .= "PRAGMA foreign_keys = ON;\n";
             } else {

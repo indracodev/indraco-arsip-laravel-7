@@ -26,6 +26,7 @@ Route::middleware('diagnostics.auth')->group(function () {
     Route::get('/api/health/connected-users', 'HealthController@connectedUsers')->name('api.health.connected_users');
     Route::get('/api/health/probe-ip', 'HealthController@probeIp')->name('api.health.probe_ip');
     Route::get('/api/health/logs', 'HealthController@logs')->name('api.health.logs');
+    Route::post('/api/health/wal-checkpoint', 'HealthController@checkpointWal')->name('api.health.wal_checkpoint');
     Route::get('/diagnostics', 'HealthController@diagnosticsView')->name('diagnostics.index');
 });
 

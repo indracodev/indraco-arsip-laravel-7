@@ -150,7 +150,7 @@ trait HandlesArchiveExtensions
             $scanExtensionPath = $request->file('scan_extension_form')->store('archive_extensions', 'public');
         }
 
-        \Illuminate\Support\Facades\DB::transaction(function () use ($archives, $months, $addedYears, $durationLabel, $validated, $scanExtensionPath, $user) {
+        db_immediate_transaction(function () use ($archives, $months, $addedYears, $durationLabel, $validated, $scanExtensionPath, $user) {
             foreach ($archives as $arc) {
                 $baseDate = $arc->retention_expiry_date 
                     ? Carbon::parse($arc->retention_expiry_date) 
