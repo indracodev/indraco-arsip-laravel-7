@@ -238,5 +238,20 @@ class MultiBoxDestructionAndExtensionTest extends TestCase
         // Verify destructions index page renders without error when logs exist (testing embed=1)
         $responseIndex = $this->get(route('destructions.index', ['embed' => 1]));
         $responseIndex->assertStatus(200);
+
+        // Pastikan arsip yang diajukan pemusnahan TIDAK MUNCUL di expiredArchives (tabel Berkas Jatuh Tempo H-30)
+        $expiredInView = $responseIndex->viewData('expiredArchives');
+        $expiredIds = collect($expiredInView)->pluck('id')->toArray();
+        $this->assertNotContains($arc1->id, $expiredIds);
+        $this->assertNotContains($arc2->id, $expiredIds);
+
+        // Pastikan tidak bisa diajukan pemusnahan ganda
+        $responseDuplicate = $this->post(route('destructions.store'), [
+            'archive_ids' => [$arc1->id],
+            'destruction_date' => now()->format('Y-m-d'),
+            'method' => 'Pencacahan Mesin Industrial Paper Shredder',
+            'approval_file' => $file,
+        ]);
+        $responseDuplicate->assertSessionHasErrors('archive_ids');
     }
 }

@@ -9,10 +9,6 @@
         $defaultTab = 'destructions';
     } elseif (request('view') === 'expiry') {
         $defaultTab = 'h30';
-    } elseif (!request()->has('tab') && !session()->has('active_tab')) {
-        if (collect($destructionLogs)->whereIn('approval_status', ['pending', 'approved'])->isNotEmpty() || collect($expiredArchives)->isEmpty()) {
-            $defaultTab = 'destructions';
-        }
     }
 @endphp
 

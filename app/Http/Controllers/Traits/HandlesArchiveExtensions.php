@@ -43,7 +43,13 @@ trait HandlesArchiveExtensions
             'location.warehouse:id,name,code',
             'rackSlot:id,warehouse_location_id,sap_level,layer,slot_number,slot_code',
             'items:id,archive_id,item_number,document_name,period_start,period_end,period_text,notes'
-        ])->whereNotIn('status', ['destroyed', 'draft']);
+        ])->whereNotIn('status', ['destroyed', 'draft', 'pending_destruction', 'pending_extension'])
+        ->whereDoesntHave('destructionLogs', function ($q) {
+            $q->whereIn('approval_status', ['pending', 'approved', 'completed']);
+        })
+        ->whereDoesntHave('extensionLogs', function ($q) {
+            $q->where('approval_status', 'pending');
+        });
 
         if ($user->isPicDept()) {
             $archivesQuery->where('department_id', $user->department_id);
@@ -136,6 +142,14 @@ trait HandlesArchiveExtensions
             : ($months . ' Bulan');
 
         $archives = Archive::whereIn('id', $archiveIds)->get();
+
+        foreach ($archives as $arc) {
+            if (in_array($arc->status, ['pending_destruction', 'destroyed', 'pending_extension'])) {
+                return back()->withInput()->withErrors([
+                    'additional_months' => "Berkas '{$arc->title}' sedang dalam proses pengajuan pemusnahan/perpanjangan atau telah dimusnahkan.",
+                ]);
+            }
+        }
 
         if ($user->isPicDept()) {
             foreach ($archives as $arc) {

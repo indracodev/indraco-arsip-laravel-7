@@ -1,0 +1,49 @@
+/* PT INDRACO DMS - Universal Button Loading & Anti-Spam Protection Styles */
+
+@keyframes dms-spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.dms-spinner {
+    display: inline-block;
+    width: 1.1em;
+    height: 1.1em;
+    vertical-align: -0.15em;
+    border: 2px solid currentColor;
+    border-right-color: transparent !important;
+    border-radius: 50%;
+    animation: dms-spin 0.65s linear infinite;
+    flex-shrink: 0;
+    pointer-events: none;
+}
+
+/* State Tombol Saat Menjalankan Proses */
+.dms-btn-loading,
+button[disabled].dms-btn-loading,
+a[disabled].dms-btn-loading,
+input[type="submit"][disabled].dms-btn-loading,
+input[type="button"][disabled].dms-btn-loading {
+    position: relative !important;
+    pointer-events: none !important;
+    cursor: not-allowed !important;
+    opacity: 0.8 !important;
+    user-select: none !important;
+    transition: opacity 0.15s ease-in-out, filter 0.15s ease-in-out !important;
+}
+
+/* Jarak Spinner dengan Teks Tombol */
+.dms-btn-loading .dms-spinner {
+    margin-right: 0.5rem;
+}
+
+/* Jika tombol hanya berisi icon atau kosong teksnya */
+.dms-btn-loading-icon-only .dms-spinner,
+.dms-btn-loading.dms-spinner-solo .dms-spinner {
+    margin-right: 0 !important;
+    margin-left: 0 !important;
+}
