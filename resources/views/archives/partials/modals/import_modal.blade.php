@@ -57,6 +57,28 @@
                         </div>
                     </div>
 
+                    <!-- Notifikasi Berhasil Download Template -->
+                    <div id="templateDownloadSuccessBanner" style="display: none;" class="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 rounded-xl text-emerald-900 dark:text-emerald-200 text-xs shadow-sm flex items-start gap-3 transition">
+                        <div class="p-1.5 bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600 dark:text-emerald-400 rounded-lg shrink-0 mt-0.5">
+                            <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                        </div>
+                        <div class="flex-1 space-y-1">
+                            <div class="font-bold text-emerald-950 dark:text-emerald-100 flex items-center gap-1.5 text-xs">
+                                <span>Berkas Template Berhasil Diunduh!</span>
+                            </div>
+                            <div class="text-[11px] text-emerald-800 dark:text-emerald-300">
+                                Berkas: <span id="downloadedFilenameText" class="font-mono font-bold">template_arsip_multi_box.xlsx</span>
+                            </div>
+                            <div class="text-[11px] text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
+                                <i data-lucide="folder-check" class="w-3.5 h-3.5 shrink-0 text-emerald-600 dark:text-emerald-400"></i>
+                                <span>Tersimpan di: <strong class="underline">Folder Downloads Komputer</strong> (<code>%USERPROFILE%\Downloads\</code>)</span>
+                            </div>
+                        </div>
+                        <button type="button" onclick="document.getElementById('templateDownloadSuccessBanner').style.display='none'" class="text-emerald-500 hover:text-emerald-700 dark:hover:text-emerald-300 p-1 rounded transition" title="Tutup Notifikasi">
+                            <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+
                     <!-- File Dropzone -->
                     <div class="space-y-2">
                         <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider font-mono">
@@ -319,6 +341,17 @@
                     if (document.body.contains(a)) document.body.removeChild(a);
                     window.URL.revokeObjectURL(blobUrl);
                 }, 2000);
+
+                // 1. Tampilkan Banner Notifikasi di dalam Modal
+                const banner = document.getElementById('templateDownloadSuccessBanner');
+                const filenameText = document.getElementById('downloadedFilenameText');
+                if (banner && filenameText) {
+                    filenameText.textContent = filename;
+                    banner.style.display = 'flex';
+                }
+
+                // 2. Tampilkan Floating Toast Notification di Pojok Layar
+                showTemplateDownloadToast(filename);
             })
             .catch(function(err) {
                 console.warn('Blob download error, trying direct navigation fallback:', err);
@@ -330,6 +363,61 @@
                     btn.style.pointerEvents = 'auto';
                     btn.innerHTML = originalContent;
                 }
+                if (window.lucide && typeof window.lucide.createIcons === 'function') {
+                    window.lucide.createIcons();
+                }
             });
+        }
+
+        function showTemplateDownloadToast(filename) {
+            let container = document.getElementById('dms-download-toast-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'dms-download-toast-container';
+                container.className = 'fixed top-5 right-5 z-[99999] flex flex-col gap-2 max-w-sm w-full pointer-events-none';
+                document.body.appendChild(container);
+            }
+
+            const toast = document.createElement('div');
+            toast.className = 'pointer-events-auto bg-white dark:bg-slate-900 border-2 border-emerald-500 rounded-xl p-3.5 shadow-2xl shadow-emerald-500/10 flex items-start gap-3 transform translate-y-2 opacity-0 transition-all duration-300';
+            toast.innerHTML = `
+                <div class="p-2 bg-emerald-100 dark:bg-emerald-950/70 text-emerald-600 dark:text-emerald-400 rounded-lg shrink-0">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="font-bold text-slate-900 dark:text-slate-100 text-xs flex items-center justify-between">
+                        <span>Unduhan Berhasil!</span>
+                        <span class="text-[10px] text-emerald-600 font-mono font-bold bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded">Tersimpan</span>
+                    </div>
+                    <div class="text-[11px] font-mono font-semibold text-slate-700 dark:text-slate-300 truncate mt-0.5">
+                        ` + filename + `
+                    </div>
+                    <div class="text-[10px] text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1">
+                        <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                        </svg>
+                        <span>Folder <strong>Downloads</strong> Komputer</span>
+                    </div>
+                </div>
+                <button type="button" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1" onclick="this.parentElement.remove()">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            `;
+
+            container.appendChild(toast);
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            });
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => {
+                    if (toast.parentElement) toast.remove();
+                }, 300);
+            }, 6000);
         }
     </script>
