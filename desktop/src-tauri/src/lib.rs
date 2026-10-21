@@ -79,15 +79,29 @@ fn execute_fresh_reset(app: &tauri::AppHandle) {
         let roaming_target = format!("{}\\com.indraco.dms.client", app_data);
         let temp_target = format!("{}\\com.indraco.dms.client", temp_dir);
 
-        // Wait 2s for msedgewebview2 processes to exit, completely wipe data folders (fresh install state), and relaunch
-        let batch_cmd = format!(
-            "timeout /t 2 /nobreak >nul & if exist \"{}\" rd /s /q \"{}\" & if exist \"{}\" rd /s /q \"{}\" & if exist \"{}\" rd /s /q \"{}\" & start \"\" \"{}\"",
-            local_target, local_target, roaming_target, roaming_target, temp_target, temp_target, exe_path
+        // Bulletproof Windows reset via PowerShell detached process:
+        // 1. Wait for parent process to exit
+        // 2. Kill any lingering webview processes locking the profile
+        // 3. Completely delete %LOCALAPPDATA%\com.indraco.dms.client
+        // 4. Relaunch fresh exe
+        let ps_script = format!(
+            "Start-Sleep -Seconds 2; \
+             Get-Process -Name '*webview*', '*DMS-Indraco*' -ErrorAction SilentlyContinue | Where-Object {{ $_.Path -like '*com.indraco.dms.client*' -or $_.Path -like '*EdgeWebView*' -or $_.Name -like '*DMS-Indraco*' }} | Stop-Process -Force -ErrorAction SilentlyContinue; \
+             Start-Sleep -Milliseconds 600; \
+             if (Test-Path -LiteralPath '{local}') {{ Remove-Item -LiteralPath '{local}' -Recurse -Force -ErrorAction SilentlyContinue }}; \
+             if (Test-Path -LiteralPath '{roam}') {{ Remove-Item -LiteralPath '{roam}' -Recurse -Force -ErrorAction SilentlyContinue }}; \
+             if (Test-Path -LiteralPath '{temp}') {{ Remove-Item -LiteralPath '{temp}' -Recurse -Force -ErrorAction SilentlyContinue }}; \
+             Start-Sleep -Milliseconds 400; \
+             Start-Process -FilePath '{exe}'",
+            local = local_target.replace('\'', "''"),
+            roam = roaming_target.replace('\'', "''"),
+            temp = temp_target.replace('\'', "''"),
+            exe = exe_path.replace('\'', "''"),
         );
 
         const CREATE_NO_WINDOW: u32 = 0x08000000;
-        let _ = Command::new("cmd")
-            .args(["/c", &batch_cmd])
+        let _ = Command::new("powershell")
+            .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", &ps_script])
             .creation_flags(CREATE_NO_WINDOW)
             .spawn();
 
