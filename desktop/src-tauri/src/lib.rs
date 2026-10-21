@@ -2,6 +2,7 @@ use std::net::{TcpStream, ToSocketAddrs};
 use std::time::Duration;
 use tauri::Manager;
 use tauri::menu::{Menu, MenuItem};
+use tauri_plugin_updater::UpdaterExt;
 
 fn is_server_alive(host: &str, port: u16) -> bool {
     let addr_str = format!("{}:{}", host, port);
@@ -155,7 +156,7 @@ fn confirm_and_reset_cache(app: &tauri::AppHandle) {
 }
 
 #[cfg(target_os = "windows")]
-fn show_update_info() {
+fn check_and_apply_update(app: tauri::AppHandle) {
     use std::ffi::OsStr;
     use std::os::windows::ffi::OsStrExt;
 
@@ -169,40 +170,72 @@ fn show_update_info() {
         ) -> i32;
     }
 
-    let text: Vec<u16> = OsStr::new(
-        "Pembaruan Aplikasi DMS PT Indraco\n\nVersi terpasang: v1.0.0\nRepositori: github.com/indracodev/indraco-arsip-laravel-7\n\nApakah Anda ingin membuka halaman rilis GitHub untuk memeriksa dan mengunduh versi .exe terbaru?",
-    )
-    .encode_wide()
-    .chain(Some(0))
-    .collect();
-
-    let caption: Vec<u16> = OsStr::new("Pembaruan Aplikasi - DMS PT INDRACO")
-        .encode_wide()
-        .chain(Some(0))
-        .collect();
-
-    const MB_YESNO: u32 = 0x00000004;
-    const MB_ICONINFORMATION: u32 = 0x00000040;
-    const IDYES: i32 = 6;
-
-    let result = unsafe {
-        MessageBoxW(
-            std::ptr::null_mut(),
-            text.as_ptr(),
-            caption.as_ptr(),
-            MB_YESNO | MB_ICONINFORMATION,
-        )
-    };
-
-    if result == IDYES {
-        use std::process::Command;
-        use std::os::windows::process::CommandExt;
-        const CREATE_NO_WINDOW: u32 = 0x08000000;
-        let _ = Command::new("cmd")
-            .args(["/c", "start", "https://github.com/indracodev/indraco-arsip-laravel-7/releases/latest"])
-            .creation_flags(CREATE_NO_WINDOW)
-            .spawn();
+    fn show_msg(title: &str, message: &str, icon_flag: u32) {
+        let text: Vec<u16> = OsStr::new(message).encode_wide().chain(Some(0)).collect();
+        let caption: Vec<u16> = OsStr::new(title).encode_wide().chain(Some(0)).collect();
+        unsafe {
+            MessageBoxW(std::ptr::null_mut(), text.as_ptr(), caption.as_ptr(), icon_flag);
+        }
     }
+
+    tauri::async_runtime::spawn(async move {
+        match app.updater() {
+            Ok(updater) => {
+                match updater.check().await {
+                    Ok(Some(update)) => {
+                        let new_ver = update.version.clone();
+                        let prompt = format!(
+                            "Versi baru (v{}) telah tersedia!\n\nAplikasi akan langsung mengunduh dan memasang pembaruan otomatis sekarang.\n\nLanjutkan pembaruan?",
+                            new_ver
+                        );
+                        let text: Vec<u16> = OsStr::new(&prompt).encode_wide().chain(Some(0)).collect();
+                        let caption: Vec<u16> = OsStr::new("Pembaruan Tersedia - DMS PT INDRACO").encode_wide().chain(Some(0)).collect();
+                        const MB_YESNO: u32 = 0x00000004;
+                        const MB_ICONINFORMATION: u32 = 0x00000040;
+                        const IDYES: i32 = 6;
+                        let res = unsafe {
+                            MessageBoxW(std::ptr::null_mut(), text.as_ptr(), caption.as_ptr(), MB_YESNO | MB_ICONINFORMATION)
+                        };
+
+                        if res == IDYES {
+                            match update.download_and_install(|_downloaded, _total| {}, || {}).await {
+                                Ok(_) => {
+                                    show_msg(
+                                        "Pembaruan Selesai",
+                                        "Pembaruan berhasil dipasang! Aplikasi akan dimulai ulang sekarang.",
+                                        0x00000040,
+                                    );
+                                    app.restart();
+                                }
+                                Err(e) => {
+                                    let err_msg = format!("Gagal memasang pembaruan otomatis: {}\n\nPastikan izin sistem mengizinkan instalasi.", e);
+                                    show_msg("Gagal Memperbarui", &err_msg, 0x00000010);
+                                }
+                            }
+                        }
+                    }
+                    Ok(None) => {
+                        show_msg(
+                            "Aplikasi Sudah Terbaru",
+                            "Aplikasi DMS PT Indraco sudah pada versi terbaru (v1.0.0).\nTidak ada pembaruan yang diperlukan.",
+                            0x00000040,
+                        );
+                    }
+                    Err(e) => {
+                        let err_text = format!(
+                            "Tidak ada pembaruan baru atau server pembaruan belum dapat dijangkau:\n{}\n\n(Aplikasi tetap dapat digunakan secara normal)",
+                            e
+                        );
+                        show_msg("Pemeriksaan Pembaruan", &err_text, 0x00000030);
+                    }
+                }
+            }
+            Err(e) => {
+                let err_text = format!("Layanan pembaruan belum siap: {}", e);
+                show_msg("Error", &err_text, 0x00000010);
+            }
+        }
+    });
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -218,7 +251,7 @@ pub fn run() {
                 confirm_and_reset_cache(app);
             } else if event.id() == "check_update" {
                 #[cfg(target_os = "windows")]
-                show_update_info();
+                check_and_apply_update(app.clone());
             }
         })
         .on_window_event(|_window, event| {
