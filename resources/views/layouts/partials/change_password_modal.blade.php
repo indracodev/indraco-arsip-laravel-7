@@ -193,3 +193,11 @@ function changePasswordModalComponent() {
     };
 }
 </script>
+
+@if(session('password_success'))
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        alert(@json(session('password_success')));
+    });
+</script>
+@endif

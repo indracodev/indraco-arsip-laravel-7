@@ -384,6 +384,14 @@
                     <span class="text-[10px] text-amber-400 font-mono block leading-tight">PIC DEPT: {{ auth()->user()->department->code ?? 'UMUM' }}</span>
                 </div>
 
+                <!-- Button Ganti Password Mandiri PIC -->
+                <button type="button" 
+                    @click="$dispatch('open-change-password-modal')" 
+                    class="p-1.5 text-slate-400 hover:text-amber-400 hover:bg-slate-900 rounded transition cursor-pointer"
+                    title="Ganti Password Saya">
+                    <i data-lucide="key" class="w-3.5 h-3.5"></i>
+                </button>
+
                 <form action="{{ route('logout') }}" method="POST" class="inline ml-0.5">
                     @csrf
                     <button type="submit" class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-900 rounded transition cursor-pointer" title="Keluar / Logout">

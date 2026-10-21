@@ -200,7 +200,16 @@
                                             <td class="py-2 px-3 text-center font-mono">
                                                 <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border border-blue-200">PIC DEPT</span>
                                             </td>
-                                            <td class="py-2 px-3 text-right font-mono">
+                                            <td class="py-2 px-3 text-right font-mono whitespace-nowrap">
+                                                <button 
+                                                    @click="resetPicPassword(u)" 
+                                                    type="button" 
+                                                    class="px-2 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 rounded text-[11px] font-bold transition inline-flex items-center gap-1 mr-1"
+                                                    title="Ganti / Reset password user PIC ini"
+                                                >
+                                                    <i data-lucide="key" class="w-3 h-3 text-amber-500"></i>
+                                                    <span>Ganti Password</span>
+                                                </button>
                                                 <button 
                                                     @click="removePicUser(u)" 
                                                     type="button" 

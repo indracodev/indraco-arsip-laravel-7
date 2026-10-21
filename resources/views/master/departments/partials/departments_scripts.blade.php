@@ -187,6 +187,49 @@ function masterDepartmentsManager() {
             });
         },
 
+        async resetPicPassword(user) {
+            const newPassword = prompt(`Masukkan password baru untuk PIC "${user.name}" (${user.email})\nMinimal 6 karakter:`);
+            if (newPassword === null) return;
+            const trimmed = newPassword.trim();
+            if (!trimmed) {
+                alert('Password baru tidak boleh kosong.');
+                return;
+            }
+            if (trimmed.length < 6) {
+                alert('Password baru minimal 6 karakter.');
+                return;
+            }
+
+            this.manageLoading = true;
+            try {
+                const res = await fetch('{{ url('/master/users') }}/' + user.id + '/reset-password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ password: trimmed })
+                });
+                const data = await res.json();
+                if (res.ok && data.status === 'success') {
+                    alert(data.message || `Password untuk ${user.name} berhasil diperbarui.`);
+                } else {
+                    let errMsg = data.message || 'Gagal mereset password.';
+                    if (data.errors) {
+                        errMsg = Object.values(data.errors).flat().join('\n');
+                    }
+                    alert(errMsg);
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Terjadi kesalahan jaringan saat mereset password.');
+            } finally {
+                this.manageLoading = false;
+                this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+            }
+        },
+
         async removePicUser(user) {
             const ok = await window.showConfirmModal({
                 title: 'Lepas Penugasan PIC',

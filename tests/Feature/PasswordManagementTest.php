@@ -116,4 +116,47 @@ class PasswordManagementTest extends TestCase
         $otherUser->refresh();
         $this->assertTrue(Hash::check('targetpass', $otherUser->password));
     }
+
+    public function test_superadmin_can_reset_pic_password_via_json_request()
+    {
+        $response = $this->actingAs($this->admin)
+            ->json('POST', route('master.users.reset_password', $this->picDept->id), [
+                'password' => 'secret789',
+            ]);
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'status' => 'success',
+        ]);
+        $this->picDept->refresh();
+        $this->assertTrue(Hash::check('secret789', $this->picDept->password));
+    }
+
+    public function test_admin_reset_password_validates_min_characters_json()
+    {
+        $response = $this->actingAs($this->admin)
+            ->json('POST', route('master.users.reset_password', $this->picDept->id), [
+                'password' => '123',
+            ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['password']);
+    }
+
+    public function test_user_can_change_password_via_json_request()
+    {
+        $response = $this->actingAs($this->picDept)
+            ->json('POST', route('profile.change_password'), [
+                'current_password' => 'oldpassword',
+                'password' => 'newsecret456',
+                'password_confirmation' => 'newsecret456',
+            ]);
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'status' => 'success',
+        ]);
+        $this->picDept->refresh();
+        $this->assertTrue(Hash::check('newsecret456', $this->picDept->password));
+    }
 }

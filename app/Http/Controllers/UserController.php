@@ -218,7 +218,16 @@ class UserController extends Controller
             $user
         );
 
-        return back()->with('success', 'Password Anda berhasil diperbarui.');
+        if ($request->expectsJson() || $request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Password Anda berhasil diperbarui.',
+            ]);
+        }
+
+        return back()
+            ->with('success', 'Password Anda berhasil diperbarui.')
+            ->with('password_success', 'Password Anda berhasil diperbarui.');
     }
 
     /**
@@ -251,6 +260,13 @@ class UserController extends Controller
             $user->name,
             $admin
         );
+
+        if ($request->expectsJson() || $request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'status' => 'success',
+                'message' => "Password untuk pengguna {$user->name} ({$user->email}) berhasil di-reset.",
+            ]);
+        }
 
         return back()->with('success', "Password untuk pengguna {$user->name} ({$user->email}) berhasil di-reset.");
     }

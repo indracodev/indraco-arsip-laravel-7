@@ -518,6 +518,7 @@
     @include('layouts.partials.confirm_modal')
     @include('layouts.partials.file_preview_modal')
     @include('layouts.partials.label_print_modal')
+    @include('layouts.partials.change_password_modal')
     @include('layouts.partials.expiry_warning_modal')
     @stack('scripts')
 </body>
