@@ -41,11 +41,17 @@
                             </p>
                         </div>
                         <div class="flex items-center gap-2 shrink-0">
-                            <a href="{{ route('archives.import.template', ['format' => 'xlsx']) }}" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-xs shadow-sm flex items-center gap-1.5 transition">
+                            <a href="{{ route('archives.import.template', ['format' => 'xlsx']) }}" 
+                               onclick="downloadImportTemplate(event, '{{ route('archives.import.template', ['format' => 'xlsx']) }}', 'template_arsip_multi_box.xlsx')" 
+                               download="template_arsip_multi_box.xlsx" 
+                               class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-xs shadow-sm flex items-center gap-1.5 transition cursor-pointer">
                                 <i data-lucide="download" class="w-3.5 h-3.5"></i>
                                 <span>Template Excel (.xlsx)</span>
                             </a>
-                            <a href="{{ route('archives.import.template', ['format' => 'csv']) }}" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg font-bold text-xs transition">
+                            <a href="{{ route('archives.import.template', ['format' => 'csv']) }}" 
+                               onclick="downloadImportTemplate(event, '{{ route('archives.import.template', ['format' => 'csv']) }}', 'template_arsip_multi_box.csv')" 
+                               download="template_arsip_multi_box.csv" 
+                               class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg font-bold text-xs transition cursor-pointer">
                                 <span>CSV</span>
                             </a>
                         </div>
@@ -279,4 +285,51 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div>
+
+    <script>
+        function downloadImportTemplate(event, url, filename) {
+            if (event) event.preventDefault();
+            const btn = event ? event.currentTarget : null;
+            let originalContent = '';
+            if (btn) {
+                originalContent = btn.innerHTML;
+                btn.style.opacity = '0.7';
+                btn.style.pointerEvents = 'none';
+            }
+
+            fetch(url, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(function(res) {
+                if (!res.ok) throw new Error('Gagal mengunduh berkas template.');
+                return res.blob();
+            })
+            .then(function(blob) {
+                const blobUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = blobUrl;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(function() {
+                    if (document.body.contains(a)) document.body.removeChild(a);
+                    window.URL.revokeObjectURL(blobUrl);
+                }, 2000);
+            })
+            .catch(function(err) {
+                console.warn('Blob download error, trying direct navigation fallback:', err);
+                window.location.href = url;
+            })
+            .finally(function() {
+                if (btn) {
+                    btn.style.opacity = '1';
+                    btn.style.pointerEvents = 'auto';
+                    btn.innerHTML = originalContent;
+                }
+            });
+        }
+    </script>
