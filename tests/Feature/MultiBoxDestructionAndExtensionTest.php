@@ -234,5 +234,9 @@ class MultiBoxDestructionAndExtensionTest extends TestCase
         $this->assertEquals('pending', $log2->approval_status);
         $this->assertNotNull($log1->approval_file);
         $this->assertNotNull($log2->approval_file);
+
+        // Verify destructions index page renders without error when logs exist (testing embed=1)
+        $responseIndex = $this->get(route('destructions.index', ['embed' => 1]));
+        $responseIndex->assertStatus(200);
     }
 }

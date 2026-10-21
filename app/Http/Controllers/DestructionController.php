@@ -258,7 +258,7 @@ class DestructionController extends Controller
                 $q->where('department_id', $user->department_id);
             });
         }
-        $destructionLogs = $destructionLogsQuery->latest()->get()->map(function ($dLog) {
+        $destructionLogs = $destructionLogsQuery->latest()->get()->map(function ($dLog) use ($user) {
             $status = $dLog->approval_status ?? ($dLog->archive && $dLog->archive->status === 'destroyed' ? 'completed' : 'pending');
             $canPrintBap = !empty($dLog->certificate_file);
             
