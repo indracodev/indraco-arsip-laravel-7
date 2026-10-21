@@ -48,17 +48,76 @@
   padding: 0;
 }
 
-body {
-  font-family: var(--font-family);
-  background: var(--bg-gradient);
-  color: var(--text-main);
-  min-height: 100vh;
+/* Windows App Title Bar on EXE */
+.window-titlebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 36px;
+  background: #0f172a;
+  color: #f8fafc;
   display: flex;
   align-items: center;
-  justify-content: center;
-  overflow: hidden;
+  justify-content: space-between;
+  padding: 0 12px;
+  font-size: 12px;
+  font-family: var(--font-family);
+  border-bottom: 1px solid #1e293b;
+  z-index: 1000;
   user-select: none;
-  -webkit-font-smoothing: antialiased;
+}
+
+.titlebar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+.titlebar-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+.titlebar-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.titlebar-btn {
+  background: #1e293b;
+  color: #cbd5e1;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.titlebar-btn:hover {
+  background: #334155;
+  color: #f8fafc;
+  border-color: #475569;
+}
+
+.titlebar-btn-reset:hover {
+  background: #881337;
+  color: #ffe4e6;
+  border-color: #e11d48;
+}
+
+.titlebar-svg {
+  width: 13px;
+  height: 13px;
 }
 
 .app-container {
@@ -66,6 +125,7 @@ body {
   max-width: 580px;
   padding: 24px;
   position: relative;
+  margin-top: 20px;
 }
 
 .top-accent {

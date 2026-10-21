@@ -62,6 +62,45 @@ function init() {
   btnTestPing.addEventListener("click", runPingTest);
   btnCheckUpdate.addEventListener("click", checkGitHubRelease);
 
+  const titlebarBtnUpdate = document.getElementById("titlebarBtnUpdate");
+  if (titlebarBtnUpdate) {
+    titlebarBtnUpdate.addEventListener("click", checkGitHubRelease);
+  }
+
+  const titlebarBtnReset = document.getElementById("titlebarBtnReset");
+  if (titlebarBtnReset) {
+    titlebarBtnReset.addEventListener("click", async () => {
+      const confirmed = window.confirm(
+        "Reset Total Aplikasi DMS PT Indraco (Fresh Installation)?\n\n" +
+        "Seluruh data cache, cookies, local storage, dan sesi kerja WebView2 akan dihapus secara permanen sehingga aplikasi kembali bersih seperti baru pertama kali di-install.\n\n" +
+        "Aplikasi akan tertutup, membersihkan seluruh data lokal, dan membuka kembali secara otomatis.\n\n" +
+        "Lanjutkan proses reset?"
+      );
+      if (!confirmed) return;
+
+      try {
+        localStorage.clear();
+        sessionStorage.clear();
+        if (window.caches) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map(k => caches.delete(k)));
+        }
+      } catch (e) {}
+
+      const tauriCore = window.__TAURI__?.core || window.__TAURI_INTERNALS__;
+      if (tauriCore && typeof tauriCore.invoke === 'function') {
+        try {
+          await tauriCore.invoke('reset_app_cache_and_restart');
+          return;
+        } catch (err) {
+          console.warn("Tauri reset invoke error:", err);
+        }
+      }
+
+      window.location.reload();
+    });
+  }
+
   // Quick preset buttons
   document.querySelectorAll(".btn-preset").forEach((btn) => {
     btn.addEventListener("click", () => {
