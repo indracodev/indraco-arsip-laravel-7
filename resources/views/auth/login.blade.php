@@ -303,7 +303,11 @@
                             Kredensial Pengguna
                         </legend>
 
-                        <form action="{{ route('login.post') }}" method="POST" id="loginForm" class="space-y-4 pt-1">
+                        <form action="{{ route('login.post') }}" method="POST" id="loginForm" @submit="handleSubmit($event)" class="space-y-4 pt-1 relative">
+                            <!-- Indeterminate Loading Bar saat Submitting -->
+                            <div x-show="isSubmitting" x-cloak class="absolute -top-3.5 -left-4 -right-4 h-1 bg-amber-200 dark:bg-slate-700 overflow-hidden rounded-t">
+                                <div class="h-full bg-amber-500 animate-[pulse_1s_ease-in-out_infinite] w-full"></div>
+                            </div>
                             @csrf
 
                             <!-- Email / Username Input (TEdit) -->
@@ -399,11 +403,26 @@
 
                                 <button 
                                     type="submit" 
+                                    :disabled="isSubmitting"
+                                    :class="isSubmitting ? 'opacity-75 cursor-not-allowed pointer-events-none' : 'cursor-pointer hover:shadow-lg active:translate-y-0.5'"
                                     @click="playClickSound()"
-                                    class="px-4 py-2 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:from-amber-400 hover:to-amber-300 text-slate-950 border border-amber-600 font-mono font-black text-xs rounded shadow-md hover:shadow-lg transition active:translate-y-0.5 flex items-center gap-2 ring-2 ring-amber-400/50"
+                                    class="px-4 py-2 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:from-amber-400 hover:to-amber-300 text-slate-950 border border-amber-600 font-mono font-black text-xs rounded shadow-md transition flex items-center gap-2 ring-2 ring-amber-400/50"
                                 >
-                                    <i data-lucide="key-round" class="w-4 h-4 text-slate-950"></i>
-                                    Login
+                                    <template x-if="!isSubmitting">
+                                        <span class="flex items-center gap-2">
+                                            <i data-lucide="key-round" class="w-4 h-4 text-slate-950"></i>
+                                            <span>Login</span>
+                                        </span>
+                                    </template>
+                                    <template x-if="isSubmitting">
+                                        <span class="flex items-center gap-2">
+                                            <svg class="animate-spin w-4 h-4 text-slate-950 shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            <span>Memverifikasi...</span>
+                                        </span>
+                                    </template>
                                 </button>
                             </div>
                         </form>

@@ -252,6 +252,9 @@
                     <select name="warehouse_location_id" required class="w-full py-1 px-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 transition">
                         <option value="">-- Pilih Slot Rak Gudang Available --</option>
                         @foreach($locations as $loc)
+                            @if($loc->location_type === 'room')
+                                @continue
+                            @endif
                             @php
                                 $isFull = ($loc->box_capacity > 0 && $loc->current_box_count >= $loc->box_capacity);
                                 $locAllowed = $loc->allowed_department_ids;

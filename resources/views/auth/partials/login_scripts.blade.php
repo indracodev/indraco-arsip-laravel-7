@@ -12,6 +12,7 @@
                 closeConfirmModal: false,
                 fontSizeModal: false,
                 currentFontSize: localStorage.getItem('app_font_size') || '{{ $fontSizeScale }}',
+                isSubmitting: false,
                 soundEnabled: true,
                 serverTime: '00:00:00',
                 connectionUrl: 'http://127.0.0.1:8000',
@@ -155,7 +156,22 @@
                     }
                 },
 
+                handleSubmit(e) {
+                    if (this.isSubmitting) {
+                        e.preventDefault();
+                        return false;
+                    }
+                    const email = document.getElementById('email')?.value?.trim();
+                    const password = document.getElementById('password')?.value;
+                    if (!email || !password) {
+                        return;
+                    }
+                    this.isSubmitting = true;
+                    this.playClickSound();
+                },
+
                 resetForm() {
+                    this.isSubmitting = false;
                     const form = document.getElementById('loginForm');
                     if (form) {
                         form.reset();

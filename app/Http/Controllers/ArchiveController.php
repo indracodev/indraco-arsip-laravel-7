@@ -502,7 +502,12 @@ class ArchiveController extends Controller
             'destructionLog.approvedBy'
         ]);
 
-        $locations = WarehouseLocation::with('warehouse')->get();
+        $locations = WarehouseLocation::with('warehouse')
+            ->where('location_type', 'rack')
+            ->where('is_active', true)
+            ->orderBy('warehouse_id')
+            ->orderBy('rack_code')
+            ->get();
 
         return view('archives.show', compact('archive', 'locations'));
     }

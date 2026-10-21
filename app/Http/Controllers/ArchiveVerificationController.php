@@ -114,6 +114,9 @@ class ArchiveVerificationController extends Controller
         ]);
 
         $location = WarehouseLocation::with('warehouse')->findOrFail($request->warehouse_location_id);
+        if ($location->location_type === 'room') {
+            return back()->with('error', 'Akses Ditolak: Lokasi yang dipilih adalah sektor/ruangan. Silakan pilih baris rak fisik yang tersedia.');
+        }
 
         // Validasi Pembatasan Departemen yang Diizinkan
         $parentRoom = null;
