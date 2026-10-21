@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Department;
 use App\Models\SubDepartment;
 use App\Models\WarehouseLocation;
+use App\Models\MasterArchive;
 use App\Models\User;
 use ZipArchive;
 
@@ -52,167 +53,195 @@ class MultiBoxTemplateService
             ];
         }
 
-        // Scope-aware sample rows: Identitas box cukup diisi satu kali pada baris pertama box. Baris butir berikutnya cukup nama dokumen. No butir auto jika kosong.
+        // Scope-aware sample rows: 100% DINAMIS mengambil data riil database master departemen & berkas
         if ($isPicDept && $user->department_id) {
             $userDept = $user->department ?: Department::find($user->department_id);
             $userDeptCode = $userDept ? $userDept->code : 'DEPT';
             $userDeptName = $userDept ? $userDept->name : 'Departemen';
             $userSubDepts = SubDepartment::where('department_id', $user->department_id)->where('is_active', true)->orderBy('code')->get();
-            $subDeptList = $userSubDepts->pluck('code')->toArray();
-            $firstSubDeptCode = $subDeptList[0] ?? ($userDeptCode === 'HRD' ? 'GA' : 'GEN');
-            $secondSubDeptCode = $subDeptList[1] ?? ($userDeptCode === 'HRD' ? 'LGL' : $firstSubDeptCode);
+            $deptMasters = MasterArchive::where('department_id', $user->department_id)->where('is_active', true)->get();
+
+            // 1. Resolve Box 1: Ambil sub-departemen pertama (atau general jika tidak ada sub-dept)
+            $sub1 = $userSubDepts->first();
+            $sub1Code = $sub1 ? $sub1->code : '';
+            $sub1Name = $sub1 ? $sub1->name : $userDeptName;
+            
+            // Cari dokumen master milik sub-dept 1, atau fallback ke dokumen general departemen
+            $box1Masters = $sub1 
+                ? $deptMasters->where('sub_department_id', $sub1->id)->values() 
+                : collect();
+            if ($box1Masters->isEmpty()) {
+                $box1Masters = $deptMasters->whereNull('sub_department_id')->values();
+            }
+            if ($box1Masters->isEmpty()) {
+                $box1Masters = $deptMasters->values();
+            }
+
+            $doc1_1 = $box1Masters->get(0);
+            $doc1_1Name = $doc1_1 ? $doc1_1->name : "Berkas Utama {$sub1Name}";
+            $doc1_1Period = $doc1_1 && $doc1_1->retention_years ? (string)($doc1_1->retention_years * 12) : '60';
+            $doc1_1Desc = $doc1_1 && $doc1_1->description ? $doc1_1->description : 'Asli bertandatangan & lengkap';
+
+            $doc1_2 = $box1Masters->get(1);
+            $doc1_2Name = $doc1_2 ? $doc1_2->name : "Lampiran Pendukung {$sub1Name}";
+            $doc1_2Desc = $doc1_2 && $doc1_2->description ? $doc1_2->description : 'Dokumen pendukung & verifikasi';
+
+            $box1Title = "Berkas Operasional {$sub1Name} 2024";
+
+            // 2. Resolve Box 2: Ambil sub-departemen kedua (atau variasi master berkas lain)
+            $sub2 = $userSubDepts->count() > 1 ? $userSubDepts->get(1) : $sub1;
+            $sub2Code = $sub2 ? $sub2->code : $sub1Code;
+            $sub2Name = $sub2 ? $sub2->name : $userDeptName;
+
+            $box2Masters = ($sub2 && $sub2->id !== ($sub1 ? $sub1->id : null))
+                ? $deptMasters->where('sub_department_id', $sub2->id)->values()
+                : collect();
+            if ($box2Masters->isEmpty()) {
+                // Gunakan dokumen master departemen yang belum terpakai di box 1
+                $box2Masters = $deptMasters->slice(2)->values();
+                if ($box2Masters->isEmpty()) {
+                    $box2Masters = $deptMasters->values();
+                }
+            }
+
+            $doc2_1 = $box2Masters->get(0) ?: $deptMasters->get(2);
+            $doc2_1Name = $doc2_1 ? $doc2_1->name : "Laporan Berkala {$sub2Name}";
+            $doc2_1Period = $doc2_1 && $doc2_1->retention_years ? (string)($doc2_1->retention_years * 12) : '36';
+            $doc2_1Desc = $doc2_1 && $doc2_1->description ? $doc2_1->description : 'Laporan rekapitulasi & evaluasi';
+
+            $doc2_2 = $box2Masters->get(1) ?: $deptMasters->get(3);
+            $doc2_2Name = $doc2_2 ? $doc2_2->name : "Daftar Checklist {$sub2Name}";
+            $doc2_2Desc = $doc2_2 && $doc2_2->description ? $doc2_2->description : 'Formulir checklist kegiatan';
+
+            $box2Title = "Laporan & Formulir {$sub2Name} 2024";
 
             $sampleRows = [
-                // Box 1: Baris Pertama - Mengisi Identitas Box Lengkap (Masa simpan angka bulan murni: 60)
+                // Box 1
                 [
                     'BOX-01',
-                    "Berkas Operasional {$userDeptName} Jan 2024",
+                    $box1Title,
                     $userDeptCode,
-                    $firstSubDeptCode,
-                    'Dokumen Administrasi Utama Bagian 01',
+                    $sub1Code,
+                    $doc1_1Name,
                     '2024-01',
                     '2024-01',
-                    '60',
+                    $doc1_1Period,
                     'Baik / Box Karton Standar TB 30g',
                     '1',
-                    'Asli bertandatangan',
+                    $doc1_1Desc,
                 ],
-                // Box 1: Baris Kedua - Identitas Box Dikosongkan (Cukup isi sekali per box) & No Butir Auto
                 [
-                    '', // NO_BOX_SEMENTARA (Otomatis mewarisi BOX-01)
-                    '', // JUDUL_BOX (Otomatis mewarisi judul box di atas)
-                    '', // KODE_DEPARTEMEN
-                    '', // KODE_SUB_DEPARTEMEN
-                    'Dokumen Administrasi Utama Bagian 02',
+                    '', '', '', '',
+                    $doc1_2Name,
                     '2024-01',
                     '2024-01',
-                    '', // MASA_SIMPAN_BULAN (Otomatis mewarisi 60)
-                    '', // KONDISI_FISIK
-                    '', // NO_BUTIR (Dikosongkan: otomatis di-generate 2 oleh sistem)
-                    'Asli bertandatangan',
+                    '', '', '',
+                    $doc1_2Desc,
                 ],
-
-                // Box 2: Baris Pertama - Box Baru (Masa simpan 12 bulan)
+                // Box 2
                 [
                     'BOX-02',
-                    "Laporan & Formulir {$userDeptName} Periode 2025",
+                    $box2Title,
                     $userDeptCode,
-                    $secondSubDeptCode,
-                    'Formulir Kegiatan & Laporan Rekapitulasi',
-                    'Jan 25',
-                    'Des 25',
-                    '12',
+                    $sub2Code,
+                    $doc2_1Name,
+                    '2024-01',
+                    '2024-12',
+                    $doc2_1Period,
                     'Baik / Box Karton Standar TB 30g',
-                    '', // NO_BUTIR (Dikosongkan: otomatis di-generate 1 oleh sistem)
-                    'Lengkap',
+                    '',
+                    $doc2_1Desc,
                 ],
-                // Box 2: Baris Kedua - Identitas Box Dikosongkan & No Butir Auto
                 [
-                    '', // NO_BOX_SEMENTARA (Otomatis mewarisi BOX-02)
-                    '', // JUDUL_BOX
-                    '', // KODE_DEPARTEMEN
-                    '', // KODE_SUB_DEPARTEMEN
-                    'Daftar Checklist & Lampiran Pendukung',
-                    'Jan 25',
-                    'Des 25',
-                    '', // MASA_SIMPAN_BULAN
-                    '', // KONDISI_FISIK
-                    '', // NO_BUTIR (Dikosongkan: otomatis di-generate 2 oleh sistem)
-                    'Lengkap',
+                    '', '', '', '',
+                    $doc2_2Name,
+                    '2024-01',
+                    '2024-12',
+                    '', '', '',
+                    $doc2_2Desc,
                 ],
             ];
         } else {
-            $sampleRows = [
-                // Box 1: Keuangan (Finance) - Baris Pertama (Masa simpan angka bulan murni: 60)
-                [
-                    'BOX-01',
-                    'Voucher Pengeluaran Kas & Bank Jan 2024',
-                    'FIN',
-                    'KAS',
-                    'Kwitansi & Bukti Kas Keluar No. 001 - 050',
-                    '2024-01',
-                    '2024-01',
-                    '60',
-                    'Baik / Box Karton Standar TB 30g',
-                    '1',
-                    'R5',
-                    'R5-AS',
-                    '1',
-                    'Asli bertandatangan Kasir & Mgr',
-                ],
-                // Box 1: Baris Kedua - Identitas Box Cukup Sekali & No Butir Dikosongkan (Auto Urut)
-                [
-                    '', // NO_BOX_SEMENTARA (Mewarisi BOX-01)
-                    '', // JUDUL_BOX
-                    '', // KODE_DEPARTEMEN
-                    '', // KODE_SUB_DEPARTEMEN
-                    'Kwitansi & Bukti Kas Keluar No. 051 - 100',
-                    '2024-01',
-                    '2024-01',
-                    '', // MASA_SIMPAN_BULAN
-                    '', // KONDISI_FISIK
-                    '', // NO_BUTIR (Auto urut: 2)
-                    '', // RUANG (Mewarisi R5)
-                    '', // RAK (Mewarisi R5-AS)
-                    '', // SLOT (Mewarisi 1)
-                    'Asli bertandatangan Kasir & Mgr',
-                ],
+            // Tampilan Admin / PIC Gudang: 100% DINAMIS mengambil contoh lintas departemen riil dari database
+            $sampleRows = [];
+            $activeDepts = Department::where('is_active', true)
+                ->whereHas('subDepartments')
+                ->whereHas('masterArchives')
+                ->with(['subDepartments', 'masterArchives'])
+                ->take(3)
+                ->get();
 
-                // Box 2: HCS / GA - Baris Pertama (Masa simpan angka bulan murni: 12)
-                [
-                    'BOX-02',
-                    'Berkas Formulir Utilitas & Maintenance GA 2025',
-                    'HCS',
-                    'GA',
-                    'Form Utilitas & Perawatan AC',
-                    'Jan 25',
-                    'Des 25',
-                    '12',
-                    'Baik / Box Karton Standar TB 30g',
-                    '', // NO_BUTIR (Auto urut: 1)
-                    'R5',
-                    'R5-AT',
-                    '2',
-                    'Karyawan Kantor Pusat',
-                ],
-                // Box 2: Baris Kedua - Identitas Box Cukup Sekali & No Butir Dikosongkan
-                [
-                    '', // NO_BOX_SEMENTARA (Mewarisi BOX-02)
-                    '', // JUDUL_BOX
-                    '', // KODE_DEPARTEMEN
-                    '', // KODE_SUB_DEPARTEMEN
-                    'Data Maintenance Kendaraan Operasional',
-                    'Jan 25',
-                    'Des 25',
-                    '', // MASA_SIMPAN_BULAN
-                    '', // KONDISI_FISIK
-                    '', // NO_BUTIR (Auto urut: 2)
-                    '', // RUANG
-                    '', // RAK
-                    '', // SLOT
-                    'Armada Operasional Logistik',
-                ],
+            if ($activeDepts->count() < 2) {
+                $activeDepts = Department::where('is_active', true)
+                    ->whereHas('masterArchives')
+                    ->with(['subDepartments', 'masterArchives'])
+                    ->take(3)
+                    ->get();
+            }
 
-                // Box 3: Akuntansi (Accounting) - Baris Pertama (Masa simpan angka bulan murni: 120 = 10 Tahun)
-                [
-                    'BOX-03',
-                    'Faktur Pajak Masukan & Keluaran Masa Pajak 2024',
-                    'ACC',
-                    'TAX',
-                    'Faktur Pajak Keluaran Masa Jan - Jun 2024',
+            $locs = WarehouseLocation::where('is_active', true)->orderBy('rack_code')->take(5)->get();
+            $locIdx = 0;
+            $boxNum = 1;
+
+            foreach ($activeDepts as $dept) {
+                $sub = $dept->subDepartments->first();
+                $subCode = $sub ? $sub->code : '';
+                $subName = $sub ? $sub->name : $dept->name;
+
+                $masters = $sub
+                    ? $dept->masterArchives->where('sub_department_id', $sub->id)->values()
+                    : collect();
+                if ($masters->isEmpty()) {
+                    $masters = $dept->masterArchives->values();
+                }
+
+                $doc1 = $masters->get(0);
+                $doc1Name = $doc1 ? $doc1->name : "Berkas Utama {$subName}";
+                $doc1Period = $doc1 && $doc1->retention_years ? (string)($doc1->retention_years * 12) : (string)(($dept->retention_years ?: 5) * 12);
+                $doc1Desc = $doc1 && $doc1->description ? $doc1->description : "Dokumen operasional {$subName}";
+
+                $doc2 = $masters->get(1);
+                $doc2Name = $doc2 ? $doc2->name : "Dokumen Pendukung {$subName}";
+                $doc2Desc = $doc2 && $doc2->description ? $doc2->description : "Lampiran & verifikasi {$subName}";
+
+                $loc = $locs->get($locIdx);
+                $locIdx++;
+                $ruang = $loc ? $loc->room : 'R5';
+                $rak = $loc ? $loc->rack_code : 'R5-AS';
+                $slot = $loc && $loc->slot ? (string)$loc->slot : '1';
+
+                $boxCode = 'BOX-0' . $boxNum;
+                $boxTitle = "Berkas {$dept->name} - {$subName} 2024";
+
+                $sampleRows[] = [
+                    $boxCode,
+                    $boxTitle,
+                    $dept->code,
+                    $subCode,
+                    $doc1Name,
                     '2024-01',
-                    '2024-06',
-                    '120',
+                    '2024-12',
+                    $doc1Period,
                     'Baik / Box Karton Standar TB 30g',
-                    '', // NO_BUTIR (Auto urut: 1)
-                    'R5',
-                    'R5-AU',
                     '1',
-                    'Sudah divalidasi DJP e-Faktur',
-                ],
-            ];
+                    $ruang,
+                    $rak,
+                    $slot,
+                    $doc1Desc,
+                ];
+
+                $sampleRows[] = [
+                    '', '', '', '',
+                    $doc2Name,
+                    '2024-01',
+                    '2024-12',
+                    '', '', '', '', '', '',
+                    $doc2Desc,
+                ];
+
+                $boxNum++;
+            }
         }
-
         if (strtolower($format) === 'csv') {
             return $this->buildCsvResponse($headers, $sampleRows, 'template_arsip_multi_box.csv');
         }

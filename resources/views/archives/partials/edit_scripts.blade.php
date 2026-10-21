@@ -588,7 +588,9 @@ function archiveEditApp() {
 
             // Jika memilih sub-departemen spesifik
             if (subId && subId !== '') {
-                return all.filter(m => String(m.sub_department_id) === String(subId));
+                const subSpecific = all.filter(m => String(m.sub_department_id) === String(subId));
+                const generalDept = all.filter(m => !m.sub_department_id);
+                return subSpecific.length > 0 ? [...subSpecific, ...generalDept] : generalDept;
             }
 
             // Saat mode pilih sub-departemen (belum memilih sub-dept / default), langsung muncul semua

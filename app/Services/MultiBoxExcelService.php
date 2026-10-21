@@ -7,6 +7,7 @@ use App\Models\Archive;
 use App\Models\ArchiveItem;
 use App\Models\Department;
 use App\Models\SubDepartment;
+use App\Models\MasterArchive;
 use App\Models\WarehouseLocation;
 use App\Models\WarehouseRackSlot;
 use App\Models\User;
@@ -76,9 +77,10 @@ class MultiBoxExcelService
             return $default;
         };
 
-        // Cache Master Departments & Sub-Departments
+        // Cache Master Departments, Sub-Departments & Master Archives
         $departments = Department::where('is_active', true)->get();
         $subDepts = SubDepartment::where('is_active', true)->get();
+        $masterArchives = MasterArchive::where('is_active', true)->get();
 
         $userDeptId = ($user && $user->department_id) ? $user->department_id : null;
         $isPicDept = ($user && $user->isPicDept());
@@ -214,30 +216,42 @@ class MultiBoxExcelService
                 $periodeSelesai = $periodeMulai;
             }
 
-            // Resolve Department & Sub-Department
+            // Resolve Department (Strict Priority: Exact Code -> Exact Name -> Partial only if >= 4 chars)
             $effectiveDept = null;
             if (!empty($currentDept)) {
-                $effectiveDept = $departments->first(function ($d) use ($currentDept) {
-                    return strtoupper(trim($d->code)) === strtoupper(trim($currentDept))
-                        || strcasecmp(trim($d->name), trim($currentDept)) === 0
-                        || stripos($d->name, trim($currentDept)) !== false;
-                });
+                $cleanDept = strtoupper(trim($currentDept));
+                $effectiveDept = $departments->first(fn($d) => strtoupper(trim($d->code)) === $cleanDept)
+                    ?: $departments->first(fn($d) => strcasecmp(trim($d->name), $cleanDept) === 0);
+                if (!$effectiveDept && strlen($cleanDept) >= 4) {
+                    $effectiveDept = $departments->first(fn($d) => stripos($d->name, $cleanDept) !== false);
+                }
             } elseif ($userDeptId) {
                 $effectiveDept = $departments->firstWhere('id', $userDeptId);
             }
 
+            // Resolve Sub-Department (Strict Priority: Exact Code in Dept -> Exact Name in Dept -> Cross Dept Exact -> Partial only if >= 4 chars)
             $effectiveSubDept = null;
             if (!empty($currentSubDept)) {
-                $effectiveSubDept = $subDepts->first(function ($sd) use ($currentSubDept, $effectiveDept) {
-                    $codeOrNameMatch = (strtoupper(trim($sd->code)) === strtoupper(trim($currentSubDept))
-                        || strcasecmp(trim($sd->name), trim($currentSubDept)) === 0
-                        || stripos($sd->name, trim($currentSubDept)) !== false);
+                $cleanSub = strtoupper(trim($currentSubDept));
 
-                    if ($effectiveDept) {
-                        return $codeOrNameMatch && $sd->department_id === $effectiveDept->id;
-                    }
-                    return $codeOrNameMatch;
+                // 1. Exact Code within effective department
+                $effectiveSubDept = $subDepts->first(function ($sd) use ($cleanSub, $effectiveDept) {
+                    return (!$effectiveDept || $sd->department_id === $effectiveDept->id) && strtoupper(trim($sd->code)) === $cleanSub;
                 });
+
+                // 2. Exact Name within effective department
+                if (!$effectiveSubDept) {
+                    $effectiveSubDept = $subDepts->first(function ($sd) use ($cleanSub, $effectiveDept) {
+                        return (!$effectiveDept || $sd->department_id === $effectiveDept->id) && strcasecmp(trim($sd->name), $cleanSub) === 0;
+                    });
+                }
+
+                // 3. Fallback partial name only if search string length >= 4 chars
+                if (!$effectiveSubDept && strlen($cleanSub) >= 4) {
+                    $effectiveSubDept = $subDepts->first(function ($sd) use ($cleanSub, $effectiveDept) {
+                        return (!$effectiveDept || $sd->department_id === $effectiveDept->id) && stripos($sd->name, $cleanSub) !== false;
+                    });
+                }
 
                 // Infer department from sub-department if department was null
                 if ($effectiveSubDept && !$effectiveDept) {
@@ -357,6 +371,17 @@ class MultiBoxExcelService
             }
             $expiryDate = $endDate->copy()->addYears($retentionYears)->endOfMonth()->format('Y-m-d');
 
+            // Resolve document type from first item or master archive
+            $firstDocName = $boxData['items'][0]['document_name'] ?? '';
+            $matchedMaster = $masterArchives->first(function ($m) use ($firstDocName, $dept, $boxData) {
+                if ($m->department_id !== $dept->id) return false;
+                if ($boxData['sub_department'] && $m->sub_department_id && $m->sub_department_id !== $boxData['sub_department']->id) return false;
+                return strcasecmp(trim($m->name), trim($firstDocName)) === 0;
+            }) ?: $masterArchives->first(function ($m) use ($firstDocName, $dept) {
+                return $m->department_id === $dept->id && strcasecmp(trim($m->name), trim($firstDocName)) === 0;
+            });
+            $resolvedDocType = $matchedMaster ? $matchedMaster->document_type : '';
+
             $finalBoxes[] = [
                 'temp_box_id' => $tempBoxId,
                 'title' => $boxData['title'],
@@ -366,6 +391,7 @@ class MultiBoxExcelService
                 'department_name' => $dept->name,
                 'sub_department_id' => $boxData['sub_department'] ? $boxData['sub_department']->id : null,
                 'sub_department_code' => $boxData['sub_department'] ? $boxData['sub_department']->code : null,
+                'document_type' => $resolvedDocType,
                 'periode' => $boxPeriodLabel,
                 'periode_doc' => $periodeDoc,
                 'period_text' => $periodText,

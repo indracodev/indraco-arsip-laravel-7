@@ -152,12 +152,24 @@ class ArchiveImportController extends Controller
                 ];
             }
 
+            $docType = $b['document_type'] ?? '';
+            if (empty($docType) && !empty($boxItems[0]['document_name'])) {
+                $firstDoc = $boxItems[0]['document_name'];
+                $deptId = $b['department_id'] ?? $targetDeptId;
+                $matchedMaster = \App\Models\MasterArchive::where('name', $firstDoc)
+                    ->when($deptId, fn($q) => $q->where('department_id', $deptId))
+                    ->first();
+                if ($matchedMaster && $matchedMaster->document_type) {
+                    $docType = $matchedMaster->document_type;
+                }
+            }
+
             $preloadedBoxes[] = [
                 'id' => $idx + 1,
                 'temp_box_id' => $b['temp_box_id'] ?? ('BOX-' . str_pad($idx + 1, 2, '0', STR_PAD_LEFT)),
                 'title' => $b['title'] ?? $b['name'] ?? '',
                 'sub_department_id' => !empty($b['sub_department_id']) ? (string)$b['sub_department_id'] : '',
-                'document_type' => $b['document_type'] ?? '',
+                'document_type' => $docType,
                 'periode_bulan' => !empty($b['retention_years']) ? (string)($b['retention_years'] * 12) : '1',
                 'follow_previous' => false,
                 'physical_condition' => $b['physical_condition'] ?? 'Baik / Box Karton Standar TB 30g',
