@@ -97,11 +97,11 @@
                 </fieldset>
 
                 @if(!auth()->user()->isPicGudang())
-                <!-- GroupBox 2: Konten / Rincian Butir Dokumen Dalam Box -->
+                <!-- GroupBox 2: Konten / Rincian Berkas Dokumen Dalam Box -->
                 <fieldset class="border border-slate-300 dark:border-slate-800 p-3 rounded bg-white dark:bg-slate-950 space-y-2">
                     <legend class="px-1.5 font-bold text-emerald-700 dark:text-emerald-400 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-[10px] uppercase tracking-wider flex items-center gap-1">
                         <i data-lucide="list-checks" class="w-3 h-3 text-emerald-500"></i>
-                        <span>Butir Dokumen Dalam Box (<span x-text="detailModalData.items ? detailModalData.items.length : 0"></span> Berkas)</span>
+                        <span>Berkas Dokumen Dalam Box (<span x-text="detailModalData.items ? detailModalData.items.length : 0"></span> Berkas)</span>
                     </legend>
                     <template x-if="detailModalData.items && detailModalData.items.length > 0">
                         <div class="border border-slate-300 dark:border-slate-800 rounded overflow-hidden">
@@ -117,7 +117,7 @@
                                 <tbody class="divide-y divide-slate-200 dark:divide-slate-800 text-[11px]">
                                     <template x-for="item in detailModalData.items" :key="item.number">
                                         <tr class="hover:bg-slate-50 dark:hover:bg-slate-900/60">
-                                            <td class="py-1 px-2 text-center font-bold text-purple-600 dark:text-purple-400 border-r border-slate-200 dark:border-slate-800" x-text="item.number"></td>
+                                             <td class="py-1 px-2 text-center font-bold text-purple-600 dark:text-purple-400 border-r border-slate-200 dark:border-slate-800" x-text="item.number"></td>
                                             <td class="py-1 px-2 font-bold font-sans text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800" x-text="item.name"></td>
                                             <td class="py-1 px-2 text-amber-600 dark:text-amber-400 border-r border-slate-200 dark:border-slate-800" x-text="item.period || '-'"></td>
                                             <td class="py-1 px-2 font-sans text-slate-500" x-text="item.notes || '-'"></td>
@@ -128,7 +128,7 @@
                         </div>
                     </template>
                     <template x-if="!detailModalData.items || detailModalData.items.length === 0">
-                        <p class="text-slate-400 italic text-[11px] py-1 text-center font-sans">Tidak ada rincian butir dokumen spesifik untuk box ini.</p>
+                        <p class="text-slate-400 italic text-[11px] py-1 text-center font-sans">Tidak ada rincian berkas dokumen spesifik untuk box ini.</p>
                     </template>
                 </fieldset>
                 @endif

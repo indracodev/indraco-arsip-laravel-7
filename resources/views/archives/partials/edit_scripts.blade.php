@@ -252,7 +252,7 @@ function archiveEditApp() {
             if (window.showConfirmModal) {
                 const ok = await window.showConfirmModal({
                     title: 'Hapus Box Arsip',
-                    message: `Apakah Anda yakin ingin menghapus Box #${index + 1}? Seluruh butir berkas di dalam box ini akan dihapus.`,
+                    message: `Apakah Anda yakin ingin menghapus Box #${index + 1}? Seluruh berkas dokumen di dalam box ini akan dihapus.`,
                     type: 'danger',
                     confirmText: 'Ya, Hapus Box'
                 });
@@ -324,7 +324,7 @@ function archiveEditApp() {
                 }
 
                 if (window.showToast) {
-                    window.showToast(`📋 Berhasil menempel ${newItems.length} butir dokumen dari spreadsheet ke Box #${boxIndex + 1}.`, 'success');
+                    window.showToast(`📋 Berhasil menempel ${newItems.length} berkas dokumen dari spreadsheet ke Box #${boxIndex + 1}.`, 'success');
                 }
                 this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
             }
@@ -410,7 +410,7 @@ function archiveEditApp() {
             const box = this.boxes[boxIndex];
             if (!box) return;
             if (box.items.length <= 1) {
-                alert('Box minimal harus memiliki 1 butir dokumen.');
+                alert('Box minimal harus memiliki 1 berkas dokumen.');
                 return;
             }
             box.items.splice(itemIndex, 1);

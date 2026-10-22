@@ -98,14 +98,14 @@
                     return false;
                 }
 
-                // Butir Berkas Minimal 1
+                // Berkas Dokumen Minimal 1
                 if (!box.items || box.items.length === 0) {
-                    alert(`⚠️ Box #${boxNum} minimal harus memiliki 1 butir berkas arsip.`);
+                    alert(`⚠️ Box #${boxNum} minimal harus memiliki 1 berkas dokumen arsip.`);
                     this.activeBoxIndex = b;
                     return false;
                 }
 
-                // Validasi Tiap Butir Dokumen
+                // Validasi Tiap Berkas Dokumen
                 for (let i = 0; i < box.items.length; i++) {
                     const it = box.items[i];
                     const rowNum = i + 1;

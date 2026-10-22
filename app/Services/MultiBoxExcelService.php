@@ -93,6 +93,7 @@ class MultiBoxExcelService
         $rowNum = $dataStartIdx; // 0-indexed row offset
 
         $currentBoxId = null;
+        $boxSequence = 0;
         $currentDept = null;
         $currentSubDept = null;
         $currentTitle = null;
@@ -124,73 +125,55 @@ class MultiBoxExcelService
                 continue;
             }
 
-            // Extract box ID or carry-over from preceding row in same box
+            // Extract box ID or detect new box from JUDUL_BOX
             $rawBoxId = $getVal($row, 'box');
+            $rawBoxTitle = $getVal($row, 'title');
+            $isNewBox = false;
+
             if (!empty($rawBoxId)) {
-                // Ketika beralih ke Box Baru, reset metadata box carry-over yang lama
                 if ($currentBoxId !== null && $rawBoxId !== $currentBoxId) {
-                    $currentDept = null;
-                    $currentSubDept = null;
-                    $currentTitle = null;
-                    $currentPeriodBox = null;
-                    $currentRetention = null;
-                    $currentCondition = null;
-                    $currentRoom = null;
-                    $currentRack = null;
-                    $currentSlot = null;
+                    $isNewBox = true;
                 }
                 $currentBoxId = $rawBoxId;
-            }
-            if (empty($currentBoxId)) {
-                // Default fallback box ID if completely omitted on row 1
-                $currentBoxId = 'BOX-01';
+            } elseif (!empty($rawBoxTitle)) {
+                if ($currentTitle !== null && $rawBoxTitle !== $currentTitle) {
+                    $isNewBox = true;
+                }
+                if ($currentBoxId === null || $isNewBox) {
+                    $boxSequence++;
+                    $currentBoxId = 'BOX-' . str_pad($boxSequence, 2, '0', STR_PAD_LEFT);
+                }
             }
 
-            // Extract metadata or carry-over
-            $rawBoxTitle = $getVal($row, 'title');
+            if ($isNewBox) {
+                $currentDept = null;
+                $currentSubDept = null;
+                $currentTitle = null;
+                $currentPeriodBox = null;
+                $currentRetention = null;
+                $currentCondition = null;
+                $currentRoom = null;
+                $currentRack = null;
+                $currentSlot = null;
+            }
+
+            if (empty($currentBoxId)) {
+                $boxSequence++;
+                $currentBoxId = 'BOX-' . str_pad($boxSequence, 2, '0', STR_PAD_LEFT);
+            }
+
             if (!empty($rawBoxTitle)) {
                 $currentTitle = $rawBoxTitle;
             }
 
-            $rawDept = $getVal($row, 'dept');
-            if (!empty($rawDept)) {
-                $currentDept = $rawDept;
-            }
-
-            $rawSubDept = $getVal($row, 'sub_dept');
-            if (!empty($rawSubDept)) {
-                $currentSubDept = $rawSubDept;
-            }
-
-            $rawPeriodBox = $getVal($row, 'period_box');
-            if (!empty($rawPeriodBox)) {
-                $currentPeriodBox = $rawPeriodBox;
-            }
-
-            $rawRetention = $getVal($row, 'retention');
-            if (!empty($rawRetention)) {
-                $currentRetention = $rawRetention;
-            }
-
-            $rawCondition = $getVal($row, 'condition');
-            if (!empty($rawCondition)) {
-                $currentCondition = $rawCondition;
-            }
-
-            $rawRoom = $getVal($row, 'room');
-            if (!empty($rawRoom)) {
-                $currentRoom = $rawRoom;
-            }
-
-            $rawRack = $getVal($row, 'rack');
-            if (!empty($rawRack)) {
-                $currentRack = $rawRack;
-            }
-
-            $rawSlot = $getVal($row, 'slot');
-            if (!empty($rawSlot)) {
-                $currentSlot = $rawSlot;
-            }
+            if (!empty($rawDept = $getVal($row, 'dept'))) $currentDept = $rawDept;
+            if (!empty($rawSubDept = $getVal($row, 'sub_dept'))) $currentSubDept = $rawSubDept;
+            if (!empty($rawPeriodBox = $getVal($row, 'period_box'))) $currentPeriodBox = $rawPeriodBox;
+            if (!empty($rawRetention = $getVal($row, 'retention'))) $currentRetention = $rawRetention;
+            if (!empty($rawCondition = $getVal($row, 'condition'))) $currentCondition = $rawCondition;
+            if (!empty($rawRoom = $getVal($row, 'room'))) $currentRoom = $rawRoom;
+            if (!empty($rawRack = $getVal($row, 'rack'))) $currentRack = $rawRack;
+            if (!empty($rawSlot = $getVal($row, 'slot'))) $currentSlot = $rawSlot;
 
             $itemNum = $getVal($row, 'item_num');
             $keterangan = $getVal($row, 'notes');
@@ -234,24 +217,10 @@ class MultiBoxExcelService
             if (!empty($currentSubDept)) {
                 $cleanSub = strtoupper(trim($currentSubDept));
 
-                // 1. Exact Code within effective department
-                $effectiveSubDept = $subDepts->first(function ($sd) use ($cleanSub, $effectiveDept) {
-                    return (!$effectiveDept || $sd->department_id === $effectiveDept->id) && strtoupper(trim($sd->code)) === $cleanSub;
-                });
-
-                // 2. Exact Name within effective department
-                if (!$effectiveSubDept) {
-                    $effectiveSubDept = $subDepts->first(function ($sd) use ($cleanSub, $effectiveDept) {
-                        return (!$effectiveDept || $sd->department_id === $effectiveDept->id) && strcasecmp(trim($sd->name), $cleanSub) === 0;
-                    });
-                }
-
-                // 3. Fallback partial name only if search string length >= 4 chars
-                if (!$effectiveSubDept && strlen($cleanSub) >= 4) {
-                    $effectiveSubDept = $subDepts->first(function ($sd) use ($cleanSub, $effectiveDept) {
-                        return (!$effectiveDept || $sd->department_id === $effectiveDept->id) && stripos($sd->name, $cleanSub) !== false;
-                    });
-                }
+                $matchSd = fn($filter) => $subDepts->first(fn($sd) => (!$effectiveDept || $sd->department_id === $effectiveDept->id) && $filter($sd));
+                $effectiveSubDept = $matchSd(fn($sd) => strtoupper(trim($sd->code)) === $cleanSub)
+                    ?: $matchSd(fn($sd) => strcasecmp(trim($sd->name), $cleanSub) === 0)
+                    ?: (strlen($cleanSub) >= 4 ? $matchSd(fn($sd) => stripos($sd->name, $cleanSub) !== false) : null);
 
                 // Infer department from sub-department if department was null
                 if ($effectiveSubDept && !$effectiveDept) {
@@ -300,14 +269,21 @@ class MultiBoxExcelService
                 }
             }
 
+            // Smart Match MasterArchive (Toleransi Typo / Case / Simbol / Urutan Kata / Kurang / Lebih Kata)
+            $matchedMaster = $this->matchMasterArchive($docName, $effectiveDept, $masterArchives);
+            $finalDocName = $matchedMaster ? $matchedMaster->name : $docName;
+            if ($matchedMaster && !empty($matchedMaster->document_type) && empty($grouped[$currentBoxId]['document_type'])) {
+                $grouped[$currentBoxId]['document_type'] = $matchedMaster->document_type;
+            }
+
             $currentItemsCount = count($grouped[$currentBoxId]['items']) + 1;
             $finalItemNum = (!empty($itemNum) && is_numeric($itemNum)) ? (int)$itemNum : $currentItemsCount;
             $periodText = ($periodeMulai === $periodeSelesai) ? $periodeMulai : "{$periodeMulai} s/d {$periodeSelesai}";
 
             $grouped[$currentBoxId]['items'][] = [
                 'item_number' => $finalItemNum,
-                'document_name' => $docName,
-                'name' => $docName,
+                'document_name' => $finalDocName,
+                'name' => $finalDocName,
                 'period_start' => $periodeMulai,
                 'period_end' => $periodeSelesai,
                 'period_text' => $periodText,
@@ -373,14 +349,8 @@ class MultiBoxExcelService
 
             // Resolve document type from first item or master archive
             $firstDocName = $boxData['items'][0]['document_name'] ?? '';
-            $matchedMaster = $masterArchives->first(function ($m) use ($firstDocName, $dept, $boxData) {
-                if ($m->department_id !== $dept->id) return false;
-                if ($boxData['sub_department'] && $m->sub_department_id && $m->sub_department_id !== $boxData['sub_department']->id) return false;
-                return strcasecmp(trim($m->name), trim($firstDocName)) === 0;
-            }) ?: $masterArchives->first(function ($m) use ($firstDocName, $dept) {
-                return $m->department_id === $dept->id && strcasecmp(trim($m->name), trim($firstDocName)) === 0;
-            });
-            $resolvedDocType = $matchedMaster ? $matchedMaster->document_type : '';
+            $matchedMaster = $this->matchMasterArchive($firstDocName, $dept, $masterArchives);
+            $resolvedDocType = $matchedMaster ? $matchedMaster->document_type : ($boxData['document_type'] ?? '');
 
             $finalBoxes[] = [
                 'temp_box_id' => $tempBoxId,
@@ -445,46 +415,65 @@ class MultiBoxExcelService
                 $locationId = null;
                 $slotId = null;
 
-                if (!empty($box['location_room']) || !empty($box['location_rack'])) {
+                if (!empty($box['location_room']) || !empty($box['location_rack']) || !empty($box['location_slot'])) {
                     $room = trim($box['location_room'] ?? '');
                     $rack = trim($box['location_rack'] ?? '');
                     $slotNum = trim($box['location_slot'] ?? '');
+                    $cleanRoom = preg_replace('/^(?:GUDANG\s+)?/i', '', $room);
+                    $cleanRack = preg_replace('/^(?:RAK-)?(?:R\d+-)?/i', '', $rack);
 
-                    $loc = WarehouseLocation::where(function ($q) use ($room, $rack) {
-                        if ($room && $rack) {
-                            $q->where(function ($sub) use ($room, $rack) {
-                                $sub->where('room_sector', $room)
-                                    ->where(function ($rSub) use ($rack, $room) {
-                                        $rSub->where('rack_code', $rack)
-                                             ->orWhere('rack_code', "{$room}-{$rack}")
-                                             ->orWhere('rack_code', "RAK-{$rack}")
-                                             ->orWhere('rack_code', "RAK-{$room}-{$rack}");
-                                    });
-                            })->orWhere('rack_code', "{$room}-{$rack}")
-                              ->orWhere('rack_code', $rack);
-                        } elseif ($rack) {
-                            $q->where('rack_code', $rack)
-                              ->orWhere('rack_code', 'LIKE', "%{$rack}%");
+                    // 1. Direct match by slot_code (e.g. AS55, BW2)
+                    $slotObj = null;
+                    if (!empty($slotNum)) {
+                        $slotObj = WarehouseRackSlot::where('slot_code', strtoupper($slotNum))->first();
+                    }
+                    if (!$slotObj && !empty($rack)) {
+                        $slotObj = WarehouseRackSlot::where('slot_code', strtoupper($rack))->first();
+                    }
+
+                    if ($slotObj) {
+                        $slotId = $slotObj->id;
+                        $loc = $slotObj->location;
+                        $locationId = $slotObj->warehouse_location_id;
+                    } else {
+                        // 2. Match physical rack first (location_type = 'rack')
+                        $rooms = array_filter(array_unique([$room, $cleanRoom]));
+                        $loc = WarehouseLocation::where('location_type', 'rack')->where(function ($q) use ($rack, $rooms, $cleanRoom, $cleanRack) {
+                            if (!empty($rooms) && $cleanRack) {
+                                $q->whereIn('room_sector', $rooms)->where(function ($sq) use ($rack, $cleanRack, $cleanRoom) {
+                                    $sq->where('rack_code', $rack)->orWhere('rack_code', "{$cleanRoom}-{$cleanRack}")->orWhere('rack_code', 'LIKE', "%-{$cleanRack}")->orWhere('rack_code', 'LIKE', "%{$cleanRack}%");
+                                });
+                            } elseif ($cleanRack) {
+                                $q->where('rack_code', $rack)->orWhere('rack_code', 'LIKE', "%-{$cleanRack}")->orWhere('rack_code', 'LIKE', "%{$cleanRack}%");
+                            } elseif (!empty($rooms)) {
+                                $q->whereIn('room_sector', $rooms);
+                            }
+                        })->first();
+
+                        // Fallback to room only if no physical rack matched
+                        if (!$loc && $cleanRoom) {
+                            $loc = WarehouseLocation::where('room_sector', $cleanRoom)->orWhere('rack_code', 'LIKE', "%{$cleanRoom}%")->first();
                         }
-                    })->first();
 
-                    if ($loc) {
-                        $locationId = $loc->id;
-                        if (!empty($slotNum) && is_numeric($slotNum)) {
-                            $slotObj = WarehouseRackSlot::where('warehouse_location_id', $loc->id)
-                                ->where('slot_number', (int)$slotNum)
-                                ->first();
-                            if ($slotObj) {
-                                $slotId = $slotObj->id;
-                                if ($status === 'in_warehouse') {
-                                    $slotObj->update([
-                                        'archive_id' => null, // Will be set after archive is created
-                                        'status' => 'filled',
-                                    ]);
-                                    $loc->increment('current_box_count');
-                                }
+                        if ($loc) {
+                            $locationId = $loc->id;
+                            if (!empty($slotNum)) {
+                                $num = preg_replace('/\D/', '', $slotNum);
+                                $slotObj = WarehouseRackSlot::where('warehouse_location_id', $loc->id)
+                                    ->where(function ($sq) use ($slotNum, $num) {
+                                        $sq->where('slot_code', strtoupper($slotNum));
+                                        if ($num !== '') $sq->orWhere('slot_number', (int)$num);
+                                    })->first();
+                                if ($slotObj) $slotId = $slotObj->id;
                             }
                         }
+                    }
+
+                    if ($slotObj && $status === 'in_warehouse') {
+                        $slotObj->update(['status' => 'filled']);
+                    }
+                    if ($loc && $status === 'in_warehouse') {
+                        $loc->increment('current_box_count');
                     }
                 }
 
@@ -493,7 +482,7 @@ class MultiBoxExcelService
                     'department_id' => $box['department_id'],
                     'sub_department_id' => $box['sub_department_id'] ?? null,
                     'company_name' => 'PT INDRACO GLOBAL INDONESIA',
-                    'document_type' => null,
+                    'document_type' => !empty($box['document_type']) ? $box['document_type'] : null,
                     'created_by_user_id' => $user->id,
                     'title' => $box['title'],
                     'is_custom_doc_name' => false,
@@ -520,6 +509,25 @@ class MultiBoxExcelService
                 // Link slot to archive if assigned
                 if ($slotId) {
                     WarehouseRackSlot::where('id', $slotId)->update(['archive_id' => $archive->id]);
+                }
+
+                // If saved directly to warehouse (or if Superadmin imported with resolved warehouse location)
+                if ($status === 'in_warehouse') {
+                    if (empty($archive->box_number)) {
+                        $numberingService = new \App\Services\NumberingService();
+                        $archive->box_number = $numberingService->generateBoxCode($archive);
+                        $archive->save();
+                    }
+
+                    if ($locationId) {
+                        \App\Models\WarehouseEntryLog::create([
+                            'archive_id' => $archive->id,
+                            'pic_gudang_id' => $user->id,
+                            'location_id' => $locationId,
+                            'entry_date' => now(),
+                            'notes' => 'Penerimaan fisik berkas langsung ke gudang via impor spreadsheet.',
+                        ]);
+                    }
                 }
 
                 // 4. Batch insert ArchiveItems
@@ -581,8 +589,8 @@ class MultiBoxExcelService
             'title' => ['JUDUL_BOX', 'NAMA_BOX', 'DESKRIPSI_BOX', 'TITLE', 'JUDUL'],
             'dept' => ['KODE_DEPARTEMEN', 'DEPARTEMEN', 'DEPT', 'DEPARTMENT', 'DEPARTEMENT'],
             'sub_dept' => ['KODE_SUB_DEPARTEMEN', 'SUB_DEPARTEMEN', 'SUB_DEPT', 'SUB_DEPT.', 'SUB DEPT', 'SUB DEPT.'],
-            'doc_name' => ['NAMA_DOKUMEN', 'LIST_DOKUMEN', 'LIST DOKUMEN', 'DOKUMEN', 'JUDUL_DOKUMEN', 'NAMA DOKUMEN'],
-            'item_num' => ['NO_BUTIR', 'NO.', 'NO', 'NOMOR', 'ITEM_NO'],
+            'doc_name' => ['NAMA_DOKUMEN', 'NAMA_BERKAS', 'BERKAS', 'LIST_DOKUMEN', 'LIST DOKUMEN', 'DOKUMEN', 'JUDUL_DOKUMEN', 'NAMA DOKUMEN', 'ITEM_DOKUMEN'],
+            'item_num' => ['NO_BUTIR', 'NO_URUT', 'NO.', 'NO', 'NOMOR', 'ITEM_NO', 'NO_BERKAS'],
             'period_combined' => ['PERIODE_DOKUMEN', 'PERIODE DOKUMEN', 'PERIODE', 'PERIODE_BOX', 'PERIODE DOK'],
             'period_start' => ['PERIODE_DOK_MULAI', 'PERIODE_MULAI', 'MULAI', 'START_DATE'],
             'period_end' => ['PERIODE_DOK_SELESAI', 'PERIODE_SELESAI', 'SELESAI', 'END_DATE'],
@@ -591,7 +599,7 @@ class MultiBoxExcelService
             'room' => ['RUANG', 'GUDANG', 'LOKASI_RUANG', 'ROOM'],
             'rack' => ['RAK', 'LOKASI_RAK', 'RACK'],
             'slot' => ['NO_SLOT', 'SLOT', 'NOMOR_SLOT'],
-            'notes' => ['KETERANGAN_BUTIR', 'KETERANGAN', 'CATATAN', 'NOTES'],
+            'notes' => ['KETERANGAN_DOKUMEN', 'KETERANGAN_BERKAS', 'KETERANGAN_BUTIR', 'KETERANGAN', 'CATATAN', 'NOTES', 'KET'],
         ];
 
         // Scan first 5 rows for main header
@@ -653,31 +661,22 @@ class MultiBoxExcelService
     protected function parseXlsx(string $filePath): array
     {
         $zip = new ZipArchive();
-        if ($zip->open($filePath) !== true) {
-            return [];
-        }
+        if ($zip->open($filePath) !== true) return [];
 
-        // 1. Shared Strings Table
         $sharedStrings = [];
-        $ssContent = $zip->getFromName('xl/sharedStrings.xml');
-        if ($ssContent) {
+        if ($ssContent = $zip->getFromName('xl/sharedStrings.xml')) {
             $ssXml = @simplexml_load_string($ssContent);
             if ($ssXml && isset($ssXml->si)) {
                 foreach ($ssXml->si as $si) {
-                    $val = '';
-                    if (isset($si->t)) {
-                        $val = (string)$si->t;
-                    } elseif (isset($si->r)) {
-                        foreach ($si->r as $r) {
-                            $val .= (string)$r->t;
-                        }
+                    $val = (string)($si->t ?? '');
+                    if (!$val && isset($si->r)) {
+                        foreach ($si->r as $r) $val .= (string)$r->t;
                     }
                     $sharedStrings[] = $val;
                 }
             }
         }
 
-        // 2. Worksheet Sheet1
         $sheetContent = $zip->getFromName('xl/worksheets/sheet1.xml');
         if (!$sheetContent) {
             for ($i = 0; $i < $zip->numFiles; $i++) {
@@ -690,42 +689,24 @@ class MultiBoxExcelService
         }
 
         $rows = [];
-        if ($sheetContent) {
-            $sheetXml = @simplexml_load_string($sheetContent);
-            if ($sheetXml && isset($sheetXml->sheetData->row)) {
-                foreach ($sheetXml->sheetData->row as $row) {
-                    $rowCells = [];
-                    foreach ($row->c as $c) {
-                        $attr = $c->attributes();
-                        $r = isset($attr['r']) ? (string)$attr['r'] : '';
-                        $colIdx = $this->colLetterToIndex($r);
-
-                        $t = isset($attr['t']) ? (string)$attr['t'] : '';
-                        $val = '';
-                        if ($t === 's') {
-                            $sIdx = (int)$c->v;
-                            $val = $sharedStrings[$sIdx] ?? '';
-                        } elseif ($t === 'inlineStr') {
-                            $val = (string)$c->is->t;
-                        } else {
-                            $val = (string)$c->v;
-                        }
-
-                        $rowCells[$colIdx] = trim($val);
-                    }
-
-                    if (!empty($rowCells)) {
-                        $maxCol = max(array_keys($rowCells));
-                        $denseRow = [];
-                        for ($c = 0; $c <= $maxCol; $c++) {
-                            $denseRow[] = $rowCells[$c] ?? '';
-                        }
-                        $rows[] = $denseRow;
-                    }
+        if ($sheetContent && ($sheetXml = @simplexml_load_string($sheetContent)) && isset($sheetXml->sheetData->row)) {
+            foreach ($sheetXml->sheetData->row as $row) {
+                $rowCells = [];
+                foreach ($row->c as $c) {
+                    $attr = $c->attributes();
+                    $colIdx = $this->colLetterToIndex(isset($attr['r']) ? (string)$attr['r'] : '');
+                    $t = isset($attr['t']) ? (string)$attr['t'] : '';
+                    $val = ($t === 's') ? ($sharedStrings[(int)$c->v] ?? '') : (($t === 'inlineStr') ? (string)$c->is->t : (string)$c->v);
+                    $rowCells[$colIdx] = trim($val);
+                }
+                if (!empty($rowCells)) {
+                    $maxCol = max(array_keys($rowCells));
+                    $denseRow = [];
+                    for ($c = 0; $c <= $maxCol; $c++) $denseRow[] = $rowCells[$c] ?? '';
+                    $rows[] = $denseRow;
                 }
             }
         }
-
         $zip->close();
         return $rows;
     }
@@ -735,34 +716,83 @@ class MultiBoxExcelService
      */
     protected function parseCsv(string $filePath): array
     {
-        $handle = fopen($filePath, 'r');
-        if (!$handle) {
-            return [];
-        }
-
-        $firstLine = fgets($handle);
-        rewind($handle);
-
-        $delimiter = ',';
-        if (substr_count($firstLine, ';') > substr_count($firstLine, ',')) {
-            $delimiter = ';';
-        } elseif (substr_count($firstLine, "\t") > substr_count($firstLine, ',')) {
-            $delimiter = "\t";
-        }
-
-        $rows = [];
-        $isFirst = true;
+        if (!($handle = fopen($filePath, 'r'))) return [];
+        $firstLine = fgets($handle); rewind($handle);
+        $delimiter = (substr_count($firstLine, ';') > substr_count($firstLine, ',')) ? ';' : ((substr_count($firstLine, "\t") > substr_count($firstLine, ',')) ? "\t" : ',');
+        $rows = []; $isFirst = true;
         while (($data = fgetcsv($handle, 10000, $delimiter)) !== false) {
-            if ($isFirst && !empty($data)) {
-                $data[0] = preg_replace('/^\xEF\xBB\xBF/', '', $data[0]);
-                $isFirst = false;
-            }
+            if ($isFirst && !empty($data)) { $data[0] = preg_replace('/^\xEF\xBB\xBF/', '', $data[0]); $isFirst = false; }
             $rows[] = array_map('trim', $data);
         }
         fclose($handle);
-
         return $rows;
     }
+
+    /**
+     * Smart & Fuzzy Match MasterArchive: toleran typo huruf, urutan kata terbalik,
+     * kekurangan/kelebihan kata, root word/prefix (misal: "plast" -> "Plastik & Paper Cup").
+     */
+    protected function matchMasterArchive(string $rawDocName, $dept, $masterArchives): ?MasterArchive
+    {
+        $clean = strtolower(trim((string)preg_replace('/[^a-zA-Z0-9]/', '', $rawDocName)));
+        if ($clean === '' || strlen($clean) < 3) return null;
+
+        $pool = ($dept && $masterArchives->where('department_id', $dept->id)->isNotEmpty())
+            ? $masterArchives->where('department_id', $dept->id)
+            : $masterArchives;
+
+        // 1. Exact match (case-insensitive & alphanumeric)
+        foreach ($pool as $m) {
+            if (strcasecmp(trim($m->name), trim($rawDocName)) === 0) return $m;
+            if (strtolower(trim((string)preg_replace('/[^a-zA-Z0-9]/', '', $m->name))) === $clean) return $m;
+        }
+
+        // 2. Token-set (salah urutan kata / anagram kata)
+        $docWords = array_values(array_filter(preg_split('/[^a-zA-Z0-9]+/', strtolower($rawDocName))));
+        $s1 = $docWords; sort($s1);
+        foreach ($pool as $m) {
+            $mWords = array_values(array_filter(preg_split('/[^a-zA-Z0-9]+/', strtolower($m->name))));
+            $s2 = $mWords; sort($s2);
+            if (!empty($s1) && $s1 === $s2) return $m;
+        }
+
+        // 3. Word-level Prefix & Fuzzy Similarity (misal "plast" -> "plastik")
+        $bestMatch = null;
+        $highestScore = 0;
+        foreach ($pool as $m) {
+            $mWords = array_values(array_filter(preg_split('/[^a-zA-Z0-9]+/', strtolower($m->name))));
+            $mClean = strtolower(trim((string)preg_replace('/[^a-zA-Z0-9]/', '', $m->name)));
+            if (empty($mWords) || empty($mClean)) continue;
+
+            $matchedCount = 0;
+            foreach ($docWords as $dw) {
+                foreach ($mWords as $mw) {
+                    if ($dw === $mw) { $matchedCount += 1.0; break; }
+                    if ((strlen($dw) >= 4 && strpos($mw, $dw) === 0) || (strlen($mw) >= 4 && strpos($dw, $mw) === 0)) {
+                        $matchedCount += 0.95; break;
+                    }
+                    similar_text($dw, $mw, $wSim);
+                    if ($wSim >= 75 && (strlen($dw) >= 4 || strlen($mw) >= 4)) {
+                        $matchedCount += ($wSim / 100); break;
+                    }
+                }
+            }
+            $wordScore = (count($docWords) > 0) ? ($matchedCount / count($docWords)) * 85 : 0;
+            // substrScore: hanya ketika INPUT adalah singkatan/prefix dari MASTER (bukan sebaliknya)
+            $substrScore = (strlen($clean) >= 4 && strpos($mClean, $clean) !== false)
+                ? ((strpos($mClean, $clean) === 0) ? 88 : 78) : 0;
+
+            similar_text($clean, $mClean, $sim);
+            // Penalize similar_text ketika panjang string sangat berbeda (mencegah "Form Utilitas" ≈ "Utilitas")
+            $lenRatio = min(strlen($clean), strlen($mClean)) / max(strlen($clean), strlen($mClean));
+            if ($lenRatio < 0.7) $sim *= $lenRatio;
+            $composite = max($wordScore, $substrScore, $sim);
+            if ($composite > $highestScore) {
+                $highestScore = $composite;
+                $bestMatch = $m;
+            }
+        }
+
+        return ($highestScore >= 68) ? $bestMatch : null;
+    }
 }
-
-

@@ -28,8 +28,8 @@
                         <label class="flex items-start gap-2.5 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/60 cursor-pointer">
                             <input type="radio" value="full" x-model="duplicateMode" class="mt-0.5 text-amber-500">
                             <div>
-                                <span class="font-bold text-slate-800 dark:text-slate-100">Salin Lengkap (Wadah & Seluruh Butir Berkas)</span>
-                                <p class="text-[11px] text-slate-500">Menduplikasi seluruh identitas box dan menyalin semua <span x-text="boxes[duplicateSourceIndex] ? boxes[duplicateSourceIndex].items.length : 0"></span> butir berkas dokumen.</p>
+                                <span class="font-bold text-slate-800 dark:text-slate-100">Salin Lengkap (Wadah & Seluruh Berkas Dokumen)</span>
+                                <p class="text-[11px] text-slate-500">Menduplikasi seluruh identitas box dan menyalin semua <span x-text="boxes[duplicateSourceIndex] ? boxes[duplicateSourceIndex].items.length : 0"></span> berkas dokumen.</p>
                             </div>
                         </label>
 
@@ -37,8 +37,8 @@
                         <label class="flex items-start gap-2.5 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/60 cursor-pointer">
                             <input type="radio" value="metadata_only" x-model="duplicateMode" class="mt-0.5 text-amber-500">
                             <div>
-                                <span class="font-bold text-slate-800 dark:text-slate-100">Salin Metadata Saja (Wadah Saja, Kosongkan Butir)</span>
-                                <p class="text-[11px] text-slate-500">Menyalin sub-dept, jenis dokumen, dan kondisi fisik, tetapi mengosongkan butir dokumen untuk diisi baru.</p>
+                                <span class="font-bold text-slate-800 dark:text-slate-100">Salin Metadata Saja (Wadah Saja, Kosongkan Berkas)</span>
+                                <p class="text-[11px] text-slate-500">Menyalin sub-dept, jenis dokumen, dan kondisi fisik, tetapi mengosongkan berkas dokumen untuk diisi baru.</p>
                             </div>
                         </label>
 
@@ -46,7 +46,7 @@
                         <label class="flex items-start gap-2.5 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/60 cursor-pointer">
                             <input type="radio" value="selected_items" x-model="duplicateMode" class="mt-0.5 text-amber-500">
                             <div>
-                                <span class="font-bold text-slate-800 dark:text-slate-100">Pilih Butir Berkas Tertentu</span>
+                                <span class="font-bold text-slate-800 dark:text-slate-100">Pilih Berkas Dokumen Tertentu</span>
                                 <p class="text-[11px] text-slate-500">Pilih checklist berkas mana saja yang ingin disertakan ke box baru.</p>
                             </div>
                         </label>

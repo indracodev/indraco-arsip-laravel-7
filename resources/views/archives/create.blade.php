@@ -52,7 +52,7 @@
             <!-- Tombol Impor Excel -->
             <a href="{{ route('archives.index', ['open_import' => 1]) }}" 
                class="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/50 dark:hover:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700/60 rounded text-xs font-mono font-bold transition flex items-center gap-1.5 shadow-sm whitespace-nowrap shrink-0 cursor-pointer"
-               title="Unggah template spreadsheet Excel (.xlsx) untuk mengisi banyak box dan butir dokumen secara otomatis">
+               title="Unggah template spreadsheet Excel (.xlsx) untuk mengisi banyak box dan berkas dokumen secara otomatis">
                 <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0"></i>
                 <span>Impor Excel</span>
             </a>
@@ -96,7 +96,7 @@
             <div>
                 <strong class="font-bold uppercase tracking-wider block text-blue-900 dark:text-blue-300">Data Pengajuan Berhasil Dimuat dari File Excel!</strong>
                 <p class="text-[11px] text-slate-700 dark:text-slate-300 font-sans mt-0.5">
-                    Sebanyak <strong class="text-blue-700 dark:text-blue-400 font-mono">{{ count($preloadedBoxes ?? []) }} Box ({{ $totalItemsPreloaded ?? 0 }} Butir Berkas)</strong> telah dimuat ke formulir pengajuan. Silakan periksa kelengkapan, cetak Form Pengajuan jika diperlukan, lalu ajukan ke Gudang.
+                    Sebanyak <strong class="text-blue-700 dark:text-blue-400 font-mono">{{ count($preloadedBoxes ?? []) }} Box ({{ $totalItemsPreloaded ?? 0 }} Berkas)</strong> telah dimuat ke formulir pengajuan. Silakan periksa kelengkapan, cetak Form Pengajuan jika diperlukan, lalu ajukan ke Gudang.
                 </p>
             </div>
         </div>
@@ -120,7 +120,7 @@
             <div class="min-w-0">
                 <strong class="font-bold uppercase tracking-wider block text-amber-900 dark:text-amber-300">Draft Pengisian Formulir Berhasil Dipulihkan Otomatis!</strong>
                 <p class="text-[11px] text-slate-700 dark:text-slate-300 font-sans mt-0.5">
-                    Data pengisian (<strong x-text="boxes.length + ' Box, ' + getTotalItemsCount() + ' Butir Berkas'"></strong>) dipulihkan dari sesi sebelum terputus/refresh (Tersimpan: <strong x-text="draftSavedTime"></strong>).
+                    Data pengisian (<strong x-text="boxes.length + ' Box, ' + getTotalItemsCount() + ' Berkas'"></strong>) dipulihkan dari sesi sebelum terputus/refresh (Tersimpan: <strong x-text="draftSavedTime"></strong>).
                 </p>
             </div>
         </div>
@@ -194,7 +194,7 @@
                         type="button" 
                         @click="openDuplicateModal(activeBoxIndex)" 
                         class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded text-xs font-bold transition flex items-center gap-1"
-                        title="Duplikasi Box dengan Pilihan Granular (Semua Butir / Metadata Saja / Butir Terpilih)"
+                        title="Duplikasi Box dengan Pilihan Granular (Semua Berkas / Metadata Saja / Berkas Terpilih)"
                     >
                         <i data-lucide="copy" class="w-3.5 h-3.5 text-amber-500"></i>
                         <span>Duplikat Box...</span>
@@ -455,16 +455,16 @@
                         </div>
                     </div>
 
-                    <!-- REPEATER BUTIR DOKUMEN DALAM BOX INI -->
+                    <!-- REPEATER BERKAS DOKUMEN DALAM BOX INI -->
                     <div class="border border-emerald-500/30 rounded-xl p-3.5 bg-emerald-500/5 dark:bg-emerald-950/20 space-y-3">
                         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-emerald-500/20 pb-2">
                             <div>
                                 <h3 class="text-xs font-bold text-emerald-900 dark:text-emerald-300 uppercase tracking-wider flex items-center gap-1.5">
                                     <i data-lucide="list-plus" class="w-4 h-4 text-emerald-600"></i>
-                                    <span>Rincian Butir Dokumen dalam Box #<span x-text="bIdx + 1"></span></span>
+                                    <span>Rincian Berkas Dokumen dalam Box #<span x-text="bIdx + 1"></span></span>
                                 </h3>
                                 <p class="text-[10px] text-slate-500 font-sans">
-                                    Masukkan butir berkas fisik di dalam box ini. Periode box dihitung otomatis dari rentang butir di bawah.
+                                    Masukkan berkas fisik di dalam box ini. Periode box dihitung otomatis dari rentang berkas di bawah.
                                 </p>
                             </div>
 
@@ -476,7 +476,7 @@
                                     title="Tambah 1 Baris Dokumen"
                                 >
                                     <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-                                    <span>Tambah Butir</span>
+                                    <span>Tambah Berkas</span>
                                 </button>
                                 <button 
                                     type="button" 
@@ -586,7 +586,7 @@
                                                 >
                                             </td>
 
-                                            <!-- Keterangan Butir (Textarea Auto-expand, bisa di-Enter) -->
+                                            <!-- Keterangan Berkas (Textarea Auto-expand, bisa di-Enter) -->
                                             <td class="py-2 px-3 align-top">
                                                 <textarea 
                                                     :id="'item_notes_' + bIdx + '_' + iIdx"
@@ -636,7 +636,7 @@
                         </div>
 
                         <div class="flex items-center justify-between text-[11px] font-mono text-slate-500 pt-0.5">
-                            <span>Total Butir di Box #<span x-text="bIdx + 1"></span>: <strong class="text-emerald-600 dark:text-emerald-400 font-bold" x-text="box.items.length"></strong> Dokumen</span>
+                            <span>Total Berkas di Box #<span x-text="bIdx + 1"></span>: <strong class="text-emerald-600 dark:text-emerald-400 font-bold" x-text="box.items.length"></strong> Dokumen</span>
                             <span class="text-slate-400">Rentang Periode Terhitung: <strong class="text-slate-700 dark:text-slate-300" x-text="getBoxCalculatedPeriod(box).range"></strong></span>
                         </div>
                     </div>
@@ -696,7 +696,7 @@
                 <span class="p-1.5 bg-amber-500/20 text-amber-700 dark:text-amber-400 rounded">
                     <i data-lucide="check-circle" class="w-4 h-4"></i>
                 </span>
-                <span>Ringkasan Pengajuan: <strong class="text-slate-900 dark:text-white" x-text="boxes.length + ' Box'"></strong> dengan <strong class="text-slate-900 dark:text-white" x-text="getTotalItemsCount() + ' Butir Dokumen'"></strong></span>
+                <span>Ringkasan Pengajuan: <strong class="text-slate-900 dark:text-white" x-text="boxes.length + ' Box'"></strong> dengan <strong class="text-slate-900 dark:text-white" x-text="getTotalItemsCount() + ' Berkas Dokumen'"></strong></span>
             </div>
 
             <div class="flex items-center gap-2">

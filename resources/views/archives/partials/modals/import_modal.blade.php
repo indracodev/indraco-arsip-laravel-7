@@ -11,7 +11,7 @@
                         </span>
                         <div>
                             <h3 id="modal-import-title" class="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider font-mono">
-                                Impor Multi-Box & Butir Dokumen (Excel / CSV)
+                                Impor Multi-Box & Berkas Dokumen (Excel / CSV)
                             </h3>
                             <p class="text-xs text-slate-500 dark:text-slate-400">
                                 Unggah ratusan berkas dalam banyak box sekaligus dengan otomasi perhitungan periode & retensi.
@@ -34,9 +34,9 @@
                             </div>
                             <p class="text-slate-600 dark:text-slate-400 text-[11px] leading-relaxed">
                                 @if(Auth::user() && Auth::user()->isPicDept())
-                                    Identitas box (<span class="font-mono font-bold text-blue-600 dark:text-blue-400">NO_BOX_SEMENTARA</span>, Judul, Dept) cukup diisi <strong>1 kali</strong> pada baris pertama box. Baris butir dokumen berikutnya cukup isi Nama Dokumen &amp; Periode. Kolom <span class="font-mono font-bold text-slate-700 dark:text-slate-300">NO_BUTIR</span> otomatis urut (1, 2, 3...) jika dikosongkan. Kolom <span class="font-mono font-bold text-slate-700 dark:text-slate-300">MASA_SIMPAN_BULAN</span> diisi angka bulan murni (contoh: <code>60</code> untuk 60 bulan/5 tahun, <code>12</code> untuk 12 bulan). Tab <span class="font-mono font-bold text-emerald-600 dark:text-emerald-400">REFERENSI_KODE</span> tersedia sebagai panduan kode departemen.
+                                    Identitas box (<span class="font-mono font-bold text-blue-600 dark:text-blue-400">JUDUL_BOX</span>, Dept) cukup diisi <strong>1 kali</strong> pada baris pertama box. Baris dokumen berikutnya cukup isi Nama Dokumen, Periode, dan Keterangan. Pengisian <strong>JUDUL_BOX</strong> baru di baris bawahnya otomatis menjadi pemisah box baru. Nomor urut berkas otomatis dari atas ke bawah. Kolom <span class="font-mono font-bold text-slate-700 dark:text-slate-300">MASA_SIMPAN_BULAN</span> diisi angka bulan murni (contoh: <code>60</code> untuk 60 bulan/5 tahun, <code>12</code> untuk 12 bulan). Tab <span class="font-mono font-bold text-emerald-600 dark:text-emerald-400">REFERENSI_KODE</span> tersedia sebagai panduan kode departemen.
                                 @else
-                                    Identitas box (<span class="font-mono font-bold text-blue-600 dark:text-blue-400">NO_BOX_SEMENTARA</span>, Judul, Dept, Rak) cukup diisi <strong>1 kali</strong> pada baris pertama box. Baris butir berikutnya dalam box yang sama cukup isi Nama Dokumen &amp; Periode. Kolom <span class="font-mono font-bold text-slate-700 dark:text-slate-300">NO_BUTIR</span> otomatis urut jika dikosongkan. Kolom <span class="font-mono font-bold text-slate-700 dark:text-slate-300">MASA_SIMPAN_BULAN</span> diisi angka bulan murni (contoh: <code>60</code>). Tab <span class="font-mono font-bold text-emerald-600 dark:text-emerald-400">REFERENSI_KODE</span> untuk panduan kode departemen &amp; rak gudang.
+                                    Identitas box (<span class="font-mono font-bold text-blue-600 dark:text-blue-400">JUDUL_BOX</span>, Dept, Rak) cukup diisi <strong>1 kali</strong> pada baris pertama box. Baris dokumen berikutnya dalam box yang sama cukup isi Nama Dokumen, Periode, dan Keterangan. Pengisian <strong>JUDUL_BOX</strong> baru otomatis memisahkan box baru. Nomor urut berkas otomatis dari atas ke bawah. Kolom <span class="font-mono font-bold text-slate-700 dark:text-slate-300">MASA_SIMPAN_BULAN</span> diisi angka bulan murni (contoh: <code>60</code>). Tab <span class="font-mono font-bold text-emerald-600 dark:text-emerald-400">REFERENSI_KODE</span> untuk panduan kode departemen &amp; rak gudang.
                                 @endif
                             </p>
                         </div>
@@ -156,8 +156,8 @@
                                         <i data-lucide="file-text" class="w-5 h-5"></i>
                                     </div>
                                     <div>
-                                        <div class="text-[10px] text-slate-500 uppercase tracking-wider font-mono">Total Butir Dokumen</div>
-                                        <div class="text-base font-black text-slate-900 dark:text-white" x-text="importPreviewResult.total_items + ' Butir'"></div>
+                                        <div class="text-[10px] text-slate-500 uppercase tracking-wider font-mono">Total Berkas Dokumen</div>
+                                        <div class="text-base font-black text-slate-900 dark:text-white" x-text="importPreviewResult.total_items + ' Berkas'"></div>
                                     </div>
                                 </div>
                                 <div class="p-3.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl space-y-1.5">

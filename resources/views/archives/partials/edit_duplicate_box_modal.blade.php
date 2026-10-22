@@ -27,15 +27,15 @@
                         <label class="flex items-start gap-2 p-2 rounded border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer">
                             <input type="radio" value="full" x-model="duplicateMode" class="mt-0.5 text-amber-500">
                             <div>
-                                <span class="font-bold text-xs text-slate-900 dark:text-white">Duplikat Lengkap (Seluruh Butir Dokumen)</span>
-                                <p class="text-[10px] text-slate-500">Menyalin pengaturan box beserta seluruh butir berkas di dalamnya.</p>
+                                <span class="font-bold text-xs text-slate-900 dark:text-white">Duplikat Lengkap (Seluruh Berkas Dokumen)</span>
+                                <p class="text-[10px] text-slate-500">Menyalin pengaturan box beserta seluruh berkas dokumen di dalamnya.</p>
                             </div>
                         </label>
                         <label class="flex items-start gap-2 p-2 rounded border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer">
                             <input type="radio" value="metadata_only" x-model="duplicateMode" class="mt-0.5 text-amber-500">
                             <div>
-                                <span class="font-bold text-xs text-slate-900 dark:text-white">Hanya Pengaturan Identitas (Kosongkan Butir)</span>
-                                <p class="text-[10px] text-slate-500">Menyalin sub-dept, tipe dokumen, dan kondisi fisik. Butir berkas dimulai baru.</p>
+                                <span class="font-bold text-xs text-slate-900 dark:text-white">Hanya Pengaturan Identitas (Kosongkan Berkas)</span>
+                                <p class="text-[10px] text-slate-500">Menyalin sub-dept, tipe dokumen, dan kondisi fisik. Berkas dokumen dimulai baru.</p>
                             </div>
                         </label>
                     </div>

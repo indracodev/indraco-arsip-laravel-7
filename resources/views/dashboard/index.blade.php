@@ -35,7 +35,7 @@
 
             @if(!auth()->user()->isPicGudang())
             <!-- Impor Multi-Box Button -->
-            <a href="{{ route('archives.index', ['open_import' => 1]) }}" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-mono font-bold text-xs rounded border border-emerald-700 shadow transition flex items-center gap-1.5 shrink-0" title="Impor Massal Multi-Box & Butir Dokumen via Excel">
+            <a href="{{ route('archives.index', ['open_import' => 1]) }}" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-mono font-bold text-xs rounded border border-emerald-700 shadow transition flex items-center gap-1.5 shrink-0" title="Impor Massal Multi-Box & Berkas Dokumen via Excel">
                 <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i>
                 <span>Impor Multi-Box</span>
             </a>

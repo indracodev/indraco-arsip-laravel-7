@@ -1,9 +1,21 @@
-# DMS PT INDRACO — Performance Implementation Rules & Standards
+# DMS PT INDRACO — Performance Implementation Rules & Standards (Bagian 1/3)
 
 > **Status Dokumen**: Mandatory Technical Contract  
 > **Target Audience**: AI Agents & Software Engineers  
 > **Tujuan**: Mencegah regresi performa pada setiap penambahan fitur baru, controller baru, query database, atau perubahan konfigurasi.  
 > **Baseline Hardware**: AMD A9 Dual-Core Processor, 8GB RAM, Windows OS, Offline LAN Host.
+
+---
+
+## Struktur Dokumen
+
+| Bagian | File | Cakupan |
+|---|---|---|
+| 1/3 | `PROJECT_RULES.md` (file ini) | §1 SLA, §2 PHP Runtime/OPcache/JIT, §9 Performance Gate Checklist |
+| 2/3 | [`PROJECT_RULES_SQLITE.md`](PROJECT_RULES_SQLITE.md) | §3 SQLite Concurrency, I/O, Integritas Data & Aturan Kerja Agent |
+| 3/3 | [`PROJECT_RULES_LAN_FRONTEND_OPS.md`](PROJECT_RULES_LAN_FRONTEND_OPS.md) | §4–§8 Network, Lifecycle, Frontend Offline, Terminal Logging, k6 Benchmark |
+
+Seluruh bagian sama-sama mengikat (**Mandatory**); agent yang mengubah sebuah layer **WAJIB** membaca bagian yang sesuai.
 
 ---
 
@@ -61,232 +73,9 @@ opcache.jit_buffer_size = 64M
 
 ---
 
-## 3. Layer 2: SQLite Concurrency & I/O Performance
-
-Aplikasi menggunakan SQLite (`database/database.sqlite`) untuk portabilitas tanpa dependensi database server eksternal. Karena SQLite menggunakan file-level locking, optimasi concurrency dan I/O adalah prioritas mutlak.
-
-### 3.1. PRAGMAs Wajib pada Booting Koneksi
-File: [`app/Providers/AppServiceProvider.php`](file:///c:/laragon/www/indraco-arsip-laravel-7/app/Providers/AppServiceProvider.php#L31-L45)  
-Event: `ConnectionEstablished`
-
-```php
-Event::listen(ConnectionEstablished::class, function ($event) {
-    if ($event->connection->getDriverName() === 'sqlite') {
-        try {
-            $event->connection->statement('PRAGMA journal_mode = WAL;');
-            $event->connection->statement('PRAGMA busy_timeout = 5000;');
-            $event->connection->statement('PRAGMA synchronous = NORMAL;');
-            $event->connection->statement('PRAGMA temp_store = MEMORY;');
-            $event->connection->statement('PRAGMA cache_size = -32000;');
-            $event->connection->statement('PRAGMA mmap_size = 67108864;');
-        } catch (\Exception $e) {
-            // Fallback gracefully
-        }
-    }
-});
-```
-
-### 3.2. Penjelasan Teknis PRAGMA
-1. **`journal_mode = WAL` (Write-Ahead Logging)**:
-   - Mengubah mekanisme locking dari rollback journal ke WAL.
-   - **Multi-Client Concurrency**: Readers tidak memblokir writers, dan writer tidak memblokir readers. Ini esensial saat banyak user LAN mengakses arsip bersamaan.
-2. **`busy_timeout = 5000`**:
-   - Jika write lock sedang digunakan transaksi lain, SQLite menunggu hingga 5.000 ms sebelum melemparkan error `SQLITE_BUSY` (500 Server Error).
-3. **`synchronous = NORMAL`**:
-   - Hanya melakukan disk sync (`fsync`) pada titik WAL checkpoint. Menghasilkan peningkatan kecepatan write 10x-50x dibanding mode `FULL` tanpa risiko korupsi database pada aplikasi desktop.
-4. **`temp_store = MEMORY`**:
-   - Temporary tables, indeks sementara, dan sorting (`ORDER BY`, `GROUP BY`) disimpan di RAM host, bukan di disk. Mengurangi disk I/O hingga 80%.
-5. **`cache_size = -32000`**:
-   - Mengalokasikan 32 MB SQLite page cache di RAM host.
-6. **`mmap_size = 67108864`**:
-   - Mengalokasikan 64 MB memory-mapped I/O. Pembacaan halaman database langsung melewati buffer kernel OS tanpa overhead `read()` syscall.
-
-### 3.3. Aturan Query & Eloquent untuk Fitur Baru
-- **Wajib Eager Loading**: **DILARANG KERAS** membiarkan N+1 queries. Selalu gunakan `Model::with(['relasi1', 'relasi2'])` pada data relasional.
-- **Indexing Mandatory**: Setiap foreign key (`arsip_id`, `user_id`, `kategori_id`) dan kolom filter/pencarian (`nomor_surat`, `tgl_terima`, `status`) **WAJIB** memiliki index pada migrasi database.
-- **Dilarang Long-Running DB Transaction**: Blok `DB::transaction(...)` HANYA boleh berisi query database esensial. **DILARANG** melakukan pemrosesan file, pembuatan PDF, atau komputasi berat di dalam blok transaksi karena akan menahan write lock SQLite.
-- **Paging / Chunking**: Dilarang memanggil `->get()` tanpa batas pada tabel transaksi. Gunakan `paginate(20)` atau `chunk(100)` untuk background processing.
-- **Global View Composer Caching**: Jika sebuah data dibagikan ke banyak Blade view (seperti `AppSetting`), data **WAJIB di-cache di in-memory static variable** (lihat implementasi di [`AppServiceProvider.php`](file:///c:/laragon/www/indraco-arsip-laravel-7/app/Providers/AppServiceProvider.php#L48-L75)) agar tidak query ke database setiap kali Blade me-render partial view.
-
-### 3.4. Standar Batch Insert & Chunking (SQLite Limit Safety)
-SQLite versi 3.32+ memiliki limit bind parameter sebesar 32.766 (`SQLITE_LIMIT_VARIABLE_NUMBER`).
-1. **Wajib Batch Insert**: Setiap operasi yang menyimpan banyak baris relasional (seperti butir berkas arsip `ArchiveItem`, master arsip batch `MasterArchive`, atau slot rak gudang `WarehouseRackSlot`) **WAJIB** menggunakan `Model::insert($array)` — **DILARANG** melakukan loop `create()` berulang.
-2. **Aturan Chunking**: Jika data berpotensi lebih dari 200 baris, bagi ke dalam chunk 200-300 baris sebelum insert:
-   ```php
-   foreach (array_chunk($rowsToInsert, 250) as $chunk) {
-       Model::insert($chunk);
-   }
-   ```
-3. **High-Performance Batch Logger**:
-   Untuk pencatatan log aktivitas dalam jumlah banyak, gunakan `ActivityLogger::logBatch($entries)` yang otomatis mengeksekusi chunk insert dan json serialization tanpa membebani disk sync.
-
----
-
-## 4. Layer 3: Network & LAN Access Latency
-
-### 4.1. Server Binding Specification
-- `php artisan serve` **WAJIB** dijalankan dengan `--host=0.0.0.0 --port=8000`.
-- Binding `0.0.0.0` mengizinkan seluruh interface network lokal (WiFi / Ethernet) menerima request dari PC/HP klien lain di LAN.
-- **DILARANG** mengubah host ke `127.0.0.1` atau `localhost` di production launcher.
-
-### 4.2. Kontrak Endpoint LAN Ping (`GET /api/health/ping`)
-File: [`app/Http/Controllers/HealthController.php`](file:///c:/laragon/www/indraco-arsip-laravel-7/app/Http/Controllers/HealthController.php#L16-L37)
-- **Target Latency**: **< 2 ms** (Ultra-lightweight).
-- **Zero-DB**: Dilarang menyentuh database sama sekali di endpoint ini.
-- **Zero-Session**: Dilarang membaca, membuat, atau mengunci session Laravel.
-- **Cache-Control Headers**: Wajib menyertakan:
-  ```http
-  Cache-Control: no-cache, no-store, must-revalidate
-  Pragma: no-cache
-  Expires: 0
-  X-Content-Type-Options: nosniff
-  ```
-- **Fungsi**: Digunakan oleh LAN Monitor widget di navbar ([`lan_monitor.blade.php`](file:///c:/laragon/www/indraco-arsip-laravel-7/resources/views/layouts/partials/lan_monitor.blade.php)) untuk mendeteksi latency dan kestabilan koneksi client-to-host setiap 3-5 detik tanpa membebani server host.
-
-### 4.3. Isolasi Telemetry & Diagnostic Endpoints
-File: [`routes/web.php`](file:///c:/laragon/www/indraco-arsip-laravel-7/routes/web.php#L14-L20)
-- Endpoint kalkulasi berat:
-  - `GET /api/health/metrics` (inspeksi RAM, disk size WAL, OPcache statistics)
-  - `GET /api/health/probe-ip`
-  - `GET /api/health/logs` (membaca file disk log)
-  - `GET /diagnostics` (dashboard visual)
-- **Aturan Keamanan & Performa**: Endpoint di atas **WAJIB** dilindungi oleh middleware `diagnostics.auth`.
-- **DILARANG** melakukan polling berkala ke `/api/health/metrics` dari browser klien biasa. Polling metrics hanya diizinkan di halaman Diagnostics oleh Super Admin.
-
----
-
-## 5. Layer 4: Laravel Framework Lifecycle & Pre-Compilation
-
-Cold-start overhead framework dihilangkan sepenuhnya melalui pre-compilation saat startup.
-
-### 5.1. Startup Pre-compilation Sequence
-File: [`START-DMS-INDRACO.bat`](file:///c:/laragon/www/indraco-arsip-laravel-7/START-DMS-INDRACO.bat#L220-L227)
-```bat
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
-```
-1. **`config:cache`**: Menggabungkan puluhan file konfig ke satu flat PHP array di `bootstrap/cache/config.php`. Menghemat puluhan disk reads per request.
-2. **`route:cache`**: Mengubah route tree dan middleware stack menjadi pre-compiled closure/array. Mengurangi overhead regex parsing route hingga 85%.
-3. **`view:cache`**: Mengompilasi seluruh file Blade template ke PHP murni saat startup. Mengeliminasi kompilasi Blade yang lambat saat user pertama kali membuka halaman.
-
-### 5.2. Aturan Saat Development
-Setiap kali menambah route baru, mengubah file `.env`, atau memperbarui file config di `config/`, cache wajib dibersihkan:
-```bash
-php artisan optimize:clear
-```
-Sebelum rilis/merge, jalankan kembali ketiga perintah pre-compile di atas untuk memverifikasi tidak ada closure route atau circular dependency yang merusak cache.
-
----
-
-## 6. Layer 5: Frontend Asset Delivery — Zero CDN & 100% Offline
-
-Aplikasi diwajibkan berjalan **100% offline tanpa koneksi internet**. Kegagalan memuat CDN di jaringan tertutup akan menyebabkan browser freeze atau menunggu DNS timeout (3-10 detik blocking render).
-
-### 6.1. Asset Budget & Vendor Inventory
-Seluruh library frontend disimpan secara lokal di `public/`:
-
-| Nama Library | Path File Lokal | Ukuran File | Status |
-|---|---|---|---|
-| **Tailwind CSS** (Play Build) | `public/js/vendor/tailwindcss.js` | 440.6 KB | Lokal (Offline) |
-| **Lucide Icons** | `public/js/vendor/lucide.min.js` | 349.7 KB | Lokal (Offline) |
-| **Chart.js** | `public/js/vendor/chart.min.js` | 194.9 KB | Lokal (Offline) |
-| **Alpine.js** | `public/js/vendor/alpine.min.js` | 43.7 KB | Lokal (Offline) |
-| **QRCode.js** | `public/js/vendor/qrcode.min.js` | 19.5 KB | Lokal (Offline) |
-| **Custom Fonts CSS** | `public/css/fonts.css` | 0.5 KB | Lokal (Offline) |
-| **TOTAL ASSET BUDGET** | | **~1.05 MB** | **Zero External HTTP** |
-
-### 6.2. Aturan Penyertaan Aset (Asset Inclusion Rules)
-1. **DILARANG KERAS** menggunakan CDN eksternal:
-   - ❌ `<script src="https://cdn.jsdelivr.net/..."></script>`
-   - ❌ `<link href="https://fonts.googleapis.com/..." rel="stylesheet">`
-2. **Sentralisasi di `head_assets.blade.php`**:
-   - Seluruh layout template (`app.blade.php`, `login.blade.php`, `desktop_pic.blade.php`) **WAJIB** menyertakan:
-     ```blade
-     @include('layouts.partials.head_assets')
-     ```
-3. **Wajib Menggunakan Helper `asset(...)`**:
-   - Semua path aset statis harus dibungkus helper: `{{ asset('js/vendor/alpine.min.js') }}`.
-4. **Document Root Server**:
-   - Server `php artisan serve` secara otomatis menetapkan direktori `public/` sebagai document root.
-   - **DILARANG** menjalankan manual `php -S` dari root project tanpa parameter `-t public`, karena akan menyebabkan seluruh CSS dan JS menghasilkan HTTP 404.
-
-### 6.3. Standar Modal Konfirmasi UI (Zero Native Browser Popups)
-Untuk menjaga konsistensi tema (Tailwind Dark Mode / Slate / Amber / Rose) dan mencegah tampilan primitif browser OS:
-- **DILARANG KERAS** menggunakan `confirm(...)` atau `window.confirm(...)` bawaan browser.
-- **Gunakan Centralized Modal**: [`layouts/partials/confirm_modal.blade.php`](file:///c:/laragon/www/indraco-arsip-laravel-7/resources/views/layouts/partials/confirm_modal.blade.php).
-- **Form HTML Declarative**:
-  ```html
-  <button type="submit" 
-          data-confirm="Pesan konfirmasi..." 
-          data-confirm-title="Judul Modal" 
-          data-confirm-type="danger|warning|success|info" 
-          data-confirm-btn="Label Tombol">
-  ```
-- **JavaScript / Alpine.js (Promise-based)**:
-  ```javascript
-  const ok = await window.showConfirmModal({
-      title: 'Judul Konfirmasi',
-      message: 'Pesan penjelasan...',
-      type: 'danger', // danger | warning | success | info
-      confirmText: 'Ya, Lanjutkan'
-  });
-  if (!ok) return;
-  ```
-
----
-
-## 7. Layer 6: Host OS Process & Zero-Scroll Terminal Logging
-
-### 7.1. Terminal Buffer Bottleneck pada Windows
-Pada Windows (`cmd.exe` / `conhost.exe`), setiap baris HTTP request yang dicetak ke console terminal memicu:
-1. Console rendering redraw lock pada CPU host.
-2. Peningkatan beban CPU drastis saat request rate tinggi (misal 5 klien me-refresh halaman bersamaan).
-3. Banner petunjuk IP server tergulung (scrolled out of view).
-
-### 7.2. Implementasi Zero-Scroll I/O Redirection
-File: [`START-DMS-INDRACO.bat`](file:///c:/laragon/www/indraco-arsip-laravel-7/START-DMS-INDRACO.bat#L265-L275)
-```bat
-php artisan serve --host=0.0.0.0 --port=8000 > "storage\logs\http-access.log" 2>&1
-```
-- Seluruh output stdout/stderr dialihkan langsung ke file log di disk.
-- Terminal host tetap bersih, menampilkan banner informasi IP lokal, dan **terkunci pada posisi zero-scroll**.
-- CPU host terbebas dari overhead rendering console buffer.
-- Log akses tetap dapat dipantau oleh admin via `storage/logs/http-access.log` atau melalui dashboard `/diagnostics`.
-
----
-
-## 8. Layer 7: Benchmarking & Load Testing Standards (k6)
-
-Untuk membuktikan performa secara empiris, pengujian beban menggunakan Grafana k6 telah disiapkan.
-
-### 8.1. Konfigurasi Benchmark
-File: `tests/k6/load_test.js` (lokal, diabaikan oleh `.gitignore`)  
-Launcher: `RUN-K6-BENCHMARK.bat` (lokal)
-
-### 8.2. Profile Beban Kerja (Workload Profiles)
-1. **Quick Check** (`MODE=quick`):
-   - 2 Virtual Users (VUs), durasi 6 detik.
-   - Threshold: `http_req_duration p(95) < 1500ms`, `failed_requests_rate < 0.05`.
-2. **Realistic Office LAN** (`MODE=office` - Default):
-   - Ramp-up 3 VUs (3s) -> Peak 5 VUs (8s) -> Ramp-down (3s).
-   - Menguji interaksi nyata: Ping, Login, Dashboard query, Arsip Search, Detail view.
-   - Threshold: `http_req_duration p(95) < 1500ms`, `failed_requests_rate < 0.05`.
-3. **Stress Test** (`MODE=stress`):
-   - Ramp-up hingga 12 VUs.
-   - Threshold: `http_req_duration p(95) < 2500ms`, `failed_requests_rate < 0.10`.
-
-### 8.3. Aturan Benchmarking untuk Fitur Baru
-Jika menambahkan fitur berat (misal pencarian full-text arsip, upload berkas masal, atau laporan rekapitulasi):
-1. Tambahkan scenario endpoint ke `tests/k6/load_test.js`.
-2. Jalankan benchmark `MODE=office`.
-3. Pastikan `p(95)` tetap berada di bawah 1500 ms dan error rate 0%.
-
----
-
 ## 9. Performance Gate Checklist (Wajib Lulus Sebelum Merge)
 
-Sebelum melakukan commit atau merge fitur baru pada branch `danu-revisi-3`, pastikan seluruh checklist performa berikut terpenuhi:
+Sebelum melakukan commit atau merge fitur baru pada branch `danu-revisi-4`, pastikan seluruh checklist performa berikut terpenuhi:
 
 - [ ] **100% Offline Integrity**: Tidak ada panggilan URL eksternal (CDN font, icon, script, atau API) di kode baru.
 - [ ] **Asset Budget Compliant**: Asset baru (jika ada) disimpan di `public/` dan dimuat via `head_assets.blade.php`.
@@ -298,9 +87,14 @@ Sebelum melakukan commit atau merge fitur baru pada branch `danu-revisi-3`, past
 - [ ] **Pre-compile Verification**: Perintah `php artisan optimize` atau `config:cache && route:cache && view:cache` berjalan tanpa error.
 - [ ] **Terminal Zero-Scroll Preserved**: Launcher `.bat` tetap mengarahkan log server ke `storage/logs/http-access.log`.
 - [ ] **LAN Accessibility Verified**: Server dapat diakses dari browser host (`127.0.0.1:8000`) dan perangkat LAN (`http://<IP>:8000`).
+- [ ] **Atomic Counter**: Penomoran/counter baru memakai `UPDATE ... RETURNING`, bukan baca lalu tulis di PHP; preview tanpa side-effect (3.5.a–b, `PROJECT_RULES_SQLITE.md`).
+- [ ] **Unique + Validasi Berpasangan**: Kolom unik punya UNIQUE index, dan setiap input manualnya divalidasi dengan kondisi yang sama (3.5.c).
+- [ ] **Immediate Transaction Bersih**: Transaksi baca→tulis memakai `db_immediate_transaction()` tanpa nested `DB::transaction()` di dalamnya (3.5.d).
+- [ ] **Double-Submit & Optimistic Lock**: Aksi pengajuan punya guard server + tombol disable; form edit baru mengirim `original_updated_at` (3.5.e–f).
+- [ ] **Clean Diff & Bukti Test**: Line ending tidak berubah (`git diff --stat` bersih) dan output asli `vendor/bin/phpunit` dilampirkan (3.6).
 
 ---
 
-> **Revisi Terakhir**: 6 Oktober 2026  
-> **Target Branch**: `danu-revisi-3`  
-> **Baseline Commit**: `a283eae` (Cleaned & Locked IP zero-scroll launcher)
+> **Revisi Terakhir**: 21 Oktober 2026 (aturan konkurensi SQLite multi-user, §3.5–3.6)  
+> **Target Branch**: `danu-revisi-4`  
+> **Baseline Commit**: `82d8aa7`

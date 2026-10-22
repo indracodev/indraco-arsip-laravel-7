@@ -56,4 +56,34 @@ The user's directive is to eliminate all native `confirm()` popups and replace t
 4. **Format Tanggal Tanda Tangan Cetak**:
    - Seluruh form cetak (pengajuan arsip baru, penarikan, perpanjangan, dan pemusnahan) wajib mengosongkan tanggal di bawah ttd menggunakan titik-titik (`Tgl. ....................`) agar dapat diisi manual secara tertulis.
 
+---
+
+## 2026-10-21: Multi-Box Excel Direct Warehouse Commit, Auto-Numbering & Smart Master Matching
+
+### Context
+1. Tombol "Simpan Langsung ke Gudang" pada Super Admin / Admin Gudang sempat berstatus pengajuan baru / draft karena modal frontend mengirimkan nilai mentah `importTargetStatus` dan backend `MultiBoxExcelService::commitImport` tidak otomatis meng-generate `box_number` resmi dan mutasi `WarehouseEntryLog`.
+2. Template Excel sebelumnya memiliki kolom `NO_BUTIR` yang membingungkan dan manual diisi oleh pengguna.
+3. Urutan kolom sebelumnya kurang natural untuk alur kerja pengguna (identitas box -> berkas dokumen -> periode -> keterangan -> retensi -> lokasi fisik rak).
+4. Istilah "butir" dirasa kaku dan tidak familiar bagi pengguna umum.
+5. Pengguna rentan melakukan kesalahan ketik (huruf kecil, salah urutan kata, typo huruf, kekurangan/kelebihan kata) saat menulis nama dokumen di Excel.
+
+### User Correction & Solution
+1. **Direct Commit Status & Numbering**:
+   - `submitImportCommitDirect()` secara eksplisit mengirimkan `status: 'in_warehouse'`.
+   - Di backend `MultiBoxExcelService::commitImport`, jika status `in_warehouse`, otomatis men-generate `box_number` via `NumberingService`, mencatat `WarehouseEntryLog`, dan menaikkan kapasitas rak.
+2. **Peniadaan Kolom `NO_BUTIR` & Penomoran Otomatis**:
+   - Kolom `NO_BUTIR` ditiadakan dari template. Sistem otomatis memberi nomor urut berkas `1, 2, 3...` per box dari baris atas ke bawah, dengan tetap menjaga *backward compatibility* jika file lama masih memiliki kolom nomor.
+3. **Urutan Kolom Logis & Tabel Referensi Master**:
+   - Urutan kolom disesuaikan: Box -> Dokumen -> Periode -> Keterangan -> Retensi/Kondisi -> Rak/Slot.
+   - Sheet 2 (`REFERENSI_KODE`) ditambahkan tabel `[DAFTAR MASTER NAMA BERKAS / DOKUMEN RESMI]`. Khusus PIC Departemen, tabel otomatis difilter hanya untuk departemennya.
+4. **Multi-Tier Smart & Fuzzy Matching**:
+   - Menangani typo huruf (~94% similarity), salah urutan kata (*anagram kata*), kurang kata (*token subset*), dan kelebihan kata (*token superset*).
+   - Jika dokumen baru di luar master, sistem tetap aman (tidak error) dan membawanya sebagai berkas kustom.
+5. **Penggantian Istilah "Butir"**:
+   - Seluruh antarmuka web (form create, edit, modal import, konfirmasi) diubah menjadi "Berkas / Dokumen" tanpa mengubah skema tabel database `archive_items.item_number`.
+
+### Rules Established
+- **Rule 1 (Direct Warehouse Completeness)**: Setiap penyimpanan langsung ke status `in_warehouse` WAJIB meng-generate `box_number` dan mencatat `WarehouseEntryLog` secara atomik.
+- **Rule 2 (Graceful Input Tolerance)**: Input teks nama dokumen dari Excel harus selalu diproses dengan layer normalisasi toleran (case, whitespace, token anagram, similar_text) sebelum memutuskan sebagai dokumen kustom.
+
 

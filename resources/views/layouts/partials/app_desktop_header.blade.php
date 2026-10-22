@@ -39,7 +39,7 @@
                             @keydown.escape="closeDropdown()" @keydown.arrow-down.prevent="navigateResults(1)"
                             @keydown.arrow-up.prevent="navigateResults(-1)"
                             @keydown.enter.prevent="selectActiveResult()"
-                            placeholder="{{ auth()->check() && auth()->user()->isPicGudang() ? 'Cari rak gudang & label/judul box arsip (Layout 2D) [Ctrl+F]...' : 'Cari semua dokumen (nama arsip, dept, butir isi, no. box, rak gudang) [Ctrl+F]...' }}"
+                            placeholder="{{ auth()->check() && auth()->user()->isPicGudang() ? 'Cari rak gudang & label/judul box arsip (Layout 2D) [Ctrl+F]...' : 'Cari semua dokumen (nama arsip, dept, berkas isi, no. box, rak gudang) [Ctrl+F]...' }}"
                             class="w-full pl-9 pr-8 py-1 bg-slate-950/80 border border-slate-700 hover:border-slate-600 focus:border-amber-400 rounded text-xs font-mono text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-400 transition shadow-inner">
 
                         <!-- Clear Search Button -->

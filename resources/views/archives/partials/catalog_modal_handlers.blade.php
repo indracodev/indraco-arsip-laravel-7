@@ -50,6 +50,10 @@
                     this.importPreviewResult = json;
                     this.importWarnings = json.warnings || [];
                     this.importErrors = [];
+                    const hasLocation = json.boxes && json.boxes.some(b => b.location_room || b.location_rack);
+                    if (hasLocation) {
+                        this.importTargetStatus = 'in_warehouse';
+                    }
                 } else {
                     this.importPreviewResult = null;
                     this.importErrors = json.errors || [json.message || 'Gagal memproses file template spreadsheet.'];
@@ -110,16 +114,10 @@
 
             const boxCount = this.importPreviewResult.total_boxes;
             const itemCount = this.importPreviewResult.total_items;
-            const statusLabels = {
-                'draft': 'Draft Sementara',
-                'pending_verification': 'Antrean Verifikasi Gudang',
-                'in_warehouse': 'Tersimpan di Rak Gudang (Data Existing)'
-            };
-            const currentLabel = statusLabels[this.importTargetStatus] || this.importTargetStatus;
 
             const ok = await window.showConfirmModal({
                 title: 'Konfirmasi Impor Langsung ke Gudang',
-                message: `Data ini akan langsung disimpan ke database gudang sebagai data fisik yang sudah ada di gudang sebelumnya (${boxCount} Box, ${itemCount} Butir Dokumen, Status: "${currentLabel}"). Lanjutkan?`,
+                message: `Data ini akan langsung disimpan ke database gudang sebagai data fisik yang sudah ada di gudang sebelumnya (${boxCount} Box, ${itemCount} Berkas Dokumen, Status: "Tersimpan di Rak Gudang"). Lanjutkan?`,
                 type: 'info',
                 confirmText: 'Ya, Simpan ke Gudang'
             });
@@ -139,7 +137,7 @@
                     },
                     body: JSON.stringify({
                         boxes: this.importPreviewResult.boxes,
-                        status: this.importTargetStatus
+                        status: 'in_warehouse'
                     })
                 });
 

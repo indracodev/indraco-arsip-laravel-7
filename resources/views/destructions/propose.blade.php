@@ -292,7 +292,7 @@
                                                 <th class="py-1.5 px-2.5 w-10 text-center">No</th>
                                                 <th class="py-1.5 px-3">Nama Berkas / Dokumen</th>
                                                 <th class="py-1.5 px-3 w-44">Periode</th>
-                                                <th class="py-1.5 px-3">Keterangan / Butir</th>
+                                                <th class="py-1.5 px-3">Keterangan</th>
                                             </tr>
                                         </thead>
                                         <tbody class="divide-y divide-slate-100 dark:divide-slate-800/50 text-[11px]">

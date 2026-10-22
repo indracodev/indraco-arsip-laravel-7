@@ -21,35 +21,31 @@ class MultiBoxTemplateService
         if ($isPicDept) {
             // Tampilan / Hak Akses Departemen: Pure data box, isi berkas, dan kode dept (Tanpa kolom rak gudang)
             $headers = [
-                'NO_BOX_SEMENTARA',
                 'JUDUL_BOX',
                 'KODE_DEPARTEMEN',
                 'KODE_SUB_DEPARTEMEN',
                 'NAMA_DOKUMEN',
                 'PERIODE_DOK_MULAI',
                 'PERIODE_DOK_SELESAI',
+                'KETERANGAN_DOKUMEN',
                 'MASA_SIMPAN_BULAN',
                 'KONDISI_FISIK',
-                'NO_BUTIR',
-                'KETERANGAN_BUTIR',
             ];
         } else {
             // Tampilan Gudang / Admin: Lengkap dengan kolom alokasi rak fisik gudang
             $headers = [
-                'NO_BOX_SEMENTARA',
                 'JUDUL_BOX',
                 'KODE_DEPARTEMEN',
                 'KODE_SUB_DEPARTEMEN',
                 'NAMA_DOKUMEN',
                 'PERIODE_DOK_MULAI',
                 'PERIODE_DOK_SELESAI',
+                'KETERANGAN_DOKUMEN',
                 'MASA_SIMPAN_BULAN',
                 'KONDISI_FISIK',
-                'NO_BUTIR',
                 'LOKASI_RUANG',
                 'LOKASI_RAK',
                 'NO_SLOT',
-                'KETERANGAN_BUTIR',
             ];
         }
 
@@ -118,47 +114,43 @@ class MultiBoxTemplateService
             $sampleRows = [
                 // Box 1
                 [
-                    'BOX-01',
                     $box1Title,
                     $userDeptCode,
                     $sub1Code,
                     $doc1_1Name,
                     '2024-01',
                     '2024-01',
+                    $doc1_1Desc,
                     $doc1_1Period,
                     'Baik / Box Karton Standar TB 30g',
-                    '1',
-                    $doc1_1Desc,
                 ],
                 [
-                    '', '', '', '',
+                    '', '', '',
                     $doc1_2Name,
                     '2024-01',
                     '2024-01',
-                    '', '', '',
                     $doc1_2Desc,
+                    '', '',
                 ],
                 // Box 2
                 [
-                    'BOX-02',
                     $box2Title,
                     $userDeptCode,
                     $sub2Code,
                     $doc2_1Name,
                     '2024-01',
                     '2024-12',
+                    $doc2_1Desc,
                     $doc2_1Period,
                     'Baik / Box Karton Standar TB 30g',
-                    '',
-                    $doc2_1Desc,
                 ],
                 [
-                    '', '', '', '',
+                    '', '', '',
                     $doc2_2Name,
                     '2024-01',
                     '2024-12',
-                    '', '', '',
                     $doc2_2Desc,
+                    '', '',
                 ],
             ];
         } else {
@@ -179,7 +171,12 @@ class MultiBoxTemplateService
                     ->get();
             }
 
-            $locs = WarehouseLocation::where('is_active', true)->orderBy('rack_code')->take(5)->get();
+            $locs = WarehouseLocation::where('location_type', 'rack')
+                ->where('is_active', true)
+                ->with(['warehouse', 'slots'])
+                ->orderBy('room_sector')
+                ->orderBy('rack_code')
+                ->get();
             $locIdx = 0;
             $boxNum = 1;
 
@@ -204,39 +201,41 @@ class MultiBoxTemplateService
                 $doc2Name = $doc2 ? $doc2->name : "Dokumen Pendukung {$subName}";
                 $doc2Desc = $doc2 && $doc2->description ? $doc2->description : "Lampiran & verifikasi {$subName}";
 
-                $loc = $locs->get($locIdx);
+                $loc = $locs->isNotEmpty() ? $locs->get($locIdx % $locs->count()) : null;
                 $locIdx++;
-                $ruang = $loc ? $loc->room : 'R5';
-                $rak = $loc ? $loc->rack_code : 'R5-AS';
-                $slot = $loc && $loc->slot ? (string)$loc->slot : '1';
+                $ruang = $loc ? ($loc->room_sector ?? 'R5') : 'R5';
+                $rak = $loc ? ($loc->rack_identifier ?: $loc->rack_code) : 'AS';
+                $slot = '1';
+                if ($loc && $loc->slots->isNotEmpty()) {
+                    $sampleSlot = $loc->slots->firstWhere('status', 'empty') ?: $loc->slots->first();
+                    $slot = $sampleSlot ? (string)$sampleSlot->slot_number : '1';
+                }
 
                 $boxCode = 'BOX-0' . $boxNum;
                 $boxTitle = "Berkas {$dept->name} - {$subName} 2024";
 
                 $sampleRows[] = [
-                    $boxCode,
                     $boxTitle,
                     $dept->code,
                     $subCode,
                     $doc1Name,
                     '2024-01',
                     '2024-12',
+                    $doc1Desc,
                     $doc1Period,
                     'Baik / Box Karton Standar TB 30g',
-                    '1',
                     $ruang,
                     $rak,
                     $slot,
-                    $doc1Desc,
                 ];
 
                 $sampleRows[] = [
-                    '', '', '', '',
+                    '', '', '',
                     $doc2Name,
                     '2024-01',
                     '2024-12',
-                    '', '', '', '', '', '',
                     $doc2Desc,
+                    '', '', '', '', '',
                 ];
 
                 $boxNum++;
@@ -296,20 +295,18 @@ class MultiBoxTemplateService
 
         // 5. xl/worksheets/sheet1.xml (DATA_ARSIP)
         $defaultWidths = [
-            'NO_BOX_SEMENTARA' => 22,
             'JUDUL_BOX' => 48,
             'KODE_DEPARTEMEN' => 22,
             'KODE_SUB_DEPARTEMEN' => 26,
             'NAMA_DOKUMEN' => 46,
             'PERIODE_DOK_MULAI' => 24,
             'PERIODE_DOK_SELESAI' => 24,
+            'KETERANGAN_DOKUMEN' => 34,
             'MASA_SIMPAN_BULAN' => 22,
             'KONDISI_FISIK' => 36,
-            'NO_BUTIR' => 14,
             'LOKASI_RUANG' => 18,
             'LOKASI_RAK' => 18,
             'NO_SLOT' => 14,
-            'KETERANGAN_BUTIR' => 32,
         ];
 
         $colsXml = '<cols>';
@@ -359,25 +356,41 @@ class MultiBoxTemplateService
         if ($isPicDept && $userDept) {
             $departments = Department::where('id', $userDept->id)->get();
             $subDepts = SubDepartment::where('department_id', $userDept->id)->where('is_active', true)->with('department')->orderBy('code')->get();
-            $locations = WarehouseLocation::where('is_active', true)
+            $locations = WarehouseLocation::where('location_type', 'rack')
+                ->where('is_active', true)
                 ->where(function ($q) use ($userDept) {
                     $q->where('assigned_department_id', $userDept->id)
                       ->orWhereNull('assigned_department_id');
                 })
+                ->orderBy('room_sector')
                 ->orderBy('rack_code')
                 ->take(30)
                 ->get();
         } else {
             $departments = Department::where('is_active', true)->orderBy('code')->get();
             $subDepts = SubDepartment::where('is_active', true)->with('department')->orderBy('code')->get();
-            $locations = WarehouseLocation::where('is_active', true)->orderBy('rack_code')->take(30)->get();
+            $locations = WarehouseLocation::where('location_type', 'rack')
+                ->where('is_active', true)
+                ->with('warehouse')
+                ->orderBy('room_sector')
+                ->orderBy('rack_code')
+                ->take(40)
+                ->get();
         }
 
+        $masterDocs = MasterArchive::where('is_active', true)
+            ->when($isPicDept && $userDept, fn($q) => $q->where('department_id', $userDept->id))
+            ->with(['department', 'subDepartment'])
+            ->orderBy('name')
+            ->take($isPicDept ? 100 : 150)
+            ->get();
+
         $sheet2Cols = '<cols>' .
-            '<col min="1" max="1" width="28" customWidth="1"/>' .
-            '<col min="2" max="2" width="42" customWidth="1"/>' .
-            '<col min="3" max="3" width="58" customWidth="1"/>' .
-            '<col min="4" max="4" width="26" customWidth="1"/>' .
+            '<col min="1" max="1" width="46" customWidth="1"/>' .
+            '<col min="2" max="2" width="22" customWidth="1"/>' .
+            '<col min="3" max="3" width="24" customWidth="1"/>' .
+            '<col min="4" max="4" width="28" customWidth="1"/>' .
+            '<col min="5" max="5" width="24" customWidth="1"/>' .
             '</cols>';
 
         $sheet2Xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' .
@@ -448,33 +461,64 @@ class MultiBoxTemplateService
         $r2++;
         if (!$isPicDept) {
             // Sub-table: Gudang & Rak (Hanya untuk Admin / Gudang)
-            $sheet2Xml .= '<row r="' . $r2 . '"><c r="A' . $r2 . '" t="inlineStr"><is><t>[3. DAFTAR RUANG &amp; RAK GUDANG AKTIF (CONTOH)]</t></is></c></row>';
+            $sheet2Xml .= '<row r="' . $r2 . '"><c r="A' . $r2 . '" t="inlineStr"><is><t>[3. DAFTAR RUANG &amp; RAK GUDANG AKTIF (CONTOH FORMAT LOKASI)]</t></is></c></row>';
             $r2++;
             $sheet2Xml .= '<row r="' . $r2 . '">' .
-                '<c r="A' . $r2 . '" t="inlineStr"><is><t>RUANG / SEKTOR</t></is></c>' .
-                '<c r="B' . $r2 . '" t="inlineStr"><is><t>KODE_RAK</t></is></c>' .
-                '<c r="C' . $r2 . '" t="inlineStr"><is><t>KETERANGAN_LOKASI</t></is></c>' .
+                '<c r="A' . $r2 . '" t="inlineStr"><is><t>LOKASI_RUANG</t></is></c>' .
+                '<c r="B' . $r2 . '" t="inlineStr"><is><t>LOKASI_RAK</t></is></c>' .
+                '<c r="C' . $r2 . '" t="inlineStr"><is><t>CONTOH_NO_SLOT</t></is></c>' .
+                '<c r="D' . $r2 . '" t="inlineStr"><is><t>KETERANGAN_LOKASI</t></is></c>' .
                 '</row>';
             $r2++;
 
             foreach ($locations as $loc) {
+                $whName = $loc->warehouse ? $loc->warehouse->name : ('Gudang ' . ($loc->room_sector ?? ''));
+                $cleanRak = $loc->rack_identifier ?: $loc->rack_code;
+                $slotSample = "1 s/d {$loc->box_capacity} (contoh: 1, 33, 55 atau kode {$cleanRak}55)";
                 $sheet2Xml .= '<row r="' . $r2 . '">' .
                     '<c r="A' . $r2 . '" t="inlineStr"><is><t>' . htmlspecialchars($loc->room_sector ?? 'GUDANG', ENT_XML1, 'UTF-8') . '</t></is></c>' .
-                    '<c r="B' . $r2 . '" t="inlineStr"><is><t>' . htmlspecialchars($loc->clean_rack_code ?? $loc->rack_code, ENT_XML1, 'UTF-8') . '</t></is></c>' .
-                    '<c r="C' . $r2 . '" t="inlineStr"><is><t>' . htmlspecialchars($loc->full_location ?? $loc->rack_code, ENT_XML1, 'UTF-8') . '</t></is></c>' .
+                    '<c r="B' . $r2 . '" t="inlineStr"><is><t>' . htmlspecialchars($cleanRak, ENT_XML1, 'UTF-8') . '</t></is></c>' .
+                    '<c r="C' . $r2 . '" t="inlineStr"><is><t>' . htmlspecialchars($slotSample, ENT_XML1, 'UTF-8') . '</t></is></c>' .
+                    '<c r="D' . $r2 . '" t="inlineStr"><is><t>' . htmlspecialchars("{$whName} - Sektor {$loc->room_sector} - Rak {$loc->rack_code}", ENT_XML1, 'UTF-8') . '</t></is></c>' .
                     '</row>';
                 $r2++;
             }
             $r2++;
         }
 
+        // Sub-table: Master Berkas / Dokumen Resmi
+        $docSectionNum = $isPicDept ? '3' : '4';
+        $sheet2Xml .= '<row r="' . $r2 . '"><c r="A' . $r2 . '" t="inlineStr"><is><t>[' . $docSectionNum . '. DAFTAR MASTER NAMA BERKAS / DOKUMEN RESMI]</t></is></c></row>';
+        $r2++;
+        $sheet2Xml .= '<row r="' . $r2 . '">' .
+            '<c r="A' . $r2 . '" t="inlineStr"><is><t>NAMA_DOKUMEN_RESMI</t></is></c>' .
+            '<c r="B' . $r2 . '" t="inlineStr"><is><t>KODE_DEPARTEMEN</t></is></c>' .
+            '<c r="C' . $r2 . '" t="inlineStr"><is><t>KODE_SUB_DEPARTEMEN</t></is></c>' .
+            '<c r="D' . $r2 . '" t="inlineStr"><is><t>KATEGORI_DOKUMEN</t></is></c>' .
+            '<c r="E' . $r2 . '" t="inlineStr"><is><t>STANDAR_RETENSI_BULAN</t></is></c>' .
+            '</row>';
+        $r2++;
+
+        foreach ($masterDocs as $md) {
+            $retMonths = $md->retention_years ? (string)($md->retention_years * 12) : '60';
+            $sheet2Xml .= '<row r="' . $r2 . '">' .
+                '<c r="A' . $r2 . '" t="inlineStr"><is><t>' . htmlspecialchars($md->name, ENT_XML1, 'UTF-8') . '</t></is></c>' .
+                '<c r="B' . $r2 . '" t="inlineStr"><is><t>' . htmlspecialchars($md->department ? $md->department->code : '', ENT_XML1, 'UTF-8') . '</t></is></c>' .
+                '<c r="C' . $r2 . '" t="inlineStr"><is><t>' . htmlspecialchars($md->subDepartment ? $md->subDepartment->code : '-', ENT_XML1, 'UTF-8') . '</t></is></c>' .
+                '<c r="D' . $r2 . '" t="inlineStr"><is><t>' . htmlspecialchars($md->document_type ?? 'Umum', ENT_XML1, 'UTF-8') . '</t></is></c>' .
+                '<c r="E' . $r2 . '" t="inlineStr"><is><t>' . htmlspecialchars($retMonths, ENT_XML1, 'UTF-8') . '</t></is></c>' .
+                '</row>';
+            $r2++;
+        }
+        $r2++;
+
         // Sub-table: Petunjuk Pengisian
-        $guideHeader = $isPicDept ? '[3. PETUNJUK PENGISIAN PENGAJUAN ARSIP]' : '[4. PETUNJUK PENGISIAN AGAR MINIM ERROR]';
+        $guideHeader = $isPicDept ? '[4. PETUNJUK PENGISIAN PENGAJUAN ARSIP]' : '[5. PETUNJUK PENGISIAN AGAR MINIM ERROR]';
         $sheet2Xml .= '<row r="' . $r2 . '"><c r="A' . $r2 . '" t="inlineStr"><is><t>' . $guideHeader . '</t></is></c></row>';
         $r2++;
-        $sheet2Xml .= '<row r="' . $r2 . '"><c r="A' . $r2 . '" t="inlineStr"><is><t>1. Identitas Box (NO_BOX_SEMENTARA, JUDUL_BOX, DEPARTEMEN) cukup diisi 1 kali pada baris pertama box. Baris butir berikutnya dalam box yang sama cukup dikosongkan.</t></is></c></row>';
+        $sheet2Xml .= '<row r="' . $r2 . '"><c r="A' . $r2 . '" t="inlineStr"><is><t>1. Identitas Box (JUDUL_BOX, DEPARTEMEN) cukup diisi 1 kali pada baris pertama box. Pengisian JUDUL_BOX baru pada baris berikutnya otomatis memisahkan berkas ke dalam box baru.</t></is></c></row>';
         $r2++;
-        $sheet2Xml .= '<row r="' . $r2 . '"><c r="A' . $r2 . '" t="inlineStr"><is><t>2. Kolom NO_BUTIR boleh dikosongkan jika ingin nomor urut dibuat otomatis (1, 2, 3...) oleh sistem.</t></is></c></row>';
+        $sheet2Xml .= '<row r="' . $r2 . '"><c r="A' . $r2 . '" t="inlineStr"><is><t>2. Nomor urut dokumen otomatis berurutan dari atas ke bawah untuk setiap box (tanpa perlu kolom nomor butir).</t></is></c></row>';
         $r2++;
         $sheet2Xml .= '<row r="' . $r2 . '"><c r="A' . $r2 . '" t="inlineStr"><is><t>3. Kolom MASA_SIMPAN_BULAN murni hitungan bulan (contoh: 60 untuk 60 bulan/5 tahun, 12 untuk 12 bulan/1 tahun).</t></is></c></row>';
         $r2++;
@@ -483,7 +527,7 @@ class MultiBoxTemplateService
         if ($isPicDept) {
             $sheet2Xml .= '<row r="' . $r2 . '"><c r="A' . $r2 . '" t="inlineStr"><is><t>5. Penentuan lokasi rak dan slot gudang fisik tidak perlu diisi oleh departemen. Alokasi rak akan diverifikasi dan diplot langsung oleh Tim Gudang saat proses persetujuan (approval).</t></is></c></row>';
         } else {
-            $sheet2Xml .= '<row r="' . $r2 . '"><c r="A' . $r2 . '" t="inlineStr"><is><t>5. Kolom Lokasi (RUANG, RAK, SLOT) bersifat opsional. Diisi jika berkas merupakan arsip lama yang sudah tersusun di rak fisik gudang.</t></is></c></row>';
+            $sheet2Xml .= '<row r="' . $r2 . '"><c r="A' . $r2 . '" t="inlineStr"><is><t>5. Kolom Lokasi (RUANG, RAK, SLOT) bersifat opsional. Contoh: LOKASI_RUANG diisi R5, LOKASI_RAK diisi AS, NO_SLOT diisi 33 atau 55 (menghasilkan lokasi Gudang R5 - AS33 / AS55) atau dapat langsung mengisi kode slot seperti AS55 pada kolom NO_SLOT.</t></is></c></row>';
         }
 
         $sheet2Xml .= '</sheetData></worksheet>';

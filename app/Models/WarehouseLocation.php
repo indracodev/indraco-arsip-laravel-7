@@ -116,8 +116,8 @@ class WarehouseLocation extends Model
 
     public function getRackIdentifierAttribute(): string
     {
-        // Extracts 'B' from 'RAK-R1-B', 'J' from 'RAK-R2-J', 'BI' from 'RAK-R7-BI', etc.
-        $clean = preg_replace('/^RAK-(?:R\d+-)?/i', '', $this->rack_code);
+        // Extracts 'B' from 'RAK-R1-B', 'J' from 'RAK-R2-J', 'AS' from 'R5-AS', 'BW' from 'R7-BW', etc.
+        $clean = preg_replace('/^(?:RAK-)?(?:R\d+-)?/i', '', $this->rack_code);
         return $clean ?: $this->rack_code;
     }
 

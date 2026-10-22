@@ -22,7 +22,7 @@
                     </h1>
                     <span class="px-1.5 py-0.5 bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-300 text-xs font-bold rounded uppercase border border-slate-300 dark:border-slate-700 whitespace-nowrap shrink-0">Status: {{ $archive->status_label }}</span>
                 </div>
-                <p class="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1">Pencatatan Master Box & Multi-Item Butir Dokumen Arsip • Standar Box TB 30g</p>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1">Pencatatan Master Box & Multi-Item Berkas Dokumen Arsip • Standar Box TB 30g</p>
             </div>
         </div>
 
@@ -89,10 +89,10 @@
                     </span>
                     <div>
                         <h2 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-                            2. Pengelolaan Box & Butir Dokumen Arsip
+                            2. Pengelolaan Box & Berkas Dokumen Arsip
                         </h2>
                         <p class="text-[10px] text-slate-500 font-sans">
-                            {{ $archive->status === 'draft' ? 'Klik tab box untuk beralih. Anda dapat menambah, menyunting, atau menduplikat box secara instan.' : 'Perbarui rincian metadata box dan rincian butir dokumen di dalamnya.' }}
+                            {{ $archive->status === 'draft' ? 'Klik tab box untuk beralih. Anda dapat menambah, menyunting, atau menduplikat box secara instan.' : 'Perbarui rincian metadata box dan rincian berkas dokumen di dalamnya.' }}
                         </p>
                     </div>
                 </div>
@@ -369,16 +369,16 @@
                         </div>
                     </div>
 
-                    <!-- REPEATER BUTIR DOKUMEN DALAM BOX INI -->
+                    <!-- REPEATER BERKAS DOKUMEN DALAM BOX INI -->
                     <div class="border border-emerald-500/30 rounded-xl p-3.5 bg-emerald-500/5 dark:bg-emerald-950/20 space-y-3">
                         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-emerald-500/20 pb-2">
                             <div>
                                 <h3 class="text-xs font-bold text-emerald-900 dark:text-emerald-300 uppercase tracking-wider flex items-center gap-1.5">
                                     <i data-lucide="list-plus" class="w-4 h-4 text-emerald-600"></i>
-                                    <span>Rincian Butir Dokumen dalam Box #<span x-text="bIdx + 1"></span></span>
+                                    <span>Rincian Berkas Dokumen dalam Box #<span x-text="bIdx + 1"></span></span>
                                 </h3>
                                 <p class="text-[10px] text-slate-500 font-sans">
-                                    Setiap box berisi banyak butir berkas arsip. Anda dapat menyalin data baris dari Excel dan langsung menempelnya (Ctrl+V) di tabel.
+                                    Setiap box berisi banyak berkas arsip. Anda dapat menyalin data baris dari Excel dan langsung menempelnya (Ctrl+V) di tabel.
                                 </p>
                             </div>
 
@@ -390,7 +390,7 @@
                                     title="Tambah 1 Baris Dokumen"
                                 >
                                     <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-                                    <span>Tambah Butir</span>
+                                    <span>Tambah Berkas</span>
                                 </button>
                                 <button 
                                     type="button" 
@@ -500,7 +500,7 @@
                                                 >
                                             </td>
 
-                                            <!-- Keterangan Butir (Textarea Auto-expand, bisa di-Enter) -->
+                                            <!-- Keterangan Berkas (Textarea Auto-expand, bisa di-Enter) -->
                                             <td class="py-2 px-3 align-top">
                                                 <textarea 
                                                     :id="'item_notes_' + bIdx + '_' + iIdx"
@@ -551,7 +551,7 @@
 
                         <!-- Subtotal Box Counter -->
                         <div class="flex items-center justify-between text-[11px] font-mono text-slate-500 pt-1">
-                            <span>Total Butir di Box #<span x-text="bIdx + 1"></span>: <strong class="text-emerald-600 dark:text-emerald-400 font-bold" x-text="box.items.length"></strong> Dokumen</span>
+                            <span>Total Berkas di Box #<span x-text="bIdx + 1"></span>: <strong class="text-emerald-600 dark:text-emerald-400 font-bold" x-text="box.items.length"></strong> Dokumen</span>
                             <span class="text-slate-400 text-[10px]">Tip: Anda dapat langsung menekan Ctrl+V di tabel untuk menempel baris dari Excel.</span>
                         </div>
                     </div>
@@ -608,7 +608,7 @@
                 <span class="p-1.5 bg-amber-500/20 text-amber-700 dark:text-amber-400 rounded">
                     <i data-lucide="check-circle" class="w-4 h-4"></i>
                 </span>
-                <span>Total: <strong class="text-slate-900 dark:text-white" x-text="boxes.length + ' Box'"></strong> dengan <strong class="text-slate-900 dark:text-white" x-text="getTotalItemsCount() + ' Butir Dokumen'"></strong></span>
+                <span>Total: <strong class="text-slate-900 dark:text-white" x-text="boxes.length + ' Box'"></strong> dengan <strong class="text-slate-900 dark:text-white" x-text="getTotalItemsCount() + ' Berkas Dokumen'"></strong></span>
             </div>
 
             <div class="flex items-center gap-2">

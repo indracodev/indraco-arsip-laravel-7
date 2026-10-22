@@ -387,12 +387,12 @@
                 </div>
             </fieldset>
 
-            <!-- GROUPBOX: RINCIAN BUTIR DOKUMEN ARSIP (TDBGrid Spreadsheet) -->
+            <!-- GROUPBOX: RINCIAN BERKAS DOKUMEN ARSIP (TDBGrid Spreadsheet) -->
             @if(!auth()->user()->isPicGudang() && (auth()->user()->isSuperAdmin() || auth()->user()->isAdmin() || (auth()->user()->isPicDept() && (int)$archive->department_id === (int)auth()->user()->department_id)))
             <fieldset class="border border-slate-300 dark:border-slate-800 p-3 rounded bg-white dark:bg-slate-950 font-mono text-xs shadow-sm">
                 <legend class="px-2 font-mono text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded shadow-sm flex items-center gap-1.5">
                     <i data-lucide="list-checks" class="w-3.5 h-3.5 text-emerald-500"></i>
-                    Rincian Butir Dokumen Dalam Box ({{ $archive->items->count() }} Berkas)
+                    Rincian Berkas Dokumen Dalam Box ({{ $archive->items->count() }} Berkas)
                 </legend>
 
                 <div class="pt-1">
@@ -421,7 +421,7 @@
                     </div>
                     @else
                     <div class="p-3 bg-slate-50 dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 whitespace-pre-line font-sans">
-                        {{ $archive->content_description ?: 'Tidak ada rincian butir berkas.' }}
+                        {{ $archive->content_description ?: 'Tidak ada rincian berkas dokumen.' }}
                     </div>
                     @endif
                 </div>
@@ -430,11 +430,11 @@
             <fieldset class="border border-slate-300 dark:border-slate-800 p-3 rounded bg-white dark:bg-slate-950 font-mono text-xs shadow-sm">
                 <legend class="px-2 font-mono text-xs font-bold text-amber-700 dark:text-amber-400 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded shadow-sm flex items-center gap-1.5">
                     <i data-lucide="shield-alert" class="w-3.5 h-3.5 text-amber-500"></i>
-                    Informasi Butir Dokumen (Privasi Departemen)
+                    Informasi Berkas Dokumen (Privasi Departemen)
                 </legend>
                 <div class="p-3 bg-amber-500/10 border border-amber-500/30 rounded text-xs text-amber-800 dark:text-amber-300 font-mono flex items-center gap-2">
                     <i data-lucide="shield-check" class="w-4 h-4 text-amber-600 shrink-0"></i>
-                    <span>Rincian butir isi dokumen di dalam box bersifat rahasia dan disembunyikan. Wewenang PIC Gudang hanya pada verifikasi fisik nomor box, segel, dan penempatan lokasi rak.</span>
+                    <span>Rincian berkas isi dokumen di dalam box bersifat rahasia dan disembunyikan. Wewenang PIC Gudang hanya pada verifikasi fisik nomor box, segel, dan penempatan lokasi rak.</span>
                 </div>
             </fieldset>
             @endif

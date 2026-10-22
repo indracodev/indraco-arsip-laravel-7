@@ -80,7 +80,7 @@
                                 <th class="py-2 px-3">SUB-UNIT</th>
                                 <th class="py-2 px-3">PERIODE / TGL SERAH</th>
                                 <th class="py-2 px-3">LOKASI GUDANG & RAK</th>
-                                <th class="py-2 px-3 text-center">BUTIR DOKUMEN</th>
+                                <th class="py-2 px-3 text-center">BERKAS DOKUMEN</th>
                                 <th class="py-2 px-3 text-center">STATUS</th>
                                 <th class="py-2 px-3 text-right">AKSI</th>
                             </tr>
@@ -123,7 +123,7 @@
 
             <!-- Modal Footer -->
             <div class="p-3 bg-slate-100 dark:bg-slate-900 border-t border-slate-300 dark:border-slate-800 flex items-center justify-between font-mono text-xs shrink-0">
-                <span class="text-slate-500 text-[11px]">Klik baris atau tombol Detail untuk membuka butir-butir dokumen di dalam box.</span>
+                <span class="text-slate-500 text-[11px]">Klik baris atau tombol Detail untuk membuka berkas-berkas dokumen di dalam box.</span>
                 <button type="button" @click="openArchiveListModal = false; resetPos()" class="px-4 py-1.5 bg-slate-300 hover:bg-slate-400 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold rounded">
                     Tutup (Esc)
                 </button>
@@ -218,7 +218,7 @@
                         <div class="bg-slate-100 dark:bg-slate-900 px-3 py-2 border-b border-slate-300 dark:border-slate-800 font-mono text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center justify-between">
                             <span class="flex items-center gap-1.5">
                                 <i data-lucide="list-checks" class="w-3.5 h-3.5 text-emerald-500"></i>
-                                Rincian Butir Dokumen di Dalam Box (<span x-text="selectedArchiveDetail.items ? selectedArchiveDetail.items.length : 0"></span> Berkas)
+                                Rincian Berkas Dokumen di Dalam Box (<span x-text="selectedArchiveDetail.items ? selectedArchiveDetail.items.length : 0"></span> Berkas)
                             </span>
                             <span class="text-[10px] text-slate-500 font-normal">Format Standar Box TB 30g</span>
                         </div>
@@ -244,7 +244,7 @@
                                     </template>
                                     <tr x-show="!selectedArchiveDetail.items || selectedArchiveDetail.items.length === 0">
                                         <td colspan="4" class="py-4 text-center text-slate-500 font-mono text-xs">
-                                            Belum ada butir dokumen terdaftar.
+                                            Belum ada berkas dokumen terdaftar.
                                         </td>
                                     </tr>
                                 </tbody>
