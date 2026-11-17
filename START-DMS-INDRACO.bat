@@ -136,7 +136,8 @@ echo.
 set "NEED_VCREDIST="
 if not exist "%SystemRoot%\System32\vcruntime140.dll" set "NEED_VCREDIST=1"
 if not exist "%SystemRoot%\System32\vcruntime140_1.dll" set "NEED_VCREDIST=1"
-if exist "!FOUND_PHP!\vcruntime140.dll" if exist "!FOUND_PHP!\vcruntime140_1.dll" set "NEED_VCREDIST="
+if not exist "%SystemRoot%\System32\msvcp140.dll" set "NEED_VCREDIST=1"
+if exist "!FOUND_PHP!\vcruntime140.dll" if exist "!FOUND_PHP!\vcruntime140_1.dll" if exist "!FOUND_PHP!\msvcp140.dll" set "NEED_VCREDIST="
 if defined NEED_VCREDIST (
     echo [*] Visual C++ Runtime belum terpasang. Mengunduh dan memasang ^(perlu izin Administrator^)...
     powershell -NoProfile -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; $ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri 'https://aka.ms/vs/17/release/vc_redist.x64.exe' -OutFile '%TEMP%\vc_redist.x64.exe'"
