@@ -133,11 +133,26 @@ echo [OK] PHP 8.2 Portable siap digunakan!
 echo.
 
 :VERIFY_PHP
+set "NEED_VCREDIST="
+if not exist "%SystemRoot%\System32\vcruntime140.dll" set "NEED_VCREDIST=1"
+if not exist "%SystemRoot%\System32\vcruntime140_1.dll" set "NEED_VCREDIST=1"
+if exist "!FOUND_PHP!\vcruntime140.dll" if exist "!FOUND_PHP!\vcruntime140_1.dll" set "NEED_VCREDIST="
+if defined NEED_VCREDIST (
+    echo [*] Visual C++ Runtime belum terpasang. Mengunduh dan memasang ^(perlu izin Administrator^)...
+    powershell -NoProfile -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; $ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri 'https://aka.ms/vs/17/release/vc_redist.x64.exe' -OutFile '%TEMP%\vc_redist.x64.exe'"
+    powershell -NoProfile -Command "Start-Process -FilePath '%TEMP%\vc_redist.x64.exe' -ArgumentList '/install','/passive','/norestart' -Verb RunAs -Wait"
+    if not exist "%SystemRoot%\System32\vcruntime140.dll" (
+        echo [ERROR] Visual C++ Runtime gagal dipasang. Install manual: https://aka.ms/vs/17/release/vc_redist.x64.exe
+        pause
+        exit /b 1
+    )
+    echo [OK] Visual C++ Runtime terpasang.
+)
 set "PHPRC=!FOUND_PHP!"
 
 :: Pastikan ekstensi OpenSSL, SQLite, Fileinfo, Mbstring, Curl aktif di php.ini
 if exist "!FOUND_PHP!\php.ini" (
-    powershell -NoProfile -Command "$ini = '!FOUND_PHP!\php.ini'; $c = Get-Content $ini; if ($c -match ';extension=openssl' -or $c -match ';extension_dir = \"ext\"') { $c = $c -replace ';extension_dir = \"ext\"', 'extension_dir = \"ext\"' -replace ';extension=curl', 'extension=curl' -replace ';extension=fileinfo', 'extension=fileinfo' -replace ';extension=mbstring', 'extension=mbstring' -replace ';extension=openssl', 'extension=openssl' -replace ';extension=pdo_sqlite', 'extension=pdo_sqlite' -replace ';extension=sqlite3', 'extension=sqlite3' -replace ';extension=zip', 'extension=zip' -replace ';extension=gd', 'extension=gd' -replace ';extension=intl', 'extension=intl'; Set-Content $ini $c }" >nul 2>&1
+    powershell -NoProfile -Command "$ini = '!FOUND_PHP!\php.ini'; $c = Get-Content $ini; if ($c -match ';extension=openssl' -or $c -match ';extension_dir = \"ext\"') { $c = $c -replace ';extension_dir = \"ext\"', 'extension_dir = \"ext\"' -replace ';extension=curl', 'extension=curl' -replace ';extension=fileinfo', 'extension=fileinfo' -replace ';extension=mbstring', 'extension=mbstring' -replace ';extension=openssl', 'extension=openssl' -replace ';extension=pdo_sqlite', 'extension=pdo_sqlite' -replace ';extension=sqlite3', 'extension=sqlite3' -replace ';extension=zip', 'extension=zip' -replace ';extension=gd', 'extension=gd'; Set-Content $ini $c }" >nul 2>&1
 )
 
 for /f "tokens=1,2 delims= " %%a in ('php -v 2^>nul') do (
