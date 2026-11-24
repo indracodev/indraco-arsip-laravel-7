@@ -45,3 +45,10 @@ Temuan #1 dan #2 dicek ulang oleh koordinator: 32/32 akun cocok dengan password 
 | B12 | Aturan FAT juga berdasarkan nama user mengandung "FAT"/"FIN" | ArchiveRetentionService, HandlesArchiveExtensions | ASK: cukup kode dept | ARSIP/RETENSI | terbuka |
 | B13 | TrackPageVisits merujuk model MasterLogKunjungan yang tidak ada | middleware | Buang | – | terbuka |
 | B14 | quick_notes.json berisi bug UAT: "print form pengajuan simpan data tidak muncul", "penolakan pengajuan tidak ada notifikasi" | storage/app/quick_notes.json | Masukkan ke checklist uji ARSIP/SHELL | ARSIP | terbuka |
+
+## Temuan rebuild Laravel 13 (verifikasi koordinator)
+| # | Temuan | Bukti | Tindakan | Fase | Status |
+|---|---|---|---|---|---|
+| R1 | Launcher menyatakan siap saat ping (dijawab Caddy) hidup, padahal PHP belum membalas → user melihat halaman error beberapa detik | ping siap 18,6 dtk, halaman `/` siap 25,3 dtk (laptop 16 core); Chrome via IP LAN menampilkan error page | Cek kesiapan lewat request PHP + pemanasan semua worker sebelum "SIAP"/buka browser | 1 | terbuka |
+| R2 | Log pool php-cgi berisi "The filename, directory name, or volume label syntax is incorrect." | `storage/logs/pool/php-cgi-900N.log` | Perbaiki path/quoting di `evironment/dms-server.cmd` | 1 | terbuka |
+| R3 | Start butuh 18,6 dtk di laptop cepat; di server 1–2 core bisa > 1 menit | pengukuran STOP→START | Profil tiap langkah START, lewati pekerjaan yang tidak perlu setiap start | 1 | terbuka |
