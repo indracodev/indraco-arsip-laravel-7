@@ -12,3 +12,21 @@ tanggal | keputusan | alasan | disetujui oleh
 2026-11-24 | Launcher tetap `START-DMS-INDRACO.bat` dkk (nama sama) | user sudah terbiasa | pemilik
 2026-11-24 | Aturan `PROJECT_RULES*.md` lama tetap jadi kontrak teknis, diperbarui untuk L13 | aturan yang sudah disepakati sebelumnya | pemilik
 2026-11-24 | Temuan wajib dicatat dan diperbaiki; setiap modul diuji di browser (remote) | permintaan pemilik | pemilik
+2026-11-24 | **Risiko diterima:** password default `password` pada akun lama dibiarkan; tidak ada paksaan ganti password (ASK 17 = tidak). Mitigasi di rebuild: rate limit login, log login gagal, form login tidak diisi otomatis, menu ganti password mudah dijangkau | user mengganti sendiri nanti | pemilik
+2026-11-24 | **Risiko diterima:** Laravel 7 tidak di-hotfix (termasuk temuan #2 file/backup bisa diunduh tanpa login); semua perbaikan di rebuild. Risiko tetap ada sampai cutover | pemilik ingin fokus rebuild yang portable | pemilik
+2026-11-24 | Arsitektur dan security dirapikan di rebuild; Claude wajib proaktif menyampaikan temuan dan risiko dari setiap permintaan | permintaan pemilik | pemilik
+2026-11-24 | ASK 1: tampilan MDI iframe gaya Delphi diganti halaman biasa dengan menu yang sama | sumber utama UI berat/membingungkan | pemilik (ikut saran)
+2026-11-24 | ASK 2–3: penarikan tetap permanen; satu jalur keluar box (`borrowings/dispatch`) | sesuai perilaku yang berjalan | pemilik (ikut saran)
+2026-11-24 | ASK 4: persetujuan departemen untuk penarikan (`dept-approve`) tidak dibawa | 0 pemakaian, tombol hanya admin | pemilik (ikut saran)
+2026-11-24 | ASK 5: impor Excel multi-box PIC dibawa, dikerjakan paling akhir | belum dipakai PIC, tetapi berguna | pemilik (ikut saran)
+2026-11-24 | ASK 6: impersonate dibawa, khusus admin, tercatat di log | | pemilik (ikut saran)
+2026-11-24 | ASK 7: hapus massal (log/box/arsip) dibawa, khusus admin, konfirmasi + backup otomatis sebelum hapus | | pemilik (ikut saran)
+2026-11-24 | ASK 8, 16: update dari web (git pull + restart) dan `UPDATE-AND-RESTART.bat` dibawa, khusus admin | | pemilik (ikut saran)
+2026-11-24 | ASK 9: Quick Notes publik dibuang | tanpa login, tidak dipakai sebagai fitur | pemilik (ikut saran)
+2026-11-24 | ASK 10: 21 backup lama di `storage/app` dipindah ke folder backup di luar jangkauan web saat cutover | | pemilik (ikut saran)
+2026-11-24 | ASK 11: data uji `BOX-TEST-*` dibersihkan saat cutover, setelah backup | | pemilik (ikut saran)
+2026-11-24 | ASK 12: aturan FAT cukup berdasarkan kode departemen | nama user tidak andal | pemilik (ikut saran)
+2026-11-24 | ASK 13: ukuran font per user | | pemilik (ikut saran)
+2026-11-24 | ASK 14: kolom DB tak terpakai dibiarkan | kompatibilitas database lama | pemilik (ikut saran)
+2026-11-24 | ASK 15: alat k6 dibawa (lokal); `.exe` hanya jika masih dipakai klien | | pemilik (ikut saran)
+2026-11-24 | ASK lain di `triage.md` (tujuan `app/Bootstrap/HandleExceptions`, test lama yang menulis DB nyata): diputuskan saat triage modul terkait, default tidak dibawa | | pemilik (ikut saran)
