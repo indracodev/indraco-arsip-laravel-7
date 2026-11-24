@@ -1,0 +1,71 @@
+/* Printed "Berita Acara Pemusnahan (BAP)" (destructions/bap) and "Formulir Permohonan Perpanjangan
+   Masa Simpan" (destructions/extend-print), Laravel 7 destructions/bap + print_extension.
+   The paper (.rp) uses physical units (Laravel 7 Tailwind px x 0.75 = pt) so it prints the same
+   size whatever font size the user chose; the page is always light (no prefs.js).
+   Greys are Laravel 7's slate shades, local to the paper; the footer uses slate-500 instead of
+   slate-400 so it stays readable (4.7:1). */
+.rp-page { display: flex; flex-direction: column; align-items: center; gap: var(--space-4); padding: var(--space-4); }
+.rp-bar { width: 100%; max-width: 672pt; justify-content: space-between; }
+
+.rp {
+    --rp-ink: #0f172a;      /* slate-900 */
+    --rp-text: #1e293b;     /* slate-800 */
+    --rp-strong: #334155;   /* slate-700 */
+    --rp-label: #475569;    /* slate-600 */
+    --rp-muted: #64748b;    /* slate-500 */
+    --rp-line: #cbd5e1;     /* slate-300 */
+    --rp-rule: #e2e8f0;     /* slate-200 */
+    --rp-head: #f1f5f9;     /* slate-100 */
+    --rp-box: #f8fafc;      /* slate-50 */
+    width: 100%;
+    max-width: 672pt;
+    padding: 36pt;
+    background: var(--color-paper);
+    color: var(--rp-ink);
+    border: 1px solid var(--rp-rule);
+    border-radius: 18pt;
+    box-shadow: var(--shadow-1);
+    font-family: var(--font-sans);
+    font-size: 10.5pt;
+    line-height: 1.5;
+}
+.rp > * + * { margin-top: 24pt; }
+.rp__head { display: flex; align-items: center; justify-content: space-between; gap: 12pt; padding-bottom: 18pt; border-bottom: 2px solid var(--rp-ink); }
+.rp__brand { display: flex; align-items: center; gap: 12pt; }
+.rp__logo { height: 42pt; width: auto; }
+.rp__brand h1 { margin: 0; font-size: 18pt; font-weight: 900; letter-spacing: -0.02em; line-height: 1.3; }
+.rp__sub { display: block; font-size: 9pt; font-weight: 600; color: var(--rp-label); text-transform: uppercase; letter-spacing: 0.1em; }
+.rp__addr { font-size: 8.25pt; color: var(--rp-muted); }
+.rp__tag { padding: 3pt 9pt; font-family: var(--font-mono); font-size: 9pt; font-weight: 700; background: var(--rp-head); color: var(--rp-text); border: 1px solid var(--rp-line); border-radius: 3pt; }
+.rp__tag--ext { background: #f3e8ff; color: #581c87; border-color: #d8b4fe; } /* purple-100 / 900 / 300 */
+.rp__title { text-align: center; }
+.rp__title h2 { margin: 0 0 3pt; font-size: 15pt; font-weight: 800; text-transform: uppercase; letter-spacing: 0.025em; text-decoration: underline; text-underline-offset: 3pt; }
+.rp__title p { margin: 0; font-family: var(--font-mono); font-weight: 700; color: var(--rp-strong); }
+.rp p { margin: 0; color: var(--rp-text); line-height: 1.625; }
+.rp__h3 { margin: 0 0 9pt; font-size: 9pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--rp-strong); }
+.rp__table { width: 100%; border-collapse: collapse; font-size: 9pt; text-align: left; }
+.rp__table th, .rp__table td { padding: 7.5pt; border: 1px solid var(--rp-line); vertical-align: top; }
+.rp__table th, .rp__table .rp__key { background: var(--rp-head); font-weight: 700; color: var(--rp-text); }
+.rp__key { width: 33.33%; }
+.rp__mono { font-family: var(--font-mono); }
+.rp__bold { font-weight: 700; }
+.rp__box { display: grid; grid-template-columns: 1fr 1fr; gap: 12pt; padding: 12pt; font-size: 9pt; background: var(--rp-box); border: 1px solid var(--rp-rule); border-radius: 9pt; }
+.rp__box--one { grid-template-columns: 1fr; gap: 6pt; }
+.rp__box span { display: block; }
+.rp__label { font-weight: 600; color: var(--rp-muted); }
+.rp__value { font-size: 10.5pt; font-weight: 700; }
+.rp__reason { white-space: pre-line; font-weight: 500; }
+.rp__links { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 12pt; padding-top: 6pt; border-top: 1px solid var(--rp-rule); }
+.rp__signs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12pt; padding-top: 24pt; text-align: center; font-size: 9pt; }
+.rp__signs .rp__label { color: var(--rp-label); font-weight: 400; }
+.rp__sign-name { max-width: 135pt; margin: 24pt auto 0; padding-top: 36pt; border-bottom: 1px solid #94a3b8; font-size: 10.5pt; font-weight: 700; }
+.rp__sign-date { margin-top: 3pt; font-size: 8.25pt; color: var(--rp-muted); }
+.rp__foot { padding-top: 18pt; border-top: 1px solid var(--rp-rule); text-align: center; font-size: 7.5pt; color: var(--rp-muted); }
+
+@media print {
+    body { background: var(--color-paper); }
+    .no-print { display: none; }
+    .rp-page { display: block; padding: 0; }
+    .rp { max-width: none; border: 0; box-shadow: none; } /* Laravel 7 kept the card padding, browser page margins */
+    .rp__table th, .rp__key, .rp__box, .rp__tag { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}

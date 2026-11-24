@@ -1,0 +1,195 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\ActivityLog;
+use App\Models\Archive;
+use App\Models\ArchiveExtensionLog;
+use App\Models\DestructionLog;
+use App\Models\User;
+use App\Support\StatusLabel;
+use DomainException;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
+
+/**
+ * Read side of RETENSI ([Form 3] Laravel 7 DestructionController@index / proposeForm /
+ * extendForm) and the one map of destruction / extension statuses to text and colour.
+ * Department scoping goes through Archive::visibleTo() (IDOR rule).
+ */
+final class RetentionList
+{
+    /**
+     * Archive status a box must have to be proposed for destruction or extension. Fix B2:
+     * Laravel 7 only excluded destroyed / draft / pending_destruction / pending_extension, so a
+     * box still waiting for verification, booked, or withdrawn (taken) could be proposed, and
+     * approving an extension then put it back to `in_warehouse`.
+     */
+    public const CANDIDATE_STATUS = 'in_warehouse';
+
+    /** destruction_logs.approval_status => [label, tone] (Laravel 7 index). */
+    public const DESTRUCTION = [
+        'pending' => ['Pengajuan Pemusnahan', 'warning'],
+        'approved' => ['Antrean Pemusnahan', 'info'],
+        'rejected' => ['Ditolak', 'danger'],
+        'completed' => ['Telah Dimusnahkan', 'success'],
+    ];
+
+    /** archive_extension_logs.approval_status => [label, tone] (Laravel 7 ArchiveExtensionLog). */
+    public const EXTENSION = [
+        'pending' => ['Menunggu ACC Gudang', 'warning'],
+        'approved' => ['Disetujui Gudang', 'success'],
+        'rejected' => ['Ditolak', 'danger'],
+    ];
+
+    public function __construct(private RetentionCalculator $calculator) {}
+
+    /**
+     * Boxes that may be proposed (destruction or extension): in the warehouse, no active
+     * destruction log, no pending extension (Laravel 7 candidate query + B2).
+     *
+     * @return Builder<Archive>
+     */
+    public function candidates(User $user): Builder
+    {
+        return Archive::query()->visibleTo($user)->where('status', self::CANDIDATE_STATUS)
+            ->whereDoesntHave('destructionLogs', fn (Builder $q) => $q->whereIn('approval_status', ['pending', 'approved', 'completed']))
+            ->whereDoesntHave('extensionLogs', fn (Builder $q) => $q->where('approval_status', 'pending'));
+    }
+
+    /**
+     * The chosen boxes, refused (DomainException, Laravel 7 text) when one is not a candidate.
+     * Called before the upload and again inside the IMMEDIATE transaction (double submit / two
+     * sessions). Department ownership is checked by the controller (policy, 403) before this.
+     *
+     * @param  list<int>  $ids
+     * @return EloquentCollection<int, Archive>
+     */
+    public function pick(User $user, array $ids): EloquentCollection
+    {
+        $archives = Archive::query()->with('department')->whereIn('id', $ids)->orderBy('id')->get();
+        if ($archives->count() !== count($ids)) {
+            throw new DomainException('Satu atau lebih berkas arsip yang dipilih tidak ditemukan.');
+        }
+        $allowed = $this->candidates($user)->whereIn('id', $ids)->pluck('id')->all();
+        foreach ($archives as $archive) {
+            if (in_array($archive->id, $allowed)) {
+                continue;
+            }
+            throw new DomainException($archive->status === self::CANDIDATE_STATUS || in_array($archive->status, ['pending_destruction', 'pending_extension', 'destroyed'], true)
+                ? "Berkas '{$archive->title}' sedang dalam proses pengajuan pemusnahan/perpanjangan atau telah dimusnahkan."
+                : "Berkas '{$archive->title}' tidak tersimpan di gudang (status: ".StatusLabel::archive($archive->status)['label'].'), sehingga belum dapat diajukan pemusnahan/perpanjangan.');
+        }
+
+        return $archives;
+    }
+
+    /**
+     * Tab "Berkas Jatuh Tempo (H-30)": candidates whose retention ends within 30 days or passed.
+     *
+     * @return Collection<int, array{archive: Archive, expiry: Carbon, days: int, expired: bool, badge: string}>
+     */
+    public function expiring(User $user): Collection
+    {
+        return $this->candidates($user)->with(['department', 'location.warehouse', 'rackSlot'])->get()
+            ->map(function (Archive $archive): ?array {
+                $end = $this->calculator->expiryEnd($archive);
+                if (! $end || ! $this->calculator->isDue($end)) {
+                    return null;
+                }
+                $days = $this->calculator->daysLeft($end);
+
+                return [
+                    'archive' => $archive, 'expiry' => $end, 'days' => $days, 'expired' => $days < 0,
+                    'badge' => $days < 0 ? 'Lewat '.abs($days).' Hari' : ($days === 0 ? 'Hari Ini Jatuh Tempo' : "Jatuh Tempo Bulan Ini (Sisa {$days} Hari)"),
+                ];
+            })->filter()->sortBy('days')->values();
+    }
+
+    /** @return Collection<int, ArchiveExtensionLog> */
+    public function extensions(User $user): Collection
+    {
+        return ArchiveExtensionLog::query()->with(['archive.department', 'proposedBy', 'approvedBy'])
+            ->whereHas('archive', fn (Builder $q) => $q->visibleTo($user))->latest()->orderByDesc('id')->get();
+    }
+
+    /**
+     * Laravel 7 showed extensions made by the old code (activity log RETENTION_EXTEND, before
+     * archive_extension_logs existed) when there is no extension log yet. Read only.
+     *
+     * @return Collection<int, array{box: string, title: string, dept: string, months: int, expiry: string, reason: string, user: string, date: string}>
+     */
+    public function legacyExtensions(User $user): Collection
+    {
+        return ActivityLog::query()->where('action', 'RETENTION_EXTEND')
+            ->when($user->role === User::ROLE_PIC_DEPT, fn ($q) => $q->where('department_id', $user->department_id))
+            ->latest()->get()->map(function (ActivityLog $log): array {
+                $props = (array) $log->getAttribute('properties');
+                $archive = isset($props['archive_id']) ? Archive::query()->with('department')->find($props['archive_id']) : null;
+
+                return [
+                    'box' => (string) ($log->getAttribute('reference_id') ?? $archive->box_number ?? '-'),
+                    'title' => (string) ($archive->title ?? $log->getAttribute('description')),
+                    'dept' => (string) ($archive->department->code ?? $log->getAttribute('user_role') ?? '-'),
+                    'months' => (int) ($props['additional_months'] ?? 0),
+                    'expiry' => isset($props['new_expiry_date']) ? Carbon::parse($props['new_expiry_date'])->format('M Y') : '-',
+                    'reason' => (string) ($props['extension_reason'] ?? '-'),
+                    'user' => (string) ($log->getAttribute('user_name') ?? 'PIC'),
+                    'date' => (string) $log->getAttribute('created_at')?->format('d M Y H:i'),
+                ];
+            });
+    }
+
+    /** @return Collection<int, DestructionLog> */
+    public function destructions(User $user): Collection
+    {
+        return DestructionLog::query()->with(['archive.department', 'proposedBy'])
+            ->whereHas('archive', fn (Builder $q) => $q->visibleTo($user))->latest()->orderByDesc('id')->get();
+    }
+
+    /**
+     * Data of one box for the propose / extend form (Alpine), Laravel 7 field names.
+     *
+     * @return array<string, mixed>
+     */
+    public function candidate(Archive $archive): array
+    {
+        $end = $this->calculator->expiryEnd($archive);
+
+        return [
+            'id' => $archive->id, 'box_number' => $archive->box_number, 'title' => $archive->title,
+            'dept' => trim(($archive->department->code ?? '').' - '.($archive->department->name ?? ''), ' -') ?: 'UMUM',
+            'dept_code' => $archive->department->code ?? 'GEN',
+            'long' => ArchiveBoxBuilder::maxPeriodMonths($archive->department) === 120,
+            'location' => $archive->location ? $archive->displayLocation() : 'Gudang',
+            'period' => $archive->period_text ?: ($archive->periode_doc ?: '-'),
+            'retention' => RetentionCalculator::archiveDuration($archive),
+            'expiry' => $end?->format('M Y') ?? '-',
+            'expiry_ym' => ($archive->retention_expiry_date ?? $archive->period_end_date)?->format('Y-m'),
+            'items' => $archive->items->map(fn ($item): array => [
+                'number' => $item->item_number, 'name' => $item->document_name ?: '-',
+                'period' => $item->period_text ?: ($item->period_start ? trim($item->period_start.' s/d '.$item->period_end) : '-'),
+                'notes' => $item->notes ?: '-',
+            ])->all(),
+        ];
+    }
+
+    /**
+     * One entry of the page file viewer (#file-viewer, same shape as ArchiveFileList).
+     *
+     * @return array{name: string, note: string, type: string, data: string, download: string}|null
+     */
+    public static function file(string $name, string $source, int $id, string $field, ?string $path): ?array
+    {
+        if (blank($path)) {
+            return null;
+        }
+        $params = ['source' => $source, 'id' => $id, 'field' => $field];
+        $extension = strtolower(pathinfo((string) $path, PATHINFO_EXTENSION));
+
+        return ['name' => $name, 'note' => strtoupper($extension), 'type' => $extension === 'pdf' ? 'pdf' : 'image',
+            'data' => route('files.preview_data', $params), 'download' => route('files.download', $params)];
+    }
+}
