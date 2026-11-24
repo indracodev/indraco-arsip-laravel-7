@@ -1,0 +1,121 @@
+/* Box label print page (archives/labels.blade.php), Laravel 7 archives/print_sticker.blade.php.
+   Physical units only: mm as in Laravel 7, Laravel 7 px x 0.75 = pt, so the sticker prints at the
+   same size whatever font size the user chose. Greys are Laravel 7's, local to the sheet.
+   Two formats (body.mode-a5 toggled by label-print.js): sticker 10 x 10 cm or form A5 (TB 30g). */
+@page { margin: 0; }
+* { box-sizing: border-box; }
+html, .lbl-body { margin: 0; padding: 0; background: #f8fafc; }
+
+.lbl-body {
+    --lbl-ink: var(--color-ink);
+    --lbl-paper: var(--color-paper);
+    --lbl-grey: #808080;
+    --lbl-line: #cccccc;
+    --lbl-label: #555555;
+    --lbl-muted: #666666;
+    --lbl-faint: #999999;
+    --lbl-note: #b45309;
+    --lbl-soft: #f8fafc;
+    display: flex;
+    justify-content: center;
+    padding-bottom: 20mm;
+    color: var(--lbl-ink);
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 12pt;
+}
+
+.lbl-sheet { width: 100mm; margin: auto; display: flex; flex-direction: column; gap: 5mm; }
+.mode-a5 .lbl-sheet { width: 200mm; }
+
+.lbl-nav { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2mm; padding: 5mm 0 2mm; }
+.lbl-btn {
+    display: grid;
+    place-items: center;
+    padding: 6pt 12pt;
+    border: 1px solid var(--lbl-ink);
+    background: transparent;
+    color: var(--lbl-ink);
+    font: inherit;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+}
+.lbl-btn:hover, .lbl-btn:focus-visible { background: var(--lbl-ink); color: var(--lbl-paper); }
+
+/* Sticker 10 x 10 cm */
+.lbl {
+    width: 100mm;
+    height: 100mm;
+    display: flex;
+    flex-direction: column;
+    gap: 2mm;
+    padding: 2mm;
+    border: 1px solid var(--lbl-ink);
+    background: var(--lbl-paper);
+    box-shadow: 0 3pt 4.5pt -0.75pt rgb(0 0 0 / 0.1);
+}
+.lbl__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 4mm; height: 22mm; }
+.lbl__brand { display: flex; flex-direction: column; height: 100%; }
+.lbl__logo { width: 150pt; max-width: 100%; height: auto; max-height: 21pt; object-fit: contain; object-position: left; }
+.lbl__exp { margin-top: auto; font-size: 15.75pt; line-height: 1; }
+.lbl__qr {
+    flex-shrink: 0;
+    width: 22mm;
+    height: 22mm;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1mm;
+    overflow: hidden;
+    border: 1px solid var(--lbl-grey);
+    background: var(--lbl-paper);
+}
+.lbl__qr img, .lbl__qr canvas { width: 100% !important; height: 100% !important; object-fit: contain; }
+.lbl__body { flex-grow: 1; display: flex; align-items: center; justify-content: center; padding: 2mm; overflow: hidden; border: 1px solid var(--lbl-grey); }
+.lbl__number { width: 100%; margin: 0 auto; font-family: Verdana, Geneva, Tahoma, sans-serif; font-size: 90pt; font-weight: bold; line-height: 0.9; text-align: center; }
+
+/* Form A5 (TB 30g) */
+.a5 {
+    display: none;
+    width: 100%;
+    margin-bottom: 15pt;
+    padding: 12pt;
+    border: 2px solid var(--lbl-ink);
+    border-radius: 3pt;
+    background: var(--lbl-paper);
+    box-shadow: 0 3pt 4.5pt -0.75pt rgb(0 0 0 / 0.1);
+}
+.mode-a5 .lbl { display: none; }
+.mode-a5 .a5 { display: block; }
+.a5__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6pt; padding-bottom: 6pt; border-bottom: 2px solid var(--lbl-ink); }
+.a5__logo { width: auto; max-height: 24pt; object-fit: contain; }
+.a5__kind { text-align: right; }
+.a5__kind-title { display: block; font-size: 10.5pt; font-weight: 900; letter-spacing: 0.75pt; text-transform: uppercase; }
+.a5__kind-size { padding: 1.5pt 6pt; border-radius: 3pt; background: var(--lbl-ink); color: var(--lbl-paper); font-family: monospace; font-size: 7.5pt; font-weight: 900; }
+.a5__grid { display: grid; grid-template-columns: 2fr 1fr; gap: 9pt; }
+.a5__meta { padding-right: 9pt; border-right: 2px solid var(--lbl-ink); font-family: monospace; font-size: 9pt; }
+.a5__facts { padding-bottom: 6pt; border-bottom: 1px solid var(--lbl-line); line-height: 1.6; }
+.a5__contents-label { margin-top: 6pt; color: var(--lbl-label); font-size: 7.5pt; font-weight: bold; text-transform: uppercase; }
+.a5__contents { margin-top: 3pt; font-family: sans-serif; font-size: 9pt; white-space: pre-line; }
+.a5__side { display: flex; flex-direction: column; gap: 6pt; }
+.a5__code, .a5__slot { padding: 6pt; border: 2px solid var(--lbl-ink); border-radius: 3pt; text-align: center; }
+.a5__code { padding: 4.5pt; background: var(--lbl-soft); }
+.a5__slot { background: var(--lbl-paper); }
+.a5__code-label { color: var(--lbl-muted); font-family: monospace; font-size: 6.75pt; font-weight: bold; text-transform: uppercase; }
+.a5__code-value { font-family: monospace; font-size: 10.5pt; font-weight: 900; overflow-wrap: anywhere; }
+.a5__slot-label { margin-bottom: 3pt; padding-bottom: 1.5pt; border-bottom: 1px solid var(--lbl-line); font-family: monospace; font-size: 7.5pt; font-weight: 900; text-transform: uppercase; }
+.a5__slot-value { font-family: monospace; font-size: 11.25pt; font-weight: 900; }
+.a5__slot-note { color: var(--lbl-note); font-size: 7.5pt; }
+.a5__pending { color: var(--lbl-faint); font-size: 8.25pt; }
+.a5__foot { display: flex; justify-content: space-between; margin-top: 6pt; padding-top: 4.5pt; border-top: 2px solid var(--lbl-ink); color: var(--lbl-muted); font-family: monospace; font-size: 6.75pt; }
+.a5__foot strong { color: var(--lbl-ink); text-transform: uppercase; }
+
+@media print {
+    html, .lbl-body { display: block; height: auto; margin: 0; padding: 0; background: none; }
+    .lbl-sheet { display: block; width: 100mm; margin: 0 auto; padding: 0; gap: 0; }
+    .mode-a5 .lbl-sheet { width: 200mm; }
+    .lbl-nav { display: none; }
+    .lbl { margin: 0 auto 3mm; border: 2px solid var(--lbl-ink); box-shadow: none; break-inside: avoid; }
+    .lbl:last-of-type { margin-bottom: 0; }
+    .mode-a5 .a5 { width: 200mm; margin: 0 auto; box-shadow: none; break-inside: avoid; break-after: page; }
+}
