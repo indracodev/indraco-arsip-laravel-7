@@ -56,3 +56,6 @@ tanggal | keputusan | alasan | disetujui oleh
 2026-11-24 | `phpunit.xml` mengarahkan cache config/route/event ke file yang tidak ada | tanpa ini `php artisan test` memakai config cache produksi dan RefreshDatabase bisa menghapus `database/database.sqlite` | Claude (temuan F2)
 2026-11-24 | **UI memakai CSS murni + Alpine.js lokal, tanpa Tailwind dan tanpa build tool (Vite/Node)**; menggantikan keputusan "Blade + Alpine + Tailwind 4". Design token di variabel CSS, satu file CSS per komponen, kompatibel Chrome/Edge ≥ 90 / Firefox ≥ 88 | permintaan pemilik; lebih ringan dan kompatibel untuk klien low-spec/browser lama, tanpa Node di mana pun. Risiko CSS melebar ditangani dengan token + komponen + batas ukuran | pemilik
 2026-11-24 | Cek versi WebView2/browser klien tidak lagi menghalangi Fase 3 (tetap berguna untuk verifikasi) | target CSS sudah konservatif | Claude
+2026-11-24 | Fase 2 **ACC pemilik**; mulai Fase 3 | | pemilik
+2026-11-24 | R4: `users.email` dijadikan unik — cek duplikat dulu; bila ada duplikat, berhenti dan tanya pemilik (tidak dedupe otomatis); migrasi UNIQUE index + validasi berpasangan | login ambigu bila email ganda | pemilik (ikut saran)
+2026-11-24 | R8: instalasi baru memakai layout gudang **produksi** (gudang, lokasi rak, slot dari DB produksi, tanpa data arsip/booking) | sesuai kondisi gudang nyata | pemilik (ikut saran)
