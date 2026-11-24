@@ -8,9 +8,7 @@ body {
     line-height: var(--line);
     color: var(--color-text);
     min-height: 100vh;
-    /* The one ambient background (static: scrolls with the page, no fixed attachment). */
-    background: var(--ambient), var(--color-bg);
-    background-repeat: no-repeat;
+    background: var(--color-bg); /* ambient glows: .main (layout.css) */
 }
 h1, h2, h3, h4, p { margin: 0; }
 h1 { font-size: var(--text-xl); font-weight: var(--weight-bold); }

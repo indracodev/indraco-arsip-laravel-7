@@ -21,9 +21,9 @@
     --color-accent-soft: #e3e6eb;
     --color-on-accent: #ffffff;
     --color-brand: #fd4f00;
-    --color-focus: #e04600;          /* logo orange, one step darker: >= 3:1 on bg, surface and nav */
+    --color-focus: #d04100;          /* logo orange, darker: >= 3:1 on bg, ambient, surface and nav */
 
-    /* Navigation (sidebar / top menu bar): dark slate */
+    /* Navigation (top menu bar / drawer): dark slate */
     --color-nav-bg: #222a35;
     --color-nav-hover: #2d3643;
     --color-nav-active: #36404e;
@@ -41,11 +41,13 @@
     --color-info: #1d4ed8;
     --color-info-soft: #e5ecfc;
 
-    /* Ambient page background: one static gradient pair in brand tints (no animation,
-       no background-attachment: fixed, no blur). */
+    /* Ambient background of the content area (.main): two static brand-tint glows, cool slate
+       top-right under the menu, warm orange bottom-left. Horizontal reach (radius x stop:
+       60% x 70% = 42%, 55% x 70% = 38.5%) keeps them apart, so the darkest point is one glow
+       over --color-bg (tests/Unit/ContrastTest.php). No animation, no fixed attachment, no blur. */
     --ambient:
-        radial-gradient(ellipse 70% 55% at 0% 0%, rgba(38, 47, 59, 0.09), rgba(38, 47, 59, 0) 70%),
-        radial-gradient(ellipse 60% 50% at 100% 100%, rgba(253, 79, 0, 0.045), rgba(253, 79, 0, 0) 70%);
+        radial-gradient(ellipse 60% 30rem at 100% 0%, rgba(38, 47, 59, 0.14), rgba(38, 47, 59, 0) 70%),
+        radial-gradient(ellipse 55% 26rem at 0% 100%, rgba(253, 79, 0, 0.1), rgba(253, 79, 0, 0) 70%);
 
     /* Spacing */
     --space-1: 0.2857rem;  /* 4px */
@@ -79,7 +81,7 @@
     --size-control-sm: 2rem;       /* 28px */
     --size-topbar: 3.4286rem;      /* 48px */
     --size-topnav: 2.8571rem;      /* 40px */
-    --size-sidebar: 16rem;
+    --size-drawer: 16rem;
     --shadow-1: 0 1px 2px rgba(20, 25, 32, 0.07);
     --shadow-modal: 0 4px 16px rgba(20, 25, 32, 0.18);
     --duration: 120ms;

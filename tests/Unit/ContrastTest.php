@@ -7,6 +7,7 @@ use PHPUnit\Framework\TestCase;
 /**
  * WCAG AA for every colour pair the UI uses (public/css/tokens.css):
  * 4.5:1 for normal text, 3:1 for UI parts (control borders, focus ring, active indicator).
+ * "ambient" = the darkest point of the --ambient glows over --color-bg (content area background).
  * Prints nothing; the pair list doubles as documentation (see ui-design-system.md).
  */
 class ContrastTest extends TestCase
@@ -15,7 +16,11 @@ class ContrastTest extends TestCase
     public const PAIRS = [
         ['text', 'bg', 4.5], ['text', 'surface', 4.5], ['text', 'surface-alt', 4.5], ['text', 'hover', 4.5],
         ['text-muted', 'bg', 4.5], ['text-muted', 'surface', 4.5], ['text-muted', 'surface-alt', 4.5], ['text-muted', 'hover', 4.5],
-        ['text-subtle', 'surface', 4.5], ['text-subtle', 'surface-alt', 4.5],
+        ['text-subtle', 'surface', 4.5], ['text-subtle', 'surface-alt', 4.5], ['text-subtle', 'bg', 4.5],
+        // Page text on the ambient glow. text-subtle is only placeholder (on a surface), a disabled
+        // pager link (WCAG-exempt) or a decorative icon there, so 3:1 is its floor on the glow.
+        ['text', 'ambient', 4.5], ['text-muted', 'ambient', 4.5], ['accent', 'ambient', 4.5], ['text-subtle', 'ambient', 3.0],
+        ['focus', 'ambient', 3.0],
         ['accent', 'surface', 4.5], ['accent', 'bg', 4.5], ['accent', 'accent-soft', 4.5],
         ['on-accent', 'accent', 4.5], ['on-accent', 'accent-hover', 4.5], ['on-accent', 'danger', 4.5],
         ['nav-text', 'nav-bg', 4.5], ['nav-text', 'nav-hover', 4.5], ['nav-text', 'nav-active', 4.5], ['nav-text-muted', 'nav-bg', 4.5],
@@ -35,12 +40,39 @@ class ContrastTest extends TestCase
         }
     }
 
-    /** @return array<string, string> token name (without --color-) => #rrggbb */
+    /** @return array<string, string> token name (without --color-) => #rrggbb, plus "ambient" */
     public static function tokens(): array
     {
-        preg_match_all('/--color-([a-z-]+):\s*(#[0-9a-f]{6})\s*;/i', (string) file_get_contents(__DIR__.'/../../public/css/tokens.css'), $m);
+        $css = (string) file_get_contents(__DIR__.'/../../public/css/tokens.css');
+        preg_match_all('/--color-([a-z-]+):\s*(#[0-9a-f]{6})\s*;/i', $css, $m);
+        $tokens = array_combine($m[1], $m[2]);
+        $tokens['ambient'] = self::darkestAmbient($css, $tokens['bg']);
 
-        return array_combine($m[1], $m[2]);
+        return $tokens;
+    }
+
+    /**
+     * Each glow centre (its strongest rgba stop) blended over --color-bg; the darkest wins.
+     * The glows do not overlap (see the --ambient comment), so they are not stacked.
+     */
+    public static function darkestAmbient(string $css, string $bg): string
+    {
+        preg_match('/--ambient:(.*?);/s', $css, $ambient);
+        preg_match_all('/rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/', $ambient[1] ?? '', $stops, PREG_SET_ORDER);
+        $base = array_map('hexdec', str_split(ltrim($bg, '#'), 2));
+        $darkest = $bg;
+        foreach ($stops as $stop) {
+            $alpha = (float) $stop[4];
+            $hex = '#';
+            foreach ($base as $i => $channel) {
+                $hex .= sprintf('%02x', (int) round($channel * (1 - $alpha) + (int) $stop[$i + 1] * $alpha));
+            }
+            if (self::luminance($hex) < self::luminance($darkest)) {
+                $darkest = $hex;
+            }
+        }
+
+        return $darkest;
     }
 
     public static function ratio(string $a, string $b): float

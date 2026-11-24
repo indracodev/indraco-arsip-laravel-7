@@ -84,7 +84,7 @@
     }
 
     document.addEventListener('alpine:init', function () {
-        /* Sidebar drawer below 1024px. */
+        /* Menu drawer below 1024px. */
         window.Alpine.data('shell', function () {
             return {
                 drawer: false,
@@ -93,36 +93,27 @@
             };
         });
 
-        /* "Pengaturan Tampilan" (per browser): font size (Laravel 7 presets, 10-26px slider)
-           and menu layout (side | top). Applied live, stored on "Simpan", reverted on close. */
+        /* "Pengaturan Tampilan" (per browser): font size (Laravel 7 presets, 10-26px slider).
+           Applied live, stored on "Simpan", reverted on close. */
         window.Alpine.data('displaySettings', function () {
             var root = document.documentElement;
             var current = parseInt(root.style.fontSize || root.getAttribute('data-font-size'), 10) || 14;
-            var layout = root.getAttribute('data-layout') === 'top' ? 'top' : 'side';
             return {
                 size: current,
                 saved: current,
-                layout: layout,
-                savedLayout: layout,
                 presets: [[10, 'Mini'], [14, 'Kecil'], [19, 'Standar'], [21, 'Besar'], [23, 'X-Large']],
                 apply: function (px) {
                     this.size = Math.min(26, Math.max(10, parseInt(px, 10) || 14));
                     root.style.fontSize = this.size + 'px';
                 },
-                setLayout: function (value) {
-                    this.layout = value === 'top' ? 'top' : 'side';
-                    root.setAttribute('data-layout', this.layout);
-                },
                 save: function () {
                     this.saved = this.size;
-                    this.savedLayout = this.layout;
                     try {
                         localStorage.setItem('app_font_size', this.size + 'px');
-                        localStorage.setItem('dms_layout', this.layout);
                     } catch (e) { /* storage blocked */ }
                     window.dmsModal.close('settings-modal');
                 },
-                revert: function () { this.apply(this.saved); this.setLayout(this.savedLayout); }
+                revert: function () { this.apply(this.saved); }
             };
         });
     });

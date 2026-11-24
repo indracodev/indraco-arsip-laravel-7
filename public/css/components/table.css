@@ -41,7 +41,9 @@
         text-align: left;
         white-space: normal;
     }
-    .table--cards td > * { grid-column: 2; }
+    /* Content-width values (badges, BARU marker, title link) instead of stretching across the cell (R19). */
+    .table--cards td > * { grid-column: 2; justify-self: start; max-width: 100%; }
+    .table--cards td > .table__note { justify-self: stretch; }
     .table--cards td::before { content: attr(data-label); grid-column: 1; grid-row: 1 / span 20; font-size: var(--text-xs); font-weight: var(--weight-bold); color: var(--color-text-muted); text-transform: uppercase; }
     .table--cards td[data-label=""] { display: block; }
     .table--cards td[data-label=""]::before { display: none; }
@@ -52,4 +54,6 @@
 @media (min-width: 768px) and (max-width: 1023.98px) {
     .table--cards tr { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .table--cards .table__wide, .table--cards .table__actions { grid-column: 1 / -1; }
+    /* A wide cell spans both columns: keep its label column as narrow as in a half-width cell. */
+    .table--cards .table__wide { grid-template-columns: minmax(6.5rem, 17%) minmax(0, 1fr); }
 }

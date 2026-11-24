@@ -1,7 +1,6 @@
 {{--
     Application shell (replaces the Laravel 7 MDI "Delphi" windows, ASK 1): top bar + menu per
-    role (App\Support\Menu) as left sidebar or top menu bar (html[data-layout], set by js/prefs.js)
-    + page. Pages: @extends('layouts.app'), @section('title'), @section('content').
+    role (App\Support\Menu) as a top menu bar (drawer below 1024px) + page. Pages: @extends('layouts.app'), @section('title'), @section('content').
 --}}
 @php
     /** @var \App\Models\User $user */
@@ -9,7 +8,7 @@
     $appName = \App\Support\AppSettings::get('app_name');
 @endphp
 <!DOCTYPE html>
-<html lang="id" data-layout="side" data-font-size="{{ \App\Support\AppSettings::get('app_font_size') }}">
+<html lang="id" data-font-size="{{ \App\Support\AppSettings::get('app_font_size') }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -21,7 +20,7 @@
 <body x-data="shell" :class="{ 'is-drawer-open': drawer }" @keydown.escape.window="closeDrawer()">
 <div class="app">
     <header class="topbar">
-        <x-button variant="ghost" class="btn--icon topbar__menu" @click="toggleDrawer()" aria-label="Menu" aria-controls="sidebar" ::aria-expanded="drawer"><x-icon name="menu" /></x-button>
+        <x-button variant="ghost" class="btn--icon topbar__menu" @click="toggleDrawer()" aria-label="Menu" aria-controls="main-nav" ::aria-expanded="drawer"><x-icon name="menu" /></x-button>
         <a href="{{ route('dashboard') }}" class="topbar__brand" title="{{ $appName }}">
             <img class="topbar__logo" src="{{ asset(\App\Support\AppSettings::get('app_logo')) }}" alt="Logo {{ $appName }}" width="121" height="24">
             <span class="topbar__name">{{ $appName }}</span>

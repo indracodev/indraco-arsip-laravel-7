@@ -37,7 +37,7 @@ class LayoutTest extends TestCase
     /** @return list<string> */
     private function menuLabels(string $html): array
     {
-        preg_match('/<nav class="sidebar".*?<\/nav>/s', $html, $nav);
+        preg_match('/<nav class="topnav".*?<\/nav>/s', $html, $nav);
         preg_match_all('/class="nav__link[^"]*"[^>]*>([^<]+)<\/a>/', $nav[0] ?? '', $m);
 
         return $m[1];
@@ -68,7 +68,7 @@ class LayoutTest extends TestCase
         $this->assertSame(self::GUDANG_MENU, $this->menuLabels($response->getContent()));
     }
 
-    public function test_top_menu_groups_keep_the_laravel7_labels_and_order(): void
+    public function test_top_menu_is_the_only_layout_and_keeps_the_laravel7_groups_and_order(): void
     {
         $admin = $this->user('admin');
         $groups = Menu::grouped($admin);
@@ -80,9 +80,13 @@ class LayoutTest extends TestCase
         $html = $this->actingAs($admin)->get('/')->assertOk()->getContent();
         $this->assertSame(3, substr_count($html, 'data-nav-group'));
         $this->assertStringContainsString('aria-expanded="false" aria-controls="nav-group-1"', $html);
-        // Layout preference is applied in <head> before the stylesheets render.
+        // Font size is applied in <head> before the stylesheets render.
         $this->assertMatchesRegularExpression('/<head>.*js\/prefs\.js\?v=[0-9a-f]{10}"><\/script>.*<\/head>/s', $html);
-        $this->assertStringContainsString('Tata Letak Menu', $html);
+        // Top menu only (owner decision): no sidebar markup and no layout choice.
+        $this->assertSame(1, substr_count($html, '<nav '));
+        $this->assertStringNotContainsString('sidebar', $html);
+        $this->assertStringNotContainsString('Tata Letak Menu', $html);
+        $this->assertStringNotContainsString('data-layout', $html);
     }
 
     public function test_pic_dept_home_opens_the_catalog(): void

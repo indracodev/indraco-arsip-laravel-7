@@ -1,6 +1,6 @@
 {{--
-    Main menu, one markup for both layouts (App\Support\Menu::grouped):
-    - sidebar / drawer: group buttons hidden, every item listed in Laravel 7 order;
+    Main menu (App\Support\Menu::grouped), top menu bar only:
+    - drawer below 1024px: group buttons hidden, every item listed in Laravel 7 order;
     - top menu bar (>= 1024px): a group is a button that opens its list (click / Enter / Space,
       Esc closes; public/js/app.js). No hover-only menus.
     "*.index" items stay highlighted on the other pages of the same module (archives.*).
@@ -8,7 +8,7 @@
 @php
     $isActive = fn (array $item): bool => request()->routeIs($item['route'], str_ends_with($item['route'], '.index') ? substr($item['route'], 0, -5).'*' : $item['route']);
 @endphp
-<nav class="sidebar" id="sidebar" aria-label="Menu utama">
+<nav class="topnav" id="main-nav" aria-label="Menu utama">
     <ul class="nav">
         @foreach ($groups as $index => $group)
             @if ($group['label'] === null)

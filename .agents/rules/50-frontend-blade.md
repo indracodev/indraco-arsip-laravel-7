@@ -21,8 +21,8 @@ globs: resources/views/**, resources/css/**, resources/js/**, public/**
 - **Ringan untuk PC klien low-spec** (RAM 4–8 GB, dual-core atau lebih lemah, **tanpa GPU** → browser merender grafis dengan CPU):
   - HTML dirender server; Alpine hanya untuk interaksi kecil. Tidak ada iframe (L7 memakai MDI iframe yang memuat ulang aset di setiap jendela).
   - **Dilarang**: `backdrop-filter`/blur, shadow besar/berlapis, gradient besar, animasi/transisi selain opacity/transform singkat (≤ 150 ms), elemen `position: fixed` bertumpuk, video/GIF dekoratif.
-  - Pengecualian: **satu gradien ambient statis pada latar halaman** (`--ambient` di `body`: maks. 2 `radial-gradient` warna token dengan opasitas ≤ 10%), tanpa animasi, tanpa `background-attachment: fixed`, tanpa blur/backdrop-filter, tanpa pseudo-element/lapisan tambahan per kartu atau komponen. Gradien lain tetap dilarang.
-  - Warna: primer **slate gelap** `#262f3b`, aksen **oranye logo** `#fd4f00` hanya untuk penanda menu aktif/garis atas/sorotan kecil, fokus `#e04600`; netral bernuansa slate. Semua pasangan token wajib WCAG AA (dijaga `tests/Unit/ContrastTest.php`).
+  - Pengecualian: **satu latar ambient statis pada area konten** (`--ambient` di `.main` dan halaman guest `.guest`; `body` tetap `--color-bg` polos): maks. 3 `radial-gradient` warna token, opasitas tiap glow ≤ 15% untuk slate/netral dan ≤ 12% untuk oranye brand, glow tidak bertumpuk, dan titik tergelapnya (token `ambient` di `tests/Unit/ContrastTest.php`) tetap WCAG AA untuk teks/`text-muted`/`accent` (4,5:1) dan cincin fokus (3:1). Tanpa animasi, tanpa `background-attachment: fixed`, tanpa blur/backdrop-filter, tanpa pseudo-element/lapisan tambahan per kartu atau komponen. Gradien lain tetap dilarang.
+  - Warna: primer **slate gelap** `#262f3b`, aksen **oranye logo** `#fd4f00` hanya untuk penanda menu aktif/garis atas/sorotan kecil, fokus `#d04100`; netral bernuansa slate. Semua pasangan token wajib WCAG AA (dijaga `tests/Unit/ContrastTest.php`).
   - Font sistem (`system-ui, Segoe UI, ...`), tanpa web font. Ikon SVG kecil, hanya yang dipakai.
   - Anggaran per halaman: JS ≤ 150 KB, CSS ≤ 60 KB (gzip), total transfer awal ≤ 300 KB, elemen DOM ≤ 1.500, tabel maksimal 50 baris per halaman (pagination).
   - Polling (widget LAN ping) berhenti saat tab tidak terlihat (`visibilitychange`), interval ≥ 5 dtk; tidak ada polling lain di halaman biasa.
@@ -32,7 +32,7 @@ globs: resources/views/**, resources/css/**, resources/js/**, public/**
 - Semua elemen UI lewat **Blade component** di `resources/views/components/` (masing-masing berpasangan dengan file CSS komponennya): button, input, select, textarea, checkbox, table, badge status, modal, modal konfirmasi, card, toast, empty-state, pagination. Tidak ada styling ad-hoc per halaman.
 - Palet: netral (abu) + satu aksen (navy) + warna status (hijau/kuning/merah/biru) **hanya** untuk status. Teks dasar 14px, kontrol 36px, tabel compact.
 - Teks minimal: label singkat; penjelasan panjang di tooltip/help, bukan paragraf di halaman.
-- Responsif mobile-first: tabel jadi kartu di layar kecil, navigasi jadi drawer. Diuji di lebar 360px, 768px, 1366px.
+- Responsif mobile-first: tabel jadi kartu di bawah 1024 px, **menu atas** (top nav, satu-satunya tata letak) jadi drawer di bawah 1024 px. Diuji di lebar 360px, 768px, 1366px.
 - Aksesibilitas dasar: label untuk setiap input, fokus terlihat, kontras cukup, tombol bisa dipakai keyboard.
 - Keamanan output: `{{ }}` sebagai default; `{!! !!}` hanya untuk HTML yang disanitasi, dengan alasan tertulis. Data ke JS lewat `@js()`/`Js::from`. Tidak memakai `innerHTML` dengan data pengguna.
 - Form: CSRF, method spoofing, `old()`, pesan validasi per field, tombol submit disable + spinner (anti double-submit).

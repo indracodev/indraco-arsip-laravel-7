@@ -5,7 +5,7 @@ namespace App\Support;
 use App\Models\User;
 
 /**
- * Sidebar menu per role: exactly the Laravel 7 MDI form list (labels and order), now as
+ * Main (top) menu per role: exactly the Laravel 7 MDI form list (labels and order), now as
  * normal pages (ASK 1). Sources (Laravel 7, read-only):
  * - pic_dept: resources/views/layouts/partials/pic_desktop_scripts.blade.php:47-75
  *   ("Draft Pengajuan Box Baru" is hidden from the tab bar there and opened with the header
@@ -49,7 +49,7 @@ final class Menu
     }
 
     /**
-     * The same items cut into consecutive groups for the top menu layout (dropdowns).
+     * The same items cut into consecutive groups for the top menu bar (dropdowns).
      * The groups follow the Laravel 7 order, so flattening gives back exactly self::for().
      * PIC Departemen items have no group (3 items inline).
      *

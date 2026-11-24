@@ -6,10 +6,10 @@ Kontrak: `.agents/rules/50-frontend-blade.md`. Tanpa Tailwind/Vite/Node/CDN. Tar
 |---|---|
 | `public/css/tokens.css` | semua token (tabel di bawah) |
 | `public/css/base.css` | reset ringan, tipografi, `.icon`, `.stack`, `.cluster`, `.sr-only`, prefers-reduced-motion |
-| `public/css/layout.css` | shell (topbar, sidebar/drawer, main), halaman guest |
+| `public/css/layout.css` | shell (topbar, menu atas/drawer, main + ambient), halaman guest |
 | `public/css/components/*.css` | satu file per komponen (sumber yang diedit) |
 | `public/css/components.css` | **hasil gabungan** komponen (di-commit) — `php artisan assets:cache` (otomatis di `optimize`) |
-| `public/js/prefs.js` | preferensi per browser sebelum render (head, tidak defer): ukuran font (`app_font_size`) + tata letak menu (`dms_layout` = `side`/`top` → `html[data-layout]`) |
+| `public/js/prefs.js` | preferensi per browser sebelum render (head, tidak defer): ukuran font (`app_font_size`); menghapus kunci lama `dms_layout` |
 | `public/js/modal.js` | modal + konfirmasi (`showConfirmModal`, `showAlertModal`, `data-confirm*`) |
 | `public/js/app.js` | anti double-submit, form mockup, toast, toggle password, shortcut, dropdown menu atas (klik/Enter/Spasi, Esc), registrasi SW, `Alpine.data('shell'|'displaySettings')` |
 | `public/js/lan.js` | titik status LAN (hanya layout app) |
@@ -25,14 +25,14 @@ Kontrak: `.agents/rules/50-frontend-blade.md`. Tanpa Tailwind/Vite/Node/CDN. Tar
 |---|---|---|
 | Netral (tint slate, tanpa putih murni di halaman) | `--color-bg` #e7eaee, `-surface` #fcfcfd, `-surface-alt` #f2f4f6, `-hover` #e5e8ec, `-border` #d3d7dd, `-border-strong` #79828f (border kontrol ≥ 3:1), `-text` #1c222b, `-text-muted` #49515d, `-text-subtle` #5d6571, `-overlay` | |
 | Primer (slate gelap) | `--color-accent` #262f3b, `-accent-hover` #1a2029, `-accent-soft` #e3e6eb, `-on-accent` #fff | tombol primer, nama app |
-| Sekunder (oranye logo) | `--color-brand` #fd4f00 (indikator menu aktif, garis atas topbar), `--color-focus` #e04600 (cincin fokus; satu tingkat lebih gelap agar ≥ 3:1 di bg/surface/nav) | hemat, tidak untuk bidang besar |
-| Navigasi (sidebar / bar menu atas) | `--color-nav-bg` #222a35, `-nav-hover` #2d3643, `-nav-active` #36404e, `-nav-text` #e6e9ed, `-nav-text-muted` #aab2bd, `-nav-border` #3a4452 | |
+| Sekunder (oranye logo) | `--color-brand` #fd4f00 (indikator menu aktif, garis atas topbar), `--color-focus` #d04100 (cincin fokus; lebih gelap agar ≥ 3:1 di bg/ambient/surface/nav) | hemat, tidak untuk bidang besar |
+| Navigasi (bar menu atas / drawer) | `--color-nav-bg` #222a35, `-nav-hover` #2d3643, `-nav-active` #36404e, `-nav-text` #e6e9ed, `-nav-text-muted` #aab2bd, `-nav-border` #3a4452 | |
 | Status (hanya status) | `--color-success|warning|danger|info` + `-soft` | hijau/kuning/merah/biru |
-| Ambient | `--ambient`: 2 radial-gradient statis (slate 9% kiri atas, oranye 4,5% kanan bawah) di atas `--color-bg`, hanya di `body` | tanpa animasi, tanpa `background-attachment: fixed`, tanpa blur |
+| Ambient | `--ambient`: 2 radial-gradient statis di `.main` (area konten, ≥ tinggi viewport di bawah menu) dan `.guest`: slate 14% kanan atas (`ellipse 60% 30rem at 100% 0%`), oranye 10% kiri bawah (`ellipse 55% 26rem at 0% 100%`), keduanya pudar ke 0 di 70% sehingga tidak bertumpuk; `body` = `--color-bg` polos. Titik tergelap (#ccd0d5) dicek `ContrastTest` (`ambient`) | tanpa animasi, tanpa `background-attachment: fixed`, tanpa blur |
 | Spasi | `--space-1..6, 8` | 4, 8, 12, 16, 20, 24, 32 px (rem) |
 | Radius | `--radius-sm|radius|radius-lg|radius-pill` | 4/6/8/999 px |
 | Tipe | `--font-sans` (system stack), `--font-mono`, `--text-xs|sm|base|lg|xl` | 12/13/14/16/18 px |
-| Kontrol | `--size-control` 36px, `--size-control-sm` 28px, `--size-topbar` 48px, `--size-topnav` 40px, `--size-sidebar` | |
+| Kontrol | `--size-control` 36px, `--size-control-sm` 28px, `--size-topbar` 48px, `--size-topnav` 40px, `--size-drawer` 16rem | |
 | Lain | `--shadow-1` (tipis), `--shadow-modal`, `--duration` 120ms, `--z-*` | |
 
 Kontras WCAG AA semua pasangan teks/latar & UI dicek `tests/Unit/ContrastTest.php` (daftar = `ContrastTest::PAIRS`).
@@ -61,12 +61,11 @@ Ukuran dalam rem → ukuran font per user (html font-size) menskalakan seluruh U
 | `filter-bar` | `<x-filter-bar :action :active>` (GET, tombol "Filter", reset bila aktif) | filter-bar.css |
 | `icon` | `<x-icon name>` set SVG kecil (hanya ikon terpakai) | base.css `.icon` |
 
-## Tata letak menu
-- `side` (default): sidebar slate gelap kiri. `top`: bar menu slate gelap di bawah topbar; grup admin/gudang = dropdown (tombol `data-nav-group`, `aria-expanded`), PIC 3 item sejajar. < 1024px keduanya = drawer yang sama. Satu markup (`layouts/partials/menu.blade.php`) dari `App\Support\Menu::grouped()`.
-- Diubah di modal Pengaturan ("Tata Letak Menu"), disimpan per browser, diterapkan sebelum render (`prefs.js`).
+## Menu
+- Hanya menu atas (keputusan pemilik): bar slate gelap di bawah topbar (`.topnav`); grup admin/gudang = dropdown (tombol `data-nav-group`, `aria-expanded`), PIC 3 item sejajar. < 1024px = drawer daftar vertikal. Satu markup (`layouts/partials/menu.blade.php`) dari `App\Support\Menu::grouped()`. Tidak ada pilihan tata letak.
 
 ## Pola halaman
-- **Daftar**: `page-header` (+ aksi) → `filter-bar` → `table` (atau `empty-state`) → `pagination`. Tabel jadi kartu di < 1024px (768–1023: sel 2 kolom; `td.table__wide` dan aksi selebar kartu; checkbox `td.table__select` di pojok kanan atas; isi sel menumpuk di bawah label sehingga tag ada di bawah judul). Maks 50 baris/halaman, filter dikirim ke server.
+- **Daftar**: `page-header` (+ aksi) → `filter-bar` → `table` (atau `empty-state`) → `pagination`. Tabel jadi kartu di < 1024px (768–1023: sel 2 kolom; `td.table__wide` dan aksi selebar kartu; checkbox `td.table__select` di pojok kanan atas; isi sel menumpuk di bawah label sehingga tag ada di bawah judul; nilai/badge selebar isinya (`justify-self: start`, R19); kolom label sel lebar 17% agar sejajar sel setengah). Maks 50 baris/halaman, filter dikirim ke server.
 - **Form**: `card` per bagian (judul bernomor seperti L7) → `form-grid--2` di ≥ 1024px → `field` + kontrol; bar aksi di bawah (Batal, Draft, Ajukan). Submit otomatis dikunci + spinner. Mockup memakai `<form data-mockup>`.
 - **Placeholder**: `page-header` + `empty-state` "Sedang dibangun ulang".
 
@@ -74,4 +73,4 @@ Ukuran dalam rem → ukuran font per user (html font-size) menskalakan seluruh U
 `:has(`, nesting `&`, `@container`, `color-mix(`, `@layer`, `@property`, `oklch(`/`lab(`, `backdrop-filter`/`blur(`, `@import`, URL eksternal; animasi hanya opacity/transform ≤ 150 ms (spinner tombol pengecualian fungsional); hormati `prefers-reduced-motion`.
 
 ## Ukuran terukur (Fase 3)
-CSS 4 file 26,8 KB mentah / 7,4 KB gzip; JS awal 69,1 KB / 24,5 KB gzip (Alpine ±56 KB). DOM: katalog admin 50 baris 1.429, 10 baris 536, katalog PIC 174, mockup form 256, dashboard 142, login 54.
+CSS 4 file 26,8 KB mentah / 7,4 KB gzip; JS awal 69,1 KB / 24,5 KB gzip (Alpine ±56 KB). Revisi menu atas + R19 + ambient: CSS 26,8 KB / 7,6 KB gzip; JS awal (prefs+modal+app+alpine+lan) 68,4 KB / 24,4 KB gzip; DOM `/archives` admin 526, PIC (fin) 229, `/` admin 138 (DB salinan). DOM: katalog admin 50 baris 1.429, 10 baris 536, katalog PIC 174, mockup form 256, dashboard 142, login 54.

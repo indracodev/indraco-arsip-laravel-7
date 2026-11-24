@@ -8,7 +8,7 @@ description: Design system UI baru DMS Indraco (Blade component + Alpine + CSS m
 Aturan: `.agents/rules/50-frontend-blade.md`, `PROJECT_RULES_LAN_FRONTEND_OPS.md` §6.
 
 ## Token (variabel CSS di `public/css/tokens.css`; aturan CSS di `rules/50-frontend-blade.md`)
-- Warna: netral bertint slate, primer slate gelap `--color-accent` (#262f3b), sekunder oranye logo `--color-brand` (#fd4f00) hanya untuk indikator aktif/cincin fokus (`--color-focus`)/highlight kecil, latar halaman satu gradien ambient statis (`--ambient`); kontras AA dicek `tests/Unit/ContrastTest.php`; status: hijau=selesai/aktif, kuning=menunggu, merah=ditolak/dimusnahkan, biru=dipinjam/info. Tidak ada warna lain.
+- Warna: netral bertint slate, primer slate gelap `--color-accent` (#262f3b), sekunder oranye logo `--color-brand` (#fd4f00) hanya untuk indikator aktif/cincin fokus (`--color-focus`)/highlight kecil, latar area konten (`.main`, juga `.guest`) satu gradien ambient statis (`--ambient`, 2 glow, darkest point dicek); kontras AA dicek `tests/Unit/ContrastTest.php`; status: hijau=selesai/aktif, kuning=menunggu, merah=ditolak/dimusnahkan, biru=dipinjam/info. Tidak ada warna lain.
 - Teks 14px dasar, 12px meta; kontrol tinggi 36px; radius kecil; shadow tipis satu level; tanpa blur/gradient.
 
 ## Komponen (`resources/views/components/`)
