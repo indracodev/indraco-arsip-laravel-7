@@ -1,11 +1,14 @@
-# DMS PT INDRACO — Performance Implementation Rules & Standards (Bagian 1/3)
-
-> **Status Dokumen**: Mandatory Technical Contract  
-> **Target Audience**: AI Agents & Software Engineers  
-> **Tujuan**: Mencegah regresi performa pada setiap penambahan fitur baru, controller baru, query database, atau perubahan konfigurasi.  
-> **Baseline Hardware**: AMD A9 Dual-Core Processor, 8GB RAM, Windows OS, Offline LAN Host.
-
 ---
+trigger: always_on
+---
+
+# DMS PT INDRACO — Performance Implementation Rules & Standards (Bagian 1/3) — Laravel 13
+
+> **Status Dokumen**: Mandatory Technical Contract
+> **Target Audience**: AI Agents & Software Engineers
+> **Tujuan**: Mencegah regresi performa pada setiap fitur, controller, query, atau perubahan konfigurasi.
+> **Baseline Hardware**: AMD A9 Dual-Core Processor, 8GB RAM, Windows 10/11, Offline LAN Host. Klien: PC kantor low-spec.
+> **Versi**: diperbarui untuk rebuild Laravel 13 (branch `laravel-13-rebuild`). Versi Laravel 7 tetap ada di branch `danu-revisi-4`.
 
 ## Struktur Dokumen
 
@@ -13,41 +16,53 @@
 |---|---|---|
 | 1/3 | `PROJECT_RULES.md` (file ini) | §1 SLA, §2 PHP Runtime/OPcache/JIT, §9 Performance Gate Checklist |
 | 2/3 | [`PROJECT_RULES_SQLITE.md`](PROJECT_RULES_SQLITE.md) | §3 SQLite Concurrency, I/O, Integritas Data & Aturan Kerja Agent |
-| 3/3 | [`PROJECT_RULES_LAN_FRONTEND_OPS.md`](PROJECT_RULES_LAN_FRONTEND_OPS.md) | §4–§8 Network, Lifecycle, Frontend Offline, Terminal Logging, k6 Benchmark |
+| 3/3 | [`PROJECT_RULES_LAN_FRONTEND_OPS.md`](PROJECT_RULES_LAN_FRONTEND_OPS.md) | §4–§8 Network/Web Server, Lifecycle, Frontend Offline, Logging, k6 |
 
-Seluruh bagian sama-sama mengikat (**Mandatory**); agent yang mengubah sebuah layer **WAJIB** membaca bagian yang sesuai.
+Aturan pendukung: `00-project-scope.md` (lingkup, UX tetap), `10-safety.md`, `20-architecture.md`, `50-frontend-blade.md` (desain UI), `60-security.md`, `engineering_guidelines.md`, `code_file_size_limits.md`.
+
+Seluruh bagian mengikat (**Mandatory**); agent yang mengubah sebuah layer **WAJIB** membaca bagian yang sesuai.
 
 ---
 
 ## 1. Prinsip Utama & Performance Target (SLA)
 
-Aplikasi DMS PT Indraco beroperasi sebagai **Desktop Offline Server** yang melayani multiple client di jaringan lokal (LAN) menggunakan built-in PHP server (`php artisan serve`) dan database SQLite.
+Aplikasi berjalan sebagai **Desktop Offline Server** di satu PC Windows dan melayani banyak klien di LAN lewat **Caddy + pool php-cgi** (bukan lagi `php artisan serve`, yang di Windows hanya memproses satu request sekali jalan) dengan database SQLite.
 
-### 1.1. Target SLA (Service Level Agreement)
-| Metrik | Ambang Batas (SLA) | Kondisi Pengujian |
+### 1.1. Target SLA
+
+| Metrik | Ambang Batas | Kondisi Pengujian |
 |---|---|---|
-| **LAN Heartbeat Ping** (`/api/health/ping`) | **< 2 ms** (avg), **< 10 ms** (p95) | LAN Concurrency 5-10 VUs |
-| **API / JSON Response** | **< 150 ms** (p95) | Single Client |
-| **Blade Page Render** (Dashboard/Index) | **< 350 ms** (p95) | Cold/Warm cache |
-| **Concurrent LAN Users** (Office Profile) | **p(95) < 1500 ms**, **Failure Rate < 5%** | 3 - 5 Concurrent VUs (k6) |
-| **Host Memory Ceiling** | **< 256 MB** per PHP worker process | Idle memory ~25-45 MB |
-| **Host CPU Ceiling** | **< 15%** saat idle di AMD A9 Dual-Core | Idle CPU ~0-2% |
+| **LAN Heartbeat Ping** (`/api/health/ping`) | **< 2 ms** avg, **< 10 ms** p95 | 5–10 VUs |
+| **API / JSON Response** | **< 150 ms** p95 | Single client |
+| **Blade Page Render** (Dashboard/Index) | **< 350 ms** p95 | Cache produksi aktif |
+| **Concurrent LAN Users** (Office Profile) | **p95 < 1500 ms**, failure < 5% | 3–5 VUs (k6) |
+| **Multi-user rebuild** (mix 85% baca / 15% tulis) | **p95 < 500 ms**, 0 error, 0 `database is locked` | 30 VUs, 60 dtk |
+| **Request lambat tidak memblok user lain** | Halaman ringan tetap < 350 ms saat ada request 3 dtk berjalan | uji khusus |
+| **Host Memory Ceiling** | **< 256 MB** per worker php-cgi | idle ~25–45 MB |
+| **Host CPU Ceiling** | **< 15%** saat idle di AMD A9 | idle ~0–2% (tanpa polling sibuk) |
+| **Aset awal halaman** (gzip) | JS < 150 KB, CSS < 60 KB | halaman role departemen |
 
 ### 1.2. The Zero-Regression Rule
-Setiap fitur baru yang ditambahkan **DILARANG** menyebabkan peningkatan latency pada endpoint existing atau membebani CPU host secara kontinu.
+Setiap fitur baru **DILARANG** menaikkan latency endpoint yang sudah ada atau membebani CPU host secara kontinu.
 
 ---
 
-## 2. Layer 1: PHP Runtime, OPcache & JIT Optimization
+## 2. Layer 1: PHP Runtime, OPcache & JIT
 
-PHP dijalankan via portable runtime di `evironment/php-8.2.29-Win32-vs16-x64/` (perhatikan typo `evironment` — ini path baku project).
+PHP portable di `evironment/php-8.4.*-nts-Win32-vs17-x64/` (perhatikan typo `evironment` — path baku project). Build **NTS** karena dijalankan sebagai php-cgi (FastCGI). DLL VC++ (`vcruntime140.dll`, `vcruntime140_1.dll`, `msvcp140.dll`) ikut di folder yang sama.
 
-### 2.1. Konfigurasi `php.ini` Wajib
-File: `evironment/php-8.2.29-Win32-vs16-x64/php.ini`
+### 2.1. `php.ini` wajib
+
 ```ini
 [PHP]
 memory_limit = 256M
-max_execution_time = 60
+max_execution_time = 120
+expose_php = Off
+display_errors = Off
+log_errors = On
+upload_max_filesize = 64M
+post_max_size = 64M
+date.timezone = Asia/Jakarta
 
 [opcache]
 zend_extension = opcache
@@ -59,42 +74,37 @@ opcache.max_accelerated_files = 10000
 opcache.revalidate_freq = 2
 opcache.validate_timestamps = 1
 opcache.save_comments = 1
-
-; JIT Mode: 1255 = CRTO (Tracing JIT, loop & hot-path optimization)
+; Windows: hindari fatal "Opcode handlers are unusable due to ASLR"
+opcache.file_cache = "${TEMP}"
+opcache.file_cache_fallback = 1
+; JIT 1255 (tracing) bila stabil dengan php-cgi NTS; hasil uji dicatat di context/decisions.md
 opcache.jit = 1255
 opcache.jit_buffer_size = 64M
 ```
 
-### 2.2. Rationale & Aturan Developer
-- **`opcache.enable_cli = 1` WAJIB**: `php artisan serve` berjalan di bawah PHP CLI SAPI. Tanpa opsi ini, OPcache dan JIT **tidak akan pernah aktif**.
-- **JIT `1255`**: Mengoptimalkan hot functions and loops pada CPU berdaya rendah (AMD A9).
-- **Interned Strings (`16MB`)**: Mencegah duplikasi string konstan Laravel di memori.
-- **DILARANG** menggunakan `eval()`, nested dynamic variable variable (`$$var`), atau regex recursive tak terbatas yang mematikan efektivitas tracing JIT.
+### 2.2. Aturan developer
+- OPcache wajib aktif di php-cgi (web) dan CLI (artisan).
+- Setelah update kode (`UPDATE-AND-RESTART.bat`), pool php-cgi di-restart agar OPcache memuat kode baru.
+- **DILARANG** `eval()`, variable variable (`$$var`), atau regex rekursif tak terbatas.
 
 ---
 
-## 9. Performance Gate Checklist (Wajib Lulus Sebelum Merge)
+## 9. Performance Gate Checklist (wajib lulus sebelum commit modul)
 
-Sebelum melakukan commit atau merge fitur baru pada branch `danu-revisi-4`, pastikan seluruh checklist performa berikut terpenuhi:
-
-- [ ] **100% Offline Integrity**: Tidak ada panggilan URL eksternal (CDN font, icon, script, atau API) di kode baru.
-- [ ] **Asset Budget Compliant**: Asset baru (jika ada) disimpan di `public/` dan dimuat via `head_assets.blade.php`.
-- [ ] **Zero N+1 Eloquent Queries**: Semua pemanggilan relasi di Controller/Repository menggunakan eager loading (`with(...)`).
-- [ ] **SQLite PRAGMAs Intact**: Tidak ada kode yang mengubah konfigurasi WAL atau busy timeout di `AppServiceProvider`.
-- [ ] **Short Transaction Scope**: Blok `DB::transaction()` hanya membungkus penulisan database (tidak ada manipulasi gambar/file/PDF di dalam transaksi).
-- [ ] **Lightweight Ping Intact**: Endpoint `/api/health/ping` tetap bebas dari pemanggilan database dan session.
-- [ ] **Diagnostics Protected**: Endpoint analitik/telemetry baru dilindungi oleh middleware `diagnostics.auth`.
-- [ ] **Pre-compile Verification**: Perintah `php artisan optimize` atau `config:cache && route:cache && view:cache` berjalan tanpa error.
-- [ ] **Terminal Zero-Scroll Preserved**: Launcher `.bat` tetap mengarahkan log server ke `storage/logs/http-access.log`.
-- [ ] **LAN Accessibility Verified**: Server dapat diakses dari browser host (`127.0.0.1:8000`) dan perangkat LAN (`http://<IP>:8000`).
-- [ ] **Atomic Counter**: Penomoran/counter baru memakai `UPDATE ... RETURNING`, bukan baca lalu tulis di PHP; preview tanpa side-effect (3.5.a–b, `PROJECT_RULES_SQLITE.md`).
-- [ ] **Unique + Validasi Berpasangan**: Kolom unik punya UNIQUE index, dan setiap input manualnya divalidasi dengan kondisi yang sama (3.5.c).
-- [ ] **Immediate Transaction Bersih**: Transaksi baca→tulis memakai `db_immediate_transaction()` tanpa nested `DB::transaction()` di dalamnya (3.5.d).
-- [ ] **Double-Submit & Optimistic Lock**: Aksi pengajuan punya guard server + tombol disable; form edit baru mengirim `original_updated_at` (3.5.e–f).
-- [ ] **Clean Diff & Bukti Test**: Line ending tidak berubah (`git diff --stat` bersih) dan output asli `vendor/bin/phpunit` dilampirkan (3.6).
-
----
-
-> **Revisi Terakhir**: 21 Oktober 2026 (aturan konkurensi SQLite multi-user, §3.5–3.6)  
-> **Target Branch**: `danu-revisi-4`  
-> **Baseline Commit**: `82d8aa7`
+- [ ] **100% Offline Integrity**: tidak ada URL eksternal (CDN font/ikon/script/API) di kode.
+- [ ] **Asset Budget Compliant**: aset lewat Vite build lokal; JS/CSS awal sesuai SLA §1.1.
+- [ ] **Zero N+1**: `Model::preventLazyLoading()` aktif di luar production dan tes tidak memicu lazy loading.
+- [ ] **SQLite Config Intact**: kunci SQLite di `config/database.php` tidak diubah tanpa uji beban ulang.
+- [ ] **Short Transaction Scope**: transaksi hanya membungkus tulis DB (tanpa file/PDF/HTTP di dalamnya).
+- [ ] **Lightweight Ping Intact**: `/api/health/ping` tanpa DB dan tanpa session.
+- [ ] **Diagnostics Protected**: endpoint diagnostik hanya untuk admin.
+- [ ] **Pre-compile Verification**: `php artisan optimize` (config/route/view/event cache) sukses.
+- [ ] **Terminal Zero-Scroll Preserved**: log server ke `storage/logs`, banner IP tetap terlihat.
+- [ ] **LAN Accessibility Verified**: `127.0.0.1:8000` dan `http://<IP>:8000` bisa dibuka.
+- [ ] **Atomic Counter**: penomoran memakai `UPDATE ... RETURNING`; preview tanpa side-effect.
+- [ ] **Unique + Validasi Berpasangan** (§3.5.c).
+- [ ] **Immediate Transaction Bersih** (§3.5.d).
+- [ ] **Double-Submit & Optimistic Lock** (§3.5.e–f).
+- [ ] **Diuji di browser** (remote, Chrome): halaman yang diubah dibuka, alur dicoba, console bersih, lebar 360/768/1366 px.
+- [ ] **Temuan dicatat dan diperbaiki**: setiap temuan masuk `context/findings.md` dengan status; yang belum diperbaiki punya alasan di `context/decisions.md`.
+- [ ] **Clean Diff & Bukti Test**: line ending tidak berubah, output asli `php artisan test` dilampirkan.
