@@ -1,0 +1,33 @@
+/* Stat tiles, capacity meter and small helpers of the SISTEM pages (dashboard, log history,
+   reports, live monitor, settings). Colours only from tokens; sizes in rem (font scaling). */
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 12rem), 1fr)); gap: var(--space-3); }
+.stat {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    min-width: 0;
+    padding: var(--space-3) var(--space-4);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-left: 4px solid var(--color-border-strong);
+    border-radius: var(--radius-lg);
+    overflow-wrap: anywhere;
+}
+.stat--success { border-left-color: var(--color-success); }
+.stat--warning { border-left-color: var(--color-warning); }
+.stat--info { border-left-color: var(--color-info); }
+.stat--danger { border-left-color: var(--color-danger); }
+.stat__label { font-size: var(--text-xs); font-weight: var(--weight-bold); color: var(--color-text-muted); text-transform: uppercase; }
+.stat__value { font-size: var(--text-xl); font-weight: var(--weight-bold); }
+.stat-ribbon { display: grid; gap: var(--space-3); }
+.bp-lg .stat-ribbon { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.meter { height: 0.5714rem; margin-top: var(--space-2); border-radius: var(--radius-pill); background: var(--color-hover); overflow: hidden; }
+.meter__bar { display: block; height: 100%; background: var(--color-accent); }
+.push-end { margin-left: auto; }
+.tone--success { color: var(--color-success); }
+.dash-search { flex: 1 1 16rem; min-width: 0; }
+.dash-shortcuts { margin-top: var(--space-3); }
+.maint { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); padding-bottom: var(--space-3); border-bottom: 1px solid var(--color-border); }
+.maint > div { flex: 1 1 18rem; min-width: 0; }
+.maint .field { min-width: 0; }
+.settings-logo { height: 3.4286rem; width: auto; padding: var(--space-1); border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--color-logo-chip); }

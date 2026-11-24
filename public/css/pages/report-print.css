@@ -1,0 +1,39 @@
+/* Printed report (reports/print, Laravel 7 reports/print): A4 landscape, 10.5px table text in
+   physical units so the paper is the same whatever font size the user chose; always light.
+   Greys are Laravel 7's slate shades, local to the paper. */
+@page { size: A4 landscape; margin: 10mm 12mm; }
+.rpt-page { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); padding: var(--space-4); }
+.rpt-bar { width: 100%; max-width: 825pt; }
+.rpt-bar__title { margin-right: auto; }
+.rpt {
+    width: 100%;
+    max-width: 825pt;
+    padding: 15pt 18pt;
+    background: var(--color-paper);
+    color: #0f172a;
+    border-radius: 4.5pt;
+    box-shadow: var(--shadow-1);
+    font-size: 8pt;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+.rpt__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6pt; padding-bottom: 7.5pt; margin-bottom: 9pt; border-bottom: 1px solid #cbd5e1; font-family: var(--font-mono); font-size: 7.5pt; color: #64748b; }
+.rpt__head strong { color: #334155; }
+.rpt__logo { height: 15pt; width: auto; }
+.rpt__title { padding-left: 9pt; border-left: 1px solid #cbd5e1; font-family: var(--font-mono); font-size: 10pt; text-transform: uppercase; letter-spacing: 0.025em; color: #0f172a; }
+.rpt__table { width: 100%; margin-bottom: 9pt; }
+.rpt__table th { padding: 3.75pt 6pt; border: 1px solid #cbd5e1; background: #f1f5f9; color: #1e293b; font-size: 8pt; text-align: left; text-transform: uppercase; }
+.rpt__table td { padding: 3.75pt 6pt; border: 1px solid #e2e8f0; font-size: 8pt; }
+.rpt__table tr:nth-child(even) td { background: #f8fafc; }
+.rpt__table td:first-child, .rpt__table th:first-child { text-align: center; font-family: var(--font-mono); }
+.rpt__empty { padding: 18pt; text-align: center; color: #64748b; }
+.rpt__foot { padding-top: 6pt; border-top: 1px solid #cbd5e1; font-family: var(--font-mono); font-size: 7.5pt; color: #475569; }
+
+@media print {
+    .no-print { display: none !important; }
+    body { background: #ffffff; }
+    .rpt-page { padding: 0; }
+    .rpt { max-width: none; padding: 0; box-shadow: none; border-radius: 0; }
+    thead { display: table-header-group; }
+    tr { page-break-inside: avoid; }
+}

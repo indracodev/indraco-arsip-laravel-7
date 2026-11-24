@@ -1,0 +1,49 @@
+/* Realtime notifications (layouts/partials/notifications, public/js/pages/notifications.js): bell with
+   unread count + panel, menu badge counts (attribute data-count, drawn with ::after), expiry popup
+   list, and the monospace log viewer (<pre class="log-view">) of Log History / settings / monitor. */
+.notify { position: relative; }
+.notify__toggle { position: relative; }
+.notify__count, .nav__link[data-count]::after, .nav__group-toggle[data-count]::after {
+    min-width: 1.2857rem;
+    padding: 0 var(--space-1);
+    border-radius: var(--radius-pill);
+    background: var(--color-danger);
+    color: var(--color-on-accent);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-bold);
+    line-height: 1.2857rem;
+    text-align: center;
+}
+.notify__count { position: absolute; top: 0; right: 0; }
+.nav__link[data-count]::after, .nav__group-toggle[data-count]::after { content: attr(data-count); display: inline-block; margin-left: var(--space-1); }
+.notify__panel {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    z-index: var(--z-drawer);
+    width: min(24rem, calc(100vw - 2 * var(--space-4)));
+    max-height: 70vh;
+    overflow: auto;
+    background: var(--color-surface);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-modal);
+}
+.notify__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--color-border); font-size: var(--text-xs); }
+.notify__list { margin: 0; padding: 0; list-style: none; }
+.notify__item { display: flex; flex-direction: column; gap: 2px; padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--color-border); color: var(--color-text); }
+.notify__item:hover { background: var(--color-hover); text-decoration: none; }
+.notify__empty { padding: var(--space-4) var(--space-3); color: var(--color-text-muted); font-size: var(--text-sm); }
+.notify__line { display: block; font-size: var(--text-sm); }
+.toast__text strong { display: block; }
+a.toast__text { color: var(--color-text); }
+.expiry-list { display: flex; flex-direction: column; gap: var(--space-2); max-height: 50vh; margin: var(--space-3) 0; padding: 0; overflow: auto; list-style: none; }
+.expiry-list__item { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); padding: var(--space-2) var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--color-surface-alt); }
+.expiry-list__item > div { flex: 1 1 14rem; min-width: 0; }
+.log-detail > summary { list-style: none; display: inline-flex; }
+.log-detail > summary::-webkit-details-marker { display: none; }
+.log-detail[open] > summary { margin-bottom: var(--space-2); }
+.log-view { max-height: 20rem; margin: 0; padding: var(--space-3); overflow: auto; border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--color-surface-alt); font-family: var(--font-mono); font-size: var(--text-xs); white-space: pre-wrap; overflow-wrap: anywhere; }
+.log-view--tall { max-height: 30rem; }
+.log-view__line { display: block; }
