@@ -9,7 +9,7 @@ globs: resources/views/**, resources/css/**, resources/js/**, public/**
 - **Tanpa Tailwind, tanpa Vite/Node.** CSS murni di `public/css/`, JS di `public/js/` (Alpine.js versi terbaru disimpan lokal di `public/js/vendor/`).
 - `public/css/tokens.css`: semua design token sebagai variabel CSS (`--color-*`, `--space-*`, `--radius-*`, `--font-*`, `--size-control`). Nilai warna/ukuran **hanya** boleh dipakai lewat token.
 - `public/css/base.css` (reset ringan + tipografi), `public/css/components/<komponen>.css` (satu file per komponen), `public/css/pages/<modul>.css` (hanya bila perlu, kecil).
-- Satu titik muat di layout lewat helper versi aset (`?v=` dari hash isi file) agar browser memuat versi terbaru setelah update; satu file `app.css` mengimpor sisanya **tidak** memakai `@import` berantai saat runtime — gabungkan dengan helper Blade/PHP yang menyajikan file-file itu sebagai satu respons ber-cache, atau muat sedikit file `<link>` (≤ 4).
+- Dimuat dari satu partial `head-assets` di layout: **maksimal 4 file `<link>`**, tanpa `@import` berantai; URL ber-versi `?v=<hash isi file>` (helper Blade) supaya browser memuat versi baru setelah update dan Caddy bisa meng-cache panjang.
 - Penamaan kelas konsisten gaya BEM: `.btn`, `.btn--primary`, `.btn--sm`, `.table`, `.table__row`, `.badge`, `.badge--menunggu`. Kelas dipakai lewat Blade component, bukan ditulis bebas di halaman.
 - **Kompatibilitas** (klien low-spec, browser/WebView2 bisa lama): target Chrome/Edge ≥ 90, Firefox ≥ 88. **Dilarang**: `:has()`, CSS nesting, `@container`, `color-mix()`, `@layer`, `@property`, `oklch()`/`lab()`. Boleh: variabel CSS, flexbox, grid, `gap`, `clamp()`, `:focus-visible`, `aspect-ratio`.
 - Ukuran: total CSS ≤ 60 KB (sebelum gzip ≤ 80 KB); tidak ada CSS yang tidak dipakai.
