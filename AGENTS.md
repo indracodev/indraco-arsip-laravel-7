@@ -5,6 +5,7 @@ Pintu masuk untuk semua agent (Claude Code, Antigravity, Codex, dll). Baca ini d
 ## Mulai sesi
 1. `.agents/context/progress.md` — posisi kerja, fase, langkah berikutnya, catatan handoff.
 2. `.agents/context/decisions.md` — keputusan yang sudah disetujui pemilik (jangan dibuka ulang).
+   - Ganti IP server: ikuti `.agents/context/runbook-ganti-ip.md` (IP sekarang `192.168.2.180`).
 3. `.agents/rules/` — aturan wajib. Utama: `00-project-scope.md`, `10-safety.md`, `PROJECT_RULES.md` (+ `_SQLITE`, `_LAN_FRONTEND_OPS`), `engineering_guidelines.md`, `code_file_size_limits.md`.
 4. `.agents/skills/<nama>/SKILL.md` — prosedur khusus project, dimuat sesuai tugas:
    | Skill | Untuk |
