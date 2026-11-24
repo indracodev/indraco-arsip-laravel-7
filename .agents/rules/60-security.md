@@ -17,7 +17,7 @@ Setiap kelas di bawah punya status dan bukti di `context/security-checklist.md`,
 | Mass assignment | Hanya data tervalidasi; `role`, `status`, `department_id`, nomor box tidak bisa diisi bebas dari form |
 | Upload | Satu service upload: cek MIME dari isi, batas ukuran, whitelist ekstensi, nama file dari server, disimpan di luar `public/` dan disajikan lewat controller yang memeriksa hak akses |
 | Path traversal | Path file tidak dibentuk dari input tanpa validasi (perhatikan route `files/stream/{path}` lama) |
-| Brute force | Rate limit login dan ganti password; pesan error tidak membedakan akun ada/tidak |
+| Brute force | **Tanpa rate limit login** (keputusan pemilik, lihat decisions). Login gagal dicatat di log aktivitas (email, IP, waktu; tanpa password); pesan error tidak membedakan akun ada/tidak |
 | Session | Regenerate saat login; cookie `httponly`, `samesite=lax` (LAN http, jadi tanpa `secure`) |
 | CSV/Excel formula injection | Escape nilai berawalan `=`, `+`, `-`, `@` pada ekspor |
 | Kebocoran info | `APP_DEBUG=false`, route debug/diagnostik hanya admin, header versi disembunyikan (`expose_php=Off`, header `Server` Caddy) |

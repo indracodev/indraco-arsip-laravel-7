@@ -20,5 +20,5 @@
 
 ## Langkah berikutnya
 1. ACC pemilik untuk Fase 1.
-2. Fase 2: hapus `routes/bench.php` + loader-nya di `bootstrap/app.php`; jalankan `php artisan boost:install`; migrasi baseline yang sama persis dengan skema L7 (migrasi skeleton bentrok dengan tabel lama, mis. `users`); model + login user lama; rate limit login.
+2. Fase 2: hapus `routes/bench.php` + loader-nya di `bootstrap/app.php`; jalankan `php artisan boost:install`; migrasi baseline yang sama persis dengan skema L7 (migrasi skeleton bentrok dengan tabel lama, mis. `users`); model + login user lama (tanpa rate limit, login gagal dicatat).
 3. Cek versi WebView2/browser klien sebelum Fase 3.
