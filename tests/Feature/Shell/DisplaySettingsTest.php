@@ -41,6 +41,7 @@ class DisplaySettingsTest extends TestCase
 
         $prefs = (string) file_get_contents(public_path('js/prefs.js'));
         $this->assertStringContainsString("theme: 'light',", $prefs);
+        $this->assertStringContainsString("prefs.setTheme(stored.theme || 'light')", $prefs); // R26: nothing stored = light, never the OS theme
         $this->assertStringContainsString("localStorage.getItem('theme')", $prefs);
         $this->assertStringContainsString('e.altKey', $prefs);
         $this->assertStringContainsString("'dms-theme'", $prefs);

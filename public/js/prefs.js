@@ -67,7 +67,7 @@
     prefs.setFont(root.getAttribute('data-font-size') || '14px');
     prefs.setFont(stored.font);
     prefs.fit();
-    prefs.setTheme(stored.theme);
+    prefs.setTheme(stored.theme || 'light'); /* nothing stored = light (owner decision), not the OS theme */
     window.addEventListener('resize', prefs.fit);
     document.addEventListener('DOMContentLoaded', prefs.label);
     document.addEventListener('click', function (e) {

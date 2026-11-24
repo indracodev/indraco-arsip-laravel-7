@@ -10,6 +10,7 @@ Status: dibangun (putaran A2) — menutup temuan #2, #3, B11 (menunggu verifikas
 | `public/storage` (symlink/folder nyata, tanpa login) | DROP: launcher melepas link, `filesystems.links = []`, Caddy `respond /storage/* 404` | – |
 | – | `GET /files/{source}/{id}/{field}` `files.preview` (inline) | login + `ArchivePolicy@view` arsip induk |
 | – | `GET /files/{source}/{id}/{field}/download` `files.download` (attachment) | idem |
+| `files/preview-stream` (base64 JSON, alasan IDM) | `GET /files/{source}/{id}/{field}/preview-data` `files.preview_data` (JSON base64 untuk viewer, R27) | idem |
 Tidak ada view/klien (Tauri `desktop/`, JS) yang memakai nama route L7 → tidak dibuat redirect (redirect akan menghidupkan lagi input path mentah).
 
 `source` → kolom yang boleh (`ArchiveFileController::SOURCES`):
@@ -32,14 +33,19 @@ Field lain / source lain / id bukan angka → 404.
 - Backup `storage/app/*.sqlite` dan `quick_notes.json` tidak di folder allow-list → tidak pernah tersaji (diuji dengan file tiruan).
 - 404 dengan pesan: `resources/views/errors/404.blade.php` menampilkan pesan `abort(404, …)` saja (bukan teks framework yang menyebut nama kelas); JSON bila `Accept: application/json`.
 
-## Pratinjau di halaman detail
-Modal `#file-viewer` (`archives/partials/show-files.blade.php`, `public/js/pages/archive-show.js`): file di-`fetch` lalu ditampilkan dari blob URL — PDF di `<iframe>` (viewer bawaan browser/WebView2), gambar `<img>`; tanpa PDF.js. Alasan fetch+blob: IDM tidak menyambar PDF (L7 memakai JSON base64 + PDF.js untuk itu) dan pesan 403/404 tampil di modal. Tombol berkas lain di modal (pengganti multi-file viewer L7), "Buka di Tab Baru", "Unduh". Blob dicabut saat modal ditutup. CSP Report-Only ditambah `frame-src 'self' blob:`.
+## Pratinjau di halaman (detail arsip + modal Detail/Keluarkan penarikan)
+Modal `#file-viewer` (`archives/partials/show-files.blade.php`, `borrowings/index.blade.php`; JS bersama `public/js/pages/archive-show.js`). Daftar berkas (`ArchiveFileList`, `BorrowingList::files`) berisi `data` (= `files.preview_data`) dan `download`.
+- **Kenapa JSON base64 (R27):** Internet Download Manager (terpasang di PC kantor) mencegat respons PDF di Chrome, **termasuk `fetch()`** — server log 200, halaman menerima **204 kosong**, modal kosong. L7 sengaja memakai `files/preview-stream` (base64 JSON) karena ini. Respons `application/json` tidak disambar IDM.
+- `files.preview_data` = otorisasi/allow-list/`locate()` yang sama dengan `files.preview` (satu controller, cabang `routeIs`); balasan `{name, mime, size, data}`; header `Cache-Control: no-store, private`, `nosniff`; tanpa X-Accel/Content-Disposition. Batas `ArchiveFileController::PREVIEW_MAX_BYTES` = 5 MB (upload ≤ 500 KB, file lama terlihat ≤ ~430 KB) → di atasnya 413 JSON "Berkas terlalu besar untuk pratinjau … Gunakan tombol "Unduh"."
+- **Biaya:** disajikan PHP (bukan Caddy X-Accel): file dibaca utuh ke memori + base64 (+33 %) selama satu request — untuk ≤ 500 KB hanya milidetik per worker; batas 5 MB mencegah worker tertahan oleh file besar.
+- JS: JSON → `Blob` (mime dari server) → blob URL; PDF di `<iframe>` (viewer bawaan browser/WebView2), gambar `<img>`; tanpa PDF.js. Pesan 403/404/413 dari server tampil di modal; 2xx tanpa `data` (mis. 204 dari IDM) → "Gunakan tombol Unduh". "Buka di Tab Baru" = blob URL yang sama (aktif setelah berkas dimuat); "Unduh" tetap `files.download` attachment (IDM boleh menyambar unduhan). Blob dicabut saat modal ditutup (tab baru yang sudah terbuka tetap tampil, tetapi tidak bisa di-reload). CSP Report-Only `frame-src 'self' blob:`.
+- `files.preview` (inline, X-Accel) tetap ada untuk akses langsung, tidak lagi dipakai halaman.
 
 ## File L13
 `app/Http/Controllers/ArchiveFileController.php`, `app/Services/FileStorage.php` (FOLDERS, MIME, SEARCH_DISKS, `locate()`), `app/Support/ArchiveFileList.php` (daftar berkas di detail), `config/filesystems.php` (disk `legacy_public`, `links = []`, `x_accel`), `Caddyfile`, `START-DMS-INDRACO.bat` (CHECK 5), `resources/views/errors/404.blade.php`.
 
 ## Tes
-`tests/Feature/File/ArchiveFileTest.php`: X-Accel + header inline/attachment, tanpa X-Accel PHP menyajikan isi, tamu → login, dept lain 403, gudang/admin 200, file log penarikan via arsip induk, urutan disk private → public → legacy, file hilang 404 tanpa fallback, 13 path DB berbahaya (backup, `..`, `..\`, encoded, absolut, UNC, sub-folder, `.txt`, titik akhir, `::$DATA`) → 404, URL dimanipulasi + route L7 → 404.
+`tests/Feature/File/ArchiveFileTest.php`: preview-data (JSON exact name/mime/size/base64, header no-store/nosniff tanpa X-Accel, tamu → login/401, dept lain 403, path berbahaya & file hilang 404, field asing 404, > 5 MB → 413), X-Accel + header inline/attachment, tanpa X-Accel PHP menyajikan isi, tamu → login, dept lain 403, gudang/admin 200, file log penarikan via arsip induk, urutan disk private → public → legacy, file hilang 404 tanpa fallback, 13 path DB berbahaya (backup, `..`, `..\`, encoded, absolut, UNC, sub-folder, `.txt`, titik akhir, `::$DATA`) → 404, URL dimanipulasi + route L7 → 404.
 
 ## Cutover (pindah file L7)
 1. Salin `L7\storage\app\public\*` → `L13\storage\app\public\` (nama folder sama).

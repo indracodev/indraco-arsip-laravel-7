@@ -47,6 +47,8 @@ Route::middleware('auth')->group(function () {
     $fileRoute = ['source' => implode('|', array_keys(ArchiveFileController::SOURCES)), 'id' => '[0-9]+', 'field' => '[a-z_]+'];
     Route::get('/files/{source}/{id}/{field}', ArchiveFileController::class)->name('files.preview')->where($fileRoute);
     Route::get('/files/{source}/{id}/{field}/download', ArchiveFileController::class)->name('files.download')->where($fileRoute);
+    // base64 JSON for the page viewer: IDM grabs PDF responses, even fetch() (finding R27).
+    Route::get('/files/{source}/{id}/{field}/preview-data', ArchiveFileController::class)->name('files.preview_data')->where($fileRoute);
 
     // PENARIKAN (Laravel 7 URLs and names). Access: BorrowingLogPolicy (create: admin + PIC Departemen
     // of the box's department; dispatch/reject: PIC Gudang + admin). Not built (decisions ASK 2-4,

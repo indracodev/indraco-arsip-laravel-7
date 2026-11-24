@@ -20,7 +20,7 @@ final class ArchiveFileList
     ];
 
     /**
-     * @return list<array{name: string, note: string, type: string, preview: string, download: string}>
+     * @return list<array{name: string, note: string, type: string, data: string, download: string}>
      */
     public static function for(Archive $archive): array
     {
@@ -48,7 +48,7 @@ final class ArchiveFileList
 
     /**
      * @param  array{0: string, 1: int, 2: string}  $route  source, id, field
-     * @return array{name: string, note: string, type: string, preview: string, download: string}
+     * @return array{name: string, note: string, type: string, data: string, download: string}
      */
     private static function entry(string $name, string $note, string $path, array $route): array
     {
@@ -59,7 +59,7 @@ final class ArchiveFileList
             'name' => $name,
             'note' => $note.' ('.strtoupper($extension).')',
             'type' => $extension === 'pdf' ? 'pdf' : 'image',
-            'preview' => route('files.preview', $params),
+            'data' => route('files.preview_data', $params),
             'download' => route('files.download', $params),
         ];
     }

@@ -9,7 +9,7 @@ Kontrak: `.agents/rules/50-frontend-blade.md`. Tanpa Tailwind/Vite/Node/CDN. Tar
 | `public/css/layout.css` | shell (topbar, menu atas/drawer, main + ambient), halaman guest |
 | `public/css/components/*.css` | satu file per komponen (sumber yang diedit) |
 | `public/css/components.css` | **hasil gabungan** komponen (di-commit) — `php artisan assets:cache` (otomatis di `optimize`) |
-| `public/js/prefs.js` | preferensi per browser sebelum render (head, tidak defer): ukuran font (`app_font_size`), tema (`dms_theme` → `data-theme`), kelas breakpoint rem `bp-*`; `window.dmsPrefs`; menghapus kunci lama `dms_layout` |
+| `public/js/prefs.js` | preferensi per browser sebelum render (head, tidak defer): ukuran font (`app_font_size`), tema (`dms_theme`, fallback kunci L7 `theme`, default Terang bila kosong — R26 → `data-theme`), kelas breakpoint rem `bp-*`; `window.dmsPrefs`; menghapus kunci lama `dms_layout` |
 | `public/js/sound.js` | `window.dmsSound.play()` chime notifikasi (WebAudio, tanpa file), pengaturan `dms_sound` (hanya layout app, sebelum Alpine) |
 | `public/js/modal.js` | modal + konfirmasi (`showConfirmModal`, `showAlertModal`, `data-confirm*`) |
 | `public/js/app.js` | anti double-submit (menyalin name/value tombol yang diklik ke input hidden `data-submitter-copy` sebelum men-disable tombol), simpan ukuran font ke akun, toast, toggle password, shortcut, dropdown menu atas (klik/Enter/Spasi, Esc), registrasi SW, `Alpine.data('shell'|'displaySettings')` |

@@ -1,7 +1,10 @@
 /* Archive detail (archives/show): file viewer modal + "Kembali".
-   - The file is fetched and shown from a blob URL (PDF in the browser's own viewer, images inline):
-     download managers such as IDM do not grab it (Laravel 7 used a base64 JSON stream + PDF.js),
-     and a 403/404 shows the server message inside the modal instead of an error page.
+   - The file comes as base64 JSON (files.preview_data) and is shown from a blob URL (PDF in the
+     browser's own viewer, images inline). Not a plain fetch of the PDF: Internet Download Manager
+     grabs PDF responses in Chrome, even fetch(), and the page gets an empty 204 (finding R27;
+     Laravel 7 preview-stream also used JSON). A 403/404/413 shows the server message in the modal.
+     "Buka di Tab Baru" opens the same blob URL; "Unduh" stays a normal attachment link.
+   - Used by archives/show and borrowings/index (same #file-viewer markup).
    - "Kembali" goes back in history when the previous page is ours (catalog filters kept), as in Laravel 7. */
 (function () {
     var files = [];
@@ -30,23 +33,33 @@
         });
     }
 
+    function toBlob(base64, mime) {
+        var binary = atob(base64);
+        var bytes = new Uint8Array(binary.length);
+        for (var i = 0; i < binary.length; i++) { bytes[i] = binary.charCodeAt(i); }
+        return new Blob([bytes], { type: mime });
+    }
+
     function show(index) {
         var file = files[index];
         if (!file) { return; }
         clear();
         var token = request;
         document.getElementById('file-viewer-title').textContent = file.name;
-        document.querySelector('[data-file-open]').href = file.preview;
+        var open = document.querySelector('[data-file-open]');
+        open.removeAttribute('href');
         document.querySelector('[data-file-download]').href = file.download;
         document.querySelectorAll('[data-file-tabs] [data-file-index]').forEach(function (tab) {
             tab.setAttribute('aria-pressed', String(Number(tab.getAttribute('data-file-index')) === index));
         });
         say('Memuat berkas...');
-        fetch(file.preview, { credentials: 'same-origin', headers: { Accept: 'application/json' } })
-            .then(function (response) { return response.ok ? response.blob() : failure(response); })
-            .then(function (blob) {
+        fetch(file.data, { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+            .then(function (response) { return response.ok ? response.json().catch(function () { return {}; }) : failure(response); })
+            .then(function (body) {
                 if (token !== request) { return; }
-                blobUrl = URL.createObjectURL(blob);
+                if (!body.data) { throw new Error('Berkas tidak dapat dibuka di pratinjau. Gunakan tombol "Unduh".'); }
+                blobUrl = URL.createObjectURL(toBlob(body.data, body.mime));
+                open.href = blobUrl;
                 var node = document.createElement(file.type === 'pdf' ? 'iframe' : 'img');
                 if (file.type === 'pdf') { node.title = file.name; } else { node.alt = file.name; }
                 node.src = blobUrl;

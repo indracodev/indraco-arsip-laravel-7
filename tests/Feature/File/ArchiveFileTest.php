@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\File;
 
+use App\Http\Controllers\ArchiveFileController;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -141,5 +142,53 @@ class ArchiveFileTest extends TestCase
             '/files/preview-stream?token='.base64_encode('archive_scans/scan1.pdf')] as $url) {
             $this->actingAs($this->admin)->get($url)->assertNotFound();
         }
+    }
+
+    public function test_preview_data_returns_base64_json_not_a_pdf_response(): void
+    {
+        // R27: IDM grabs PDF responses (even fetch) in Chrome; the viewer gets JSON instead.
+        Storage::disk('local')->put('archive_scans/scan1.pdf', self::PDF);
+        Storage::disk('public')->put('archive_scans/old.jpg', 'jpg-bytes');
+        $id = $this->archive($this->hcs);
+
+        $this->actingAs($this->picHcs)->getJson("/files/archive/{$id}/scan_input_form/preview-data")->assertOk()
+            ->assertHeader('Content-Type', 'application/json')
+            ->assertHeader('X-Content-Type-Options', 'nosniff')
+            ->assertHeaderMissing('X-Accel-Redirect')->assertHeaderMissing('Content-Disposition')
+            ->assertExactJson(['name' => "scan-input-form-archive-{$id}.pdf", 'mime' => 'application/pdf', 'size' => strlen(self::PDF), 'data' => base64_encode(self::PDF)]);
+        $this->assertStringContainsString('no-store', (string) $this->actingAs($this->picHcs)->getJson("/files/archive/{$id}/scan_input_form/preview-data")->headers->get('Cache-Control'));
+
+        $jpg = $this->archive($this->hcs, 'archive_scans/old.jpg');
+        $this->actingAs($this->admin)->getJson("/files/archive/{$jpg}/scan_input_form/preview-data")->assertOk()
+            ->assertJson(['mime' => 'image/jpeg', 'data' => base64_encode('jpg-bytes')]);
+    }
+
+    public function test_preview_data_follows_the_same_access_and_path_rules(): void
+    {
+        Storage::disk('local')->put('archive_scans/scan1.pdf', self::PDF);
+        Storage::disk('local')->put('backup_indraco_1.sqlite', 'db');
+        $url = '/files/archive/'.$this->archive($this->hcs).'/scan_input_form/preview-data';
+
+        $this->get($url)->assertRedirect('/login');
+        $this->getJson($url)->assertUnauthorized();
+        $this->actingAs($this->picFat)->getJson($url)->assertForbidden()->assertJsonMissingPath('data');
+        $this->actingAs($this->gudang)->getJson($url)->assertOk();
+        $this->actingAs($this->admin)->getJson('/files/archive/'.$this->archive($this->hcs, 'archive_scans/gone.pdf').'/scan_input_form/preview-data')
+            ->assertNotFound()->assertJson(['message' => 'Berkas tidak ditemukan di server penyimpanan. Unggah ulang berkas melalui form edit arsip.']);
+        foreach (['backup_indraco_1.sqlite', '../.env', 'archive_scans/../backup_indraco_1.sqlite', 'archive_scans/..\backup_indraco_1.sqlite'] as $path) {
+            $this->actingAs($this->admin)->getJson('/files/archive/'.$this->archive($this->hcs, $path).'/scan_input_form/preview-data')
+                ->assertNotFound()->assertJsonMissingPath('data');
+        }
+        $this->actingAs($this->admin)->getJson("/files/archive/{$this->admin->id}/password/preview-data")->assertNotFound();
+    }
+
+    public function test_preview_data_refuses_files_above_the_cap(): void
+    {
+        Storage::disk('local')->put('archive_scans/big.pdf', str_repeat('x', ArchiveFileController::PREVIEW_MAX_BYTES + 1));
+        $id = $this->archive($this->hcs, 'archive_scans/big.pdf');
+
+        $this->actingAs($this->admin)->getJson("/files/archive/{$id}/scan_input_form/preview-data")->assertStatus(413)
+            ->assertJsonMissingPath('data')->assertJsonPath('message', 'Berkas terlalu besar untuk pratinjau (5 MB). Gunakan tombol "Unduh".');
+        $this->actingAs($this->admin)->get("/files/archive/{$id}/scan_input_form/download")->assertOk();
     }
 }

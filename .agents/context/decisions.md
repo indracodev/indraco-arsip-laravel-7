@@ -82,3 +82,4 @@ tanggal | keputusan | alasan | disetujui oleh
 2026-11-24 | Mode kontras tinggi: belum dikerjakan (opsional, menunggu permintaan pemilik) | warna sekarang sudah WCAG AA | pemilik
 2026-11-24 | **Pemilik meminta semua dilanjutkan sampai selesai** tanpa STOP per modul: koordinator memverifikasi (tes, uji langsung, uji browser bila ekstensi tersedia) dan commit tiap modul, lalu melaporkan progres; keputusan yang mengubah UX/data tetap ditanyakan. Uji dua akun: browser biasa + incognito (atau sesi HTTP terpisah) | percepat penyelesaian | pemilik
 2026-11-24 | **Tema default Terang** (bukan ikut sistem); tombol ganti tema satu klik di bar atas (+ Alt+T seperti L7) | permintaan pemilik | pemilik
+2026-11-24 | Pratinjau file di halaman = base64 JSON (`files.preview_data`, maks 5 MB, dilayani PHP); unduhan & inline langsung tetap Caddy X-Accel | IDM di PC kantor mencegat respons PDF termasuk fetch (R27); sama seperti alasan L7 | Claude (diuji dengan IDM)

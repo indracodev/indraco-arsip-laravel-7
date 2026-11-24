@@ -45,7 +45,8 @@ class ArchiveDetailTest extends TestCase
         $this->actingAs($this->picHcs)->get("/archives/{$own}")->assertOk()
             ->assertSee('DETAIL BERKAS: IGI/HCS/2026/0007')
             ->assertSeeInOrder(['Informasi Utama Berkas', 'Rincian Berkas Dokumen Dalam Box (1 Berkas)', 'Kontrak Kerja Rahasia', 'Dokumentasi Scan & Lampiran Digital', 'Scan Formulir Input', 'Lokasi Fisik Gudang', 'Masa Simpan & Expiry Retensi', '6 Bulan', 'Jun 2026', 'Audit Trail & Riwayat Berkas'])
-            ->assertSee("/files/archive/{$own}/scan_input_form", false)
+            ->assertSee("/files/archive/{$own}/scan_input_form/download", false)
+            ->assertSee('files\/archive\/'.$own.'\/scan_input_form\/preview-data', false) // viewer JSON endpoint (R27)
             ->assertDontSee('archive_scans/abc.pdf')
             ->assertDontSee('Cetak Label');
         $this->actingAs($this->picHcs)->get("/archives/{$other}")->assertForbidden();

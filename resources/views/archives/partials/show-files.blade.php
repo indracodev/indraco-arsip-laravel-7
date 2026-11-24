@@ -1,5 +1,5 @@
 {{-- Detail Arsip: "Dokumentasi Scan & Lampiran Digital" + viewer modal (public/js/pages/archive-show.js).
-     Every link goes through files.preview / files.download (login + ArchivePolicy), never a storage path. --}}
+     Every link goes through files.preview_data (viewer JSON, R27) / files.download (login + ArchivePolicy), never a storage path. --}}
 <x-card title="Dokumentasi Scan & Lampiran Digital">
     @if ($files === [])
         <x-empty-state title="Belum ada scan formulir atau lampiran berkas digital yang diunggah." />

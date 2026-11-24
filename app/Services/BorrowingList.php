@@ -93,10 +93,10 @@ final class BorrowingList
 
     /**
      * Files of one penarikan row (Laravel 7 borrowings/index $borrowingFiles, same names), linked
-     * through files.preview / files.download only. The gudang receipt scan is listed when it
+     * through files.preview_data / files.download only. The gudang receipt scan is listed when it
      * differs from the PIC approval form (see DispatchBorrowing).
      *
-     * @return list<array{name: string, note: string, type: string, preview: string, download: string}>
+     * @return list<array{name: string, note: string, type: string, data: string, download: string}>
      */
     public static function files(BorrowingLog $log): array
     {
@@ -117,7 +117,7 @@ final class BorrowingList
             $params = ['source' => $source, 'id' => $record->getKey(), 'field' => $field];
             $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
             $files[] = ['name' => $name, 'note' => $note.' ('.strtoupper($extension).')', 'type' => $extension === 'pdf' ? 'pdf' : 'image',
-                'preview' => route('files.preview', $params), 'download' => route('files.download', $params)];
+                'data' => route('files.preview_data', $params), 'download' => route('files.download', $params)];
         }
 
         return $files;

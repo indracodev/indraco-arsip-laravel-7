@@ -27,9 +27,10 @@ Catatan modul lengkap: `context/modules/file.md`.
 ## Aturan L13
 - Satu service `App\Services\FileStorage`: `store()` (whitelist pdf/jpg/jpeg/png, MIME dari isi, 500 KB, nama acak, disk privat `storage/app/private`, simpan **sebelum** transaksi DB; hapus hanya setelah commit) dan `locate()` (allow-list folder `FOLDERS`, nama polos, disk `local` → `public` → `legacy_public`, realpath tetap di root).
 - Penyajian hanya lewat `ArchiveFileController`: `files.preview` / `files.download` = `/files/{source}/{id}/{field}[/download]`, login + `ArchivePolicy@view` arsip induk; tidak ada path di URL; file hilang = 404 tanpa fallback.
+- **Pratinjau di halaman = `files.preview_data` (JSON base64), bukan fetch PDF.** IDM di PC kantor mencegat respons PDF di Chrome, termasuk `fetch()`, dan halaman menerima 204 kosong (R27; L7 `preview-stream` memakai JSON karena alasan ini). Viewer membangun Blob dari base64. Batas 5 MB (`PREVIEW_MAX_BYTES`, 413 + saran "Unduh"); disajikan PHP, jadi jangan naikkan batas tanpa alasan. Viewer baru pakai `public/js/pages/archive-show.js` + kunci `data`/`download` dari `ArchiveFileList`/`BorrowingList::files`.
 - Caddy menyajikan file lewat `X-Accel-Redirect` (`filesystems.x_accel`, root `storage/app`); `/storage/*` selalu 404; tidak ada `public/storage` (`links = []`, launcher melepas link lama).
 - Upload modul baru: folder harus ada di `FileStorage::FOLDERS`, link selalu lewat route `files.*` (tambahkan kolom ke `ArchiveFileController::SOURCES`).
 
 ## Verifikasi
-- Tes: `tests/Feature/File/ArchiveFileTest.php` (403 dept lain, tamu → login, path DB berbahaya → 404, urutan disk, header X-Accel) + `tests/Feature/Archive/SubmissionUploadTest.php` (upload ditolak).
+- Tes: `tests/Feature/File/ArchiveFileTest.php` (preview-data JSON/413, 403 dept lain, tamu → login, path DB berbahaya → 404, urutan disk, header X-Accel) + `tests/Feature/Archive/SubmissionUploadTest.php` (upload ditolak).
 - Uji langsung: `/storage/...`, `/private/...`, backup `.sqlite` → 404; file lama dari `storage/app/public` & `legacy-public` → 200 lewat Caddy (ada `Etag`/`Accept-Ranges`, tanpa `X-Accel-Redirect` di respons).
