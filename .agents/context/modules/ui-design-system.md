@@ -9,7 +9,8 @@ Kontrak: `.agents/rules/50-frontend-blade.md`. Tanpa Tailwind/Vite/Node/CDN. Tar
 | `public/css/layout.css` | shell (topbar, menu atas/drawer, main + ambient), halaman guest |
 | `public/css/components/*.css` | satu file per komponen (sumber yang diedit) |
 | `public/css/components.css` | **hasil gabungan** komponen (di-commit) — `php artisan assets:cache` (otomatis di `optimize`) |
-| `public/js/prefs.js` | preferensi per browser sebelum render (head, tidak defer): ukuran font (`app_font_size`); menghapus kunci lama `dms_layout` |
+| `public/js/prefs.js` | preferensi per browser sebelum render (head, tidak defer): ukuran font (`app_font_size`), tema (`dms_theme` → `data-theme`), kelas breakpoint rem `bp-*`; `window.dmsPrefs`; menghapus kunci lama `dms_layout` |
+| `public/js/sound.js` | `window.dmsSound.play()` chime notifikasi (WebAudio, tanpa file), pengaturan `dms_sound` (hanya layout app, sebelum Alpine) |
 | `public/js/modal.js` | modal + konfirmasi (`showConfirmModal`, `showAlertModal`, `data-confirm*`) |
 | `public/js/app.js` | anti double-submit, form mockup, toast, toggle password, shortcut, dropdown menu atas (klik/Enter/Spasi, Esc), registrasi SW, `Alpine.data('shell'|'displaySettings')` |
 | `public/js/lan.js` | titik status LAN (hanya layout app) |
@@ -35,8 +36,31 @@ Kontrak: `.agents/rules/50-frontend-blade.md`. Tanpa Tailwind/Vite/Node/CDN. Tar
 | Kontrol | `--size-control` 36px, `--size-control-sm` 28px, `--size-topbar` 48px, `--size-topnav` 40px, `--size-drawer` 16rem | |
 | Lain | `--shadow-1` (tipis), `--shadow-modal`, `--duration` 120ms, `--z-*` | |
 
-Kontras WCAG AA semua pasangan teks/latar & UI dicek `tests/Unit/ContrastTest.php` (daftar = `ContrastTest::PAIRS`).
-Ukuran dalam rem → ukuran font per user (html font-size) menskalakan seluruh UI.
+Kontras WCAG AA semua pasangan teks/latar & UI dicek `tests/Unit/ContrastTest.php` untuk **kedua tema** (daftar = `ContrastTest::PAIRS`; `ambient` = setiap pusat glow, jadi titik tergelap tema terang dan titik terterang tema gelap ikut dicek).
+
+## Tema gelap (`:root[data-theme="dark"]` di `tokens.css`, di dalam `@media screen` → cetak selalu token terang)
+Dipasang `prefs.js` sebelum render (Terang / Gelap / Ikuti Sistem). Hanya token yang ditimpa; komponen tidak punya aturan khusus gelap. `color-scheme: dark` agar scrollbar/kontrol bawaan ikut gelap.
+
+| Token | Terang | Gelap |
+|---|---|---|
+| bg / surface / surface-alt / hover | #e7eaee / #fcfcfd / #f2f4f6 / #e5e8ec | #12171e / #1a212b / #212934 / #29323e |
+| border / border-strong | #d3d7dd / #79828f | #343e4b / #6c7787 |
+| text / text-muted / text-subtle | #1c222b / #49515d / #5d6571 | #e4e8ec / #aab3be / #8f99a5 |
+| accent / accent-hover / accent-soft / on-accent | #262f3b / #1a2029 / #e3e6eb / #fff | #d9dfe6 / #c3cbd5 / #2c3542 / #151b23 (tombol primer jadi slate terang, teks gelap) |
+| brand / focus | #fd4f00 / #d04100 | #fd4f00 / #ff7a33 |
+| nav-bg / nav-hover / nav-active / nav-text / nav-text-muted / nav-border | #222a35 / #2d3643 / #36404e / #e6e9ed / #aab2bd / #3a4452 | #0c1016 / #1c232d / #262f3b / #e4e8ec / #9aa3ae / #2b3441 |
+| success / warning / danger / info | #166534 / #8a5a00 / #b42318 / #1d4ed8 | #4cc38a / #e5b143 / #f28b80 / #86aef5 — 4 rona tetap hijau/kuning/merah/biru |
+| …-soft | #e3f2e7 / #fbf0d6 / #fbe9e7 / #e5ecfc | #14301f / #33270c / #3b1915 / #162847 |
+| logo-chip | transparent | #e4e8ec (chip terang di belakang logo; tanpa `filter`) |
+| ambient | slate 14% + oranye 10% | slate terang `rgba(148,163,184,.10)` + oranye 8% |
+| `--icon-chevron` (panah `<select>`) | stroke #5a6372 | stroke #aab3be |
+| shadow | rgba slate | rgba(0,0,0,.4 / .5) |
+
+## Perbesar teks (font 10–26 px) — aturan
+- Semua ukuran yang harus ikut membesar (teks, kontrol, spasi, lebar laci/modal/dropdown) dalam **rem/em**. `px` hanya untuk garis rambut ≤ 4 px, border, outline, shadow, radius, dan `html { font-size: 14px }`. Dicek `AssetsTest::test_css_sizes_scale_with_the_font_size`.
+- **Dilarang media query lebar** (`@media (min|max-width)`), karena px/em di media query tidak ikut ukuran font user. Pakai kelas di `<html>` dari `prefs.js`: `.bp-lg` / `.bp-lt-lg` (1024), `.bp-md` / `.bp-lt-md` (768), `.bp-sm` / `.bp-lt-sm` (320), dihitung dari `innerWidth × 14 / font` (dicek tes yang sama). Contoh: `.bp-lg .form-grid--2 {…}`, `.bp-lt-lg .table--cards td {…}`.
+- Komponen tahan sempit: topbar boleh membungkus ke baris kedua (logo mengecil dulu), tombol di footer modal/kartu/page-header membungkus teks, `filter-bar` kolom `min(12rem, 100%)`, sel kartu tabel `overflow-wrap: anywhere`, di `.bp-lt-sm` label sel kartu di atas nilai dan badge boleh membungkus, dropdown grup terakhir menu atas membuka ke kiri.
+- Uji manual (2026-11-24, Chrome, iframe 360/768/1024/1366 × font 14/19/23/26 × shell + sampel filter/tabel kartu/form/page-header/pagination/modal/toast/dropdown): `scrollWidth` dokumen ≤ lebar, tidak ada elemen di luar viewport, tidak ada label tombol/badge terpotong. Ulangi saat menambah komponen/halaman: Pengaturan Tampilan → slider 26 → sempitkan jendela ke 360/768, cek tanpa geser horizontal dan tanpa teks terpotong.
 
 ## Komponen (`resources/views/components/`)
 | Komponen | Pakai | CSS |
@@ -73,4 +97,4 @@ Ukuran dalam rem → ukuran font per user (html font-size) menskalakan seluruh U
 `:has(`, nesting `&`, `@container`, `color-mix(`, `@layer`, `@property`, `oklch(`/`lab(`, `backdrop-filter`/`blur(`, `@import`, URL eksternal; animasi hanya opacity/transform ≤ 150 ms (spinner tombol pengecualian fungsional); hormati `prefers-reduced-motion`.
 
 ## Ukuran terukur (Fase 3)
-CSS 4 file 26,8 KB mentah / 7,4 KB gzip; JS awal 69,1 KB / 24,5 KB gzip (Alpine ±56 KB). Revisi menu atas + R19 + ambient: CSS 26,8 KB / 7,6 KB gzip; JS awal (prefs+modal+app+alpine+lan) 68,4 KB / 24,4 KB gzip; DOM `/archives` admin 526, PIC (fin) 229, `/` admin 138 (DB salinan). DOM: katalog admin 50 baris 1.429, 10 baris 536, katalog PIC 174, mockup form 256, dashboard 142, login 54.
+Dark mode + perbesar teks + suara (2026-11-24): CSS 4 file 32,0 KB mentah / 8,0 KB gzip; JS awal (prefs+sound+modal+app+lan+alpine) 74,9 KB / 25,5 KB gzip (sound.js 2,0 KB / 0,9 KB). Sebelumnya: CSS 4 file 26,8 KB mentah / 7,4 KB gzip; JS awal 69,1 KB / 24,5 KB gzip (Alpine ±56 KB). Revisi menu atas + R19 + ambient: CSS 26,8 KB / 7,6 KB gzip; JS awal (prefs+modal+app+alpine+lan) 68,4 KB / 24,4 KB gzip; DOM `/archives` admin 526, PIC (fin) 229, `/` admin 138 (DB salinan). DOM: katalog admin 50 baris 1.429, 10 baris 536, katalog PIC 174, mockup form 256, dashboard 142, login 54.

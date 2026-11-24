@@ -19,5 +19,6 @@
 - Cek versi WebView2 dan versi browser (Chrome/Edge/Firefox) yang dipakai di PC klien sebelum Fase 3.
 
 ## Langkah berikutnya
+0. Setelah modul ARSIP pengajuan: ukuran teks per akun (`users.font_size`); cek area klik ikut membesar saat uji browser.
 1. Review mockup oleh pemilik (uji remote di browser/exe) → perbaiki R14–R16 + masukan pemilik.
 2. ACC Fase 3 → Fase 4 modul PIC Departemen (urutan di INVENTARIS-PIC-DEPT.md: shell/katalog → create multi-box → edit/hapus draft → detail+file → penarikan → pemusnahan → perpanjangan → impor Excel).
