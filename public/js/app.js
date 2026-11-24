@@ -93,27 +93,44 @@
             };
         });
 
-        /* "Pengaturan Tampilan" (per browser): font size (Laravel 7 presets, 10-26px slider).
-           Applied live, stored on "Simpan", reverted on close. */
+        /* "Pengaturan Tampilan" (per browser): font size (Laravel 7 presets, 10-26px slider),
+           theme (Terang / Gelap / Ikuti Sistem) and notification sound (public/js/prefs.js,
+           sound.js). Font and theme apply live; all are stored on "Simpan", reverted on close. */
         window.Alpine.data('displaySettings', function () {
-            var root = document.documentElement;
-            var current = parseInt(root.style.fontSize || root.getAttribute('data-font-size'), 10) || 14;
+            var prefs = window.dmsPrefs;
+            var saved = { size: prefs.font, theme: prefs.theme, sound: window.dmsSound ? window.dmsSound.enabled() : true };
             return {
-                size: current,
-                saved: current,
+                size: saved.size,
+                theme: saved.theme,
+                sound: saved.sound,
+                saved: saved,
                 presets: [[10, 'Mini'], [14, 'Kecil'], [19, 'Standar'], [21, 'Besar'], [23, 'X-Large']],
+                themes: [['light', 'Terang'], ['dark', 'Gelap'], ['system', 'Ikuti Sistem']],
                 apply: function (px) {
                     this.size = Math.min(26, Math.max(10, parseInt(px, 10) || 14));
-                    root.style.fontSize = this.size + 'px';
+                    prefs.setFont(this.size);
+                },
+                setTheme: function (choice) {
+                    this.theme = choice;
+                    prefs.setTheme(choice);
+                },
+                testSound: function () {
+                    if (window.dmsSound) { window.dmsSound.play(true); }
                 },
                 save: function () {
-                    this.saved = this.size;
+                    this.saved = { size: this.size, theme: this.theme, sound: this.sound };
                     try {
                         localStorage.setItem('app_font_size', this.size + 'px');
+                        localStorage.setItem('dms_theme', this.theme);
+                        localStorage.setItem('dms_sound', this.sound ? '1' : '0');
                     } catch (e) { /* storage blocked */ }
                     window.dmsModal.close('settings-modal');
                 },
-                revert: function () { this.apply(this.saved); }
+                revert: function () {
+                    this.apply(this.saved.size);
+                    this.setTheme(this.saved.theme);
+                    this.sound = this.saved.sound;
+                }
             };
         });
     });

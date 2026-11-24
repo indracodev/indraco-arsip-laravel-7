@@ -22,7 +22,8 @@
     $files = $archive->fileCount();
 @endphp
 <tr @class(['table__row--'.$tone => $tone])>
-    <td data-label="" class="table__select"><input type="checkbox" value="{{ $archive->id }}" aria-label="Pilih {{ $archive->title }}"></td>
+    <td data-label="" class="table__select"><input type="checkbox" value="{{ $archive->id }}" aria-label="Pilih {{ $archive->title }}"
+        @if ($ownsDept && $archive->status === 'draft') name="ids[]" form="batch-delete-drafts" data-draft @endif></td>
     <td data-label="NO. BOX ARSIP" class="table__nowrap mono">
         @if ($marker)<span class="badge badge--{{ $tone }}">{{ $marker }}</span>@endif
         @if ($archive->box_number)
@@ -78,11 +79,18 @@
             @elseif ($activeBorrowing && $isPic && $ownsDept)
                 <span class="badge badge--info">Sedang Ditarik</span>
             @endif
+            {{-- Laravel 7: admin may edit any archive, PIC Departemen only their drafts (ArchivePolicy@update). --}}
+            @if ($user->isAdmin() || ($ownsDept && $archive->status === 'draft'))
+                <x-link-button size="sm" :href="route('archives.edit', $archive)" :variant="$hasRevision ? 'danger' : 'secondary'" :title="$hasRevision ? 'Perbaiki Pengajuan Sesuai Catatan Revisi Gudang' : 'Edit Data Berkas Arsip'">{{ $hasRevision ? 'Revisi & Ajukan' : 'Edit' }}</x-link-button>
+            @endif
             @if ($ownsDept && $archive->status === 'draft')
-                <x-link-button size="sm" :href="route('archives.edit', $archive)" :variant="$hasRevision ? 'danger' : 'secondary'">{{ $hasRevision ? 'Revisi & Ajukan' : 'Edit' }}</x-link-button>
-                <x-button size="sm" variant="ghost" class="tone--danger"
-                    data-confirm="Apakah Anda yakin ingin menghapus data draft arsip [{{ $archive->title }}]?"
-                    data-confirm-title="Hapus Draft Berkas Arsip" data-confirm-type="danger" data-confirm-btn="Ya, Hapus">Hapus</x-button>
+                <form method="POST" action="{{ route('archives.destroy', $archive) }}">
+                    @csrf
+                    @method('DELETE')
+                    <x-button type="submit" size="sm" variant="ghost" class="tone--danger"
+                        data-confirm="Apakah Anda yakin ingin menghapus data draft arsip [{{ $archive->title }}]?"
+                        data-confirm-title="Hapus Draft Berkas Arsip" data-confirm-type="danger" data-confirm-btn="Ya, Hapus">Hapus</x-button>
+                </form>
             @endif
             <x-link-button size="sm" :href="route('archives.show', $archive)">Detail</x-link-button>
     </td>

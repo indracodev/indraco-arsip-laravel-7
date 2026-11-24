@@ -14,6 +14,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title') - {{ $appName }}</title>
+    {{-- sound.js before Alpine (head-assets): the settings modal reads window.dmsSound on init. --}}
+    <script src="{{ \App\Support\Asset::url('js/sound.js') }}" defer></script>
     @include('layouts.partials.head-assets')
     <script src="{{ \App\Support\Asset::url('js/lan.js') }}" defer></script>
 </head>

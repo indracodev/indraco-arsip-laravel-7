@@ -40,6 +40,11 @@ use Illuminate\Support\Carbon;
  * @property string|null $scan_input_form
  * @property string|null $scan_approval_input
  * @property string|null $scan_extension_form
+ * @property string|null $company_name
+ * @property string|null $content_description
+ * @property Carbon|null $tgl_penyerahan
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
  */
 class Archive extends Model
 {

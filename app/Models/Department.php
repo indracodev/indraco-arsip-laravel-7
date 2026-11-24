@@ -5,6 +5,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * (Columns used by code; the baseline migration is raw SQL Larastan cannot read.)
+ *
+ * @property int $id
+ * @property string $code
+ * @property string $name
+ * @property int|null $retention_years
+ * @property bool $is_active
+ */
 class Department extends Model
 {
     protected $table = 'departments';

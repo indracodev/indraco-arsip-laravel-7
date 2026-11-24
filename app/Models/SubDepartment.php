@@ -8,6 +8,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * `department_id` is not fillable: set it explicitly in code.
+ *
+ * @property int $id
+ * @property int $department_id
+ * @property string|null $code
+ * @property string $name
+ * @property int|null $retention_years
+ * @property bool $is_active
  */
 class SubDepartment extends Model
 {

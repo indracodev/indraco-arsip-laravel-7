@@ -1,7 +1,7 @@
 /* <x-filter-bar>: GET form above a list; filters wrap, buttons stay at the end. */
 .filter-bar {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(12rem, 100%), 1fr));
     gap: var(--space-3);
     align-items: end;
     padding: var(--space-3) var(--space-4);

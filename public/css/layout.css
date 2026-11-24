@@ -1,36 +1,46 @@
-/* App shell: top bar + top menu bar + content. Below 1024px the menu becomes a drawer. */
+/* App shell: top bar + top menu bar + content. Below 1024px the menu becomes a drawer.
+   Breakpoints are classes on <html> set by public/js/prefs.js from the viewport width in rem
+   (width x 14 / font size): .bp-lg = ">= 1024px at 14px", .bp-lt-lg = below it, .bp-md /
+   .bp-lt-md for 768px, .bp-lt-sm for 320px. A media query in px (or em) ignores the per-user
+   font size, so at 26px the top menu would no longer fit 1366px; with rem breakpoints a page at
+   font size F and width W lays out exactly like width W x 14 / F at 14px. */
 .app {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: var(--size-topbar) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
     min-height: 100vh;
 }
 
-/* Top bar: near-white so the dark logo text stays readable; orange brand line on top. */
+/* Top bar: near-white so the dark logo text stays readable; orange brand line on top.
+   It wraps to a second row instead of overflowing when a narrow screen has a large font. */
 .topbar {
     grid-column: 1 / -1;
     position: sticky;
     top: 0;
     z-index: var(--z-topbar);
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: var(--space-3);
-    height: var(--size-topbar);
-    padding: 0 var(--space-4);
+    gap: var(--space-1) var(--space-3);
+    min-height: var(--size-topbar);
+    padding: var(--space-1) var(--space-4);
     background: var(--color-surface);
     border-top: 3px solid var(--color-brand);
     border-bottom: 1px solid var(--color-border);
 }
-.topbar__menu { display: none; }
-.topbar__brand { display: flex; align-items: center; gap: var(--space-2); color: var(--color-text); min-width: 0; }
+.bp-lg .topbar__menu { display: none; } /* beats .btn (components.css loads later) */
+.topbar__brand { display: flex; flex: 99 1 0; max-width: max-content; align-items: center; gap: var(--space-2); color: var(--color-text); min-width: 0; }
 .topbar__brand:hover { text-decoration: none; }
-.topbar__logo { height: 1.5rem; width: auto; }
+/* The logo is dark text on transparency: on the dark theme it sits on a light chip (no filter). */
+.topbar__logo, .guest__logo { padding: 0.1429rem 0.2857rem; border-radius: var(--radius-sm); background: var(--color-logo-chip); object-fit: contain; object-position: left center; }
+.topbar__logo { height: 1.7143rem; width: auto; min-width: 0; }
 .topbar__name { font-weight: var(--weight-bold); color: var(--color-accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .topbar__spacer { flex: 1; }
-.topbar__user { display: flex; flex-direction: column; line-height: 1.2; text-align: right; }
+.topbar__user { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; text-align: right; }
+.topbar__user > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .topbar__user-name { font-weight: var(--weight-medium); }
 .topbar__user-role { font-size: var(--text-xs); color: var(--color-text-muted); }
-.topbar__actions { display: flex; align-items: center; gap: var(--space-1); }
+.topbar__actions { display: flex; align-items: center; gap: var(--space-1); margin-left: auto; }
 
 /* LAN status dot (polls /api/health/ping) */
 .lan { display: flex; align-items: center; gap: var(--space-1); font-size: var(--text-xs); color: var(--color-text-muted); }
@@ -52,75 +62,73 @@
 .main { padding: var(--space-6); min-width: 0; background: var(--ambient); background-repeat: no-repeat; }
 .main > * + * { margin-top: var(--space-4); }
 
-@media (min-width: 1024px) {
-    .app { grid-template-rows: var(--size-topbar) auto minmax(0, 1fr); }
-    .topnav { position: sticky; top: var(--size-topbar); z-index: calc(var(--z-topbar) - 1); padding: 0 var(--space-4); }
-    .nav { flex-direction: row; flex-wrap: wrap; gap: var(--space-1); }
-    .nav > li { position: relative; }
-    .nav > li > .nav__link,
-    .nav__group-toggle {
-        display: flex;
-        align-items: center;
-        gap: var(--space-1);
-        height: var(--size-topnav);
-        padding: 0 var(--space-3);
-        border: 0;
-        border-bottom: 3px solid transparent;
-        border-radius: 0;
-        background: transparent;
-        color: var(--color-nav-text);
-        font: inherit;
-        white-space: nowrap;
-        cursor: pointer;
-    }
-    .nav > li > .nav__link.is-active,
-    .nav__group-toggle.is-active { border-bottom-color: var(--color-brand); background: var(--color-nav-active); font-weight: var(--weight-bold); }
-    .nav__group-toggle::after { content: ""; border: 4px solid transparent; border-top-color: currentColor; margin-top: 4px; }
-    .nav__sub {
-        display: none;
-        position: absolute;
-        top: 100%;
-        left: 0;
-        min-width: 15rem;
-        padding: var(--space-1);
-        background: var(--color-nav-bg);
-        border: 1px solid var(--color-nav-border);
-        border-radius: 0 0 var(--radius) var(--radius);
-        box-shadow: var(--shadow-modal);
-    }
-    .nav__sub .nav__link { border-left: 3px solid transparent; }
-    .nav__sub .nav__link.is-active { border-left-color: var(--color-brand); }
-    .nav__group-toggle[aria-expanded="true"] + .nav__sub { display: flex; }
+/* Top menu bar (rem width >= 1024px at 14px, see the breakpoint note at the top). */
+.bp-lg .app { grid-template-rows: auto auto minmax(0, 1fr); }
+.bp-lg .topnav { position: sticky; top: var(--size-topbar); z-index: calc(var(--z-topbar) - 1); padding: 0 var(--space-4); }
+.bp-lg .nav { flex-direction: row; flex-wrap: wrap; gap: var(--space-1); }
+.bp-lg .nav > li { position: relative; }
+.bp-lg .nav > li > .nav__link,
+.bp-lg .nav__group-toggle {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    height: var(--size-topnav);
+    padding: 0 var(--space-3);
+    border: 0;
+    border-bottom: 3px solid transparent;
+    border-radius: 0;
+    background: transparent;
+    color: var(--color-nav-text);
+    font: inherit;
+    white-space: nowrap;
+    cursor: pointer;
 }
+.bp-lg .nav > li > .nav__link.is-active,
+.bp-lg .nav__group-toggle.is-active { border-bottom-color: var(--color-brand); background: var(--color-nav-active); font-weight: var(--weight-bold); }
+.bp-lg .nav__group-toggle::after { content: ""; border: 0.2857em solid transparent; border-top-color: currentColor; margin-top: 0.2857em; }
+.bp-lg .nav__sub {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    min-width: 15rem;
+    padding: var(--space-1);
+    background: var(--color-nav-bg);
+    border: 1px solid var(--color-nav-border);
+    border-radius: 0 0 var(--radius) var(--radius);
+    box-shadow: var(--shadow-modal);
+}
+.bp-lg .nav > li:last-child > .nav__sub { left: auto; right: 0; } /* last group: open leftwards, never past the edge */
+.bp-lg .nav__sub .nav__link { border-left: 3px solid transparent; }
+.bp-lg .nav__sub .nav__link.is-active { border-left-color: var(--color-brand); }
+.bp-lg .nav__group-toggle[aria-expanded="true"] + .nav__sub { display: flex; }
 
-@media (max-width: 1023.98px) {
-    .topbar__menu { display: inline-flex; }
-    .topnav {
-        position: fixed;
-        top: 0;
-        bottom: 0;
-        left: 0;
-        z-index: var(--z-drawer);
-        width: min(var(--size-drawer), 85vw);
-        overflow-y: auto;
-        padding: var(--space-3) var(--space-2);
-        transform: translateX(-100%);
-        transition: transform var(--duration) ease-out;
-    }
-    .nav__group-toggle { display: none; }
-    .nav__link { border-left: 3px solid transparent; }
-    .nav__link.is-active { border-left-color: var(--color-brand); }
-    .is-drawer-open .topnav { transform: none; box-shadow: var(--shadow-modal); }
-    .is-drawer-open .backdrop { display: block; position: fixed; inset: 0; z-index: calc(var(--z-drawer) - 1); background: var(--color-overlay); }
-    .main { padding: var(--space-4); }
+/* Drawer below 1024px (rem). */
+.bp-lt-lg .topbar__menu { display: inline-flex; }
+.bp-lt-lg .topnav {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: var(--z-drawer);
+    width: min(var(--size-drawer), 85vw);
+    overflow-y: auto;
+    padding: var(--space-3) var(--space-2);
+    transform: translateX(-100%);
+    transition: transform var(--duration) ease-out;
 }
-@media (max-width: 767.98px) {
-    .topbar { padding: 0 var(--space-2); gap: var(--space-2); }
-    .topbar__user, .topbar__name, .lan__text, .hide-sm { display: none; }
-}
+.bp-lt-lg .nav__group-toggle { display: none; }
+.bp-lt-lg .nav__link { border-left: 3px solid transparent; }
+.bp-lt-lg .nav__link.is-active { border-left-color: var(--color-brand); }
+.bp-lt-lg .is-drawer-open .topnav { transform: none; box-shadow: var(--shadow-modal); }
+.bp-lt-lg .is-drawer-open .backdrop { display: block; position: fixed; inset: 0; z-index: calc(var(--z-drawer) - 1); background: var(--color-overlay); }
+.bp-lt-lg .main { padding: var(--space-4); }
+.bp-lt-md .topbar { padding: var(--space-1) var(--space-2); column-gap: var(--space-2); }
+.bp-lt-md .topbar__user, .bp-lt-md .topbar__name, .bp-lt-md .lan__text, .bp-lt-md .hide-sm { display: none; }
 
 /* Guest pages (login) */
 .guest { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: var(--space-4); background: var(--ambient); background-repeat: no-repeat; }
 .guest__box { width: 100%; max-width: 26rem; }
 .guest__brand { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); margin-bottom: var(--space-4); text-align: center; }
-.guest__logo { height: 2.2857rem; width: auto; }
+.guest__logo { height: 2.5714rem; width: auto; }
+

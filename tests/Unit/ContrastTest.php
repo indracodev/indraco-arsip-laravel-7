@@ -2,12 +2,13 @@
 
 namespace Tests\Unit;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
- * WCAG AA for every colour pair the UI uses (public/css/tokens.css):
+ * WCAG AA for every colour pair the UI uses (public/css/tokens.css), light and dark theme:
  * 4.5:1 for normal text, 3:1 for UI parts (control borders, focus ring, active indicator).
- * "ambient" = the darkest point of the --ambient glows over --color-bg (content area background).
+ * "ambient" = every glow centre of --ambient over --color-bg (content area background).
  * Prints nothing; the pair list doubles as documentation (see ui-design-system.md).
  */
 class ContrastTest extends TestCase
@@ -31,48 +32,75 @@ class ContrastTest extends TestCase
         ['brand', 'nav-bg', 3.0], ['brand', 'nav-active', 3.0], ['brand', 'surface', 3.0],
     ];
 
-    public function test_token_pairs_meet_wcag_aa(): void
+    /** @return array<string, array{0: string}> */
+    public static function themes(): array
     {
-        $tokens = self::tokens();
+        return ['light' => ['light'], 'dark' => ['dark']];
+    }
+
+    #[DataProvider('themes')]
+    public function test_token_pairs_meet_wcag_aa(string $theme): void
+    {
+        [$tokens, $ambient] = self::tokens($theme);
         foreach (self::PAIRS as [$fg, $bg, $min]) {
-            $ratio = self::ratio($tokens[$fg], $tokens[$bg]);
-            $this->assertGreaterThanOrEqual($min, $ratio, sprintf('--color-%s on --color-%s = %.2f:1 (needs %.1f:1)', $fg, $bg, $ratio, $min));
+            foreach ($bg === 'ambient' ? $ambient : [$tokens[$bg]] as $background) {
+                $ratio = self::ratio($tokens[$fg], $background);
+                $this->assertGreaterThanOrEqual($min, $ratio, sprintf('%s: --color-%s on %s (%s) = %.2f:1 (needs %.1f:1)', $theme, $fg, $bg, $background, $ratio, $min));
+            }
         }
     }
 
-    /** @return array<string, string> token name (without --color-) => #rrggbb, plus "ambient" */
-    public static function tokens(): array
+    /**
+     * Light = the first :root block; dark = light overridden by :root[data-theme="dark"].
+     *
+     * @return array{0: array<string, string>, 1: list<string>} tokens (name without --color- => #rrggbb) and the ambient glow points
+     */
+    public static function tokens(string $theme): array
     {
         $css = (string) file_get_contents(__DIR__.'/../../public/css/tokens.css');
-        preg_match_all('/--color-([a-z-]+):\s*(#[0-9a-f]{6})\s*;/i', $css, $m);
-        $tokens = array_combine($m[1], $m[2]);
-        $tokens['ambient'] = self::darkestAmbient($css, $tokens['bg']);
+        preg_match('/^:root\s*\{(.*?)^\}/ms', $css, $light);
+        $blocks = [$light[1] ?? ''];
+        if ($theme === 'dark') {
+            preg_match('/:root\[data-theme="dark"\]\s*\{(.*?)
+    \}/s', $css, $dark);
+            $blocks[] = $dark[1] ?? '';
+        }
+        $tokens = [];
+        $ambient = '';
+        foreach ($blocks as $block) {
+            preg_match_all('/--color-([a-z-]+):\s*(#[0-9a-f]{6})\s*;/i', $block, $m);
+            $tokens = array_merge($tokens, array_combine($m[1], $m[2]));
+            $ambient = preg_match('/--ambient:(.*?);/s', $block, $a) ? $a[1] : $ambient;
+        }
 
-        return $tokens;
+        return [$tokens, self::ambientPoints($ambient, $tokens['bg'])];
     }
 
     /**
-     * Each glow centre (its strongest rgba stop) blended over --color-bg; the darkest wins.
+     * Each glow centre (its strongest rgba stop) blended over --color-bg. Every point is checked,
+     * so the darkest (light theme) and the lightest (dark theme) point are both covered.
      * The glows do not overlap (see the --ambient comment), so they are not stacked.
+     *
+     * @return list<string>
      */
-    public static function darkestAmbient(string $css, string $bg): string
+    public static function ambientPoints(string $ambient, string $bg): array
     {
-        preg_match('/--ambient:(.*?);/s', $css, $ambient);
-        preg_match_all('/rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/', $ambient[1] ?? '', $stops, PREG_SET_ORDER);
+        preg_match_all('/rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/', $ambient, $stops, PREG_SET_ORDER);
         $base = array_map('hexdec', str_split(ltrim($bg, '#'), 2));
-        $darkest = $bg;
+        $points = [];
         foreach ($stops as $stop) {
             $alpha = (float) $stop[4];
+            if ($alpha <= 0) {
+                continue;
+            }
             $hex = '#';
             foreach ($base as $i => $channel) {
                 $hex .= sprintf('%02x', (int) round($channel * (1 - $alpha) + (int) $stop[$i + 1] * $alpha));
             }
-            if (self::luminance($hex) < self::luminance($darkest)) {
-                $darkest = $hex;
-            }
+            $points[] = $hex;
         }
 
-        return $darkest;
+        return $points;
     }
 
     public static function ratio(string $a, string $b): float

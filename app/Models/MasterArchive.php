@@ -7,6 +7,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * "Type berkas" per department. `department_id` is not fillable: set it explicitly in code.
+ *
+ * @property int $id
+ * @property int $department_id
+ * @property int|null $sub_department_id
+ * @property string|null $code
+ * @property string $name
+ * @property string|null $document_type
+ * @property int|null $retention_years
  */
 class MasterArchive extends Model
 {

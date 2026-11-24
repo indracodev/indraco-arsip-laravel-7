@@ -6,7 +6,5 @@
 .field__hint { font-size: var(--text-xs); color: var(--color-text-muted); }
 .field__error { font-size: var(--text-xs); color: var(--color-danger); }
 .form-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
-@media (min-width: 1024px) {
-    .form-grid--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .form-grid--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-}
+.bp-lg .form-grid--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.bp-lg .form-grid--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }

@@ -1,4 +1,4 @@
-{{-- Katalog Arsip (Laravel 7 archives/index + catalog_* partials): read-only mockup for owner approval. --}}
+{{-- Katalog Arsip (Laravel 7 archives/index + catalog_* partials). Draft actions: ArchiveSubmissionController. --}}
 @extends('layouts.app')
 
 @section('title', 'Katalog & Booking Arsip')
@@ -17,12 +17,10 @@
             <x-link-button :href="request()->fullUrl()" title="Refresh (F5)"><x-icon name="refresh" />Refresh (F5)</x-link-button>
             @if ($canSubmit)
                 <x-button aria-disabled="true" disabled title="Impor Massal Multi-Box & Butir Dokumen via Excel / CSV (dibangun di Fase 4)"><x-icon name="upload" />Impor Multi-Box (Excel)</x-button>
-                <x-link-button :href="route('archives.create')" variant="primary"><x-icon name="plus" />Buat Draft (F2)</x-link-button>
+                <x-link-button :href="route('archives.create')" variant="primary" title="Buat Draft Pengajuan Box Baru (F2)"><x-icon name="plus" />Buat Draft (F2)</x-link-button>
             @endif
         </x-slot:actions>
     </x-page-header>
-
-    <p class="notice notice--warning"><x-icon name="info" /><span><strong>Mockup Fase 3</strong> — daftar hanya-baca dengan data nyata untuk persetujuan tampilan. Tombol aksi belum aktif.</span></p>
 
     <x-filter-bar :action="route('archives.index')" :active="$hasFilters">
         <input type="hidden" name="sort" value="{{ request('sort', 'created_at') }}">
@@ -58,6 +56,23 @@
             <x-empty-state title="Tidak ada berkas arsip yang ditemukan berdasarkan kriteria pencarian ini." />
         </x-card>
     @else
+        {{-- Laravel 7 catalog_batch_ribbon: shown when rows are ticked; "Hapus Draft (n)" only for ticked drafts. --}}
+        <div class="stack" x-data="{ selected: 0, drafts: 0 }"
+            @change="selected = $el.querySelectorAll('.table__select input:checked').length; drafts = $el.querySelectorAll('input[data-draft]:checked').length">
+        <div class="notice" x-show="selected > 0" x-cloak>
+            <span>Terpilih: <strong x-text="selected"></strong> box berkas arsip.</span>
+            <span class="topbar__spacer"></span>
+            @if ($canSubmit)
+                <form method="POST" action="{{ route('archives.batch_delete_drafts') }}" id="batch-delete-drafts" x-show="drafts > 0">
+                    @csrf
+                    <x-button type="submit" variant="danger" size="sm" title="Hapus draft yang dipilih"
+                        ::data-confirm="'Apakah Anda yakin ingin menghapus ' + drafts + ' data draft arsip yang dipilih?' + (selected > drafts ? ' (' + (selected - drafts) + ' berkas non-draft akan diabaikan)' : '')"
+                        data-confirm-title="Hapus Draft Arsip Terpilih" data-confirm-type="danger" ::data-confirm-btn="'Ya, Hapus ' + drafts + ' Draft'">
+                        Hapus Draft (<span x-text="drafts"></span>)
+                    </x-button>
+                </form>
+            @endif
+        </div>
         <x-table>
             <thead>
                 <tr>
@@ -79,6 +94,7 @@
                 @endforeach
             </tbody>
         </x-table>
+        </div>
     @endif
 
     <x-pagination :paginator="$archives" noun="berkas arsip" />

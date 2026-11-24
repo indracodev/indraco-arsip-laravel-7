@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /**
- * Katalog Arsip mockup: department scoping (IDOR), Laravel 7 filters/labels, read-only form mockup.
+ * Katalog Arsip: department scoping (IDOR), Laravel 7 filters/labels. Box form: SubmissionTest.
  */
 class CatalogTest extends TestCase
 {
@@ -108,22 +108,5 @@ class CatalogTest extends TestCase
         @$dom->loadHTML($html);
         $this->assertSame(50, substr_count($html, 'aria-label="Pilih Box '), 'per_page is capped at 50');
         $this->assertLessThanOrEqual(1500, $dom->getElementsByTagName('*')->length);
-    }
-
-    public function test_box_form_mockup_has_the_laravel7_composition_and_no_submit_route(): void
-    {
-        $html = $this->actingAs($this->picHcs)->get('/archives/create')->assertOk()
-            ->assertSeeInOrder([
-                'PERUSAHAAN ENTITAS', 'DEPARTEMEN PEMILIK ARSIP', 'SUB-DEPARTEMEN', 'TGL. SERAH TERIMA FISIK KE GUDANG',
-                'NAMA / JUDUL BOX', 'SUB-DEPARTEMEN', 'KATEGORI DOKUMEN (Terkunci)', 'KONDISI FISIK WADAH BOX', 'PERIODE DOKUMEN (BULAN)',
-                'NAMA DOKUMEN / BERKAS ARSIP', 'PERIODE MULAI', 'PERIODE SELESAI', 'KETERANGAN',
-                '1. Scan / Berkas Formulir Pengajuan Fisik', '2. Foto Fisik Box / Lampiran Digital',
-                'Simpan Sementara (Draft)', 'Simpan &amp; Ajukan 1 Box Arsip',
-            ], false)
-            ->assertSee('value="Baik / Box Karton Standar TB 30g"', false)
-            ->assertSee('PT INDRACO GLOBAL INDONESIA')
-            ->getContent();
-
-        $this->assertMatchesRegularExpression('/<form data-mockup class="stack" novalidate>/', $html);
     }
 }

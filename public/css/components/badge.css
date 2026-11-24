@@ -18,3 +18,5 @@
 .badge--outline { background: transparent; border: 1px solid var(--color-border-strong); color: var(--color-text); }
 .tone--warning { color: var(--color-warning); }
 .tone--danger { color: var(--color-danger); font-weight: var(--weight-bold); }
+/* Phone + large font (rem width < 320px): a long status label wraps instead of overflowing. */
+.bp-lt-sm .badge { max-width: 100%; white-space: normal; }

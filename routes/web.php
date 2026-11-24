@@ -1,7 +1,8 @@
 <?php
 
 use App\Http\Controllers\ArchiveCatalogController;
-use App\Http\Controllers\ArchiveCreateMockupController;
+use App\Http\Controllers\ArchiveSimilarityController;
+use App\Http\Controllers\ArchiveSubmissionController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ChangePasswordController;
 use App\Http\Controllers\DashboardController;
@@ -20,12 +21,19 @@ Route::middleware('auth')->group(function () {
     Route::view('/profile/password', 'auth.change-password')->name('profile.password');
     Route::post('/profile/change-password', ChangePasswordController::class)->name('profile.change_password');
 
-    // Katalog Arsip: read-only list (Phase 3 mockup). Same URL/name as Laravel 7.
+    // ARSIP: catalog + box submission (Laravel 7 URLs and names). Laravel 7 refused PIC Gudang
+    // on create/store (admin passes every role check); edit/update/delete use ArchivePolicy.
     Route::get('/archives', [ArchiveCatalogController::class, 'index'])->name('archives.index');
-    // Mockup of the box submission form; Laravel 7 refused PIC Gudang (403).
-    Route::get('/archives/create', ArchiveCreateMockupController::class)->name('archives.create')->middleware('role:pic_dept');
+    Route::middleware('role:pic_dept')->group(function () {
+        Route::get('/archives/create', [ArchiveSubmissionController::class, 'create'])->name('archives.create');
+        Route::post('/archives', [ArchiveSubmissionController::class, 'store'])->name('archives.store');
+        Route::post('/archives/batch-delete-drafts', [ArchiveSubmissionController::class, 'batchDestroy'])->name('archives.batch_delete_drafts');
+        Route::post('/api/archives/check-similarity', ArchiveSimilarityController::class)->name('api.archives.check_similarity');
+    });
     Route::get('/archives/{archive}', [ArchiveCatalogController::class, 'show'])->name('archives.show')->whereNumber('archive');
-    Route::get('/archives/{archive}/edit', [ArchiveCatalogController::class, 'show'])->name('archives.edit')->whereNumber('archive');
+    Route::get('/archives/{archive}/edit', [ArchiveSubmissionController::class, 'edit'])->name('archives.edit')->whereNumber('archive');
+    Route::put('/archives/{archive}', [ArchiveSubmissionController::class, 'update'])->name('archives.update')->whereNumber('archive');
+    Route::delete('/archives/{archive}', [ArchiveSubmissionController::class, 'destroy'])->name('archives.destroy')->whereNumber('archive');
 
     // Modules not rebuilt yet: Laravel 7 URL, name and role check, "Sedang dibangun ulang" page.
     Route::get('/borrowings', PlaceholderController::class)->name('borrowings.index')->defaults('title', 'Penarikan Berkas');
