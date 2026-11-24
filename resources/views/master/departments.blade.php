@@ -64,6 +64,12 @@
                     <span>+ Sub-Dept</span>
                 </button>
 
+                <!-- Import Excel Data Master -->
+                <button @click="$dispatch('open-import-master')" type="button" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-mono font-bold text-xs rounded border border-emerald-700 shadow transition flex items-center gap-1.5 shrink-0 cursor-pointer" title="Import Departemen, Sub-Departemen & Type Berkas dari Excel">
+                    <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i>
+                    <span>Import Excel</span>
+                </button>
+
                 <!-- Add Department (F2) -->
                 <button @click="openAddModal()" type="button" class="px-3 py-1 bg-purple-600 hover:bg-purple-500 text-white font-mono font-bold text-xs rounded border border-purple-700 shadow transition flex items-center gap-1.5 shrink-0 cursor-pointer">
                     <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
@@ -380,6 +386,7 @@
     @include('master.departments.modals.subdepartment_modals')
     @include('master.departments.modals.archive_drilldown_modals')
     @include('master.departments.modals.manage_department_modal')
+    @include('master.departments.modals.import_master_modal')
 </div>
 @endsection
 

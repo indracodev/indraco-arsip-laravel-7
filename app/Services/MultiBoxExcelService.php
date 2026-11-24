@@ -660,55 +660,7 @@ class MultiBoxExcelService
      */
     protected function parseXlsx(string $filePath): array
     {
-        $zip = new ZipArchive();
-        if ($zip->open($filePath) !== true) return [];
-
-        $sharedStrings = [];
-        if ($ssContent = $zip->getFromName('xl/sharedStrings.xml')) {
-            $ssXml = @simplexml_load_string($ssContent);
-            if ($ssXml && isset($ssXml->si)) {
-                foreach ($ssXml->si as $si) {
-                    $val = (string)($si->t ?? '');
-                    if (!$val && isset($si->r)) {
-                        foreach ($si->r as $r) $val .= (string)$r->t;
-                    }
-                    $sharedStrings[] = $val;
-                }
-            }
-        }
-
-        $sheetContent = $zip->getFromName('xl/worksheets/sheet1.xml');
-        if (!$sheetContent) {
-            for ($i = 0; $i < $zip->numFiles; $i++) {
-                $entry = $zip->getNameIndex($i);
-                if (strpos($entry, 'xl/worksheets/') === 0 && substr($entry, -4) === '.xml') {
-                    $sheetContent = $zip->getFromName($entry);
-                    break;
-                }
-            }
-        }
-
-        $rows = [];
-        if ($sheetContent && ($sheetXml = @simplexml_load_string($sheetContent)) && isset($sheetXml->sheetData->row)) {
-            foreach ($sheetXml->sheetData->row as $row) {
-                $rowCells = [];
-                foreach ($row->c as $c) {
-                    $attr = $c->attributes();
-                    $colIdx = $this->colLetterToIndex(isset($attr['r']) ? (string)$attr['r'] : '');
-                    $t = isset($attr['t']) ? (string)$attr['t'] : '';
-                    $val = ($t === 's') ? ($sharedStrings[(int)$c->v] ?? '') : (($t === 'inlineStr') ? (string)$c->is->t : (string)$c->v);
-                    $rowCells[$colIdx] = trim($val);
-                }
-                if (!empty($rowCells)) {
-                    $maxCol = max(array_keys($rowCells));
-                    $denseRow = [];
-                    for ($c = 0; $c <= $maxCol; $c++) $denseRow[] = $rowCells[$c] ?? '';
-                    $rows[] = $denseRow;
-                }
-            }
-        }
-        $zip->close();
-        return $rows;
+        return array_values(SpreadsheetReader::xlsx($filePath) ?? []);
     }
 
     /**
@@ -716,16 +668,7 @@ class MultiBoxExcelService
      */
     protected function parseCsv(string $filePath): array
     {
-        if (!($handle = fopen($filePath, 'r'))) return [];
-        $firstLine = fgets($handle); rewind($handle);
-        $delimiter = (substr_count($firstLine, ';') > substr_count($firstLine, ',')) ? ';' : ((substr_count($firstLine, "\t") > substr_count($firstLine, ',')) ? "\t" : ',');
-        $rows = []; $isFirst = true;
-        while (($data = fgetcsv($handle, 10000, $delimiter)) !== false) {
-            if ($isFirst && !empty($data)) { $data[0] = preg_replace('/^\xEF\xBB\xBF/', '', $data[0]); $isFirst = false; }
-            $rows[] = array_map('trim', $data);
-        }
-        fclose($handle);
-        return $rows;
+        return array_values(SpreadsheetReader::csv($filePath));
     }
 
     /**

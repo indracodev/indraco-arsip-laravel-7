@@ -153,6 +153,9 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:admin,pic_gudang')->prefix('master')->name('master.')->group(function () {
         Route::get('/departments', 'DepartmentController@index')->name('departments')->middleware('role:admin');
         Route::post('/departments', 'DepartmentController@store')->name('departments.store')->middleware('role:admin');
+        Route::get('/departments/import/template', 'MasterDataImportController@template')->name('departments.import.template')->middleware('role:admin');
+        Route::post('/departments/import/preview', 'MasterDataImportController@preview')->name('departments.import.preview')->middleware('role:admin');
+        Route::post('/departments/import/commit', 'MasterDataImportController@commit')->name('departments.import.commit')->middleware('role:admin');
         Route::put('/departments/{department}', 'DepartmentController@update')->name('departments.update')->middleware('role:admin');
         Route::delete('/departments/{department}', 'DepartmentController@destroy')->name('departments.destroy')->middleware('role:admin');
         Route::post('/departments/{department}/toggle-active', 'DepartmentController@toggleActive')->name('departments.toggle_active')->middleware('role:admin');
