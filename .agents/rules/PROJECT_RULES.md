@@ -56,6 +56,7 @@ Setiap fitur baru **DILARANG** menaikkan latency endpoint yang sudah ada atau me
 PHP portable di `evironment/php-8.4.*-nts-Win32-vs17-x64/` (perhatikan typo `evironment` — path baku project). Build **NTS** karena dijalankan sebagai php-cgi (FastCGI). DLL VC++ (`vcruntime140.dll`, `vcruntime140_1.dll`, `msvcp140.dll`) ikut di folder yang sama.
 
 ### 2.1. `php.ini` wajib
+File yang diedit: **`evironment/php-dms.ini`** (digabung dengan `php.ini-production` setiap start). Isi minimum:
 
 ```ini
 [PHP]
@@ -71,7 +72,7 @@ date.timezone = Asia/Jakarta
 [opcache]
 zend_extension = opcache
 opcache.enable = 1
-opcache.enable_cli = 1
+opcache.enable_cli = 0          ; worker web tetap ber-OPcache; CLI dimatikan (cache config basi saat optimize)
 opcache.memory_consumption = 128
 opcache.interned_strings_buffer = 16
 opcache.max_accelerated_files = 10000
@@ -81,13 +82,12 @@ opcache.save_comments = 1
 ; Windows: hindari fatal "Opcode handlers are unusable due to ASLR"
 opcache.file_cache = "${TEMP}"
 opcache.file_cache_fallback = 1
-; JIT 1255 (tracing) bila stabil dengan php-cgi NTS; hasil uji dicatat di context/decisions.md
-opcache.jit = 1255
-opcache.jit_buffer_size = 64M
+; JIT dimatikan: tidak mempercepat Laravel di 1–2 core (lihat context/decisions.md)
+opcache.jit = disable
 ```
 
 ### 2.2. Aturan developer
-- OPcache wajib aktif di php-cgi (web) dan CLI (artisan).
+- OPcache wajib aktif di php-cgi (web). CLI tanpa OPcache.
 - Setelah update kode (`UPDATE-AND-RESTART.bat`), pool php-cgi di-restart agar OPcache memuat kode baru.
 - **DILARANG** `eval()`, variable variable (`$$var`), atau regex rekursif tak terbatas.
 

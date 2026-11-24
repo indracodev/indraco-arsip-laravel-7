@@ -5,7 +5,7 @@ IP server saat ini: **`192.168.2.180`** (tetap, di-set pemilik). Jika pemilik me
 ## Server (Laravel 13, folder ini)
 | Tempat | Isi | Catatan |
 |---|---|---|
-| Konfigurasi IP server (dibuat Fase 1, mis. `SERVER_LAN_IP` di file konfigurasi launcher / `.env`) | IP baru | TODO Fase 1: tulis path pastinya di sini |
+| `SERVER_LAN_IP` di `.env` (default di `.env.example`) | IP baru | dibaca `evironment/dms-server.cmd` → `DMS_TLS_SITES` di Caddyfile |
 | Sertifikat HTTPS | otomatis dibuat ulang saat `START-DMS-INDRACO.bat` dijalankan (SAN memuat IP baru) | Root CA di `storage/caddy/` **tidak berubah**, jadi klien **tidak perlu** memasang ulang sertifikat |
 | `APP_URL` di `.env` | `https://<ip-baru>:8443` jika dipakai | URL di halaman mengikuti request, jadi ini hanya untuk link di luar request (mis. log) |
 | `.agents/context/project-overview.md`, file ini | IP baru | dokumentasi |
