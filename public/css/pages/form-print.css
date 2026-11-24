@@ -1,0 +1,70 @@
+/* Printed "Form Pengajuan" (archives/form-print.blade.php), Laravel 7 form-pengajuan-modal.
+   The paper (.fp) uses physical units (mm/pt, Laravel 7 px x 0.75 = pt) and paper tokens, not rem:
+   the sheet must print at the same size as Laravel 7 whatever font size the user chose.
+   The page is always light (no prefs.js); only the paper is printed. */
+.print-page { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--space-4); padding: var(--space-4); }
+.print-panel { flex: 1 1 18rem; max-width: 26rem; }
+.print-panel .control { width: 100%; }
+
+.fp {
+    flex: 1 1 36rem;
+    max-width: 210mm;
+    padding: 6mm 10mm;
+    background: var(--color-paper);
+    color: var(--color-ink);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-1);
+    font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+    font-size: 9.5pt;
+    line-height: 1.3;
+}
+.fp * { box-sizing: border-box; font-family: inherit; }
+.fp [contenteditable]:focus { outline: 1px dashed var(--color-focus); }
+.fp__head { position: relative; min-height: 21pt; margin-bottom: 7.5pt; }
+.fp__logo { position: absolute; left: 0; top: 0; height: 19.5pt; width: auto; }
+.fp__title { text-align: center; padding: 22.5pt 0 3pt; }
+.fp__title h1 { margin: 0; font-size: 13pt; font-weight: bold; letter-spacing: 0.225pt; }
+.fp__table { width: 100%; table-layout: fixed; border-collapse: collapse; margin-bottom: 11.25pt; }
+.fp__table td, .fp__table th { border: 1px solid var(--color-ink); font-size: 9pt; overflow: hidden; overflow-wrap: anywhere; }
+.fp__meta tr { height: 18pt; }
+.fp__w28 { width: 28%; }
+.fp__w26 { width: 26%; }
+.fp__w24 { width: 24%; }
+.fp__w22 { width: 22%; }
+.fp__meta td { padding: 2.25pt 4.5pt; vertical-align: middle; }
+.fp__meta .fp__label { white-space: nowrap; text-overflow: ellipsis; }
+.fp__mono { font-family: monospace; }
+.fp__types { display: flex; flex-wrap: wrap; align-items: center; gap: 15pt; margin-bottom: 11.25pt; font-size: 9pt; }
+.fp__type { display: inline-flex; align-items: center; gap: 4.5pt; }
+.fp__check { display: inline-block; width: 10.5pt; height: 10.5pt; border: 1px solid var(--color-ink); line-height: 9pt; text-align: center; font-weight: bold; }
+.fp__boxes th { padding: 2.25pt 3pt; text-align: center; font-weight: bold; line-height: 1.2; background: var(--color-paper-head); }
+.fp__boxes tr { height: 16.5pt; }
+.fp__boxes td { padding: 1.5pt 3pt; text-align: center; }
+.fp__boxes .fp__left { text-align: left; padding: 1.5pt 4.5pt; }
+.fp__boxes .fp__nowrap { white-space: nowrap; }
+.fp__col-no { width: 25.5pt; }
+.fp__col-sub { width: 63.75pt; }
+.fp__col-masa { width: 71.25pt; }
+.fp__col-wide { width: 78.75pt; }
+.fp__note { margin-bottom: 6pt; font-size: 9pt; }
+.fp__line { min-height: 12pt; line-height: 12pt; border-bottom: 1px dotted var(--color-ink); overflow-wrap: anywhere; }
+.fp__signs { margin: 3pt 0 11.25pt; }
+.fp__signs td { width: 33.33%; height: 45pt; padding: 1.5pt 4.5pt; vertical-align: top; }
+.fp__sign-label { font-size: 8.5pt; }
+.fp__sign-space { height: 21pt; }
+.fp__sign-name { font-size: 8.5pt; text-align: center; line-height: 1.15; }
+.fp__sign-name span { display: inline-block; min-width: 48.75pt; padding: 0 3pt; border-bottom: 1px solid var(--color-ink); }
+.fp__sign-date { margin-top: 1.5pt; font-size: 8pt; }
+.fp__guide { margin-top: 3pt; font-size: 8pt; line-height: 1.2; }
+.fp__guide ol { margin: 0; padding-left: 13.5pt; list-style: decimal; }
+.fp__guide ul { margin: 0; padding-left: 13.5pt; list-style: none; }
+
+@media print {
+    body { background: var(--color-paper); }
+    .no-print { display: none; }
+    .print-page { display: block; padding: 0; }
+    .fp { max-width: none; padding: 0; border: 0; box-shadow: none; }
+    .fp th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .fp table, .fp tr { break-inside: avoid; }
+    @page { size: A4 portrait; margin: 5mm 8mm; }
+}

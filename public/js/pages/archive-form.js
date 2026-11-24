@@ -9,7 +9,8 @@
     function nextId() { uid += 1; return uid; }
 
     function copyItem(from) {
-        return { id: nextId(), document_name: from.document_name || '', period_start: from.period_start || '', period_end: from.period_end || '', notes: from.notes || '' };
+        /* custom: admin row typing a name outside Master Berkas; picked: last chosen name (kept when switching to typing). */
+        return { id: nextId(), document_name: from.document_name || '', period_start: from.period_start || '', period_end: from.period_end || '', notes: from.notes || '', custom: false, picked: from.document_name || '' };
     }
 
     window.dmsArchiveForm = window.dmsArchiveForm || {};
@@ -164,7 +165,15 @@
                 },
                 masterLabel: function (m) { return (m.code ? m.code + ' - ' : '') + m.name + (m.document_type ? ' [' + m.document_type + ']' : ''); },
                 isCustomName: function (box, it) { return !!it.document_name && !this.masterFor(box).some(function (m) { return m.name === it.document_name; }); },
-                onMasterDocChange: function (box, it) {
+                onMasterDocChange: function (box, it, event) {
+                    if (it.document_name === '__custom__') {
+                        /* Admin "type a name" option (Laravel 7 prompt()): the row becomes a text input. */
+                        it.document_name = it.picked;
+                        it.custom = true;
+                        this.$nextTick(function () { var input = event.target.parentNode.querySelector('input[type="text"]'); if (input) { input.focus(); } });
+                        return;
+                    }
+                    it.picked = it.document_name;
                     var match = this.masterFor(box).find(function (m) { return m.name === it.document_name; });
                     if (match && match.document_type) { box.document_type = match.document_type; }
                 },

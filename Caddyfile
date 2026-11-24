@@ -48,7 +48,7 @@
 		X-Frame-Options "SAMEORIGIN"
 		Referrer-Policy "strict-origin-when-cross-origin"
 		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
-		Content-Security-Policy-Report-Only "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
+		Content-Security-Policy-Report-Only "default-src 'self'; img-src 'self' data: blob:; frame-src 'self' blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
 	}
 
 	# Static files linked with ?v=<content hash> (App\Support\Asset): cache for a year.
@@ -75,6 +75,11 @@
 		respond `{"status":"ok","server_time":{time.now.unix_ms},"server_ip":"{http.request.local.host}","client_ip":"{http.request.remote.host}","app":"DMS PT INDRACO"}` 200
 	}
 
+	# Laravel 7 served uploads at /storage/* (public/storage link, no login: findings #2).
+	# Never again, even if someone recreates public/storage: files go through PHP above.
+	@storage path /storage /storage/*
+	respond @storage 404
+
 	# Public certificate of the local CA (never the key), for clients to trust HTTPS.
 	handle /dms-root-ca.crt {
 		root * storage/caddy/pki/authorities/local
@@ -97,14 +102,19 @@
 		read_timeout 150s
 		write_timeout 150s
 
-		# Laravel authorises a download, then answers with
-		# "X-Accel-Redirect: /<path under storage/app/private>"; Caddy streams the
-		# file so the PHP worker is free immediately. Not reachable from outside.
+		# Files (App\Http\Controllers\ArchiveFileController): Laravel checks login + access,
+		# then answers with "X-Accel-Redirect: /private|/public|/legacy-public/<folder>/<file>"
+		# (a path under storage/app, built only from the upload-folder allow-list) and Caddy
+		# streams the file, so the PHP worker is free at once. Only an upstream response header
+		# triggers this; no URL maps to storage/ (site root is public/).
 		@accel header X-Accel-Redirect *
 		handle_response @accel {
-			root * storage/app/private
+			root * storage/app
 			rewrite * {rp.header.X-Accel-Redirect}
 			method * GET
+			copy_response_headers {
+				include Content-Type Content-Disposition Cache-Control X-Content-Type-Options
+			}
 			file_server
 		}
 	}

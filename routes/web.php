@@ -1,11 +1,14 @@
 <?php
 
 use App\Http\Controllers\ArchiveCatalogController;
+use App\Http\Controllers\ArchiveFileController;
+use App\Http\Controllers\ArchiveFormPrintController;
 use App\Http\Controllers\ArchiveSimilarityController;
 use App\Http\Controllers\ArchiveSubmissionController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ChangePasswordController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\FontSizeController;
 use App\Http\Controllers\PlaceholderController;
 use Illuminate\Support\Facades\Route;
 
@@ -20,6 +23,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard', DashboardController::class);
     Route::view('/profile/password', 'auth.change-password')->name('profile.password');
     Route::post('/profile/change-password', ChangePasswordController::class)->name('profile.change_password');
+    Route::post('/profile/font-size', FontSizeController::class)->name('profile.font_size');
 
     // ARSIP: catalog + box submission (Laravel 7 URLs and names). Laravel 7 refused PIC Gudang
     // on create/store (admin passes every role check); edit/update/delete use ArchivePolicy.
@@ -34,6 +38,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/archives/{archive}/edit', [ArchiveSubmissionController::class, 'edit'])->name('archives.edit')->whereNumber('archive');
     Route::put('/archives/{archive}', [ArchiveSubmissionController::class, 'update'])->name('archives.update')->whereNumber('archive');
     Route::delete('/archives/{archive}', [ArchiveSubmissionController::class, 'destroy'])->name('archives.destroy')->whereNumber('archive');
+    Route::get('/archives/{archive}/form-pengajuan', ArchiveFormPrintController::class)->name('archives.form_print')->whereNumber('archive');
+
+    // FILE: preview (inline) / download (attachment) of a record's file column; never a raw path.
+    // Replaces Laravel 7 files/stream/{path} + files/preview-stream (no login: findings #2).
+    $fileRoute = ['source' => implode('|', array_keys(ArchiveFileController::SOURCES)), 'id' => '[0-9]+', 'field' => '[a-z_]+'];
+    Route::get('/files/{source}/{id}/{field}', ArchiveFileController::class)->name('files.preview')->where($fileRoute);
+    Route::get('/files/{source}/{id}/{field}/download', ArchiveFileController::class)->name('files.download')->where($fileRoute);
 
     // Modules not rebuilt yet: Laravel 7 URL, name and role check, "Sedang dibangun ulang" page.
     Route::get('/borrowings', PlaceholderController::class)->name('borrowings.index')->defaults('title', 'Penarikan Berkas');

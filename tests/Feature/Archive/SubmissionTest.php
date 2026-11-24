@@ -40,6 +40,40 @@ class SubmissionTest extends TestCase
             ->assertDontSee('MOCKUP');
     }
 
+    /**
+     * The action comes from the clicked button's own name=value (public/js/app.js copies it into a
+     * hidden input before locking the buttons); a request without it is a submission.
+     */
+    public function test_submit_action_comes_from_the_clicked_button(): void
+    {
+        $this->actingAs($this->picHcs)->get('/archives/create')
+            ->assertSee('name="submit_action" value="draft"', false)
+            ->assertSee('name="submit_action" value="submit"', false)
+            ->assertDontSee('type="hidden" name="submit_action"', false);
+        $this->assertStringContainsString('copy.name = submitter.name;', (string) file_get_contents(public_path('js/app.js')));
+
+        $payload = $this->submission(['scan_input_form' => null]);
+        unset($payload['submit_action']);
+        $this->actingAs($this->picHcs)->post('/archives', $payload)->assertSessionHasErrors('scan_input_form');
+        $this->actingAs($this->picHcs)->post('/archives', ['submit_action' => 'draft'] + $payload)->assertRedirect('/archives')->assertSessionHasNoErrors();
+        $this->assertSame(['draft'], DB::table('archives')->pluck('status')->all());
+    }
+
+    /** Laravel 7 Super Admin typed a name outside Master Berkas (prompt()); same server rule: any text up to 255. */
+    public function test_admin_may_type_a_document_name_outside_master_berkas(): void
+    {
+        $this->actingAs($this->admin)->get('/archives/create')->assertSee('Ketik nama berkas khusus (Super Admin)');
+        $this->actingAs($this->picHcs)->get('/archives/create')->assertDontSee('Ketik nama berkas khusus (Super Admin)');
+
+        $payload = $this->submission(['department_id' => $this->hcs]);
+        $payload['boxes'][0]['items'][0]['document_name'] = 'Berkas Khusus Audit 2026';
+        $this->actingAs($this->admin)->post('/archives', $payload)->assertRedirect('/archives')->assertSessionHasNoErrors();
+        $this->assertTrue(DB::table('archive_items')->where('document_name', 'Berkas Khusus Audit 2026')->exists());
+
+        $payload['boxes'][0]['items'][0]['document_name'] = str_repeat('x', 256);
+        $this->actingAs($this->admin)->post('/archives', $payload)->assertSessionHasErrors('boxes.0.items.0.document_name');
+    }
+
     public function test_draft_is_one_row_with_every_box_as_json_and_own_department(): void
     {
         $response = $this->actingAs($this->picHcs)->post('/archives', $this->submission([

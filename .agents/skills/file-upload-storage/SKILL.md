@@ -5,27 +5,31 @@ description: Upload dan penyajian file scan/lampiran DMS Indraco — folder lama
 
 # File upload & streaming
 
-## Fakta Laravel 7
-- Disk `public` (`storage/app/public`), path relatif tersimpan di kolom DB:
+Catatan modul lengkap: `context/modules/file.md`.
 
-| Folder | Kolom / asal |
+## Fakta Laravel 7 (dicek di kode + DB, putaran A2)
+- Disk `public` (`storage/app/public`) + folder nyata `public/storage` (15 MB, B11); path relatif polos di DB:
+
+| Folder | Kolom |
 |---|---|
-| `archive_scan_inputs` | `archives.scan_input_form` |
-| `archive_files` | `archives.file_path` |
+| `archive_scans` (form L13 juga) | `archives.scan_input_form` |
+| `archive_scan_inputs` | `archives.scan_input_form` (jalur lama) |
+| `archive_digital`, `archive_files` | `archives.file_path` |
 | `archive_approvals` | `archives.scan_approval_input` |
-| `borrowing_approvals` | `borrowing_logs.scan_approval_borrow` |
-| `destruction_approvals` | `destruction_logs.scan_approval_destruction` |
+| `archive_extensions` | `archives.scan_extension_form`, `archive_extension_logs.scan_extension_form` |
+| `borrowing_approvals` | `borrowing_logs.approval_file`, `scan_approval_borrow` |
+| `destruction_approvals` | `destruction_logs.approval_file`, `scan_approval_destruction` |
 | `bap_certificates` | `destruction_logs.certificate_file` |
 
-  (Sumber: `ArchiveStatusController.php` baris ~67–329. Kolom lain seperti `scan_extension_form`: **TODO Fase 0**.)
-- Disajikan lewat `FileStreamController` (`files/stream/{path}`, `files/preview-stream`) dengan cek `..` dan `sanitizeFilePath()`; ada juga `public/storage` symlink sehingga file **bisa diakses langsung tanpa login** — temuan keamanan (catat di findings).
+- Batas upload L7: `mimes:pdf,jpg,jpeg,png|max:500` (500 KB).
+- `FileStreamController` (`files/stream/{path}`, `files/preview-stream`) tanpa login + fallback PDF lain (temuan #2, #3) — **tidak dibawa**.
 
 ## Aturan L13
-- Path lama di DB tetap valid: file tetap di `storage/app/<folder>` dengan path relatif yang sama.
-- **Tidak** ada akses langsung lewat `public/storage` untuk file arsip; semua lewat controller yang memeriksa login + Policy (departemen pemilik / gudang / admin).
-- Satu service (`App\Services\FileStorage`): whitelist ekstensi (pdf, jpg, jpeg, png), cek MIME dari isi, batas ukuran (samakan dengan L7 — **TODO Fase 0**), nama file acak dari server, simpan **sebelum** transaksi DB.
-- Streaming: `response()->file()`/`download()` langsung dari disk (Caddy tidak memblok worker lain karena pool), header `Content-Disposition` sesuai, `X-Content-Type-Options: nosniff`.
-- Hapus file hanya setelah transaksi DB sukses; file yatim dibersihkan jika transaksi gagal.
+- Satu service `App\Services\FileStorage`: `store()` (whitelist pdf/jpg/jpeg/png, MIME dari isi, 500 KB, nama acak, disk privat `storage/app/private`, simpan **sebelum** transaksi DB; hapus hanya setelah commit) dan `locate()` (allow-list folder `FOLDERS`, nama polos, disk `local` → `public` → `legacy_public`, realpath tetap di root).
+- Penyajian hanya lewat `ArchiveFileController`: `files.preview` / `files.download` = `/files/{source}/{id}/{field}[/download]`, login + `ArchivePolicy@view` arsip induk; tidak ada path di URL; file hilang = 404 tanpa fallback.
+- Caddy menyajikan file lewat `X-Accel-Redirect` (`filesystems.x_accel`, root `storage/app`); `/storage/*` selalu 404; tidak ada `public/storage` (`links = []`, launcher melepas link lama).
+- Upload modul baru: folder harus ada di `FileStorage::FOLDERS`, link selalu lewat route `files.*` (tambahkan kolom ke `ArchiveFileController::SOURCES`).
 
 ## Verifikasi
-- Tes: upload `.php`, ekstensi ganda, file palsu → ditolak; akses file departemen lain → 403; `../` → 404/403; file lama dengan path dari DB tetap terbuka.
+- Tes: `tests/Feature/File/ArchiveFileTest.php` (403 dept lain, tamu → login, path DB berbahaya → 404, urutan disk, header X-Accel) + `tests/Feature/Archive/SubmissionUploadTest.php` (upload ditolak).
+- Uji langsung: `/storage/...`, `/private/...`, backup `.sqlite` → 404; file lama dari `storage/app/public` & `legacy-public` → 200 lewat Caddy (ada `Etag`/`Accept-Ranges`, tanpa `X-Accel-Redirect` di respons).

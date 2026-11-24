@@ -1,6 +1,8 @@
 /* Per-browser display preferences, applied before first paint (loaded in <head>, not deferred):
-   - font size: localStorage "app_font_size" (same key as Laravel 7), 10-26px; default =
-     <html data-font-size> (app_settings.app_font_size);
+   - font size: the account's value <html data-user-font-size> (users.font_size, logged-in pages)
+     wins and seeds localStorage "app_font_size" (same key as Laravel 7, 10-26px), so the login
+     page on this PC uses it too; otherwise localStorage; default = <html data-font-size>
+     (app_settings.app_font_size);
    - theme: localStorage "dms_theme" = light | dark | system (default: follows the OS setting,
      prefers-color-scheme) -> <html data-theme="light|dark">;
    - breakpoints in rem: the viewport width at 14px-equivalent (width x 14 / font size) sets
@@ -12,8 +14,10 @@
     var root = document.documentElement;
     var system = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
     var stored = {};
+    var account = root.getAttribute('data-user-font-size');
     try {
-        stored.font = localStorage.getItem('app_font_size');
+        if (account) { localStorage.setItem('app_font_size', account + 'px'); }
+        stored.font = account || localStorage.getItem('app_font_size');
         stored.theme = localStorage.getItem('dms_theme') || localStorage.getItem('theme'); /* L7 key: light | dark */
         localStorage.removeItem('dms_layout');
     } catch (e) { /* storage blocked: keep the defaults */ }

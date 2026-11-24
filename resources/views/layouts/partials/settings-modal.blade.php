@@ -1,7 +1,8 @@
 {{--
-    Display settings, per browser (Alpine "displaySettings", public/js/app.js):
-    - font size (ASK 13): localStorage "app_font_size" (same key as Laravel 7; L7 kept it globally
-      in app_settings) until a users column exists;
+    Display settings (Alpine "displaySettings", public/js/app.js):
+    - font size (ASK 13): per account (users.font_size, POST profile.font_size on "Simpan") and
+      per browser (localStorage "app_font_size", same key as Laravel 7; L7 kept it globally in
+      app_settings);
     - theme: "dms_theme" light | dark | system (default), public/js/prefs.js;
     - notification sound: "dms_sound" (default on, like L7), public/js/sound.js.
     Logo / LAN alert settings (admin) come with the SISTEM module.

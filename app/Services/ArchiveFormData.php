@@ -51,6 +51,16 @@ final class ArchiveFormData
     }
 
     /**
+     * The saved boxes of an archive in form shape (print "Form Pengajuan").
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function boxesOf(Archive $archive): array
+    {
+        return array_map(fn ($box): array => $this->formBox((array) $box), $this->archiveBoxes($archive));
+    }
+
+    /**
      * A multi-box draft keeps its boxes as JSON; any other archive (a single box, or a draft
      * returned by the warehouse) is one box with its document lines (Laravel 7 edit).
      *

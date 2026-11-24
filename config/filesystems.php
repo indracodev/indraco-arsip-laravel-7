@@ -47,6 +47,16 @@ return [
             'report' => false,
         ],
 
+        // Laravel 7 kept a real folder public/storage (findings B11). At cutover its content is
+        // copied here, outside public/, and served only through App\Http\Controllers\ArchiveFileController.
+        'legacy_public' => [
+            'driver' => 'local',
+            'root' => storage_path('app/legacy-public'),
+            'serve' => false,
+            'throw' => false,
+            'report' => false,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),
@@ -73,8 +83,12 @@ return [
     |
     */
 
-    'links' => [
-        public_path('storage') => storage_path('app/public'),
-    ],
+    // No public/storage link: uploads are never served without login (findings #2). Every
+    // file goes through ArchiveFileController (auth + ArchivePolicy) and Caddy X-Accel-Redirect.
+    'links' => [],
+
+    // true: answer file requests with X-Accel-Redirect and let Caddy stream the file (the
+    // php-cgi worker is free at once). false: PHP streams it (`php artisan serve`, no Caddy).
+    'x_accel' => (bool) env('DMS_FILE_X_ACCEL', true),
 
 ];

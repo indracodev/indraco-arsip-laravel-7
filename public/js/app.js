@@ -1,15 +1,22 @@
 /* Shell behaviour shared by every page (deferred, before Alpine). */
 (function () {
-    /* Anti double-submit: disable the submit buttons and show a spinner on the one used. */
+    /* Anti double-submit: disable the submit buttons and show a spinner on the one used.
+       A disabled button is left out of the submitted data, so the clicked button's name=value
+       (e.g. submit_action=draft) is copied into a hidden input first. */
     document.addEventListener('submit', function (e) {
         var form = e.target;
-        if (form.hasAttribute('data-mockup')) {
-            e.preventDefault();
-            window.showAlertModal('Ini mockup untuk persetujuan tampilan: formulir belum aktif dan tidak menyimpan apa pun.', 'Mockup', 'info');
-            return;
-        }
         if (e.defaultPrevented || form.hasAttribute('data-no-lock')) { return; }
         var submitter = e.submitter || form.querySelector('[type="submit"]');
+        var copy = form.querySelector('input[data-submitter-copy]');
+        if (copy) { copy.remove(); }
+        if (submitter && submitter.name) {
+            copy = document.createElement('input');
+            copy.type = 'hidden';
+            copy.name = submitter.name;
+            copy.value = submitter.value;
+            copy.setAttribute('data-submitter-copy', '');
+            form.appendChild(copy);
+        }
         form.querySelectorAll('[type="submit"]').forEach(function (button) { button.disabled = true; });
         if (submitter) { submitter.classList.add('is-loading'); }
     });
@@ -124,7 +131,22 @@
                         localStorage.setItem('dms_theme', this.theme);
                         localStorage.setItem('dms_sound', this.sound ? '1' : '0');
                     } catch (e) { /* storage blocked */ }
+                    this.saveFontToAccount(this.size);
                     window.dmsModal.close('settings-modal');
+                },
+                /* Font size also goes to the account (users.font_size, other PCs); the browser copy
+                   above keeps working if the request fails. */
+                saveFontToAccount: function (size) {
+                    var token = document.querySelector('meta[name="csrf-token"]');
+                    if (!token || !window.fetch) { return; }
+                    fetch('/profile/font-size', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': token.content },
+                        body: JSON.stringify({ font_size: size })
+                    }).then(function (res) {
+                        if (res.ok) { document.documentElement.setAttribute('data-user-font-size', size); return; }
+                        window.showAlertModal('Ukuran font tersimpan di browser ini, tetapi gagal disimpan ke akun. Coba simpan lagi.', 'Pengaturan Tampilan');
+                    }).catch(function () { /* offline: kept in this browser */ });
                 },
                 revert: function () {
                     this.apply(this.saved.size);

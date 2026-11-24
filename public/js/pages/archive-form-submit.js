@@ -110,7 +110,6 @@
                 if (!found) {
                     submitting = true;
                     store('remove');
-                    event.currentTarget.form.elements.submit_action.value = event.currentTarget.value;
                     return;
                 }
                 event.preventDefault();

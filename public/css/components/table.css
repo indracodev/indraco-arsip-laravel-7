@@ -9,6 +9,8 @@
 .table__nowrap { white-space: nowrap; }
 .table__actions { text-align: right; white-space: nowrap; }
 .table__actions > * + * { margin-left: var(--space-1); }
+/* A row action wrapped in its own <form> (Hapus) stays on the same line as the links. */
+.table__actions form { display: inline-block; }
 .table__row--warning { box-shadow: inset 3px 0 0 var(--color-warning); }
 .table__row--danger { box-shadow: inset 3px 0 0 var(--color-danger); }
 .table__row--info { box-shadow: inset 3px 0 0 var(--color-info); }

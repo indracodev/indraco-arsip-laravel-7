@@ -12,7 +12,7 @@ Kontrak: `.agents/rules/50-frontend-blade.md`. Tanpa Tailwind/Vite/Node/CDN. Tar
 | `public/js/prefs.js` | preferensi per browser sebelum render (head, tidak defer): ukuran font (`app_font_size`), tema (`dms_theme` → `data-theme`), kelas breakpoint rem `bp-*`; `window.dmsPrefs`; menghapus kunci lama `dms_layout` |
 | `public/js/sound.js` | `window.dmsSound.play()` chime notifikasi (WebAudio, tanpa file), pengaturan `dms_sound` (hanya layout app, sebelum Alpine) |
 | `public/js/modal.js` | modal + konfirmasi (`showConfirmModal`, `showAlertModal`, `data-confirm*`) |
-| `public/js/app.js` | anti double-submit, form mockup, toast, toggle password, shortcut, dropdown menu atas (klik/Enter/Spasi, Esc), registrasi SW, `Alpine.data('shell'|'displaySettings')` |
+| `public/js/app.js` | anti double-submit (menyalin name/value tombol yang diklik ke input hidden `data-submitter-copy` sebelum men-disable tombol), simpan ukuran font ke akun, toast, toggle password, shortcut, dropdown menu atas (klik/Enter/Spasi, Esc), registrasi SW, `Alpine.data('shell'|'displaySettings')` |
 | `public/js/lan.js` | titik status LAN (hanya layout app) |
 | `public/js/vendor/alpine.min.js` | Alpine.js **3.17.5** (`dist/cdn.min.js` dari tarball npm; sha1 `85027aff…1687` & integrity sha512 cocok dengan registry; terbit 2026-10-20) |
 
@@ -90,11 +90,13 @@ Dipasang `prefs.js` sebelum render (Terang / Gelap / Ikuti Sistem). Hanya token 
 
 ## Pola halaman
 - **Daftar**: `page-header` (+ aksi) → `filter-bar` → `table` (atau `empty-state`) → `pagination`. Tabel jadi kartu di < 1024px (768–1023: sel 2 kolom; `td.table__wide` dan aksi selebar kartu; checkbox `td.table__select` di pojok kanan atas; isi sel menumpuk di bawah label sehingga tag ada di bawah judul; nilai/badge selebar isinya (`justify-self: start`, R19); kolom label sel lebar 17% agar sejajar sel setengah). Maks 50 baris/halaman, filter dikirim ke server.
-- **Form**: `card` per bagian (judul bernomor seperti L7) → `form-grid--2` di ≥ 1024px → `field` + kontrol; bar aksi di bawah (Batal, Draft, Ajukan). Submit otomatis dikunci + spinner. Mockup memakai `<form data-mockup>`.
+- **Form**: `card` per bagian (judul bernomor seperti L7) → `form-grid--2` di ≥ 1024px → `field` + kontrol; bar aksi di bawah (Batal, Draft, Ajukan). Submit otomatis dikunci + spinner; tombol submit boleh membawa `name`/`value` (nilai tetap terkirim). `<form data-no-lock>` = tanpa kunci.
+- **Cetak** (dokumen kertas, mis. `archives/form-print`): halaman berdiri sendiri, `data-theme="light"` tanpa `prefs.js`, CSS halaman di `public/css/pages/*.css` (dimuat hanya di halaman itu, total ≤ 4 `<link>`). Ukuran kertas memakai mm/pt (bukan rem) agar cetakan sama dengan L7 berapa pun ukuran font user; warna kertas lewat token `--color-paper`, `--color-paper-head`, `--color-ink` (dicek `ContrastTest`). Panel kontrol layar diberi `.no-print`.
+- **Aksi baris tabel**: `.table__actions` satu baris; tombol yang perlu `<form>` sendiri (Hapus) tetap sebaris (`.table__actions form { display: inline-block }`), juga di mode kartu.
 - **Placeholder**: `page-header` + `empty-state` "Sedang dibangun ulang".
 
 ## Larangan (dicek `AssetsTest`)
 `:has(`, nesting `&`, `@container`, `color-mix(`, `@layer`, `@property`, `oklch(`/`lab(`, `backdrop-filter`/`blur(`, `@import`, URL eksternal; animasi hanya opacity/transform ≤ 150 ms (spinner tombol pengecualian fungsional); hormati `prefers-reduced-motion`.
 
 ## Ukuran terukur (Fase 3)
-Dark mode + perbesar teks + suara (2026-11-24): CSS 4 file 32,0 KB mentah / 8,0 KB gzip; JS awal (prefs+sound+modal+app+lan+alpine) 74,9 KB / 25,5 KB gzip (sound.js 2,0 KB / 0,9 KB). Sebelumnya: CSS 4 file 26,8 KB mentah / 7,4 KB gzip; JS awal 69,1 KB / 24,5 KB gzip (Alpine ±56 KB). Revisi menu atas + R19 + ambient: CSS 26,8 KB / 7,6 KB gzip; JS awal (prefs+modal+app+alpine+lan) 68,4 KB / 24,4 KB gzip; DOM `/archives` admin 526, PIC (fin) 229, `/` admin 138 (DB salinan). DOM: katalog admin 50 baris 1.429, 10 baris 536, katalog PIC 174, mockup form 256, dashboard 142, login 54.
+A1 (2026-11-24): CSS 4 file 34,9 KB mentah / 9,8 KB gzip (+ `pages/form-print.css` 3,9 / 1,4 KB hanya di halaman cetak); JS awal (prefs+sound+modal+app+lan+alpine) 76,7 KB / 27,4 KB gzip. Dark mode + perbesar teks + suara (2026-11-24): CSS 4 file 32,0 KB mentah / 8,0 KB gzip; JS awal (prefs+sound+modal+app+lan+alpine) 74,9 KB / 25,5 KB gzip (sound.js 2,0 KB / 0,9 KB). Sebelumnya: CSS 4 file 26,8 KB mentah / 7,4 KB gzip; JS awal 69,1 KB / 24,5 KB gzip (Alpine ±56 KB). Revisi menu atas + R19 + ambient: CSS 26,8 KB / 7,6 KB gzip; JS awal (prefs+modal+app+alpine+lan) 68,4 KB / 24,4 KB gzip; DOM `/archives` admin 526, PIC (fin) 229, `/` admin 138 (DB salinan). DOM: katalog admin 50 baris 1.429, 10 baris 536, katalog PIC 174, mockup form 256, dashboard 142, login 54.

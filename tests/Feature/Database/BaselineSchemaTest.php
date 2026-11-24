@@ -18,7 +18,7 @@ class BaselineSchemaTest extends TestCase
 {
     use RefreshDatabase;
 
-    /** Indexes added after the baseline (R4); everything else is the Laravel 7 schema. */
+    /** Indexes added after the baseline (R4); everything else is the Laravel 7 schema (+ users.font_size). */
     private const R4_INDEXES = [
         ['index', 'app_settings_key_unique', 'app_settings', 'CREATE UNIQUE INDEX "app_settings_key_unique" ON "app_settings" ("key")'],
         ['index', 'users_email_unique', 'users', 'CREATE UNIQUE INDEX "users_email_unique" ON "users" (lower(trim("email")))'],
@@ -43,7 +43,7 @@ class BaselineSchemaTest extends TestCase
         $actual = $this->normalizedSchema(DB::connection()->getPdo());
 
         $this->assertCount(50, $actual, '17 tables + 31 Laravel 7 indexes + 2 R4 indexes');
-        $this->assertSame($this->withR4($this->expectedSchema()), $actual);
+        $this->assertSame($this->withPostBaseline($this->expectedSchema()), $actual);
     }
 
     public function test_migrate_on_an_existing_laravel7_database_changes_nothing(): void
@@ -58,12 +58,15 @@ class BaselineSchemaTest extends TestCase
         $exitCode = Artisan::call('migrate', ['--database' => 'legacy', '--force' => true]);
 
         $this->assertSame(0, $exitCode, Artisan::output());
-        $this->assertSame($this->withR4($schemaBefore), $this->normalizedSchema($pdo));
+        $this->assertSame($this->withPostBaseline($schemaBefore), $this->normalizedSchema($pdo));
         $migrations = $pdo->query('SELECT migration FROM migrations ORDER BY id')->fetchAll(PDO::FETCH_COLUMN);
-        $this->assertSame([...$this->fixture()['l7_migrations'], '0001_01_01_000000_baseline_dms_schema', '2026_11_24_000001_add_unique_email_and_setting_key'], $migrations);
+        $this->assertSame([...$this->fixture()['l7_migrations'], '0001_01_01_000000_baseline_dms_schema', '2026_11_24_000001_add_unique_email_and_setting_key', '2026_11_24_000002_add_font_size_to_users'], $migrations);
         unset($rowsBefore['migrations']);
         $rowsAfter = $this->tableDump($pdo);
         unset($rowsAfter['migrations']);
+        // The only data change: the new nullable users.font_size column, NULL for every account.
+        $this->assertSame([null], array_values(array_unique(array_column($rowsAfter['users'], 'font_size'))));
+        $rowsAfter['users'] = array_map(fn (array $row): array => array_diff_key($row, ['font_size' => true]), $rowsAfter['users']);
         $this->assertSame($rowsBefore, $rowsAfter);
     }
 
@@ -103,9 +106,11 @@ class BaselineSchemaTest extends TestCase
      * @param  list<array{0: string, 1: string, 2: string, 3: string}>  $schema
      * @return list<array{0: string, 1: string, 2: string, 3: string}>
      */
-    private function withR4(array $schema): array
+    private function withPostBaseline(array $schema): array
     {
-        $schema = [...$schema, ...self::R4_INDEXES];
+        $schema = array_map(fn (array $o): array => $o[1] === 'users' && $o[0] === 'table'
+            ? [$o[0], $o[1], $o[2], substr($o[3], 0, -1).', "font_size" integer)']
+            : $o, [...$schema, ...self::R4_INDEXES]);
         usort($schema, fn (array $a, array $b): int => [$a[0], $a[1]] <=> [$b[0], $b[1]]);
 
         return $schema;

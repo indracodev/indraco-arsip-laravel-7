@@ -30,6 +30,7 @@ class ContrastTest extends TestCase
         ['border-strong', 'surface', 3.0], ['border-strong', 'surface-alt', 3.0],
         ['focus', 'surface', 3.0], ['focus', 'bg', 3.0], ['focus', 'nav-bg', 3.0],
         ['brand', 'nav-bg', 3.0], ['brand', 'nav-active', 3.0], ['brand', 'surface', 3.0],
+        ['ink', 'paper', 4.5], ['ink', 'paper-head', 4.5],
     ];
 
     /** @return array<string, array{0: string}> */

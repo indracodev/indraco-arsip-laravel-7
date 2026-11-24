@@ -1,0 +1,25 @@
+/* Archive detail page (archives/show): two columns from 1024px (rem), data grid, files, timeline, file viewer. */
+.detail-grid { display: grid; gap: var(--space-4); align-items: start; }
+.bp-lg .detail-grid { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+.detail-grid > .stack { min-width: 0; }
+.notice__body { flex: 1; min-width: 0; }
+.notice .btn { flex: none; }
+.meta-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 12rem), 1fr)); gap: var(--space-2); margin: 0; }
+.meta-grid > div { min-width: 0; padding: var(--space-2); border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--color-surface-alt); }
+.meta-grid .is-wide { grid-column: 1 / -1; }
+.meta-grid dt, .kv dt { font-size: var(--text-xs); font-weight: var(--weight-bold); color: var(--color-text-muted); text-transform: uppercase; }
+.meta-grid dd, .kv dd { margin: 0; font-weight: var(--weight-bold); overflow-wrap: anywhere; }
+.kv { margin: 0; }
+.kv > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-2); padding: var(--space-2) 0; border-bottom: 1px solid var(--color-border); }
+.file-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr)); gap: var(--space-2); }
+.file-card { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); padding: var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--color-surface-alt); }
+.file-card__name { font-weight: var(--weight-bold); }
+.timeline { display: flex; flex-direction: column; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+.timeline > li { padding: var(--space-2) var(--space-3); border: 1px solid var(--color-border); border-left: 4px solid var(--color-border-strong); border-radius: var(--radius); background: var(--color-surface-alt); }
+.timeline > .is-danger { border-left-color: var(--color-danger); }
+.timeline > .is-success { border-left-color: var(--color-success); }
+#file-viewer { padding-top: var(--space-6); }
+#file-viewer .modal__dialog { max-width: 64rem; }
+.file-viewer { display: flex; align-items: center; justify-content: center; height: 70vh; border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--color-surface-alt); overflow: auto; }
+.file-viewer iframe { width: 100%; height: 100%; border: 0; }
+.file-viewer img { max-height: 100%; margin: auto; }

@@ -45,7 +45,11 @@
             @endif
             <span class="badge badge--outline" x-text="boxes.length + ' Box • ' + totalItems() + ' Berkas'"></span>
             <span class="badge badge--success" x-show="restored" x-cloak title="Data formulir tersimpan otomatis di browser workstation">Draft Autosave: <span x-text="restored"></span></span>
-            <x-button disabled title="Pratinjau & cetak Form Pengajuan (menyusul)">Form Pengajuan</x-button>
+            @if ($isEdit)
+                <x-link-button :href="route('archives.form_print', $archive)" title="Buka Pratinjau & Cetak Form Pengajuan Dokumen dari data tersimpan (simpan dulu perubahan yang belum disimpan)"><x-icon name="printer" />Form Pengajuan</x-link-button>
+            @else
+                <x-button disabled title="Simpan Sementara (Draft) dulu, lalu cetak Form Pengajuan dari halaman edit draft">Form Pengajuan</x-button>
+            @endif
             @unless ($isEdit)
                 <x-button disabled title="Impor Excel (dibangun terakhir, keputusan ASK 5)"><x-icon name="upload" />Impor Excel</x-button>
             @endunless
@@ -90,8 +94,6 @@
     <form method="POST" enctype="multipart/form-data" class="stack" novalidate
         action="{{ $isEdit ? route('archives.update', $archive) : route('archives.store') }}">
         @csrf
-        {{-- Set by the clicked button (a disabled submit button would not send its own value). --}}
-        <input type="hidden" name="submit_action" value="submit">
         @if ($isEdit)
             @method('PUT')
             <input type="hidden" name="original_updated_at" value="{{ $archive->updated_at?->format('Y-m-d H:i:s') }}">
@@ -107,9 +109,9 @@
                 <span class="topbar__spacer"></span>
                 <x-link-button :href="route('archives.index')">Batal</x-link-button>
                 @if ($isDraft)
-                    <x-button type="submit" value="draft" formnovalidate @click="beforeSubmit($event, false)"
+                    <x-button type="submit" name="submit_action" value="draft" formnovalidate @click="beforeSubmit($event, false)"
                         title="Simpan sementara semua box sebagai draft usulan (tanpa pembatasan wajib isi apapun)">Simpan Sementara (Draft)</x-button>
-                    <x-button type="submit" value="submit" variant="primary" @click="beforeSubmit($event, true)"
+                    <x-button type="submit" name="submit_action" value="submit" variant="primary" @click="beforeSubmit($event, true)"
                         title="Simpan & Ajukan seluruh box ke PIC Gudang (Wajib menyertakan Scan Formulir)">
                         @if ($isEdit)
                             Simpan &amp; Ajukan Permanen ke Gudang
@@ -118,7 +120,7 @@
                         @endif
                     </x-button>
                 @else
-                    <x-button type="submit" value="update" variant="primary" @click="beforeSubmit($event, true)" title="Simpan perubahan data berkas arsip">Simpan Perubahan Berkas</x-button>
+                    <x-button type="submit" name="submit_action" value="update" variant="primary" @click="beforeSubmit($event, true)" title="Simpan perubahan data berkas arsip">Simpan Perubahan Berkas</x-button>
                 @endif
             </div>
         </x-card>

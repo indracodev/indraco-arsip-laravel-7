@@ -44,6 +44,11 @@
     --color-info: #1d4ed8;
     --color-info-soft: #e5ecfc;
 
+    /* Paper (printed forms, archives/form-print): black on white in every theme, like Laravel 7 */
+    --color-paper: #ffffff;
+    --color-paper-head: #fafafa;
+    --color-ink: #000000;
+
     /* Ambient background of the content area (.main): two static brand-tint glows, cool slate
        top-right under the menu, warm orange bottom-left. Horizontal reach (radius x stop:
        60% x 70% = 42%, 55% x 70% = 38.5%) keeps them apart, so the darkest point is one glow

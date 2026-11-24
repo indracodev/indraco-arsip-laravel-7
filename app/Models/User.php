@@ -21,6 +21,7 @@ use Illuminate\Support\Carbon;
  * @property string $role admin | pic_dept | pic_gudang (CHECK constraint)
  * @property int|null $department_id
  * @property string|null $phone
+ * @property int|null $font_size px 10-26 chosen in Pengaturan Tampilan (NULL = not chosen)
  * @property string|null $remember_token
  * @property Carbon|null $email_verified_at
  * @property Carbon|null $created_at
@@ -51,6 +52,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'font_size' => 'integer',
         ];
     }
 

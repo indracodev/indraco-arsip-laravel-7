@@ -24,8 +24,8 @@
                     <tr :class="{ 'table__row--danger': duplicateInfo(box, item, iIdx) }">
                         <td data-label="NO"><span x-text="iIdx + 1"></span> <span class="badge badge--danger" x-show="duplicateInfo(box, item, iIdx)" title="Data kembar identik dengan baris lain di box ini">DUPLIKAT</span></td>
                         <td data-label="NAMA DOKUMEN" class="table__wide">
-                            <select class="control" :id="'item_name_' + bIdx + '_' + iIdx" :name="'boxes[' + bIdx + '][items][' + iIdx + '][document_name]'"
-                                x-model="item.document_name" @change="onMasterDocChange(box, item)" aria-label="Nama dokumen">
+                            <select class="control" :id="item.custom ? null : 'item_name_' + bIdx + '_' + iIdx" :name="'boxes[' + bIdx + '][items][' + iIdx + '][document_name]'"
+                                x-show="!item.custom" :disabled="item.custom" x-model="item.document_name" @change="onMasterDocChange(box, item, $event)" aria-label="Nama dokumen">
                                 <option value="" x-text="masterFor(box).length ? '-- Pilih dari Master Berkas Arsip --' : '-- Tidak ada master berkas untuk sub-departemen ini --'"></option>
                                 <template x-for="m in masterFor(box)" :key="m.id">
                                     <option :value="m.name" :selected="m.name === item.document_name" x-text="masterLabel(m)"></option>
@@ -33,7 +33,18 @@
                                 <template x-if="isCustomName(box, item)">
                                     <option :value="item.document_name" selected x-text="item.document_name"></option>
                                 </template>
+                                @if ($user->isAdmin())
+                                    {{-- Laravel 7: Super Admin typed a name outside Master Berkas with prompt(); here inline. --}}
+                                    <option value="__custom__">-- Ketik nama berkas khusus (Super Admin) --</option>
+                                @endif
                             </select>
+                            @if ($user->isAdmin())
+                                <div class="cluster" x-show="item.custom" x-cloak>
+                                    <input type="text" class="control" maxlength="255" :id="item.custom ? 'item_name_' + bIdx + '_' + iIdx : null" :name="'boxes[' + bIdx + '][items][' + iIdx + '][document_name]'"
+                                        :disabled="!item.custom" x-model="item.document_name" placeholder="Ketik nama berkas khusus..." aria-label="Nama dokumen (ketik nama berkas khusus)">
+                                    <x-button size="sm" variant="ghost" @click="item.custom = false" title="Kembali memilih dari Master Berkas Arsip">Pilih dari Master</x-button>
+                                </div>
+                            @endif
                         </td>
                         <td data-label="PERIODE MULAI"><input type="month" class="control" :id="'item_start_' + bIdx + '_' + iIdx" :name="'boxes[' + bIdx + '][items][' + iIdx + '][period_start]'" x-model="item.period_start" :max="currentMonth" @change="validatePeriod(item)" aria-label="Periode mulai"></td>
                         <td data-label="PERIODE SELESAI"><input type="month" class="control" :id="'item_end_' + bIdx + '_' + iIdx" :name="'boxes[' + bIdx + '][items][' + iIdx + '][period_end]'" x-model="item.period_end" :max="currentMonth" :min="item.period_start || null" @change="validatePeriod(item)" aria-label="Periode selesai"></td>

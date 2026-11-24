@@ -255,13 +255,14 @@ if errorlevel 1 (
 
 call :LOG_STEP "migrate"
 :: ===============================================================================
-:: CHECK 5: STORAGE LINK
+:: CHECK 5: TANPA public\storage (file upload hanya lewat controller ber-login, temuan #2)
 :: ===============================================================================
 if not exist "storage\logs" mkdir "storage\logs"
-if not exist "public\storage" php artisan storage:link >nul 2>&1
+:: Link lama dari storage:link dilepas. rmdir tanpa /s: hanya link-nya, isi storage tidak tersentuh;
+:: folder nyata yang berisi file tidak dihapus (Caddy tetap menolak /storage/*).
+if exist "public\storage" rmdir "public\storage" >nul 2>&1
 
-
-call :LOG_STEP "storage link"
+call :LOG_STEP "lepas public\storage"
 :: ===============================================================================
 :: CHECK 6: PORT 8000 HARUS KOSONG
 :: ===============================================================================

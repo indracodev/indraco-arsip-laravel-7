@@ -8,7 +8,7 @@
     $appName = \App\Support\AppSettings::get('app_name');
 @endphp
 <!DOCTYPE html>
-<html lang="id" data-font-size="{{ \App\Support\AppSettings::get('app_font_size') }}">
+<html lang="id" data-font-size="{{ \App\Support\AppSettings::get('app_font_size') }}" @if ($user->font_size) data-user-font-size="{{ $user->font_size }}" @endif>
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
