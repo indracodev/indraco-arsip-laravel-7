@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $id
  * @property string $code
  * @property string $name
+ * @property string|null $description
  * @property int|null $retention_years
  * @property bool $is_active
  */

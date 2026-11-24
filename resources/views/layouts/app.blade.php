@@ -18,6 +18,7 @@
     <script src="{{ \App\Support\Asset::url('js/sound.js') }}" defer></script>
     @include('layouts.partials.head-assets')
     <script src="{{ \App\Support\Asset::url('js/lan.js') }}" defer></script>
+    <script src="{{ \App\Support\Asset::url('js/pages/notifications.js') }}" defer></script>
 </head>
 <body x-data="shell" :class="{ 'is-drawer-open': drawer }" @keydown.escape.window="closeDrawer()">
 <div class="app">
@@ -34,7 +35,7 @@
             </x-link-button>
         @endif
         <span class="topbar__spacer"></span>
-        <span class="lan" data-lan data-threshold="{{ (int) \App\Support\AppSettings::get('ping_alert_threshold_ms', '500') }}" title="Koneksi server">
+        <span class="lan" data-lan data-threshold="{{ (int) \App\Support\AppSettings::get('ping_alert_threshold_ms', '500') }}" @if (\App\Support\AppSettings::get('ping_alert_enabled') === '1') data-alert @endif title="Koneksi server">
             <span class="lan__dot"></span><span class="lan__text">LAN</span>
         </span>
         <span class="topbar__user">
@@ -42,6 +43,7 @@
             <span class="topbar__user-role">{{ $user->roleLabel() }}</span>
         </span>
         <div class="topbar__actions">
+            @include('layouts.partials.notifications')
             {{-- One-click light/dark (also Alt+T, like Laravel 7); label/title set by public/js/prefs.js. --}}
             <x-button variant="ghost" class="btn--icon theme-toggle" data-theme-toggle aria-label="Ganti ke mode gelap (Alt+T)" title="Ganti ke mode gelap (Alt+T)"><x-icon name="moon" class="theme-toggle__moon" /><x-icon name="sun" class="theme-toggle__sun" /></x-button>
             <x-button variant="ghost" class="btn--icon" data-modal-open="settings-modal" title="Pengaturan Tampilan" aria-label="Pengaturan Tampilan"><x-icon name="settings" /></x-button>
@@ -57,6 +59,7 @@
     <div class="backdrop" @click="closeDrawer()"></div>
 
     <main class="main" id="main">
+        @include('users.partials.impersonation-banner')
         @yield('content')
     </main>
 </div>
@@ -64,5 +67,6 @@
 <x-toast />
 <x-confirm-modal />
 @include('layouts.partials.settings-modal')
+@include('layouts.partials.expiry-modal')
 </body>
 </html>

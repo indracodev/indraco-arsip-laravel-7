@@ -14,10 +14,11 @@ IP server saat ini: **`192.168.2.180`** (tetap, di-set pemilik). Jika pemilik me
 | Tempat | Isi | Catatan |
 |---|---|---|
 | `desktop/src/app.js` | `DEFAULT_SERVER_URL`, label "Server Pusat Kantor" di `getRouteLabel()` | butuh build ulang exe (`.github/workflows/build-clients.yml`) |
+| `desktop/src/index.html` | `data-url` preset "Server Pusat Kantor" (`http://<ip>:8000`) dan "(Aman / HTTPS)" (`https://<ip>:8443`), placeholder input | ikut build ulang exe; `START-CLIENT-WORKSTATION.bat` (mode browser) memakai file ini langsung |
 | `desktop/README.md` | contoh alamat | dokumentasi |
-| `desktop/START-CLIENT-WORKSTATION.bat` | `SERVER_URL=` default | |
-| `server_url.txt` / `desktop/server_url.txt` | alamat server | dibaca launcher klien |
-| `INSTALL-SERTIFIKAT-KLIEN.bat` | alamat unduh sertifikat (jika default di-hardcode) | |
+| `START-CLIENT-WORKSTATION.bat` (root) | `SERVER_URL=` default | variabel ini belum dipakai UI (UI = `desktop/src/index.html` + `app.js`/localStorage) — ganti agar konsisten; `.sh` tidak menyimpan IP |
+| `server_url.txt` / `desktop/server_url.txt` | alamat server (`desktop/server_url.txt` = `http://192.168.2.180:8000`) | dibaca `START-CLIENT-WORKSTATION.bat` dan `INSTALL-SERTIFIKAT-KLIEN.bat` |
+| `INSTALL-SERTIFIKAT-KLIEN.bat` | tidak ada IP tetap: dari `server_url.txt`, atau ditanyakan | |
 | Klien yang sudah terpasang | menu **Ubah Alamat Server** di aplikasi exe, atau ganti pintasan/PWA ke alamat baru | PWA terpasang terikat ke alamat lama → instal ulang dari alamat baru |
 
 ## Setelah mengganti

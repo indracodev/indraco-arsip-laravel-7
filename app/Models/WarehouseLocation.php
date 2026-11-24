@@ -12,6 +12,21 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $id
  * @property string $rack_code
  * @property string|null $room_sector
+ * @property int|null $warehouse_id
+ * @property string|null $location_type
+ * @property string|null $shelf_code
+ * @property int|null $box_capacity
+ * @property int|null $current_box_count
+ * @property string|null $box_type
+ * @property int|null $canvas_x
+ * @property int|null $canvas_y
+ * @property int|null $canvas_width
+ * @property int|null $canvas_height
+ * @property int|null $rotation_angle
+ * @property int|null $assigned_department_id
+ * @property bool $is_booked
+ * @property bool $is_locked
+ * @property bool $is_fat_locked
  */
 class WarehouseLocation extends Model
 {

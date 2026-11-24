@@ -4,9 +4,24 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * Audit trail. Rows are written only by App\Services\ActivityLogger.
+ *
+ * @property int $id
+ * @property int|null $user_id
+ * @property string|null $user_name
+ * @property string|null $user_role
+ * @property int|null $department_id
+ * @property string $action
+ * @property string $module
+ * @property string $description
+ * @property string|null $reference_id
+ * @property string|null $ip_address
+ * @property string|null $user_agent
+ * @property array<string, mixed>|null $properties
+ * @property Carbon|null $created_at
  */
 class ActivityLog extends Model
 {

@@ -4,9 +4,25 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * Perpanjangan masa simpan. `approval_status` is not fillable: set explicitly by Actions.
+ *
+ * @property int $id
+ * @property int $archive_id
+ * @property int $proposed_by_user_id
+ * @property int $additional_months
+ * @property float|null $additional_years
+ * @property Carbon|null $previous_expiry_date
+ * @property Carbon|null $new_expiry_date
+ * @property string $extension_reason
+ * @property string|null $scan_extension_form
+ * @property string $approval_status
+ * @property int|null $approved_by_user_id
+ * @property Carbon|null $approved_at
+ * @property string|null $rejection_note
+ * @property Carbon|null $created_at
  */
 class ArchiveExtensionLog extends Model
 {

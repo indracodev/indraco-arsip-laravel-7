@@ -83,7 +83,7 @@ class LayoutTest extends TestCase
         // Font size is applied in <head> before the stylesheets render.
         $this->assertMatchesRegularExpression('/<head>.*js\/prefs\.js\?v=[0-9a-f]{10}"><\/script>.*<\/head>/s', $html);
         // Top menu only (owner decision): no sidebar markup and no layout choice.
-        $this->assertSame(1, substr_count($html, '<nav '));
+        $this->assertSame(1, substr_count($html, 'aria-label="Menu utama"')); // the dashboard also has a pagination <nav>
         $this->assertStringNotContainsString('sidebar', $html);
         $this->assertStringNotContainsString('Tata Letak Menu', $html);
         $this->assertStringNotContainsString('data-layout', $html);
@@ -100,9 +100,7 @@ class LayoutTest extends TestCase
         $gudang = $this->user('pic_gudang');
         $admin = $this->user('admin');
 
-        foreach (['/destructions'] as $url) { // /borrowings: built (tests/Feature/Borrowing)
-            $this->actingAs($pic)->get($url)->assertOk()->assertSee('Sedang dibangun ulang');
-        }
+        // /borrowings and /destructions: built (tests/Feature/Borrowing, tests/Feature/Retention)
         foreach (['/master/departments', '/master/numbering', '/master/users', '/logs', '/reports', '/diagnostics'] as $url) {
             $this->actingAs($gudang)->get($url)->assertForbidden();
             $this->actingAs($admin)->get($url)->assertOk();

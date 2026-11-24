@@ -15,6 +15,9 @@ use App\Models\User;
  *   department (Laravel 7 showed Edit only for drafts but did not check it: findings #4/B3).
  * - delete: admin, or PIC Departemen for their own department; "draft only" is checked by the
  *   action with the Laravel 7 message.
+ * - processWarehouse: PIC Gudang and admin (Laravel 7 isPicGudang() || isSuperAdmin()): verify,
+ *   check-in, status change, label / sticker printing. PIC Departemen 403 (Laravel 7 let them print
+ *   labels of their department without any button: findings #14).
  */
 class ArchivePolicy
 {
@@ -37,6 +40,11 @@ class ArchivePolicy
     public function delete(User $user, Archive $archive): bool
     {
         return $user->isAdmin() || ($user->role === User::ROLE_PIC_DEPT && $this->ownsDepartment($user, $archive));
+    }
+
+    public function processWarehouse(User $user): bool
+    {
+        return in_array($user->role, [User::ROLE_ADMIN, User::ROLE_PIC_GUDANG], true);
     }
 
     private function ownsDepartment(User $user, Archive $archive): bool

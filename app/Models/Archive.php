@@ -23,6 +23,8 @@ use Illuminate\Support\Carbon;
  * @property int|null $sub_department_id
  * @property int $created_by_user_id
  * @property string $title
+ * @property bool|null $is_custom_doc_name
+ * @property string|null $custom_doc_name
  * @property string $status
  * @property string|null $box_number
  * @property string|null $document_type

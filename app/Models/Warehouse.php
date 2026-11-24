@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $id
  * @property string $code
  * @property string $name
+ * @property string|null $address
+ * @property bool $is_active
  */
 class Warehouse extends Model
 {

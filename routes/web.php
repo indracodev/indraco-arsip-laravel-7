@@ -11,7 +11,6 @@ use App\Http\Controllers\BorrowingController;
 use App\Http\Controllers\ChangePasswordController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FontSizeController;
-use App\Http\Controllers\PlaceholderController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -60,17 +59,15 @@ Route::middleware('auth')->group(function () {
     Route::post('/borrowings/{borrowing}/dispatch', [BorrowingApprovalController::class, 'dispatch'])->name('borrowings.dispatch')->whereNumber('borrowing');
     Route::post('/borrowings/{borrowing}/reject', [BorrowingApprovalController::class, 'reject'])->name('borrowings.reject')->whereNumber('borrowing');
 
-    // Modules not rebuilt yet: Laravel 7 URL, name and role check, "Sedang dibangun ulang" page.
-    Route::get('/destructions', PlaceholderController::class)->name('destructions.index')->defaults('title', 'Pemusnahan & Retensi');
-    Route::get('/logs', PlaceholderController::class)->name('logs.index')->defaults('title', 'Log History')->middleware('role:admin');
-    Route::get('/reports', PlaceholderController::class)->name('reports.index')->defaults('title', 'Report')->middleware('role:admin');
-    Route::get('/diagnostics', PlaceholderController::class)->name('diagnostics.index')->defaults('title', 'Live Monitor LAN & User')->middleware('role:admin');
+    require __DIR__.'/modules/warehouse.php'; // GUDANG: verifikasi + nomor box, check-in rak, ubah status, cetak label
 
-    Route::middleware('role:admin,pic_gudang')->prefix('master')->name('master.')->group(function () {
-        Route::get('/departments', PlaceholderController::class)->name('departments')->defaults('title', 'Master Departemen')->middleware('role:admin');
-        Route::get('/warehouses', PlaceholderController::class)->name('warehouses')->defaults('title', 'Master Gudang & Rak');
-        Route::get('/warehouses/layout', PlaceholderController::class)->name('warehouses.layout')->defaults('title', 'Layout Gudang 2D');
-        Route::get('/numbering', PlaceholderController::class)->name('numbering')->defaults('title', 'Format Penomoran Box')->middleware('role:admin');
-        Route::get('/users', PlaceholderController::class)->name('users')->defaults('title', 'Kelola User & Hak Akses')->middleware('role:admin');
-    });
+    require __DIR__.'/modules/retention.php'; // RETENSI: [Form 3] perpanjangan & pemusnahan
+
+    require __DIR__.'/modules/archive-import.php'; // IMPOR multi-box Excel: template, pratinjau, simpan, isi form
+
+    require __DIR__.'/modules/system.php'; // SISTEM: log, laporan, pengaturan, backup, diagnostik, notifikasi
+
+    require __DIR__.'/modules/warehouse-layout.php'; // LAYOUT GUDANG 2D: kanvas, objek, booking, slot rak
+
+    require __DIR__.'/modules/master.php'; // MASTER & USER: departemen, gudang & rak, penomoran, user, impersonate
 });

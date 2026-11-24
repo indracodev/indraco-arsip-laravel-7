@@ -51,11 +51,13 @@
                 <x-button disabled title="Simpan Sementara (Draft) dulu, lalu cetak Form Pengajuan dari halaman edit draft">Form Pengajuan</x-button>
             @endif
             @unless ($isEdit)
-                <x-button disabled title="Impor Excel (dibangun terakhir, keputusan ASK 5)"><x-icon name="upload" />Impor Excel</x-button>
+                <x-link-button :href="route('archives.index', ['open_import' => 1])" title="Unggah template spreadsheet Excel (.xlsx) untuk mengisi banyak box dan berkas dokumen secara otomatis"><x-icon name="upload" />Impor Excel</x-link-button>
             @endunless
             <x-link-button :href="route('archives.index')" data-shortcut="Escape">Kembali (Esc)</x-link-button>
         </x-slot:actions>
     </x-page-header>
+
+    @include('archives.partials.import-banner')
 
     @if ($isEdit && filled($archive->rejection_note))
         <div class="notice notice--danger" role="alert">

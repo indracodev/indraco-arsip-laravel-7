@@ -273,6 +273,10 @@ if not errorlevel 1 (
     %PAUSE_CMD%
     exit /b 1
 )
+:: Sisa launcher lama folder ini (loop/php-cgi yatim, dms-ready.ps1) dibersihkan dulu,
+:: agar worker baru bisa memakai port 9001.. dan startup.log tidak ditulis "GAGAL" oleh
+:: dms-ready lama (R18). Port 8000 kosong = tidak ada server folder ini yang sedang jalan.
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0evironment\dms-stop.ps1" -Leftovers >nul 2>&1
 
 :: ===============================================================================
 :: DETEKSI IP NETWORK LOKAL (WIFI / LAN)

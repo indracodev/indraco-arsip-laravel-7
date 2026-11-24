@@ -1,5 +1,5 @@
 {{-- Detail Arsip (Laravel 7 archives/show.blade.php): same sections and actions per role.
-     Flows of modules not rebuilt yet (verify, check-in, label, pemusnahan) link to their placeholder. --}}
+     Warehouse panels (verify, check-in, status change): partials/show-side-gudang. --}}
 @extends('layouts.app')
 
 @section('title', 'Detail Arsip - '.$archive->title)
@@ -31,7 +31,7 @@
                 @else
                     <x-button disabled aria-disabled="true" :title="! $canPrintLabel
                         ? ($archive->warehouse_location_id ? 'Label dinonaktifkan: Hanya dapat dicetak untuk arsip yang tersimpan di rak gudang atau perpanjangan (status saat ini: '.\App\Support\StatusLabel::archive($archive->status)['label'].')' : 'Label dinonaktifkan: Lokasi rak gudang belum ditentukan (tahap verifikasi/approval atau belum check-in ke rak)')
-                        : 'Cetak label sedang dibangun ulang (modul GUDANG)'">Cetak Label</x-button>
+                        : 'Cetak label tidak tersedia'">Cetak Label</x-button>
                 @endif
             @endunless
             @if ($isWarehouseStaff && \App\Support\ArchiveDetail::canProposeDestruction($archive))
@@ -56,24 +56,7 @@
         </div>
     @endif
 
-    @if ($isWarehouseStaff && $archive->status === 'pending_verification')
-        <x-card title="Hub Verifikasi & Penomoran Box Gudang">
-            <div class="cluster">
-                <p class="text-muted notice__body">Periksa kesesuaian fisik dan lampiran berkas. Setujui untuk menghasilkan Nomor Box resmi secara otomatis.</p>
-                <x-button disabled aria-disabled="true" title="Verifikasi sedang dibangun ulang (modul GUDANG)">Setujui & Generate Box</x-button>
-                <x-button disabled aria-disabled="true" title="Verifikasi sedang dibangun ulang (modul GUDANG)">Tolak & Minta Revisi</x-button>
-            </div>
-        </x-card>
-    @endif
-
-    @if ($isWarehouseStaff && $archive->status === 'approved_booked')
-        <x-card title="Check-in Fisik & Penempatan Rak Gudang">
-            <div class="cluster">
-                <p class="text-muted notice__body">Pilih lokasi rak gudang yang tersedia, lalu konfirmasi penerimaan fisik box.</p>
-                <x-button disabled aria-disabled="true" title="Check-in sedang dibangun ulang (modul GUDANG)">Konfirmasi Check-in Ke Gudang</x-button>
-            </div>
-        </x-card>
-    @endif
+    @include('archives.partials.show-side-gudang')
 
     <div class="detail-grid">
         <div class="stack">

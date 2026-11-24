@@ -4,8 +4,12 @@ namespace App\Services;
 
 use App\Models\Archive;
 use App\Models\BorrowingLog;
+use App\Models\DestructionLog;
+use App\Models\User;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use stdClass;
 use Throwable;
 
 /**
@@ -81,6 +85,27 @@ class SystemEventStream
         self::insert($eventType, $rows);
     }
 
+    /**
+     * `destruction_created` (Laravel 7 DestructionLog created event, same payload). Needs `archive` loaded.
+     *
+     * @param  iterable<DestructionLog>  $logs
+     */
+    public static function destructions(iterable $logs): void
+    {
+        $rows = [];
+        foreach ($logs as $log) {
+            $rows[] = [
+                'event_type' => 'destruction_created',
+                'entity_type' => 'DestructionLog',
+                'entity_id' => $log->id,
+                'department_id' => $log->archive?->department_id,
+                'payload' => json_encode(['bap_number' => $log->bap_number, 'archive_id' => $log->archive_id, 'method' => $log->method]),
+                'created_at' => now(),
+            ];
+        }
+        self::insert('destruction_created', $rows);
+    }
+
     /** @param list<array<string, mixed>> $rows */
     private static function insert(string $eventType, array $rows): void
     {
@@ -97,5 +122,33 @@ class SystemEventStream
         } catch (Throwable $e) {
             Log::error('Failed to write system event: '.$e->getMessage(), ['event' => $eventType]);
         }
+    }
+
+    /** Latest event id (the client's "since" cursor). */
+    public static function latestId(): int
+    {
+        return (int) DB::table('system_events')->max('id');
+    }
+
+    /**
+     * Events after $afterId the user may see, oldest first: PIC Departemen only events of their
+     * own department (Laravel 7 also passed department-less events; none are written any more,
+     * so they are left out to rule out a leak); admin and PIC Gudang everything.
+     *
+     * @return Collection<int, stdClass> rows id, event_type, entity_id, department_id, payload (decoded array), created_at
+     */
+    public static function visibleTo(User $user, int $afterId, int $limit = 50): Collection
+    {
+        return DB::table('system_events')
+            ->where('id', '>', $afterId)
+            ->when($user->role === User::ROLE_PIC_DEPT, fn ($query) => $query->where('department_id', $user->department_id))
+            ->orderBy('id')
+            ->limit($limit)
+            ->get(['id', 'event_type', 'entity_id', 'department_id', 'payload', 'created_at'])
+            ->map(function (stdClass $event): stdClass {
+                $event->payload = (array) json_decode((string) $event->payload, true);
+
+                return $event;
+            });
     }
 }

@@ -5,7 +5,7 @@
       app_settings);
     - theme: "dms_theme" light | dark | system (default), public/js/prefs.js;
     - notification sound: "dms_sound" (default on, like L7), public/js/sound.js.
-    Logo / LAN alert settings (admin) come with the SISTEM module.
+    Logo / LAN alert / maintenance (admin): link to the "Pengaturan Sistem" page (settings.index).
 --}}
 <x-modal id="settings-modal" title="Pengaturan Sistem & Tampilan" x-data="displaySettings" @modal-closed="revert()">
     <div class="stack">
@@ -43,6 +43,13 @@
                 <x-button size="sm" @click="testSound()">Tes suara</x-button>
             </div>
         </div>
+        @if (auth()->user()?->isAdmin())
+            {{-- Laravel 7 sections 1, 3, 4 of this modal (logo, LAN alert, maintenance): admin page. --}}
+            <div class="field">
+                <span class="field__label">Pengaturan Sistem (Super Admin)</span>
+                <x-link-button :href="route('settings.index')" size="sm">Logo, Notifikasi LAN, Backup &amp; Pemeliharaan Database</x-link-button>
+            </div>
+        @endif
     </div>
     <x-slot:footer>
         <x-button data-modal-close>Batal</x-button>

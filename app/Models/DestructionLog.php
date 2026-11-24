@@ -4,9 +4,26 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * Pemusnahan (BAP). `approval_status` is not fillable: set explicitly by Actions.
+ *
+ * @property int $id
+ * @property int $archive_id
+ * @property int $proposed_by_user_id
+ * @property int|null $approved_by_dept_pic_id
+ * @property int|null $department_approval_by
+ * @property string $bap_number
+ * @property Carbon|null $destruction_date
+ * @property string $method
+ * @property string|null $certificate_file
+ * @property string|null $approval_file
+ * @property string|null $scan_approval_destruction
+ * @property string $approval_status
+ * @property string|null $approval_notes
+ * @property string|null $notes
+ * @property Carbon|null $created_at
  */
 class DestructionLog extends Model
 {

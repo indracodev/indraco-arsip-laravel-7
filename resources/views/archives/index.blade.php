@@ -16,7 +16,7 @@
         <x-slot:actions>
             <x-link-button :href="request()->fullUrl()" title="Refresh (F5)"><x-icon name="refresh" />Refresh (F5)</x-link-button>
             @if ($canSubmit)
-                <x-button aria-disabled="true" disabled title="Impor Massal Multi-Box & Butir Dokumen via Excel / CSV (dibangun di Fase 4)"><x-icon name="upload" />Impor Multi-Box (Excel)</x-button>
+                <x-button data-modal-open="archive-import-modal" title="Impor Massal Multi-Box & Butir Dokumen via Excel / CSV"><x-icon name="upload" />Impor Multi-Box (Excel)</x-button>
                 <x-link-button :href="route('archives.create')" variant="primary" title="Buat Draft Pengajuan Box Baru (F2)"><x-icon name="plus" />Buat Draft (F2)</x-link-button>
             @endif
         </x-slot:actions>
@@ -105,4 +105,11 @@
     @endif
 
     <x-pagination :paginator="$archives" noun="berkas arsip" />
+
+    @if ($canSubmit)
+        @include('archives.partials.import-modal')
+        @push('scripts')
+            <script src="{{ \App\Support\Asset::url('js/pages/archive-import.js') }}" defer></script>
+        @endpush
+    @endif
 @endsection

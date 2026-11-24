@@ -67,8 +67,12 @@
 
 	# LAN heartbeat answered by Caddy itself: no PHP, no DB, no session (~1 ms).
 	# Same contract as the Laravel route (kept for `php artisan serve` in development).
+	# CORS "*" like Laravel 7: the desktop client (DMS-Indraco-Client.exe, page origin
+	# http://tauri.localhost; START-CLIENT-WORKSTATION.bat, origin file://) fetches this
+	# cross-origin and treats a blocked response as "server offline".
 	handle /api/health/ping {
 		header Content-Type "application/json"
+		header Access-Control-Allow-Origin "*"
 		header Cache-Control "no-cache, no-store, must-revalidate"
 		header Pragma "no-cache"
 		header Expires "0"
