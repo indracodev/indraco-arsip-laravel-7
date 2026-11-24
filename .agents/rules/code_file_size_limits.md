@@ -1,39 +1,45 @@
-# Code File Size Limits & Modularity Guidelines
+---
+trigger: glob
+globs: app/**, resources/**, routes/**, tests/**, config/**, database/**
+---
 
-## 1. Absolute Maximum File Size (< 800 Lines)
-- **Hard Limit**: Setiap file kode aplikasi (`app/`, `resources/views/`, `routes/`, `tests/`, `config/`, `database/`) **TIDAK BOLEH** melebihi 800 baris kode (harus strictly `< 800 lines`).
-- Pengecualian hanya untuk vendor packages, node modules, generated storage files, public compiled assets, dan binary/sqlite files.
+# Ukuran File & Modularitas (Laravel 13) — tidak ada file gemuk
 
-## 2. Extraction & Refactoring Standards
+## 1. Batas
 
-Pemisahan file harus dilakukan dengan memegang prinsip **Cohesion & Single Responsibility**, bukan sekadar memotong sembarangan:
+**Hard limit**: tidak ada file kode aplikasi ≥ 800 baris (dicek otomatis, gagal = tidak boleh commit).
 
-### A. Controllers (`app/Http/Controllers`)
-- **Domain Sub-Controllers**: Jika sebuah controller membengkak karena menangani banyak sub-fitur (misal: import/export Excel, batch label printing, verification/check-in flow, status workflow), pecah controller tersebut menjadi sub-controller yang terfokus (contoh: `ArchiveLabelController`, `ArchiveVerificationController`, `ArchiveStatusController`, `ArchiveImportController`).
-- **Traits / Action Classes**: Gunakan Traits terstruktur di folder `app/Http/Controllers/Traits/` untuk alur logika orkestrasi form yang panjang (contoh: `HandlesMultiBoxCreation`, `HandlesMultiBoxEditing`).
-- Pertahankan route naming, middleware, dan parameter bindings yang sudah ada.
+**Target** per jenis file (melebihi target wajib diberi alasan di PR/commit, atau dipecah):
 
-### B. Blade Views & Alpine.js (`resources/views/`)
-- **Partial Directory Hierarchy**: Simpan sub-partial di subfolder spesifik yang mencerminkan konteks domainnya (misal: `resources/views/<feature>/partials/` atau `modals/`).
-- **Modals & Drawers**: Pisahkan setiap modal besar, flyout drawer, atau preview panel ke dalam file partial tersendiri dan sertakan menggunakan `@include('feature.partials.modal_name')`.
-- **Alpine.js & JavaScript Blocks**:
-  - Untuk logic UI yang rumit (seperti Warehouse Canvas 2D/3D, Desktop Workspace, Multi-box dynamic form), pisahkan script ke dalam modul-modul fungsional yang kohesif (misal: `canvas_engine`, `canvas_tools`, `canvas_events`, `canvas_slots`).
-  - Pastikan state Alpine.js (`x-data`) tetap sinkron melalui window helper objects, Alpine mixins, atau Custom Event dispatching (`window.dispatchEvent` / `$dispatch`).
+| Jenis | Target | Catatan |
+|---|---|---|
+| Controller | ≤ 150 baris, ≤ 7 method publik | resource controller; aksi khusus → controller terpisah (single action `__invoke`) |
+| Action | ≤ 120 baris, 1 method publik (`handle`) | satu use case |
+| Service | ≤ 250 baris | satu kapabilitas |
+| Form Request | ≤ 100 baris | |
+| Model | ≤ 200 baris | relasi, cast, scope; logika bisnis ke Action |
+| Policy | ≤ 120 baris | |
+| Blade halaman | ≤ 250 baris | sisanya ke partial/komponen |
+| Blade komponen | ≤ 120 baris | |
+| JS modul (`resources/js`) | ≤ 200 baris | satu modul per fitur halaman |
+| Test file | ≤ 400 baris | per fitur; helper ke trait `tests/Concerns` |
+| Method/fungsi | ≤ 40 baris | lebih dari itu pecah ke method privat bernama jelas |
 
-### C. Services (`app/Services/`)
-- Pecah service monolitik menjadi sub-service independen berdasarkan kapabilitas (contoh: pemisahan template generation `MultiBoxTemplateService`, kalkulasi retensi `ArchiveRetentionService`, atau semantic similarity `ArchiveSimilarityService`).
-- Gunakan traits untuk pembagian helper kalkulasi internal yang panjang.
+Pengecualian: `vendor/`, `node_modules/`, `public/build/`, migrasi baseline hasil generate, file binary/sqlite.
 
-### D. Automated Tests (`tests/`)
-- Jika sebuah Test Case membengkak karena cakupan skenario yang sangat luas, pisahkan ke dalam file Test terpisah berdasarkan fase pengujian (misal: `Revisi1UatPart2Test`).
-- Simpan shared setup, mock fixtures, dan assertions bantuan ke dalam reusable Trait di `tests/Feature/Traits/`.
+## 2. Cara memecah (kohesi, bukan potong asal)
 
-## 3. Verification Protocol
-- Sebelum menyelesaikan fitur atau refactoring, jalankan pemeriksaan jumlah baris:
-  ```bash
-  php scan_lines.php
-  ```
-- Pastikan:
-  1. `Total code files >= 800: 0`
-  2. Linter PHP bersih: `php -l <modified_files>`
-  3. Seluruh unit/feature test tetap lulus: `vendor/bin/phpunit`
+- **Controller** gemuk → pisah per sub-fitur (mis. `ArchiveController`, `ArchiveSubmissionController`, `ArchiveLabelController`, `ArchiveImportController`); logika ke `Actions/`.
+- **Trait di controller tidak dipakai** di L13 (L7 memakai `Controllers/Traits/Handles*`); gantinya Action/Service yang bisa dites sendiri.
+- **Blade** gemuk → layout + partial per bagian (`<fitur>/partials/`, `<fitur>/modals/`) + Blade component untuk elemen berulang.
+- **Alpine/JS** panjang → modul di `resources/js/pages/<fitur>.js` (`Alpine.data('namaFitur', ...)`), tidak inline di Blade.
+- **Service** monolitik → sub-service per kapabilitas.
+- **Test** besar → file per skenario/fitur, setup bersama di trait.
+- Jangan memecah berlebihan: file mikro tanpa tanggung jawab jelas juga dilarang (`engineering_guidelines.md` §3).
+
+## 3. Verifikasi
+
+- `php artisan app:scan-lines` (atau `php tools/scan_lines.php` sampai command tersedia) → `files >= 800: 0`, dan daftar file yang melewati target.
+- `vendor/bin/pint --test` bersih.
+- `vendor/bin/phpstan analyse` (Larastan) tanpa error baru dibanding baseline.
+- `php artisan test` lulus.
