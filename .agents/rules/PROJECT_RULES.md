@@ -96,7 +96,7 @@ opcache.jit = disable
 ## 9. Performance Gate Checklist (wajib lulus sebelum commit modul)
 
 - [ ] **100% Offline Integrity**: tidak ada URL eksternal (CDN font/ikon/script/API) di kode.
-- [ ] **Asset Budget Compliant**: aset lewat Vite build lokal; JS/CSS awal sesuai SLA §1.1.
+- [ ] **Asset Budget Compliant**: CSS murni/JS lokal tanpa build tool, sesuai aturan kompatibilitas `50-frontend-blade.md`; JS/CSS awal sesuai SLA §1.1.
 - [ ] **Zero N+1**: `Model::preventLazyLoading()` aktif di luar production dan tes tidak memicu lazy loading.
 - [ ] **SQLite Config Intact**: kunci SQLite di `config/database.php` tidak diubah tanpa uji beban ulang.
 - [ ] **Short Transaction Scope**: transaksi hanya membungkus tulis DB (tanpa file/PDF/HTTP di dalamnya).

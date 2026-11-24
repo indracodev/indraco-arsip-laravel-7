@@ -1,13 +1,13 @@
 ---
 name: blade-ui-components
-description: Design system UI baru DMS Indraco (Blade component + Alpine + Tailwind 4) — daftar komponen, token warna/ukuran, pola halaman daftar/form/detail, modal konfirmasi, responsif, ringan untuk PC low-spec. Pakai saat membuat atau mengubah view.
+description: Design system UI baru DMS Indraco (Blade component + Alpine + CSS murni tanpa build tool) — daftar komponen, token warna/ukuran, pola halaman daftar/form/detail, modal konfirmasi, responsif, ringan untuk PC low-spec. Pakai saat membuat atau mengubah view.
 ---
 
 # Komponen UI
 
 Aturan: `.agents/rules/50-frontend-blade.md`, `PROJECT_RULES_LAN_FRONTEND_OPS.md` §6.
 
-## Token (Tailwind 4 `@theme` di `resources/css/app.css`)
+## Token (variabel CSS di `public/css/tokens.css`; aturan CSS di `rules/50-frontend-blade.md`)
 - Warna: netral `zinc`/`slate`, aksen `navy` (#0F172A), status: hijau=selesai/aktif, kuning=menunggu, merah=ditolak/dimusnahkan, biru=dipinjam/info. Tidak ada warna lain.
 - Teks 14px dasar, 12px meta; kontrol tinggi 36px; radius kecil; shadow tipis satu level; tanpa blur/gradient.
 

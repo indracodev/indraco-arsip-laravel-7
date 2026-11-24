@@ -20,4 +20,4 @@
 
 ## Langkah berikutnya
 1. ACC pemilik Fase 2; jawab R4 (UNIQUE email) dan R8 (layout gudang instalasi baru).
-2. Fase 3: design system + layout + login/shell baru + mockup (butuh versi WebView2/browser klien).
+2. Fase 3: design system CSS murni + layout + login/shell baru + mockup. Bersihkan sisa Tailwind/Vite dari skeleton: `package.json`, `vite.config.js`, `resources/css/app.css`, `resources/js/app.js` (pindah ke `public/`), skill Boost `tailwindcss-development` (+ keluarkan guideline Tailwind/Vite Boost lewat `config/boost.php`), catatan Vite di blok Boost `AGENTS.md`.

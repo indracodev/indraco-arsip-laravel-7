@@ -35,8 +35,8 @@ description: Saat mengubah launcher .bat/.vbs, Caddyfile, php-cgi pool, endpoint
 ## 6. Layer 5: Frontend — Zero CDN & 100% Offline
 - Aplikasi **wajib** jalan tanpa internet. CDN di jaringan tertutup membuat browser menunggu DNS timeout 3–10 dtk.
 - **DILARANG** `<script src="https://...">`, `fonts.googleapis.com`, ikon/font dari CDN.
-- Aset di-build **Vite** di laptop developer (Tailwind 4 terkompilasi, bukan Tailwind Play JS 440 KB seperti L7), hasil build ber-hash di `public/build` ikut di-commit. Font dan ikon lokal (SVG, hanya ikon yang dipakai).
-- Satu titik penyertaan aset di layout (`@vite([...])`).
+- **CSS murni + Alpine.js lokal, tanpa build tool** (bukan Tailwind Play JS 440 KB seperti L7, bukan Vite). File di `public/css`, `public/js`, ikut di-commit; versi aset lewat `?v=<hash isi file>`. Font dan ikon lokal (SVG, hanya ikon yang dipakai).
+- Satu titik penyertaan aset di layout (partial `head-assets`). Aset statis di-cache panjang oleh Caddy karena URL ber-versi.
 - Library JS hanya yang lolos triage; target ukuran di `PROJECT_RULES.md` §1.1. Ringan untuk PC klien low-spec: tanpa animasi berat, tanpa library besar untuk hal yang bisa dikerjakan HTML/CSS/Alpine.
 
 ### 6.2. PWA

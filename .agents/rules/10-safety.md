@@ -22,5 +22,5 @@ trigger: always_on
 - Tidak ada install di PC tujuan: PHP, Caddy, DLL VC++ ikut di folder `evironment\`.
 - Tidak ada layanan yang harus jalan terus selain Caddy + pool php-cgi yang dijalankan launcher. Tidak ada Redis, Horizon, Octane, Supervisor, Node di server.
 - Queue `sync`. Pekerjaan terjadwal (backup, pembersihan) lewat launcher atau tombol admin, bukan cron.
-- Aset front-end di-build di laptop developer (Vite) dan hasil build ikut di-commit.
+- **Tanpa build tool front-end** (tanpa Node/Vite): CSS murni dan JS (Alpine.js lokal) ditulis langsung di `public/css` dan `public/js`, ikut di-commit.
 - PC bisa offline: tidak ada CDN. Semua font, ikon, dan library JS disajikan lokal.

@@ -1,6 +1,6 @@
 # Rencana Rebuild DMS Arsip PT Indraco ke Laravel 13
 
-Status: **DRAF, menunggu persetujuan.** Belum ada kode yang diubah.
+Status: rencana awal (2026-11-24). **Keputusan terbaru ada di `context/decisions.md`** — mis. UI kini CSS murni tanpa Tailwind/Vite, HTTPS + PWA, target low-spec.
 
 ## 1. Tujuan
 
