@@ -6,6 +6,7 @@ globs: resources/views/**, resources/css/**, resources/js/**, public/**
 # Front-end (Blade + Alpine.js + Tailwind 4)
 
 - **UX sama, tampilan baru.** Setiap halaman yang dibangun ulang punya langkah, isian (jumlah input, wajib/opsional, pilihan, default), aksi, dan pesan yang sama dengan Laravel 7 (lihat `context/triage.md` dan inventaris role).
+- **Klien utama: aplikasi `DMS-Indraco-Client.exe` (Tauri → WebView2/Chromium)**, juga Edge/Chrome. Jangan memakai fitur yang tidak didukung WebView2 versi minimum di `context/decisions.md`. Endpoint `/api/health/ping` dan alur `server_url.txt` milik klien tidak boleh rusak.
 - **Ringan untuk PC klien low-spec** (RAM 4–8 GB, dual-core atau lebih lemah, **tanpa GPU** → browser merender grafis dengan CPU):
   - HTML dirender server; Alpine hanya untuk interaksi kecil. Tidak ada iframe (L7 memakai MDI iframe yang memuat ulang aset di setiap jendela).
   - **Dilarang**: `backdrop-filter`/blur, shadow besar/berlapis, gradient besar, animasi/transisi selain opacity/transform singkat (≤ 150 ms), elemen `position: fixed` bertumpuk, video/GIF dekoratif.

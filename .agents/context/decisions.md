@@ -29,4 +29,6 @@ tanggal | keputusan | alasan | disetujui oleh
 2026-11-24 | ASK 13: ukuran font per user | | pemilik (ikut saran)
 2026-11-24 | ASK 14: kolom DB tak terpakai dibiarkan | kompatibilitas database lama | pemilik (ikut saran)
 2026-11-24 | ASK 15: alat k6 dibawa (lokal); `.exe` hanya jika masih dipakai klien | | pemilik (ikut saran)
+2026-11-24 | Klien memakai aplikasi `DMS-Indraco-Client.exe` (Tauri, folder `desktop/`, WebView2) — dibawa (KEEP). Kontrak yang wajib dijaga: `GET /api/health/ping`, `server_url.txt`, command `reset_app_cache_and_restart`. Klien dan server sama-sama low-spec (RAM 4–8 GB, ≤ 2 core, tanpa GPU) | aplikasi exe dibuat untuk PC klien low-spec | pemilik
+2026-11-24 | Target render UI = WebView2 (Chromium) di Windows 10/11 + Edge/Chrome. Versi minimum WebView2 di PC klien harus dicek sebelum Fase 3; jika < 111, CSS dibuat kompatibel (Tailwind 3.4 atau target build lebih lama) | Tailwind 4 butuh Chromium ≥ 111; PC offline bisa punya WebView2 lama | menunggu data versi dari pemilik
 2026-11-24 | ASK lain di `triage.md` (tujuan `app/Bootstrap/HandleExceptions`, test lama yang menulis DB nyata): diputuskan saat triage modul terkait, default tidak dibawa | | pemilik (ikut saran)

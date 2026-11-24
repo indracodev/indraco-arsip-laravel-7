@@ -14,5 +14,9 @@
 ## Catatan
 - 2026-11-24: subagent Fase 1 tidak sengaja menghapus `.agents/` dan `template-import-master/` (loop `rm` dari output `ls`). File ter-commit dipulihkan dari git, aturan baru ditulis ulang. Aturan pencegahan ditambahkan di `rules/10-safety.md`.
 
+## Catatan tambahan
+- Folder `desktop/` (klien Tauri) dan `.github/workflows/build-clients.yml` belum ada di worktree L13 (ikut terhapus saat skeleton dipasang). Bawa di modul OPS dari branch `danu-revisi-4`; pastikan klien lama tetap bisa tersambung ke server L13.
+- Cek versi WebView2 di salah satu PC klien sebelum Fase 3.
+
 ## Langkah berikutnya
 Tunggu hasil Fase 0 dan Fase 1, laporkan ke pemilik.
