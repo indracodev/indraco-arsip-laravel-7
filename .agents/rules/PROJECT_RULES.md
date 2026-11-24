@@ -7,7 +7,8 @@ trigger: always_on
 > **Status Dokumen**: Mandatory Technical Contract
 > **Target Audience**: AI Agents & Software Engineers
 > **Tujuan**: Mencegah regresi performa pada setiap fitur, controller, query, atau perubahan konfigurasi.
-> **Baseline Hardware**: AMD A9 Dual-Core Processor, 8GB RAM, Windows 10/11, Offline LAN Host. Klien: PC kantor low-spec.
+> **Baseline Hardware (server)**: PC low-spec — RAM 4–8 GB, CPU dual-core atau lebih lemah (uji dengan 1 dan 2 core), **tanpa GPU**, Windows 10/11 64-bit, Offline LAN Host. Acuan lama: AMD A9 dual-core 8 GB. Klien: PC kantor low-spec.
+> **Cara jalan**: cukup klik `START-DMS-INDRACO.bat` sekali; tanpa install apa pun.
 > **Versi**: diperbarui untuk rebuild Laravel 13 (branch `laravel-13-rebuild`). Versi Laravel 7 tetap ada di branch `danu-revisi-4`.
 
 ## Struktur Dokumen
@@ -38,8 +39,9 @@ Aplikasi berjalan sebagai **Desktop Offline Server** di satu PC Windows dan mela
 | **Concurrent LAN Users** (Office Profile) | **p95 < 1500 ms**, failure < 5% | 3–5 VUs (k6) |
 | **Multi-user rebuild** (mix 85% baca / 15% tulis) | **p95 < 500 ms**, 0 error, 0 `database is locked` | 30 VUs, 60 dtk |
 | **Request lambat tidak memblok user lain** | Halaman ringan tetap < 350 ms saat ada request 3 dtk berjalan | uji khusus |
-| **Host Memory Ceiling** | **< 256 MB** per worker php-cgi | idle ~25–45 MB |
-| **Host CPU Ceiling** | **< 15%** saat idle di AMD A9 | idle ~0–2% (tanpa polling sibuk) |
+| **Host Memory Ceiling** | **< 256 MB** per worker php-cgi; **total server ≤ 300 MB idle, ≤ 600 MB saat beban** (Caddy + semua php-cgi + pengawas) | diukur dengan WorkingSet/Private bytes |
+| **Host CPU Ceiling** | **< 15%** saat idle di dual-core | idle ~0–2% (tanpa polling sibuk) |
+| **Uji low-spec** | Semua target di atas diuji dengan CPU dibatasi **1 core dan 2 core** (affinity) | jumlah worker default dipilih dari hasil 2 core |
 | **Aset awal halaman** (gzip) | JS < 150 KB, CSS < 60 KB | halaman role departemen |
 
 ### 1.2. The Zero-Regression Rule
