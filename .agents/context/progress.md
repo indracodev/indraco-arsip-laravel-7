@@ -18,7 +18,16 @@
 - Folder `desktop/` (klien Tauri) dan `.github/workflows/build-clients.yml` belum ada di worktree L13 (ikut terhapus saat skeleton dipasang). Bawa di modul OPS dari branch `danu-revisi-4`; pastikan klien lama tetap bisa tersambung ke server L13.
 - Cek versi WebView2 dan versi browser (Chrome/Edge/Firefox) yang dipakai di PC klien sebelum Fase 3.
 
-## Langkah berikutnya
-0. Setelah modul ARSIP pengajuan: ukuran teks per akun (`users.font_size`); cek area klik ikut membesar saat uji browser.
-1. Review mockup oleh pemilik (uji remote di browser/exe) → perbaiki R14–R16 + masukan pemilik.
-2. ACC Fase 3 → Fase 4 modul PIC Departemen (urutan di INVENTARIS-PIC-DEPT.md: shell/katalog → create multi-box → edit/hapus draft → detail+file → penarikan → pemusnahan → perpanjangan → impor Excel).
+## Rencana sampai selesai (urutan putaran)
+- **A1 ARSIP polish**: perbaiki kunci submit app.js (nilai tombol hilang), hapus cabang mockup mati, tombol Hapus di katalog tidak turun baris, ukuran teks per akun (`users.font_size`), input nama dokumen kustom admin (ganti `prompt()`), cetak Form Pengajuan, dokumen shell.md.
+- **A2 FILE + DETAIL**: halaman detail arsip, pratinjau/unduh file lewat controller ber-otorisasi (X-Accel Caddy), kompatibel path lama (public/storage & storage/app/public), tutup temuan #2/#3.
+- **B PENARIKAN**: pengajuan penarikan PIC, approve/reject/dispatch gudang, simpan kembali (re-store), notifikasi.
+- **C RETENSI**: perpanjangan masa simpan, usulan pemusnahan, BAP (cetak), approve/complete gudang/admin.
+- **D GUDANG**: dashboard gudang, verifikasi + penomoran box atomik, check-in rak/slot, keluarkan arsip, cetak label/stiker.
+- **E MASTER & USER**: departemen/sub/master berkas + impor Excel data master, gudang & rak, format penomoran, kelola user/PIC/password, impersonate.
+- **F LAYOUT GUDANG 2D** (kanvas, ringan tanpa GPU).
+- **G SISTEM**: dashboard admin, log aktivitas, laporan + ekspor CSV aman, pengaturan (logo, font), backup VACUUM INTO, hapus massal (backup dulu), diagnostik/health/live monitor, update dari web, notifikasi realtime + suara.
+- **H IMPOR multi-box Excel PIC**.
+- **I OPS**: folder klien `desktop/` (Tauri) + workflow build, START-CLIENT-WORKSTATION, R18 STOP→START, runbook.
+- **J Verifikasi menyeluruh**: audit security (0 critical/high), uji beban k6 modul nyata, parity, uji browser semua role, ukuran file.
+- **K Rencana cutover** (tanpa deploy): salin DB & file upload, bersihkan data uji, panduan.
