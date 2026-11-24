@@ -5,6 +5,14 @@ color 0B
 cls
 
 cd /d "%~dp0"
+
+:: Gunakan PHP portable dari folder evironment jika tersedia
+set "PORTABLE_PHP="
+for /d %%d in ("%~dp0evironment\php*") do if exist "%%d\php.exe" set "PORTABLE_PHP=%%d"
+if defined PORTABLE_PHP (
+    set "PATH=!PORTABLE_PHP!;!PATH!"
+    set "PHPRC=!PORTABLE_PHP!"
+)
 set "LOG_FILE=%~dp0storage\logs\git-update.log"
 if not exist "%~dp0storage\logs" mkdir "%~dp0storage\logs"
 

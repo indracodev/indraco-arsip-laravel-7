@@ -11,6 +11,7 @@ echo.
 echo Menghentikan seluruh proses server DMS yang berjalan di port 8000...
 
 taskkill /fi "WINDOWTITLE eq DMS Indraco Server*" /f /t >nul 2>&1
+taskkill /fi "WINDOWTITLE eq DMS PT INDRACO - Desktop*" /f /t >nul 2>&1
 for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":8000" ^| findstr "LISTENING"') do (
     taskkill /f /pid %%a >nul 2>&1
 )

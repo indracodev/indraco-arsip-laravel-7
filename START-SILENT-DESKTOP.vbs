@@ -1,5 +1,15 @@
 Set WshShell = CreateObject("WScript.Shell")
-WshShell.CurrentDirectory = CreateObject("Scripting.FileSystemObject").GetParentFolderName(WScript.ScriptFullName)
+Set Fso = CreateObject("Scripting.FileSystemObject")
+ScriptDir = Fso.GetParentFolderName(WScript.ScriptFullName)
+WshShell.CurrentDirectory = ScriptDir
+
+' Gunakan PHP portable dari folder evironment jika tersedia
+PhpDir = ScriptDir & "\evironment\php-8.2.29-Win32-vs16-x64"
+If Fso.FileExists(PhpDir & "\php.exe") Then
+    Set ProcEnv = WshShell.Environment("PROCESS")
+    ProcEnv("PATH") = PhpDir & ";" & ProcEnv("PATH")
+    ProcEnv("PHPRC") = PhpDir
+End If
 
 ' Jalankan php artisan serve secara silent (tanpa pop up jendela hitam CMD)
 WshShell.Run "cmd /c php artisan serve --host=0.0.0.0 --port=8000", 0, False

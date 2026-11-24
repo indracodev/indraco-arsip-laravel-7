@@ -156,7 +156,7 @@ if exist "!FOUND_PHP!\php.ini" (
     powershell -NoProfile -Command "$ini = '!FOUND_PHP!\php.ini'; $c = Get-Content $ini; if ($c -match ';extension=openssl' -or $c -match ';extension_dir = \"ext\"') { $c = $c -replace ';extension_dir = \"ext\"', 'extension_dir = \"ext\"' -replace ';extension=curl', 'extension=curl' -replace ';extension=fileinfo', 'extension=fileinfo' -replace ';extension=mbstring', 'extension=mbstring' -replace ';extension=openssl', 'extension=openssl' -replace ';extension=pdo_sqlite', 'extension=pdo_sqlite' -replace ';extension=sqlite3', 'extension=sqlite3' -replace ';extension=zip', 'extension=zip' -replace ';extension=gd', 'extension=gd'; Set-Content $ini $c }" >nul 2>&1
 )
 
-for /f "tokens=1,2 delims= " %%a in ('php -v 2^>nul') do (
+for /f "tokens=1,2 delims= " %%a in ('php -v 2^>nul ^| findstr /b /r /c:"PHP [0-9]"') do (
     if not defined PHP_VERSION_INFO (
         set "PHP_VERSION_INFO=%%a %%b"
     )
@@ -193,8 +193,20 @@ if not exist "vendor\autoload.php" (
         echo [*] Menjalankan composer install untuk menginisialisasi dependensi...
         composer install --no-dev --optimize-autoloader
     ) else (
-        echo [PERHATIAN] Folder vendor belum tersedia dan perintah composer tidak ditemukan.
-        echo             Harap jalankan 'composer install' di direktori ini terlebih dahulu.
+        if not exist "%~dp0evironment\composer.phar" (
+            echo [*] Composer tidak ditemukan. Mengunduh composer.phar ke folder evironment...
+            if not exist "%~dp0evironment" mkdir "%~dp0evironment"
+            powershell -NoProfile -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; $ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri 'https://getcomposer.org/download/latest-stable/composer.phar' -OutFile '%~dp0evironment\composer.phar'"
+        )
+        if exist "%~dp0evironment\composer.phar" (
+            echo [*] Menjalankan composer install untuk menginisialisasi dependensi...
+            php "%~dp0evironment\composer.phar" install --no-dev --optimize-autoloader --no-interaction
+        )
+    )
+    if not exist "vendor\autoload.php" (
+        echo [ERROR] Folder vendor gagal disiapkan.
+        echo         Pastikan koneksi internet aktif saat pertama kali dijalankan,
+        echo         atau salin folder vendor dari PC lain ke direktori ini.
         pause
         exit /b 1
     )
