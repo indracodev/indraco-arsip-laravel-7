@@ -76,3 +76,27 @@ Temuan #1 dan #2 dicek ulang oleh koordinator: 32/32 akun cocok dengan password 
 | R25 | S | Uji modul sebelumnya hanya HTTP/curl; bug JS (R22) lolos. Aturan: modul dengan interaksi JS wajib diuji di browser oleh koordinator sebelum dianggap selesai | proses | workflow verify langkah 5 ditegaskan | proses | dicatat |
 | R26 | T | Tema default masih "ikut sistem": `prefs.setTheme(stored.theme)` dengan nilai kosong → system; di Windows mode gelap aplikasi tampil gelap | uji browser koordinator (localStorage kosong, OS gelap → data-theme=dark) | `stored.theme || 'light'` + tes | 4 | diperbaiki (uji browser: OS gelap → tema terang) |
 | R27 | T | **IDM (Internet Download Manager)** mencegat respons PDF di Chrome — termasuk pratinjau fetch+blob di modal — dan halaman menerima **204 kosong**; gudang tidak bisa melihat scan persetujuan. L7 sengaja mengirim pratinjau sebagai base64 JSON untuk menghindari IDM | uji browser koordinator: server log 200 193 B, browser 204; IDMan.exe berjalan | Pratinjau kembali ke base64 JSON (seperti L7) untuk file ≤ batas; unduhan tetap attachment biasa | 4 | diperbaiki: `files.preview_data` (base64 JSON, maks 5 MB, otorisasi sama); uji browser dengan IDM aktif: PDF tampil di modal |
+
+## Putaran C–I (2026-11-24) — ringkasan status
+Ditutup: #5 (semua: archives.show, bap, extend_print, api/departments/*, api/sub-departments/*), #6, #10, #11, #12, #14, #18, B2, B6, B7, B8, B9, B10, B12 (retensi), R18 (STOP aman, `dms-stop.ps1`). #9 dipertahankan: admin-only + konfirmasi + log + backup sebelum update.
+
+| # | Tingkat | Temuan | Status |
+|---|---|---|---|
+| R28 | T | Hapus user di L7 ikut menghapus arsip & log (ON DELETE CASCADE) | diperbaiki (E): hapus ditolak bila user punya data |
+| R29 | S | Edit departemen L7 mereset retensi ke 5 | diperbaiki (E) |
+| R30 | S | Hapus gudang menghapus rak & slot berisi box | diperbaiki (E) |
+| R31 | R | Assign PIC bisa menurunkan admin; impersonate admin lain | diperbaiki (E) |
+| R32 | R | `ArchiveFixtures` jalan dua kali (setUp<Trait> otomatis + manual) | terbuka (perapian) |
+| R33 | R | Pesan validasi bawaan berbahasa Inggris (L7 juga `en`) | terbuka (perapian: terjemahan id) |
+| R34 | S | Verifikasi/check-in L7 tidak cek status asal → klik ganda memproses dua kali | diperbaiki (D) |
+| R35 | S | ACC perpanjangan/pemusnahan L7 menerima status apa pun → perpanjang dua kali | diperbaiki (C) |
+| R36 | R | Perpanjangan L7 `addMonths` overflow (31 Okt + 1 bln → 31 Des) | diperbaiki (C) |
+| R37 | T | Impor multi-box L7 mempercayai JSON pratinjau dari browser (termasuk departemen) | diperbaiki (H): server parse ulang file |
+| R38 | R | Log History L7: filter modul tak pernah cocok; pencarian pemusnahan `orWhere` mengabaikan filter; laporan "Box Expired" selalu 0 | diperbaiki (G) |
+| R39 | T | Ping Caddy tanpa `Access-Control-Allow-Origin` → exe klien lama melihat server offline | diperbaiki (I), diuji: header ada setelah restart |
+| R40 | R | Klien Tauri memasukkan data rilis GitHub via innerHTML | diperbaiki di sumber (I), perlu build ulang exe |
+| R41 | R | `x-modal class=` menghasilkan dua atribut class (lebar modal tidak berlaku) | terbuka (perapian) |
+| R42 | R | Rak baru dari Master Gudang tidak punya slot (L7 via model booted) | sementara dibuat saat grid dibuka (F); perapian: panggil ensureSlots saat simpan |
+| R43 | R | Katalog yang terbuka tidak memuat ulang saat notifikasi masuk | terbuka (perapian) |
+| R44 | R | Tombol "Proses Pemusnahan" tampil untuk gudang tapi 403 (sama L7) | terbuka (perapian: sembunyikan) |
+
