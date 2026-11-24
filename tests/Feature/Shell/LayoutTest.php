@@ -3,6 +3,7 @@
 namespace Tests\Feature\Shell;
 
 use App\Models\User;
+use App\Support\Menu;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -65,6 +66,23 @@ class LayoutTest extends TestCase
         $response = $this->actingAs($this->user('pic_gudang'))->get('/')->assertOk();
 
         $this->assertSame(self::GUDANG_MENU, $this->menuLabels($response->getContent()));
+    }
+
+    public function test_top_menu_groups_keep_the_laravel7_labels_and_order(): void
+    {
+        $admin = $this->user('admin');
+        $groups = Menu::grouped($admin);
+
+        $this->assertSame(array_column(Menu::for($admin), 'label'), array_merge(...array_map(fn ($g) => array_column($g['items'], 'label'), $groups)));
+        $this->assertSame([null, 'Master', 'Arsip', 'Laporan & Sistem'], array_column($groups, 'label'));
+        $this->assertSame([null, null, null], array_column(Menu::grouped($this->user('pic_dept', 'HCS')), 'label'));
+
+        $html = $this->actingAs($admin)->get('/')->assertOk()->getContent();
+        $this->assertSame(3, substr_count($html, 'data-nav-group'));
+        $this->assertStringContainsString('aria-expanded="false" aria-controls="nav-group-1"', $html);
+        // Layout preference is applied in <head> before the stylesheets render.
+        $this->assertMatchesRegularExpression('/<head>.*js\/prefs\.js\?v=[0-9a-f]{10}"><\/script>.*<\/head>/s', $html);
+        $this->assertStringContainsString('Tata Letak Menu', $html);
     }
 
     public function test_pic_dept_home_opens_the_catalog(): void

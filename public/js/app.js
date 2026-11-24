@@ -29,7 +29,7 @@
         var target = document.querySelector('[data-shortcut="' + e.key + '"]');
         if (!target) { return; }
         var typing = /^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement && document.activeElement.tagName);
-        if (e.key === 'Escape' && typing) { return; }
+        if (e.key === 'Escape' && (typing || document.querySelector('[data-nav-group][aria-expanded="true"]'))) { return; }
         e.preventDefault();
         target.click();
     });
@@ -40,6 +40,27 @@
         if (!toggle) { return; }
         var input = document.getElementById(toggle.getAttribute('data-toggle-password'));
         if (input) { input.type = input.type === 'password' ? 'text' : 'password'; }
+    });
+
+    /* Top menu bar groups (keyboard accessible, no hover menus). */
+    function closeGroups(except) {
+        document.querySelectorAll('[data-nav-group][aria-expanded="true"]').forEach(function (button) {
+            if (button !== except) { button.setAttribute('aria-expanded', 'false'); }
+        });
+    }
+    document.addEventListener('click', function (e) {
+        var toggle = e.target.closest('[data-nav-group]');
+        if (toggle) {
+            closeGroups(toggle);
+            toggle.setAttribute('aria-expanded', toggle.getAttribute('aria-expanded') === 'true' ? 'false' : 'true');
+            return;
+        }
+        if (!e.target.closest('.nav__sub')) { closeGroups(null); }
+    });
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Escape') { return; }
+        var open = document.querySelector('[data-nav-group][aria-expanded="true"]');
+        if (open) { open.setAttribute('aria-expanded', 'false'); open.focus(); }
     });
 
     document.addEventListener('DOMContentLoaded', function () {
@@ -72,24 +93,36 @@
             };
         });
 
-        /* "Pengaturan Tampilan": font size per user (browser), Laravel 7 presets and 10-26px slider. */
-        window.Alpine.data('fontSize', function () {
+        /* "Pengaturan Tampilan" (per browser): font size (Laravel 7 presets, 10-26px slider)
+           and menu layout (side | top). Applied live, stored on "Simpan", reverted on close. */
+        window.Alpine.data('displaySettings', function () {
             var root = document.documentElement;
             var current = parseInt(root.style.fontSize || root.getAttribute('data-font-size'), 10) || 14;
+            var layout = root.getAttribute('data-layout') === 'top' ? 'top' : 'side';
             return {
                 size: current,
                 saved: current,
+                layout: layout,
+                savedLayout: layout,
                 presets: [[10, 'Mini'], [14, 'Kecil'], [19, 'Standar'], [21, 'Besar'], [23, 'X-Large']],
                 apply: function (px) {
                     this.size = Math.min(26, Math.max(10, parseInt(px, 10) || 14));
                     root.style.fontSize = this.size + 'px';
                 },
+                setLayout: function (value) {
+                    this.layout = value === 'top' ? 'top' : 'side';
+                    root.setAttribute('data-layout', this.layout);
+                },
                 save: function () {
                     this.saved = this.size;
-                    try { localStorage.setItem('app_font_size', this.size + 'px'); } catch (e) { /* storage blocked */ }
+                    this.savedLayout = this.layout;
+                    try {
+                        localStorage.setItem('app_font_size', this.size + 'px');
+                        localStorage.setItem('dms_layout', this.layout);
+                    } catch (e) { /* storage blocked */ }
                     window.dmsModal.close('settings-modal');
                 },
-                revert: function () { this.apply(this.saved); }
+                revert: function () { this.apply(this.saved); this.setLayout(this.savedLayout); }
             };
         });
     });

@@ -23,11 +23,16 @@ Status: dibangun (Fase 3) — menunggu ACC pemilik
 
 ## Shell (`resources/views/layouts/app.blade.php`)
 - Topbar: logo + nama dari `app_settings` (`App\Support\AppSettings`, 1 query/request via `once()`), tombol Baru (F2) untuk PIC, titik status LAN, nama + role, Pengaturan (ukuran font), Ganti Password, Logout.
-- Sidebar menu per role; < 1024px jadi drawer (Alpine `shell`), backdrop klik/Esc menutup.
+- Menu per role, dua tata letak (per browser, `localStorage['dms_layout']`, default `side`, diterapkan sebelum render oleh `public/js/prefs.js`): **side** = sidebar slate gelap; **top** = bar menu di bawah topbar dengan dropdown grup (admin: Dashboard Overview · Master [Master Departemen, Master Gudang & Rak, Layout Gudang 2D, Format Penomoran Box, Kelola User & Hak Akses] · Arsip [Katalog Arsip, Penarikan Berkas, Pemusnahan & Retensi] · Laporan & Sistem [Log History, Report, Live Monitor LAN & User]; gudang: Dashboard · Master [2] · Arsip [3]; PIC: 3 item sejajar). Grup = potongan berurutan dari urutan L7 (urutan item tetap). Dropdown: tombol `aria-expanded`, klik/Enter/Spasi, Esc menutup & mengembalikan fokus, klik di luar menutup; tanpa menu hover. < 1024px keduanya = drawer (Alpine `shell`).
 - Status LAN (`public/js/lan.js`): `GET /api/health/ping` (dijawab Caddy) tiap 5 dtk, timeout 4 dtk, berhenti saat tab tersembunyi; hijau/kuning (> `ping_alert_threshold_ms`)/merah "Terputus".
-- Ukuran font per user (ASK 13): sementara per browser di `localStorage['app_font_size']` (kunci sama dengan L7), preset 10/14/19/21/23 + slider 10–26 px, diterapkan sebelum render (`public/js/font-size.js`). Default = `app_settings.app_font_size`. Usulan migrasi kolom `users.font_size` ada di laporan Fase 3.
+- Ukuran font per user (ASK 13): sementara per browser di `localStorage['app_font_size']` (kunci sama dengan L7), preset 10/14/19/21/23 + slider 10–26 px, diterapkan sebelum render (`public/js/prefs.js`). Default = `app_settings.app_font_size`. Usulan migrasi kolom `users.font_size` ada di laporan Fase 3.
 - Flash `success|info|status|warning|error` → `<x-toast>`; modal konfirmasi tunggal `<x-confirm-modal>`.
 - Shortcut: `data-shortcut="F2"` (Baru), `data-shortcut="Escape"` (Kembali di form). F5 = refresh bawaan browser.
+
+## Pemanasan & view (temuan R14)
+- Windows: `view:cache` mengompilasi `resources\views\x.blade.php` sedangkan request mencari `resources\views/x.blade.php` → hash beda → setiap view dikompilasi ulang saat request pertama (0,8–4,3 dtk), dan worker paralel yang mengompilasi view yang sama bisa gagal `rename(): Access is denied` (HTTP 500, terlihat di log).
+- Perbaikan: `php artisan views:warm` (`App\Console\Commands\ViewsWarm`, ikut `optimize`) mengompilasi semua view dengan path dari view finder; `evironment/dms-ready.ps1` juga me-render `/login` di setiap worker (2 putaran × N paralel) sebelum SIAP.
+- Hasil (laptop 16 core, START setelah file berubah → optimize, 6 request paralel per halaman): `/login` 0,81–1,14 dtk → 0,022–0,036; `/archives` 0,06–4,30 → 0,07–0,12; `/archives/create` 2,56–2,60 → 0,05–0,08.
 
 ## Login (`auth/login.blade.php`, layout `guest`)
 Field/label sama dengan Fase 2/L7 (NAMA PENGGUNA / EMAIL, KATA SANDI / PASSWORD, tombol Login, Alt+E/Alt+P via `accesskey`, tombol lihat password). Email dinormalkan (trim + huruf kecil) sama dengan UNIQUE index (R4).
@@ -38,10 +43,10 @@ Field/label sama dengan Fase 2/L7 (NAMA PENGGUNA / EMAIL, KATA SANDI / PASSWORD,
 - Caddy: aset `?v=` di-cache 1 tahun `immutable`; `sw.js`, manifest, offline `no-cache`.
 
 ## File L13
-`app/Support/{Menu,AppSettings,Asset,StatusLabel,ArchiveExpiry}.php`, `app/Console/Commands/Assets{Cache,Clear}.php`, `app/Http/Controllers/{Dashboard,Placeholder,ArchiveCatalog,ArchiveCreateMockup}Controller.php`, `app/Policies/ArchivePolicy.php`, `app/Services/ArchiveCatalog.php`, `resources/views/layouts/{app,guest}.blade.php`, `layouts/partials/{head-assets,settings-modal}.blade.php`, `placeholder.blade.php`, `public/js/*`, `public/{sw.js,offline.html,manifest.webmanifest}`, `public/images/{logo-indraco,icon-192,icon-512}.png`.
+`app/Support/{Menu,AppSettings,Asset,StatusLabel,ArchiveExpiry}.php`, `app/Console/Commands/Assets{Cache,Clear}.php`, `app/Http/Controllers/{Dashboard,Placeholder,ArchiveCatalog,ArchiveCreateMockup}Controller.php`, `app/Policies/ArchivePolicy.php`, `app/Services/ArchiveCatalog.php`, `resources/views/layouts/{app,guest}.blade.php`, `layouts/partials/{head-assets,menu,settings-modal}.blade.php`, `app/Console/Commands/ViewsWarm.php`, `placeholder.blade.php`, `public/js/*`, `public/{sw.js,offline.html,manifest.webmanifest}`, `public/images/{logo-indraco,icon-192,icon-512}.png`.
 
 ## Tes
-`tests/Feature/Shell/LayoutTest.php` (menu per role & urutan, role check placeholder, confirm modal, aset lokal ber-versi, tanpa @vite, login/ganti password), `tests/Feature/Shell/AssetsTest.php` (hash versi + manifest, bundle CSS ter-commit mutakhir, CSS tanpa fitur terlarang, budget), `tests/Feature/Archive/CatalogTest.php` (scoping dept/IDOR, kolom & label L7, filter, DOM ≤ 1.500 untuk 50 baris, komposisi mockup form).
+`tests/Feature/Shell/LayoutTest.php` (menu per role & urutan, role check placeholder, confirm modal, aset lokal ber-versi, tanpa @vite, login/ganti password), `tests/Feature/Shell/AssetsTest.php` (hash versi + manifest, bundle CSS ter-commit mutakhir, CSS tanpa fitur terlarang, budget), `tests/Feature/Shell/ViewsWarmTest.php`, `tests/Unit/ContrastTest.php` (WCAG AA token), `tests/Feature/Archive/CatalogTest.php` (scoping dept/IDOR, kolom & label L7, filter, DOM ≤ 1.500 untuk 50 baris, komposisi mockup form).
 
 ## Sisa pekerjaan
 - Badge jumlah di menu (pending verifikasi, penarikan, Form 3), notifikasi realtime, pencarian header (Ctrl+F), popup jatuh tempo: dibangun bersama modulnya (Fase 4).

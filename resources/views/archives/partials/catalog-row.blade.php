@@ -22,7 +22,7 @@
     $files = $archive->fileCount();
 @endphp
 <tr @class(['table__row--'.$tone => $tone])>
-    <td data-label=""><input type="checkbox" value="{{ $archive->id }}" aria-label="Pilih {{ $archive->title }}"></td>
+    <td data-label="" class="table__select"><input type="checkbox" value="{{ $archive->id }}" aria-label="Pilih {{ $archive->title }}"></td>
     <td data-label="NO. BOX ARSIP" class="table__nowrap mono">
         @if ($marker)<span class="badge badge--{{ $tone }}">{{ $marker }}</span>@endif
         @if ($archive->box_number)
@@ -31,7 +31,7 @@
             <span class="text-muted">- Belum ada box code -</span>
         @endif
     </td>
-    <td data-label="JUDUL BERKAS & DEPT">
+    <td data-label="JUDUL BERKAS & DEPT" class="table__wide">
         <a class="table__title" href="{{ route('archives.show', $archive) }}">{{ $archive->title }}</a>
             @if ($hasRevision)
                 <p class="table__note"><strong>Catatan Revisi Gudang:</strong> {{ $archive->rejection_note }}</p>

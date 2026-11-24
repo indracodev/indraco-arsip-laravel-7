@@ -1,35 +1,51 @@
 /* Design tokens. Colours and sizes are only used through these variables
    (rules/50-frontend-blade.md). Sizes are in rem so the per-user font size
-   (html font-size, default 14px) scales the whole UI. */
+   (html font-size, default 14px) scales the whole UI.
+   Every text/background pair is checked for WCAG AA by tests/Unit/ContrastTest.php. */
 :root {
-    /* Neutral */
-    --color-bg: #f4f5f7;
-    --color-surface: #ffffff;
-    --color-surface-alt: #f8f9fb;
-    --color-hover: #eef1f5;
-    --color-border: #dcdfe5;
-    --color-border-strong: #c4c9d2;
-    --color-text: #1f2633;
-    --color-text-muted: #5a6372;
-    --color-text-subtle: #8a92a0;
-    --color-overlay: rgba(15, 23, 42, 0.45);
+    /* Neutral (slate tint; no pure white page) */
+    --color-bg: #e7eaee;
+    --color-surface: #fcfcfd;
+    --color-surface-alt: #f2f4f6;
+    --color-hover: #e5e8ec;
+    --color-border: #d3d7dd;
+    --color-border-strong: #79828f;   /* control borders: >= 3:1 on surface */
+    --color-text: #1c222b;
+    --color-text-muted: #49515d;
+    --color-text-subtle: #5d6571;     /* placeholders: still >= 4.5:1 */
+    --color-overlay: rgba(20, 25, 32, 0.5);
 
-    /* Accent (navy) */
-    --color-accent: #1e3a6b;
-    --color-accent-hover: #162c52;
-    --color-accent-soft: #e7ecf5;
+    /* Brand: dark slate (primary, owner choice) + logo orange #fd4f00 (secondary, indicators only) */
+    --color-accent: #262f3b;
+    --color-accent-hover: #1a2029;
+    --color-accent-soft: #e3e6eb;
     --color-on-accent: #ffffff;
-    --color-focus: #3b6fd4;
+    --color-brand: #fd4f00;
+    --color-focus: #e04600;          /* logo orange, one step darker: >= 3:1 on bg, surface and nav */
+
+    /* Navigation (sidebar / top menu bar): dark slate */
+    --color-nav-bg: #222a35;
+    --color-nav-hover: #2d3643;
+    --color-nav-active: #36404e;
+    --color-nav-text: #e6e9ed;
+    --color-nav-text-muted: #aab2bd;
+    --color-nav-border: #3a4452;
 
     /* Status: only for status meaning */
     --color-success: #166534;
-    --color-success-soft: #e6f4ea;
-    --color-warning: #92600a;
-    --color-warning-soft: #fdf3dc;
+    --color-success-soft: #e3f2e7;
+    --color-warning: #8a5a00;
+    --color-warning-soft: #fbf0d6;
     --color-danger: #b42318;
-    --color-danger-soft: #fdecea;
+    --color-danger-soft: #fbe9e7;
     --color-info: #1d4ed8;
-    --color-info-soft: #e8effd;
+    --color-info-soft: #e5ecfc;
+
+    /* Ambient page background: one static gradient pair in brand tints (no animation,
+       no background-attachment: fixed, no blur). */
+    --ambient:
+        radial-gradient(ellipse 70% 55% at 0% 0%, rgba(38, 47, 59, 0.09), rgba(38, 47, 59, 0) 70%),
+        radial-gradient(ellipse 60% 50% at 100% 100%, rgba(253, 79, 0, 0.045), rgba(253, 79, 0, 0) 70%);
 
     /* Spacing */
     --space-1: 0.2857rem;  /* 4px */
@@ -58,13 +74,14 @@
     --weight-bold: 600;
     --line: 1.45;
 
-    /* Controls & layout */
+    /* Controls and layout */
     --size-control: 2.5714rem;     /* 36px */
     --size-control-sm: 2rem;       /* 28px */
     --size-topbar: 3.4286rem;      /* 48px */
+    --size-topnav: 2.8571rem;      /* 40px */
     --size-sidebar: 16rem;
-    --shadow-1: 0 1px 2px rgba(15, 23, 42, 0.08);
-    --shadow-modal: 0 4px 16px rgba(15, 23, 42, 0.18);
+    --shadow-1: 0 1px 2px rgba(20, 25, 32, 0.07);
+    --shadow-modal: 0 4px 16px rgba(20, 25, 32, 0.18);
     --duration: 120ms;
 
     --z-topbar: 20;

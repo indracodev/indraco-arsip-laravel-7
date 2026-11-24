@@ -21,6 +21,8 @@ globs: resources/views/**, resources/css/**, resources/js/**, public/**
 - **Ringan untuk PC klien low-spec** (RAM 4–8 GB, dual-core atau lebih lemah, **tanpa GPU** → browser merender grafis dengan CPU):
   - HTML dirender server; Alpine hanya untuk interaksi kecil. Tidak ada iframe (L7 memakai MDI iframe yang memuat ulang aset di setiap jendela).
   - **Dilarang**: `backdrop-filter`/blur, shadow besar/berlapis, gradient besar, animasi/transisi selain opacity/transform singkat (≤ 150 ms), elemen `position: fixed` bertumpuk, video/GIF dekoratif.
+  - Pengecualian: **satu gradien ambient statis pada latar halaman** (`--ambient` di `body`: maks. 2 `radial-gradient` warna token dengan opasitas ≤ 10%), tanpa animasi, tanpa `background-attachment: fixed`, tanpa blur/backdrop-filter, tanpa pseudo-element/lapisan tambahan per kartu atau komponen. Gradien lain tetap dilarang.
+  - Warna: primer **slate gelap** `#262f3b`, aksen **oranye logo** `#fd4f00` hanya untuk penanda menu aktif/garis atas/sorotan kecil, fokus `#e04600`; netral bernuansa slate. Semua pasangan token wajib WCAG AA (dijaga `tests/Unit/ContrastTest.php`).
   - Font sistem (`system-ui, Segoe UI, ...`), tanpa web font. Ikon SVG kecil, hanya yang dipakai.
   - Anggaran per halaman: JS ≤ 150 KB, CSS ≤ 60 KB (gzip), total transfer awal ≤ 300 KB, elemen DOM ≤ 1.500, tabel maksimal 50 baris per halaman (pagination).
   - Polling (widget LAN ping) berhenti saat tab tidak terlihat (`visibilitychange`), interval ≥ 5 dtk; tidak ada polling lain di halaman biasa.

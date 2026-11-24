@@ -1,15 +1,15 @@
 {{--
-    Application shell (replaces the Laravel 7 MDI "Delphi" windows, ASK 1): top bar + sidebar
-    menu per role (App\Support\Menu) + page. Pages: @extends('layouts.app'), @section('title'), @section('content').
+    Application shell (replaces the Laravel 7 MDI "Delphi" windows, ASK 1): top bar + menu per
+    role (App\Support\Menu) as left sidebar or top menu bar (html[data-layout], set by js/prefs.js)
+    + page. Pages: @extends('layouts.app'), @section('title'), @section('content').
 --}}
 @php
     /** @var \App\Models\User $user */
     $user = auth()->user();
     $appName = \App\Support\AppSettings::get('app_name');
-    $menu = \App\Support\Menu::for($user);
 @endphp
 <!DOCTYPE html>
-<html lang="id" data-font-size="{{ \App\Support\AppSettings::get('app_font_size') }}">
+<html lang="id" data-layout="side" data-font-size="{{ \App\Support\AppSettings::get('app_font_size') }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -50,15 +50,7 @@
         </div>
     </header>
 
-    <nav class="sidebar" id="sidebar" aria-label="Menu utama">
-        <ul class="nav">
-            @foreach ($menu as $item)
-                {{-- "archives.index" stays highlighted on the other archives.* pages. --}}
-                @php($active = request()->routeIs($item['route'], str_ends_with($item['route'], '.index') ? substr($item['route'], 0, -5).'*' : $item['route']))
-                <li><a href="{{ route($item['route']) }}" @class(['nav__link', 'is-active' => $active]) @if ($active) aria-current="page" @endif>{{ $item['label'] }}</a></li>
-            @endforeach
-        </ul>
-    </nav>
+    @include('layouts.partials.menu', ['groups' => \App\Support\Menu::grouped($user)])
     <div class="backdrop" @click="closeDrawer()"></div>
 
     <main class="main" id="main">

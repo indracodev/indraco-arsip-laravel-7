@@ -16,7 +16,7 @@ use App\Models\User;
 final class Menu
 {
     /**
-     * @return list<array{route: string, label: string}>
+     * @return list<array{route: string, label: string, group?: string}>
      */
     public static function for(User $user): array
     {
@@ -34,18 +34,41 @@ final class Menu
 
         return array_values(array_filter([
             ['route' => 'dashboard', 'label' => 'Dashboard Overview'],
-            $admin ? ['route' => 'master.departments', 'label' => 'Master Departemen'] : null,
-            ['route' => 'master.warehouses', 'label' => 'Master Gudang & Rak'],
-            ['route' => 'master.warehouses.layout', 'label' => 'Layout Gudang 2D'],
-            $admin ? ['route' => 'master.numbering', 'label' => 'Format Penomoran Box'] : null,
-            $admin ? ['route' => 'master.users', 'label' => 'Kelola User & Hak Akses'] : null,
-            ['route' => 'archives.index', 'label' => 'Katalog Arsip'],
-            ['route' => 'borrowings.index', 'label' => 'Penarikan Berkas'],
-            ['route' => 'destructions.index', 'label' => 'Pemusnahan & Retensi'],
-            $admin ? ['route' => 'logs.index', 'label' => 'Log History'] : null,
-            $admin ? ['route' => 'reports.index', 'label' => 'Report'] : null,
-            $admin ? ['route' => 'diagnostics.index', 'label' => 'Live Monitor LAN & User'] : null,
+            $admin ? ['route' => 'master.departments', 'label' => 'Master Departemen', 'group' => 'Master'] : null,
+            ['route' => 'master.warehouses', 'label' => 'Master Gudang & Rak', 'group' => 'Master'],
+            ['route' => 'master.warehouses.layout', 'label' => 'Layout Gudang 2D', 'group' => 'Master'],
+            $admin ? ['route' => 'master.numbering', 'label' => 'Format Penomoran Box', 'group' => 'Master'] : null,
+            $admin ? ['route' => 'master.users', 'label' => 'Kelola User & Hak Akses', 'group' => 'Master'] : null,
+            ['route' => 'archives.index', 'label' => 'Katalog Arsip', 'group' => 'Arsip'],
+            ['route' => 'borrowings.index', 'label' => 'Penarikan Berkas', 'group' => 'Arsip'],
+            ['route' => 'destructions.index', 'label' => 'Pemusnahan & Retensi', 'group' => 'Arsip'],
+            $admin ? ['route' => 'logs.index', 'label' => 'Log History', 'group' => 'Laporan & Sistem'] : null,
+            $admin ? ['route' => 'reports.index', 'label' => 'Report', 'group' => 'Laporan & Sistem'] : null,
+            $admin ? ['route' => 'diagnostics.index', 'label' => 'Live Monitor LAN & User', 'group' => 'Laporan & Sistem'] : null,
         ]));
+    }
+
+    /**
+     * The same items cut into consecutive groups for the top menu layout (dropdowns).
+     * The groups follow the Laravel 7 order, so flattening gives back exactly self::for().
+     * PIC Departemen items have no group (3 items inline).
+     *
+     * @return list<array{label: string|null, items: list<array{route: string, label: string, group?: string}>}>
+     */
+    public static function grouped(User $user): array
+    {
+        $groups = [];
+        foreach (self::for($user) as $item) {
+            $label = $item['group'] ?? null;
+            $last = array_key_last($groups);
+            if ($label !== null && $last !== null && $groups[$last]['label'] === $label) {
+                $groups[$last]['items'][] = $item;
+            } else {
+                $groups[] = ['label' => $label, 'items' => [$item]];
+            }
+        }
+
+        return $groups;
     }
 
     /** Label of the menu entry for a route (the placeholder page title). */

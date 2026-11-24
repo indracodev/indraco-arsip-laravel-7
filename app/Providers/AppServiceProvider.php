@@ -20,6 +20,8 @@ class AppServiceProvider extends ServiceProvider
     {
         // Asset versions (App\Support\Asset) are cached with `optimize`, cleared with `optimize:clear`.
         $this->optimizes(optimize: 'assets:cache', clear: 'assets:clear', key: 'assets');
+        // Windows: view:cache hashes other paths than requests do (finding R14).
+        $this->optimizes(optimize: 'views:warm', key: 'views-warm');
 
         Model::preventLazyLoading(! $this->app->isProduction());
 

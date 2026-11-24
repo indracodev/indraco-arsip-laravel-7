@@ -32,6 +32,16 @@ while ($sw.Elapsed.TotalSeconds -lt $TimeoutSec) {
     Start-Sleep -Milliseconds 250
 }
 
+# R14: also render a real page on every worker (session, Blade views, settings query), so
+# the first user does not pay for cold OPcache / view compilation. 2 rounds of N parallel
+# requests: a busy worker is skipped by Caddy, so each round reaches every worker.
+if ($pids.Count -gt 0) {
+    foreach ($round in 1..2) {
+        $tasks = @(1..$Workers | ForEach-Object { $client.GetStringAsync("$Url/login") })
+        try { [Threading.Tasks.Task]::WaitAll($tasks) } catch { }
+    }
+}
+
 $secs = '{0:N1}' -f $sw.Elapsed.TotalSeconds
 if ($pids.Count -eq 0) {
     Add-Content $log ("{0:HH:mm:ss,ff} GAGAL: PHP tidak merespons dalam {1} dtk" -f (Get-Date), $TimeoutSec)

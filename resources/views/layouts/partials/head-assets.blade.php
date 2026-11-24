@@ -4,8 +4,8 @@
 @endforeach
 <link rel="icon" type="image/png" href="{{ \App\Support\Asset::url('images/icon-192.png') }}">
 <link rel="manifest" href="{{ asset('manifest.webmanifest') }}">
-<meta name="theme-color" content="#1e3a6b">
-<script src="{{ \App\Support\Asset::url('js/font-size.js') }}"></script>
+<meta name="theme-color" content="#262f3b">
+<script src="{{ \App\Support\Asset::url('js/prefs.js') }}"></script>
 <script src="{{ \App\Support\Asset::url('js/modal.js') }}" defer></script>
 <script src="{{ \App\Support\Asset::url('js/app.js') }}" defer></script>
 @stack('scripts')

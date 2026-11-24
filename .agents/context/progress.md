@@ -5,7 +5,7 @@
 - [x] Fase 0: inventaris PIC Departemen + triage seluruh project — **ACC pemilik** (ASK diputuskan, lihat decisions)
 - [x] Fase 1: fondasi Laravel 13 + runtime portable + uji beban — selesai & diverifikasi koordinator (commit a4f3abf) — **ACC pemilik 2026-11-24**
 - [x] Fase 2: skema baseline (identik L7), 17 model, seeder instalasi baru, AUTH (UI sementara), Laravel Boost — diverifikasi koordinator + uji browser — **ACC pemilik 2026-11-24**
-- [x] Fase 3: design system CSS murni, shell/menu per role, login & ganti password, PWA dasar, mockup Katalog (data nyata) + Form Pengajuan (statis), R4, R8 — diverifikasi koordinator + uji browser (tangkapan layar di `context/mockup-fase-3/`), **menunggu review mockup & ACC pemilik**; temuan R14–R16 diperbaiki bersama masukan pemilik
+- [x] Fase 3: design system CSS murni, shell/menu per role, login & ganti password, PWA dasar, mockup Katalog (data nyata) + Form Pengajuan (statis), R4, R8 — diverifikasi koordinator + uji browser (tangkapan layar di `context/mockup-fase-3/`), revisi warna slate + ambient + 2 layout menu + R14–R16 selesai (uji browser koordinator, tangkapan 06–09), **menunggu pilihan layout & ACC pemilik**; R19 kecil menyusul
 - [ ] Fase 4: modul PIC Departemen (STOP per modul)
 - [ ] Fase 5: modul PIC Gudang dan Admin (STOP per modul)
 - [ ] Fase 6: verifikasi menyeluruh (security, performance, parity)

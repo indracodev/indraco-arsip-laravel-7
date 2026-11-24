@@ -243,15 +243,42 @@ select.control {
 .table__title { font-weight: var(--weight-bold); color: var(--color-text); }
 .table__meta { display: flex; flex-wrap: wrap; gap: var(--space-1); margin-top: 2px; font-size: var(--text-xs); color: var(--color-text-muted); }
 .table__note { margin-top: var(--space-1); padding: var(--space-1) var(--space-2); border-radius: var(--radius-sm); background: var(--color-danger-soft); color: var(--color-danger); font-size: var(--text-xs); }
-@media (max-width: 767.98px) {
+/* Card mode below 1024px: a 10-column table cannot fit 768-1023px without hiding the actions
+   behind a horizontal scroll (finding R15). Each row becomes a card; the cell label sits in the
+   left column and the cell content stacks in the right one, so tags go under the title (R16).
+   768-1023px: cells in two columns; title and actions span the card. */
+@media (max-width: 1023.98px) {
     .table-wrap { border: 0; background: transparent; overflow: visible; }
     .table--cards thead { display: none; }
-    .table--cards, .table--cards tbody, .table--cards tr, .table--cards td { display: block; width: 100%; }
-    .table--cards tr { margin-bottom: var(--space-3); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); }
-    .table--cards td { display: flex; gap: var(--space-3); text-align: left; }
-    .table--cards td::before { content: attr(data-label); flex: 0 0 38%; font-size: var(--text-xs); font-weight: var(--weight-bold); color: var(--color-text-muted); text-transform: uppercase; }
+    .table--cards, .table--cards tbody { display: block; width: 100%; }
+    .table--cards tr {
+        position: relative;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        margin-bottom: var(--space-3);
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-lg);
+    }
+    .table--cards td {
+        display: grid;
+        grid-template-columns: minmax(6.5rem, 34%) minmax(0, 1fr);
+        column-gap: var(--space-3);
+        align-items: start;
+        text-align: left;
+        white-space: normal;
+    }
+    .table--cards td > * { grid-column: 2; }
+    .table--cards td::before { content: attr(data-label); grid-column: 1; grid-row: 1 / span 20; font-size: var(--text-xs); font-weight: var(--weight-bold); color: var(--color-text-muted); text-transform: uppercase; }
+    .table--cards td[data-label=""] { display: block; }
     .table--cards td[data-label=""]::before { display: none; }
-    .table--cards .table__actions { justify-content: flex-end; }
+    .table--cards .table__select { position: absolute; top: 0; right: 0; border: 0; }
+    .table--cards .table__select + td { padding-right: var(--space-8); }
+    .table--cards .table__actions { text-align: right; border-bottom: 0; }
+}
+@media (min-width: 768px) and (max-width: 1023.98px) {
+    .table--cards tr { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .table--cards .table__wide, .table--cards .table__actions { grid-column: 1 / -1; }
 }
 
 /* textarea.css */

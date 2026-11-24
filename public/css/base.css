@@ -7,7 +7,10 @@ body {
     font-size: var(--text-base);
     line-height: var(--line);
     color: var(--color-text);
-    background: var(--color-bg);
+    min-height: 100vh;
+    /* The one ambient background (static: scrolls with the page, no fixed attachment). */
+    background: var(--ambient), var(--color-bg);
+    background-repeat: no-repeat;
 }
 h1, h2, h3, h4, p { margin: 0; }
 h1 { font-size: var(--text-xl); font-weight: var(--weight-bold); }
