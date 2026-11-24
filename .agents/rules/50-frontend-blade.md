@@ -6,7 +6,15 @@ globs: resources/views/**, resources/css/**, resources/js/**, public/**
 # Front-end (Blade + Alpine.js + Tailwind 4)
 
 - **UX sama, tampilan baru.** Setiap halaman yang dibangun ulang punya langkah, isian (jumlah input, wajib/opsional, pilihan, default), aksi, dan pesan yang sama dengan Laravel 7 (lihat `context/triage.md` dan inventaris role).
-- **Ringan untuk PC low-spec:** HTML yang dirender server + Alpine seperlunya; tanpa animasi/transisi berat, tanpa shadow/blur berlapis, tanpa library besar. Halaman harus tetap responsif di PC kantor lama.
+- **Ringan untuk PC klien low-spec** (RAM 4–8 GB, dual-core atau lebih lemah, **tanpa GPU** → browser merender grafis dengan CPU):
+  - HTML dirender server; Alpine hanya untuk interaksi kecil. Tidak ada iframe (L7 memakai MDI iframe yang memuat ulang aset di setiap jendela).
+  - **Dilarang**: `backdrop-filter`/blur, shadow besar/berlapis, gradient besar, animasi/transisi selain opacity/transform singkat (≤ 150 ms), elemen `position: fixed` bertumpuk, video/GIF dekoratif.
+  - Font sistem (`system-ui, Segoe UI, ...`), tanpa web font. Ikon SVG kecil, hanya yang dipakai.
+  - Anggaran per halaman: JS ≤ 150 KB, CSS ≤ 60 KB (gzip), total transfer awal ≤ 300 KB, elemen DOM ≤ 1.500, tabel maksimal 50 baris per halaman (pagination).
+  - Polling (widget LAN ping) berhenti saat tab tidak terlihat (`visibilitychange`), interval ≥ 5 dtk; tidak ada polling lain di halaman biasa.
+  - Gambar/scan: thumbnail kecil atau ikon di daftar; file asli hanya saat dibuka. `loading="lazy"`.
+  - Pencarian/filter dikirim ke server (debounce ≥ 300 ms), bukan menyaring ribuan baris di browser.
+  - Uji di browser dengan CPU throttling 4× (Chrome DevTools) dan lebar 1366 px: interaksi (klik, buka modal, ketik) terasa < 200 ms.
 - Semua elemen UI lewat **Blade component** di `resources/views/components/`: button, input, select, textarea, checkbox, table, badge status, modal, modal konfirmasi, card, toast, empty-state, pagination. Tidak ada styling ad-hoc per halaman.
 - Palet: netral (abu) + satu aksen (navy) + warna status (hijau/kuning/merah/biru) **hanya** untuk status. Teks dasar 14px, kontrol 36px, tabel compact.
 - Teks minimal: label singkat; penjelasan panjang di tooltip/help, bukan paragraf di halaman.

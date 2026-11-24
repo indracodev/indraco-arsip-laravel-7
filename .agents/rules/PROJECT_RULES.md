@@ -7,7 +7,8 @@ trigger: always_on
 > **Status Dokumen**: Mandatory Technical Contract
 > **Target Audience**: AI Agents & Software Engineers
 > **Tujuan**: Mencegah regresi performa pada setiap fitur, controller, query, atau perubahan konfigurasi.
-> **Baseline Hardware (server)**: PC low-spec — RAM 4–8 GB, CPU dual-core atau lebih lemah (uji dengan 1 dan 2 core), **tanpa GPU**, Windows 10/11 64-bit, Offline LAN Host. Acuan lama: AMD A9 dual-core 8 GB. Klien: PC kantor low-spec.
+> **Baseline Hardware (server)**: PC low-spec — RAM 4–8 GB, CPU dual-core atau lebih lemah (uji dengan 1 dan 2 core), **tanpa GPU**, Windows 10/11 64-bit, Offline LAN Host. Acuan lama: AMD A9 dual-core 8 GB.
+> **Baseline Hardware (klien)**: sama low-spec — RAM 4–8 GB, dual-core atau lebih lemah, tanpa GPU (browser merender dengan CPU).
 > **Cara jalan**: cukup klik `START-DMS-INDRACO.bat` sekali; tanpa install apa pun.
 > **Versi**: diperbarui untuk rebuild Laravel 13 (branch `laravel-13-rebuild`). Versi Laravel 7 tetap ada di branch `danu-revisi-4`.
 
@@ -42,7 +43,8 @@ Aplikasi berjalan sebagai **Desktop Offline Server** di satu PC Windows dan mela
 | **Host Memory Ceiling** | **< 256 MB** per worker php-cgi; **total server ≤ 300 MB idle, ≤ 600 MB saat beban** (Caddy + semua php-cgi + pengawas) | diukur dengan WorkingSet/Private bytes |
 | **Host CPU Ceiling** | **< 15%** saat idle di dual-core | idle ~0–2% (tanpa polling sibuk) |
 | **Uji low-spec** | Semua target di atas diuji dengan CPU dibatasi **1 core dan 2 core** (affinity) | jumlah worker default dipilih dari hasil 2 core |
-| **Aset awal halaman** (gzip) | JS < 150 KB, CSS < 60 KB | halaman role departemen |
+| **Aset awal halaman** (gzip) | JS < 150 KB, CSS < 60 KB, total transfer awal < 300 KB | setiap halaman |
+| **Klien low-spec** (RAM 4–8 GB, ≤ 2 core, tanpa GPU) | DOM ≤ 1.500 elemen; interaksi < 200 ms; tanpa blur/backdrop-filter/animasi berat; polling berhenti saat tab tersembunyi | Chrome CPU throttling 4×, lebar 1366 px |
 
 ### 1.2. The Zero-Regression Rule
 Setiap fitur baru **DILARANG** menaikkan latency endpoint yang sudah ada atau membebani CPU host secara kontinu.
