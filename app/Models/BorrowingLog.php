@@ -8,6 +8,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * Penarikan (withdrawal) request. `status` and `approval_status` are not fillable:
  * transitions are set explicitly by Actions.
+ *
+ * @property int $id
+ * @property string $status
+ * @property string|null $approval_file
+ * @property string|null $scan_approval_borrow
+ * @property string|null $approval_notes
  */
 class BorrowingLog extends Model
 {

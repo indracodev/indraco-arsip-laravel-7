@@ -8,6 +8,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * A room (`location_type = room`) or rack on the 2D warehouse layout.
+ *
+ * @property int $id
+ * @property string $rack_code
+ * @property string|null $room_sector
  */
 class WarehouseLocation extends Model
 {

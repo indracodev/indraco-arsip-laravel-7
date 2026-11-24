@@ -1,0 +1,18 @@
+/* <x-pagination> */
+.pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); font-size: var(--text-sm); color: var(--color-text-muted); }
+.pagination__pages { display: flex; flex-wrap: wrap; gap: var(--space-1); margin: 0; padding: 0; list-style: none; }
+.pagination__link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: var(--size-control-sm);
+    height: var(--size-control-sm);
+    padding: 0 var(--space-2);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    background: var(--color-surface);
+    color: var(--color-text);
+}
+.pagination__link:hover { background: var(--color-hover); text-decoration: none; }
+.pagination__link.is-current { background: var(--color-accent); border-color: var(--color-accent); color: var(--color-on-accent); font-weight: var(--weight-bold); }
+.pagination__link.is-disabled { color: var(--color-text-subtle); pointer-events: none; }

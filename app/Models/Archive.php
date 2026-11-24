@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Carbon;
 
 /**
  * One archive box. Not fillable (set explicitly in Actions): `status`, `box_number`,
@@ -13,6 +16,30 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  *
  * `content_description` stays plain text: it is free text, and Laravel 7 stores a JSON
  * draft in it only for multi-box drafts (decoded where that draft is read).
+ * (Columns used by code are listed here: the baseline migration is raw SQL Larastan cannot read.)
+ *
+ * @property int $id
+ * @property int $department_id
+ * @property int|null $sub_department_id
+ * @property int $created_by_user_id
+ * @property string $title
+ * @property string $status
+ * @property string|null $box_number
+ * @property string|null $document_type
+ * @property string|null $periode
+ * @property string|null $periode_doc
+ * @property string|null $period_text
+ * @property Carbon|null $period_start_date
+ * @property Carbon|null $period_end_date
+ * @property Carbon|null $retention_expiry_date
+ * @property int|null $retention_years
+ * @property int|null $masa_simpan_custom
+ * @property string|null $physical_condition
+ * @property string|null $rejection_note
+ * @property string|null $file_path
+ * @property string|null $scan_input_form
+ * @property string|null $scan_approval_input
+ * @property string|null $scan_extension_form
  */
 class Archive extends Model
 {
@@ -43,6 +70,84 @@ class Archive extends Model
             'is_custom_doc_name' => 'boolean',
             're_store_snapshot' => 'array',
         ];
+    }
+
+    /**
+     * Archives a user may see in lists (IDOR rule): PIC Departemen only their own department;
+     * admin and PIC Gudang everything (Laravel 7 ArchiveController@index).
+     *
+     * @param  Builder<Archive>  $query
+     */
+    #[Scope]
+    protected function visibleTo(Builder $query, User $user): void
+    {
+        if ($user->role === User::ROLE_PIC_DEPT) {
+            $query->where('department_id', $user->department_id);
+        }
+    }
+
+    /** Laravel 7 effective_periode. */
+    public function effectivePeriode(): string
+    {
+        foreach ([$this->periode, $this->periode_doc, $this->period_text] as $text) {
+            if (! empty($text)) {
+                return (string) $text;
+            }
+        }
+        if ($this->period_start_date && $this->period_end_date) {
+            $start = $this->period_start_date->format('Y/m');
+            $end = $this->period_end_date->format('Y/m');
+
+            return $start === $end ? $start : "{$start} - {$end}";
+        }
+
+        return '-';
+    }
+
+    /** Laravel 7 display_location (needs location.warehouse and rackSlot loaded). */
+    public function displayLocation(): string
+    {
+        if (! $this->location) {
+            return 'Belum Ditentukan';
+        }
+        $warehouse = $this->location->warehouse ? trim($this->location->warehouse->name) : ($this->location->room_sector ?? 'Gudang');
+        $name = 'Gudang '.trim((string) preg_replace('/^(Gudang\s+)+/i', '', $warehouse));
+        if ($this->rackSlot) {
+            return $name.' - '.($this->rackSlot->slot_code ?: 'S'.$this->rackSlot->slot_number);
+        }
+
+        return "{$name} - {$this->location->rack_code}";
+    }
+
+    /** Laravel 7 retention_display. */
+    public function retentionDisplay(): string
+    {
+        if (preg_match('/^(\d+)\s*(?:bulan|bln)/i', trim((string) ($this->periode ?? $this->periode_doc ?? '')), $m)) {
+            $months = (int) $m[1];
+
+            return $months >= 12 && $months % 12 === 0 ? ($months / 12).' Thn' : $months.' Bulan';
+        }
+        foreach ([$this->masa_simpan_custom, $this->retention_years] as $years) {
+            if ((int) $years > 0) {
+                return $years.' Thn';
+            }
+        }
+
+        return '-';
+    }
+
+    /** Number of files attached to the box (Laravel 7 catalog column BERKAS; needs borrowingLogs). */
+    public function fileCount(): int
+    {
+        $paths = array_filter([$this->scan_input_form, $this->file_path, $this->scan_approval_input, $this->scan_extension_form]);
+        foreach ($this->borrowingLogs as $log) {
+            $borrowFile = $log->approval_file ?: $log->scan_approval_borrow;
+            if ($borrowFile && ! in_array($borrowFile, $paths, true)) {
+                return count($paths) + 1;
+            }
+        }
+
+        return count($paths);
     }
 
     /** @return BelongsTo<Department, $this> */

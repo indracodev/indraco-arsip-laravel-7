@@ -1,0 +1,73 @@
+{{--
+    Application shell (replaces the Laravel 7 MDI "Delphi" windows, ASK 1): top bar + sidebar
+    menu per role (App\Support\Menu) + page. Pages: @extends('layouts.app'), @section('title'), @section('content').
+--}}
+@php
+    /** @var \App\Models\User $user */
+    $user = auth()->user();
+    $appName = \App\Support\AppSettings::get('app_name');
+    $menu = \App\Support\Menu::for($user);
+@endphp
+<!DOCTYPE html>
+<html lang="id" data-font-size="{{ \App\Support\AppSettings::get('app_font_size') }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>@yield('title') - {{ $appName }}</title>
+    @include('layouts.partials.head-assets')
+    <script src="{{ \App\Support\Asset::url('js/lan.js') }}" defer></script>
+</head>
+<body x-data="shell" :class="{ 'is-drawer-open': drawer }" @keydown.escape.window="closeDrawer()">
+<div class="app">
+    <header class="topbar">
+        <x-button variant="ghost" class="btn--icon topbar__menu" @click="toggleDrawer()" aria-label="Menu" aria-controls="sidebar" ::aria-expanded="drawer"><x-icon name="menu" /></x-button>
+        <a href="{{ route('dashboard') }}" class="topbar__brand" title="{{ $appName }}">
+            <img class="topbar__logo" src="{{ asset(\App\Support\AppSettings::get('app_logo')) }}" alt="Logo {{ $appName }}" width="121" height="24">
+            <span class="topbar__name">{{ $appName }}</span>
+        </a>
+        @if ($user->role === \App\Models\User::ROLE_PIC_DEPT)
+            {{-- Laravel 7 PIC header button "Baru (F2)" opened "Draft Pengajuan Box Baru". --}}
+            <x-link-button :href="route('archives.create')" variant="primary" size="sm" data-shortcut="F2" title="Buka Form Draft Pengajuan Box Baru (F2)">
+                <x-icon name="plus" /><span class="hide-sm">Baru (F2)</span>
+            </x-link-button>
+        @endif
+        <span class="topbar__spacer"></span>
+        <span class="lan" data-lan data-threshold="{{ (int) \App\Support\AppSettings::get('ping_alert_threshold_ms', '500') }}" title="Koneksi server">
+            <span class="lan__dot"></span><span class="lan__text">LAN</span>
+        </span>
+        <span class="topbar__user">
+            <span class="topbar__user-name">{{ $user->name }}</span>
+            <span class="topbar__user-role">{{ $user->roleLabel() }}</span>
+        </span>
+        <div class="topbar__actions">
+            <x-button variant="ghost" class="btn--icon" data-modal-open="settings-modal" title="Pengaturan Tampilan" aria-label="Pengaturan Tampilan"><x-icon name="settings" /></x-button>
+            <x-link-button :href="route('profile.password')" variant="ghost" class="btn--icon" title="Ganti Password Saya" aria-label="Ganti Password Saya"><x-icon name="key" /></x-link-button>
+            <form method="POST" action="{{ route('logout') }}">
+                @csrf
+                <x-button type="submit" variant="ghost" class="btn--icon" title="Keluar / Logout" aria-label="Keluar / Logout"><x-icon name="logout" /></x-button>
+            </form>
+        </div>
+    </header>
+
+    <nav class="sidebar" id="sidebar" aria-label="Menu utama">
+        <ul class="nav">
+            @foreach ($menu as $item)
+                {{-- "archives.index" stays highlighted on the other archives.* pages. --}}
+                @php($active = request()->routeIs($item['route'], str_ends_with($item['route'], '.index') ? substr($item['route'], 0, -5).'*' : $item['route']))
+                <li><a href="{{ route($item['route']) }}" @class(['nav__link', 'is-active' => $active]) @if ($active) aria-current="page" @endif>{{ $item['label'] }}</a></li>
+            @endforeach
+        </ul>
+    </nav>
+    <div class="backdrop" @click="closeDrawer()"></div>
+
+    <main class="main" id="main">
+        @yield('content')
+    </main>
+</div>
+
+<x-toast />
+<x-confirm-modal />
+@include('layouts.partials.settings-modal')
+</body>
+</html>

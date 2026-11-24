@@ -23,6 +23,7 @@
         <env name="APP_CONFIG_CACHE" value="bootstrap/cache/testing-config.php"/>
         <env name="APP_ROUTES_CACHE" value="bootstrap/cache/testing-routes.php"/>
         <env name="APP_EVENTS_CACHE" value="bootstrap/cache/testing-events.php"/>
+        <env name="APP_ASSETS_CACHE" value="bootstrap/cache/testing-assets.php"/>
         <env name="APP_ENV" value="testing"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>

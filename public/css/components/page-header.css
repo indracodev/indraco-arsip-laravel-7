@@ -1,0 +1,4 @@
+/* <x-page-header>: title + subtitle + actions */
+.page-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.page-header__subtitle { margin-top: 2px; font-size: var(--text-sm); color: var(--color-text-muted); }
+.page-header__actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }

@@ -8,7 +8,7 @@ description: Design system UI baru DMS Indraco (Blade component + Alpine + CSS m
 Aturan: `.agents/rules/50-frontend-blade.md`, `PROJECT_RULES_LAN_FRONTEND_OPS.md` §6.
 
 ## Token (variabel CSS di `public/css/tokens.css`; aturan CSS di `rules/50-frontend-blade.md`)
-- Warna: netral `zinc`/`slate`, aksen `navy` (#0F172A), status: hijau=selesai/aktif, kuning=menunggu, merah=ditolak/dimusnahkan, biru=dipinjam/info. Tidak ada warna lain.
+- Warna: netral abu, aksen navy `--color-accent` (#1e3a6b), status: hijau=selesai/aktif, kuning=menunggu, merah=ditolak/dimusnahkan, biru=dipinjam/info. Tidak ada warna lain.
 - Teks 14px dasar, 12px meta; kontrol tinggi 36px; radius kecil; shadow tipis satu level; tanpa blur/gradient.
 
 ## Komponen (`resources/views/components/`)
@@ -29,5 +29,5 @@ Status → label/warna: satu peta di PHP (`App\Support\StatusLabel` atau enum) d
 
 ## Verifikasi
 - Uji browser di 360/768/1366 px; keyboard bisa mengoperasikan form dan modal; console bersih.
-- Ukuran build: JS < 150 KB, CSS < 60 KB (gzip).
+- Ukuran: JS < 150 KB, CSS < 60 KB (gzip); `tests/Feature/Shell/AssetsTest.php` mengecek fitur CSS terlarang dan bundle mutakhir.
 - Mockup halaman pertama disetujui pemilik sebelum komponen dipakai luas (Fase 3).

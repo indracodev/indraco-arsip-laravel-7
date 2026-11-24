@@ -59,3 +59,10 @@ tanggal | keputusan | alasan | disetujui oleh
 2026-11-24 | Fase 2 **ACC pemilik**; mulai Fase 3 | | pemilik
 2026-11-24 | R4: `users.email` dijadikan unik — cek duplikat dulu; bila ada duplikat, berhenti dan tanya pemilik (tidak dedupe otomatis); migrasi UNIQUE index + validasi berpasangan | login ambigu bila email ganda | pemilik (ikut saran)
 2026-11-24 | R8: instalasi baru memakai layout gudang **produksi** (gudang, lokasi rak, slot dari DB produksi, tanpa data arsip/booking) | sesuai kondisi gudang nyata | pemilik (ikut saran)
+2026-11-24 | Fase 3: UNIQUE `users.email` pada `lower(trim(email))` dan `app_settings.key` (0 duplikat); login menormalkan email (trim + huruf kecil) — sedikit berbeda dari L7 yang peka huruf besar | R4 | pemilik (ikut saran)
+2026-11-24 | Fase 3: seed instalasi baru memakai layout gudang produksi dari JSON (departemen dicocokkan lewat nama, slot dibangkitkan ulang, tanpa data arsip/booking) | R8 | pemilik (ikut saran)
+2026-11-24 | Fase 3: versi aset dari hash isi file; komponen CSS digabung ke `public/css/components.css` lewat `php artisan assets:cache` (bagian dari `optimize`); launcher optimize ulang bila `public/css`/`public/js` berubah | CSS murni tanpa build tool tapi tetap ≤ 4 `<link>` | Claude
+2026-11-24 | Fase 3: ukuran font per user disimpan per browser (`localStorage['app_font_size']`, kunci sama dengan L7); usulan berikutnya kolom `users.font_size` + endpoint agar ikut akun | belum ada kolom di DB lama | Claude — usulan migrasi menunggu pemilik
+2026-11-24 | Fase 3: Alpine.js 3.17.5 build standar (integritas npm dicek); ganti ke `@alpinejs/csp` saat CSP dipaksa (bukan Report-Only) | | Claude
+2026-11-24 | Fase 3: ganti password jadi halaman (`/profile/password`), PIC membuka `/` langsung ke katalog (L7 membuka [Form 1] lebih dulu); "Draft Pengajuan Box Baru" lewat tombol "Baru (F2)" di bar atas | UX setara L7 tanpa MDI | Claude
+2026-11-24 | Fase 3: tidak dibawa dari L7: dark mode, suara notifikasi | penyederhanaan UI | Claude — konfirmasi pemilik saat review mockup

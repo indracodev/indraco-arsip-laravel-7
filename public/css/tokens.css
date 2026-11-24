@@ -1,0 +1,74 @@
+/* Design tokens. Colours and sizes are only used through these variables
+   (rules/50-frontend-blade.md). Sizes are in rem so the per-user font size
+   (html font-size, default 14px) scales the whole UI. */
+:root {
+    /* Neutral */
+    --color-bg: #f4f5f7;
+    --color-surface: #ffffff;
+    --color-surface-alt: #f8f9fb;
+    --color-hover: #eef1f5;
+    --color-border: #dcdfe5;
+    --color-border-strong: #c4c9d2;
+    --color-text: #1f2633;
+    --color-text-muted: #5a6372;
+    --color-text-subtle: #8a92a0;
+    --color-overlay: rgba(15, 23, 42, 0.45);
+
+    /* Accent (navy) */
+    --color-accent: #1e3a6b;
+    --color-accent-hover: #162c52;
+    --color-accent-soft: #e7ecf5;
+    --color-on-accent: #ffffff;
+    --color-focus: #3b6fd4;
+
+    /* Status: only for status meaning */
+    --color-success: #166534;
+    --color-success-soft: #e6f4ea;
+    --color-warning: #92600a;
+    --color-warning-soft: #fdf3dc;
+    --color-danger: #b42318;
+    --color-danger-soft: #fdecea;
+    --color-info: #1d4ed8;
+    --color-info-soft: #e8effd;
+
+    /* Spacing */
+    --space-1: 0.2857rem;  /* 4px */
+    --space-2: 0.5714rem;  /* 8px */
+    --space-3: 0.8571rem;  /* 12px */
+    --space-4: 1.1429rem;  /* 16px */
+    --space-5: 1.4286rem;  /* 20px */
+    --space-6: 1.7143rem;  /* 24px */
+    --space-8: 2.2857rem;  /* 32px */
+
+    /* Radius */
+    --radius-sm: 4px;
+    --radius: 6px;
+    --radius-lg: 8px;
+    --radius-pill: 999px;
+
+    /* Type */
+    --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: ui-monospace, Consolas, "Liberation Mono", monospace;
+    --text-xs: 0.8571rem;  /* 12px */
+    --text-sm: 0.9286rem;  /* 13px */
+    --text-base: 1rem;     /* 14px */
+    --text-lg: 1.1429rem;  /* 16px */
+    --text-xl: 1.2857rem;  /* 18px */
+    --weight-medium: 500;
+    --weight-bold: 600;
+    --line: 1.45;
+
+    /* Controls & layout */
+    --size-control: 2.5714rem;     /* 36px */
+    --size-control-sm: 2rem;       /* 28px */
+    --size-topbar: 3.4286rem;      /* 48px */
+    --size-sidebar: 16rem;
+    --shadow-1: 0 1px 2px rgba(15, 23, 42, 0.08);
+    --shadow-modal: 0 4px 16px rgba(15, 23, 42, 0.18);
+    --duration: 120ms;
+
+    --z-topbar: 20;
+    --z-drawer: 30;
+    --z-modal: 40;
+    --z-toast: 50;
+}

@@ -52,6 +52,16 @@ class LoginTest extends TestCase
         $this->assertTrue(Hash::check('password', (string) DB::table('users')->where('id', $id)->value('password')));
     }
 
+    public function test_email_is_matched_with_the_unique_index_normalization(): void
+    {
+        $id = $this->legacyUser();
+
+        $this->post('/login', ['email' => '  FIN@Indraco.com ', 'password' => 'password'])->assertRedirect(route('dashboard'));
+
+        $this->assertAuthenticatedAs(User::findOrFail($id));
+        $this->assertSame('new@indraco.com', User::factory()->create(['email' => ' New@Indraco.COM'])->email);
+    }
+
     public function test_wrong_password_gives_a_generic_error_and_is_logged_without_the_password(): void
     {
         $this->legacyUser();

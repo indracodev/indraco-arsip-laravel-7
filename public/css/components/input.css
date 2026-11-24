@@ -1,0 +1,28 @@
+/* <x-input>; .control is shared by input, select and textarea */
+.control {
+    display: block;
+    width: 100%;
+    height: var(--size-control);
+    padding: 0 var(--space-3);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius);
+    background: var(--color-surface);
+    color: var(--color-text);
+}
+.control::placeholder { color: var(--color-text-subtle); }
+.control:focus { border-color: var(--color-focus); outline: none; box-shadow: 0 0 0 2px var(--color-accent-soft); }
+.control:disabled, .control[readonly] { background: var(--color-surface-alt); color: var(--color-text-muted); }
+.control.is-invalid { border-color: var(--color-danger); }
+.input-group { display: flex; }
+.input-group .control { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.input-group__addon {
+    display: flex;
+    align-items: center;
+    padding: 0 var(--space-3);
+    border: 1px solid var(--color-border-strong);
+    border-left: 0;
+    border-radius: 0 var(--radius) var(--radius) 0;
+    background: var(--color-surface-alt);
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+}

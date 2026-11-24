@@ -8,6 +8,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * One box position in a rack (5 levels x 20 boxes, codes like `B11`).
  * `status` is not fillable: set explicitly by Actions.
+ *
+ * @property int $id
+ * @property int $slot_number
+ * @property string $slot_code
+ * @property string $status
  */
 class WarehouseRackSlot extends Model
 {

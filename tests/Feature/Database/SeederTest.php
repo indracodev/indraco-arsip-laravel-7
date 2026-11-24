@@ -33,8 +33,27 @@ class SeederTest extends TestCase
         $this->assertSame(0, DB::table('archives')->count());
 
         $this->assertSame(['B1', 'B10', 'B11', 'B20', 'B100'], DB::table('warehouse_rack_slots')
-            ->where('warehouse_location_id', DB::table('warehouse_locations')->where('rack_code', 'RAK-R1-B')->value('id'))
+            ->where('warehouse_location_id', DB::table('warehouse_locations')->where('rack_code', 'R1-B')->value('id'))
             ->whereIn('slot_number', [1, 10, 11, 20, 100])->orderBy('slot_number')->pluck('slot_code')->all());
+    }
+
+    public function test_fresh_install_gets_the_production_warehouse_layout_without_bookings(): void
+    {
+        $finId = DB::table('departments')->where('name', 'FIN, ACC & TAX')->value('id');
+        $room = DB::table('warehouse_locations')->where('rack_code', 'GUDANG R1')->first();
+        $rack = DB::table('warehouse_locations')->where('rack_code', 'R1-B')->first();
+
+        $this->assertNotNull($room);
+        $this->assertNotNull($rack);
+        $this->assertSame([515, 49, 265, 234], [$room->canvas_x, $room->canvas_y, $room->canvas_width, $room->canvas_height]);
+        $this->assertSame($finId, $room->assigned_department_id);
+        $this->assertSame("[{$finId}]", $room->assigned_department_ids);
+        $this->assertSame('Gudang GUDANG R1', DB::table('warehouses')->where('id', $room->warehouse_id)->value('name'));
+        $this->assertSame($finId, $rack->assigned_department_id);
+        $this->assertSame('[]', DB::table('warehouse_locations')->where('rack_code', 'GUDANG R3')->value('assigned_department_ids'));
+        $this->assertSame(9, DB::table('warehouse_locations')->where('location_type', 'room')->count());
+        $this->assertSame(0, DB::table('warehouse_locations')->where(fn ($q) => $q->where('is_booked', 1)->orWhereNotNull('booked_by_user_id')->orWhere('current_box_count', '>', 0))->count());
+        $this->assertSame(0, DB::table('warehouse_rack_slots')->where(fn ($q) => $q->whereNotNull('archive_id')->orWhere('status', '<>', 'empty')->orWhere('is_active', 0))->count());
     }
 
     public function test_default_accounts_use_the_laravel7_default_password(): void

@@ -1,0 +1,30 @@
+/* <x-modal>, <x-confirm-modal>: one overlay, no blur. Shown by removing [hidden]. */
+.modal {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-modal);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 10vh var(--space-4) var(--space-4);
+    background: var(--color-overlay);
+    overflow-y: auto;
+}
+.modal__dialog {
+    width: 100%;
+    max-width: 32rem;
+    background: var(--color-surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-modal);
+}
+.modal__header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-4) var(--space-4) 0; }
+.modal__title { font-size: var(--text-lg); font-weight: var(--weight-bold); }
+.modal__body { padding: var(--space-4); }
+.modal__footer { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: var(--space-2); padding: 0 var(--space-4) var(--space-4); }
+.modal__icon { display: flex; align-items: center; justify-content: center; width: 2.2857rem; height: 2.2857rem; border-radius: var(--radius-pill); flex: none; }
+.modal--danger .modal__icon { background: var(--color-danger-soft); color: var(--color-danger); }
+.modal--warning .modal__icon { background: var(--color-warning-soft); color: var(--color-warning); }
+.modal--success .modal__icon { background: var(--color-success-soft); color: var(--color-success); }
+.modal--info .modal__icon { background: var(--color-info-soft); color: var(--color-info); }
+.modal__message { white-space: pre-line; color: var(--color-text-muted); }
+.modal-open { overflow: hidden; }

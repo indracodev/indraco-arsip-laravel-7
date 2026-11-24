@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Database;
 
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -16,6 +17,12 @@ use Tests\TestCase;
 class BaselineSchemaTest extends TestCase
 {
     use RefreshDatabase;
+
+    /** Indexes added after the baseline (R4); everything else is the Laravel 7 schema. */
+    private const R4_INDEXES = [
+        ['index', 'app_settings_key_unique', 'app_settings', 'CREATE UNIQUE INDEX "app_settings_key_unique" ON "app_settings" ("key")'],
+        ['index', 'users_email_unique', 'users', 'CREATE UNIQUE INDEX "users_email_unique" ON "users" (lower(trim("email")))'],
+    ];
 
     private ?string $legacyPath = null;
 
@@ -35,8 +42,8 @@ class BaselineSchemaTest extends TestCase
     {
         $actual = $this->normalizedSchema(DB::connection()->getPdo());
 
-        $this->assertCount(48, $actual, '17 tables + 31 indexes');
-        $this->assertSame($this->expectedSchema(), $actual);
+        $this->assertCount(50, $actual, '17 tables + 31 Laravel 7 indexes + 2 R4 indexes');
+        $this->assertSame($this->withR4($this->expectedSchema()), $actual);
     }
 
     public function test_migrate_on_an_existing_laravel7_database_changes_nothing(): void
@@ -51,9 +58,9 @@ class BaselineSchemaTest extends TestCase
         $exitCode = Artisan::call('migrate', ['--database' => 'legacy', '--force' => true]);
 
         $this->assertSame(0, $exitCode, Artisan::output());
-        $this->assertSame($schemaBefore, $this->normalizedSchema($pdo));
+        $this->assertSame($this->withR4($schemaBefore), $this->normalizedSchema($pdo));
         $migrations = $pdo->query('SELECT migration FROM migrations ORDER BY id')->fetchAll(PDO::FETCH_COLUMN);
-        $this->assertSame([...$this->fixture()['l7_migrations'], '0001_01_01_000000_baseline_dms_schema'], $migrations);
+        $this->assertSame([...$this->fixture()['l7_migrations'], '0001_01_01_000000_baseline_dms_schema', '2026_11_24_000001_add_unique_email_and_setting_key'], $migrations);
         unset($rowsBefore['migrations']);
         $rowsAfter = $this->tableDump($pdo);
         unset($rowsAfter['migrations']);
@@ -69,6 +76,39 @@ class BaselineSchemaTest extends TestCase
         $this->assertNotSame(0, $exitCode);
         $tables = $pdo->query("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name")->fetchAll(PDO::FETCH_COLUMN);
         $this->assertSame(['migrations', 'users'], $tables);
+    }
+
+    public function test_unique_email_migration_stops_on_duplicates_and_changes_nothing(): void
+    {
+        $pdo = $this->legacyDatabase();
+        $pdo->exec("INSERT INTO users (name, email, password, role) VALUES ('A', 'pic@indraco.com', 'x', 'admin'), ('B', ' PIC@Indraco.com', 'x', 'admin')");
+        $schemaBefore = $this->normalizedSchema($pdo);
+
+        $exitCode = rescue(fn () => Artisan::call('migrate', ['--database' => 'legacy', '--force' => true]), 1, false);
+
+        $this->assertNotSame(0, $exitCode);
+        $this->assertSame($schemaBefore, $this->normalizedSchema($pdo));
+        $this->assertSame(2, (int) $pdo->query('SELECT COUNT(*) FROM users')->fetchColumn());
+    }
+
+    public function test_unique_email_index_rejects_the_same_address_in_another_case(): void
+    {
+        DB::table('users')->insert(['name' => 'A', 'email' => 'pic@indraco.com', 'password' => 'x', 'role' => 'admin']);
+
+        $this->expectException(UniqueConstraintViolationException::class);
+        DB::table('users')->insert(['name' => 'B', 'email' => 'PIC@indraco.com ', 'password' => 'x', 'role' => 'admin']);
+    }
+
+    /**
+     * @param  list<array{0: string, 1: string, 2: string, 3: string}>  $schema
+     * @return list<array{0: string, 1: string, 2: string, 3: string}>
+     */
+    private function withR4(array $schema): array
+    {
+        $schema = [...$schema, ...self::R4_INDEXES];
+        usort($schema, fn (array $a, array $b): int => [$a[0], $a[1]] <=> [$b[0], $b[1]]);
+
+        return $schema;
     }
 
     /**

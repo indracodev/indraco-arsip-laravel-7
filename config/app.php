@@ -129,4 +129,7 @@ return [
 
     'slow_query_ms' => (int) env('DB_SLOW_QUERY_MS', 500),
 
+    // DMS: asset version manifest (App\Support\Asset); tests point it elsewhere.
+    'assets_cache' => env('APP_ASSETS_CACHE'),
+
 ];

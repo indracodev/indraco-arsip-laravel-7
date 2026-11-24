@@ -18,6 +18,9 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Asset versions (App\Support\Asset) are cached with `optimize`, cleared with `optimize:clear`.
+        $this->optimizes(optimize: 'assets:cache', clear: 'assets:clear', key: 'assets');
+
         Model::preventLazyLoading(! $this->app->isProduction());
 
         $slowMs = (int) config('app.slow_query_ms');

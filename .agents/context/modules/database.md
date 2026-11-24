@@ -46,7 +46,7 @@ Launcher: `migrate --force --seed` hanya jika `database.sqlite` baru dibuat; jik
 | SubDepartmentSeeder | 14 sub-departemen |
 | MasterArchiveSeeder | 17 type berkas (2 baris `FACTORY` dilewati seperti L7 — kode dept-nya `FCT`) |
 | UserSeeder | admin@indraco.com, gudang@indraco.com, 1 PIC per departemen (`<kode>@indraco.com`); password default L7 |
-| WarehouseLayoutSeeder | 9 gudang/ruang, 80 rak, 8.000 slot; `current_box_count` palsu L7 tidak dibawa (0) |
+| WarehouseLayoutSeeder | **layout produksi** (R8) dari `database/seeders/data/warehouse_layout.json`: 9 gudang, 9 ruang + 80 rak (kanvas, warna, departemen ditugaskan dicocokkan lewat **nama** departemen), 8.000 slot dibuat ulang (pola standar terverifikasi saat ekspor), kosong & aktif; tanpa arsip/booking/`current_box_count` |
 | DatabaseSeeder | memanggil di atas dalam 1 transaksi + 1 format penomoran (pola produksi `{COMPANY}/{DEPT}/{YEAR}/{COUNTER}`, counter 0) + 5 app_settings default L7 |
 Tidak dibawa: arsip/peminjaman/pemusnahan/entry contoh L7 (data uji), `UserSeeder` L7 (SQL MySQL), `SyncArchiveItemsSeeder`.
 
@@ -55,4 +55,8 @@ Tidak dibawa: arsip/peminjaman/pemusnahan/entry contoh L7 (data uji), `UserSeede
 - `phpunit.xml` memaksa `APP_CONFIG_CACHE`/`APP_ROUTES_CACHE`/`APP_EVENTS_CACHE` ke file yang tidak ada: tanpa ini, cache konfigurasi produksi dari launcher membuat tes (RefreshDatabase) memakai `database/database.sqlite` asli.
 
 ## Sisa pekerjaan
-- Layout gudang hasil seeder = seeder L7, bukan layout produksi saat ini (produksi sudah diubah lewat UI). Lihat usulan temuan.
+- R8 selesai (Fase 3). Ekspor ulang layout: skrip ekspor di laporan Fase 3 (membaca salinan DB read-only, menolak rak dengan slot non-standar).
+
+## R4 (Fase 3)
+- Migrasi `2026_11_24_000001_add_unique_email_and_setting_key`: `users_email_unique` ON `lower(trim(email))` dan `app_settings_key_unique` ON `key`; `IF NOT EXISTS` (aman di DB lama); berhenti dengan daftar nilai ganda bila ada duplikat (tanpa dedupe otomatis). DB produksi (salinan 2026-11-24): 0 duplikat.
+- Normalisasi tunggal `User::normalizeEmail()` (trim + huruf kecil): mutator `email`, login. Validasi unik modul USER nanti: normalkan input lalu `Rule::unique('users', 'email')->ignore($id)`.

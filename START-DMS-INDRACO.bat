@@ -217,9 +217,9 @@ if errorlevel 1 (
 
 call :LOG_STEP "app key"
 :: Cache produksi dibuat ulang hanya jika ada file yang lebih baru dari cache
-:: (kode, konfigurasi, .env, view, dependensi). UPDATE-AND-RESTART selalu menghapus cache.
+:: (kode, konfigurasi, .env, view, CSS/JS, dependensi). UPDATE-AND-RESTART selalu menghapus cache.
 :: Harus sebelum migrate: artisan membaca konfigurasi dari cache ini.
-powershell -NoProfile -Command "$c = 'bootstrap\cache\config.php'; if (-not (Test-Path $c) -or -not (Test-Path 'bootstrap\cache\routes-v7.php')) { exit 1 }; $t = (Get-Item $c).LastWriteTime; $files = @(Get-ChildItem -Path app,config,routes,resources\views -Recurse -File -ErrorAction SilentlyContinue) + @(Get-Item -Path bootstrap\app.php,bootstrap\providers.php,.env,composer.lock,vendor\composer\installed.json -ErrorAction SilentlyContinue); if ($files | Where-Object { $_.LastWriteTime -gt $t } | Select-Object -First 1) { exit 1 }" >nul 2>&1
+powershell -NoProfile -Command "$c = 'bootstrap\cache\config.php'; if (-not (Test-Path $c) -or -not (Test-Path 'bootstrap\cache\routes-v7.php')) { exit 1 }; $t = (Get-Item $c).LastWriteTime; $files = @(Get-ChildItem -Path app,config,routes,resources\views,public\css,public\js -Recurse -File -ErrorAction SilentlyContinue) + @(Get-Item -Path bootstrap\app.php,bootstrap\providers.php,.env,composer.lock,vendor\composer\installed.json -ErrorAction SilentlyContinue); if ($files | Where-Object { $_.LastWriteTime -gt $t } | Select-Object -First 1) { exit 1 }" >nul 2>&1
 if errorlevel 1 (
     echo [*] Memuat cache konfigurasi, rute, event, dan template Blade...
     php artisan optimize >nul 2>&1
