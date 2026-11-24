@@ -1,0 +1,3 @@
+/* Master pages: wide modals (<x-modal data-wide>) for the department manager, drill-down and import preview. */
+.modal[data-wide] { padding-top: 5vh; }
+.modal[data-wide] .modal__dialog { max-width: 64rem; }
