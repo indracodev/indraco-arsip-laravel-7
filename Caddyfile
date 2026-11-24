@@ -1,0 +1,114 @@
+# DMS PT Indraco - web server (Caddy) in front of the php-cgi pool.
+# Started by evironment\dms-server.cmd from the repo root (relative paths below), which sets:
+#   DMS_UPSTREAMS  "127.0.0.1:9001 127.0.0.1:9002 ..."  (one per php-cgi worker)
+#   DMS_TLS_SITES  "https://localhost:8443, https://127.0.0.1:8443, https://<PC>:8443, https://<IP>:8443, ..."
+#
+# http://<ip>:8000   plain HTTP, unchanged (fallback while clients install the certificate)
+# https://<ip>:8443  HTTPS with Caddy's own local CA (needed for PWA install). The certificate
+#                    lists exactly the names in DMS_TLS_SITES (no on-demand issuing, nothing to abuse).
+#                    CA + keys live in storage/caddy (git-ignored), so the root survives restarts.
+#                    Clients trust it once: http://<ip>:8000/dms-root-ca.crt + INSTALL-SERTIFIKAT-KLIEN.bat
+{
+	admin off
+	persist_config off
+	storage file_system storage/caddy
+	skip_install_trust
+	auto_https disable_redirects
+	http_port 8000
+	https_port 8443
+	pki {
+		ca local {
+			name "DMS PT Indraco"
+			root_cn "DMS PT Indraco Root CA"
+		}
+	}
+	log {
+		output file storage/logs/caddy.log {
+			roll_size 10MiB
+			roll_keep 3
+		}
+		level WARN
+	}
+}
+
+(dms_app) {
+	root * public
+
+	log {
+		output file storage/logs/http-access.log {
+			roll_size 20MiB
+			roll_keep 5
+		}
+	}
+
+	header {
+		-Server
+		-Via
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+		Content-Security-Policy-Report-Only "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
+	}
+
+	# Vite output has content hashes in its file names: cache for a year.
+	@hashed path /build/assets/*
+	header @hashed Cache-Control "public, max-age=31536000, immutable"
+
+	encode zstd gzip
+
+	# LAN heartbeat answered by Caddy itself: no PHP, no DB, no session (~1 ms).
+	# Same contract as the Laravel route (kept for `php artisan serve` in development).
+	handle /api/health/ping {
+		header Content-Type "application/json"
+		header Cache-Control "no-cache, no-store, must-revalidate"
+		header Pragma "no-cache"
+		header Expires "0"
+		respond `{"status":"ok","server_time":{time.now.unix_ms},"server_ip":"{http.request.local.host}","client_ip":"{http.request.remote.host}","app":"DMS PT INDRACO"}` 200
+	}
+
+	# Public certificate of the local CA (never the key), for clients to trust HTTPS.
+	handle /dms-root-ca.crt {
+		root * storage/caddy/pki/authorities/local
+		rewrite * /root.crt
+		header Content-Type "application/x-x509-ca-cert"
+		header Content-Disposition "attachment; filename=dms-root-ca.crt"
+		file_server
+	}
+
+	php_fastcgi {$DMS_UPSTREAMS} {
+		# One request per php-cgi at a time: a busy worker counts as unavailable
+		# and the request waits (up to 30 s) for a free one instead of queueing
+		# behind a slow request. A dead/restarting worker is skipped the same way.
+		lb_policy least_conn
+		lb_try_duration 30s
+		lb_try_interval 25ms
+		unhealthy_request_count 1
+		fail_duration 2s
+		dial_timeout 2s
+		read_timeout 150s
+		write_timeout 150s
+
+		# Laravel authorises a download, then answers with
+		# "X-Accel-Redirect: /<path under storage/app/private>"; Caddy streams the
+		# file so the PHP worker is free immediately. Not reachable from outside.
+		@accel header X-Accel-Redirect *
+		handle_response @accel {
+			root * storage/app/private
+			rewrite * {rp.header.X-Accel-Redirect}
+			method * GET
+			file_server
+		}
+	}
+
+	file_server
+}
+
+http://:8000 {
+	import dms_app
+}
+
+{$DMS_TLS_SITES} {
+	tls internal
+	import dms_app
+}

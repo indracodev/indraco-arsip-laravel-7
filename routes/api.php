@@ -1,17 +1,7 @@
 <?php
 
-use Illuminate\Http\Request;
+use App\Http\Controllers\HealthController;
 use Illuminate\Support\Facades\Route;
 
-/*
-|--------------------------------------------------------------------------
-| API Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register API routes for your application. These
-| routes are loaded by the RouteServiceProvider within a group which
-| is assigned the "api" middleware group. Enjoy building your API!
-|
-*/
-
-// API routes for DMS PT Indraco (Web routes are registered in routes/web.php)
+Route::get('health/ping', [HealthController::class, 'ping'])->name('health.ping');
+Route::get('health/ready', [HealthController::class, 'ready'])->name('health.ready');

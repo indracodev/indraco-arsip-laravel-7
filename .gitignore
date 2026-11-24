@@ -1,42 +1,37 @@
+*.log
+.DS_Store
+.env
+.env.backup
+.env.production
+.phpactor.json
+.phpunit.result.cache
+/.codex
+/.cursor/
+/.idea
+/.nova
+/.phpunit.cache
+/.vscode
+/.zed
+/auth.json
 /node_modules
+/public/build
+/public/fonts-manifest.dev.json
 /public/hot
 /public/storage
 /storage/*.key
+/storage/pail
 /vendor
-.env
-.env.backup
-.phpunit.result.cache
+_ide_helper.php
 Homestead.json
 Homestead.yaml
-npm-debug.log
-yarn-error.log
+Thumbs.db
 
-public/images/images.zip
-/public/images/*
-!/public/images/logo-*.png
-!/public/images/icon*
-*.zip
-
-# Graphify
-/graphify-out/
-.graphify*
-/storage/framework/lsp-*.php
-/scratch/
-
-
-# Grafana k6 Local Benchmarks (Local only, do not push to GitHub)
-/tests/k6/
-/RUN-K6-BENCHMARK.bat
-/run-k6-benchmark.sh
-/K6-CLIENT-PACKAGE/
-K6-CLIENT-PACKAGE.zip
-benchmark_summary.html
-benchmark_results.json
-# Desktop Client (Tauri & Rust Build Artifacts)
-/desktop/src-tauri/target/
-/desktop/node_modules/
-/desktop/src-tauri/gen/
-
-
-# File kunci sementara Microsoft Office
-~$*
+# DMS
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite-journal
+/storage/bench
+/evironment/composer.phar
+/tests/k6/results
+/storage/caddy

@@ -5,3 +5,5 @@
 *.scss linguist-vendored
 *.js linguist-vendored
 CHANGELOG.md export-ignore
+*.vbs text eol=crlf
+*.ps1 text eol=crlf

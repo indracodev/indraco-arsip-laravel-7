@@ -2,85 +2,39 @@
 
 namespace App\Providers;
 
-use App\Models\AppSetting;
-use Illuminate\Database\Events\ConnectionEstablished;
-use Illuminate\Support\Facades\Event;
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\View;
+use Illuminate\Database\Connection;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Events\QueryExecuted;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     *
-     * @return void
-     */
-    public function register()
+    public function register(): void
     {
-        if (file_exists(app_path('helpers.php'))) {
-            require_once app_path('helpers.php');
-        }
+        //
     }
 
-    /**
-     * Bootstrap any application services.
-     *
-     * @return void
-     */
-    public function boot()
+    public function boot(): void
     {
-        // 1. Optimize SQLite for multi-client LAN concurrency (WAL mode + busy timeout)
-        Event::listen(ConnectionEstablished::class, function ($event) {
-            if ($event->connection->getDriverName() === 'sqlite') {
-                try {
-                    $event->connection->statement('PRAGMA journal_mode = WAL;');
-                    $event->connection->statement('PRAGMA busy_timeout = 5000;');
-                    $event->connection->statement('PRAGMA synchronous = NORMAL;');
-                    $event->connection->statement('PRAGMA temp_store = MEMORY;');
-                    $event->connection->statement('PRAGMA cache_size = -32000;');
-                    $event->connection->statement('PRAGMA mmap_size = 67108864;');
-                } catch (\Exception $e) {
-                    // Ignore if memory database or unsupported pragma
+        Model::preventLazyLoading(! $this->app->isProduction());
+
+        $slowMs = (int) config('app.slow_query_ms');
+        if ($slowMs > 0) {
+            // Per query, SQL text only: bindings may hold personal data.
+            DB::listen(function (QueryExecuted $query) use ($slowMs) {
+                if ($query->time >= $slowMs) {
+                    Log::warning('Slow query', ['ms' => round($query->time, 1), 'sql' => $query->sql]);
                 }
-            }
-        });
-
-        // 2. Cached View Composer for Global Layout Settings
-        static $cachedGlobalSettings = null;
-
-        View::composer('*', function ($view) use (&$cachedGlobalSettings) {
-            if ($cachedGlobalSettings === null) {
-                $appLogo = 'images/logo_indraco.png';
-                $appFontSize = '14px';
-                $appName = 'DMS PT INDRACO';
-                $pingAlertEnabled = false;
-                $pingAlertThresholdMs = 500;
-
-                if (Schema::hasTable('app_settings')) {
-                    try {
-                        $appLogo = AppSetting::get('app_logo', 'images/logo_indraco.png');
-                        $appFontSize = AppSetting::get('app_font_size', '14px');
-                        $appName = AppSetting::get('app_name', 'DMS PT INDRACO');
-                        $rawPingAlert = AppSetting::get('ping_alert_enabled', '0');
-                        $pingAlertEnabled = in_array($rawPingAlert, [1, '1', true, 'true'], true);
-                        $pingAlertThresholdMs = (int) AppSetting::get('ping_alert_threshold_ms', 500);
-                    } catch (\Exception $e) {
-                        // Fallback to default
-                    }
-                }
-
-                $cachedGlobalSettings = [
-                    'globalAppLogo' => asset($appLogo),
-                    'globalAppLogoRaw' => $appLogo,
-                    'globalAppFontSize' => $appFontSize,
-                    'globalAppName' => $appName,
-                    'globalPingAlertEnabled' => $pingAlertEnabled,
-                    'globalPingAlertThresholdMs' => $pingAlertThresholdMs,
-                ];
-            }
-
-            $view->with($cachedGlobalSettings);
-        });
+            });
+            // Whole request spending too long in the database.
+            DB::whenQueryingForLongerThan($slowMs * 4, function (Connection $connection) {
+                Log::warning('Request spent long in DB', [
+                    'ms' => round($connection->totalQueryDuration(), 1),
+                    'path' => request()->path(),
+                ]);
+            });
+        }
     }
 }

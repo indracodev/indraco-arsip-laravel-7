@@ -8,7 +8,7 @@ cd /d "%~dp0"
 
 :: Gunakan PHP portable dari folder evironment jika tersedia
 set "PORTABLE_PHP="
-for /d %%d in ("%~dp0evironment\php*") do if exist "%%d\php.exe" set "PORTABLE_PHP=%%d"
+for /d %%d in ("%~dp0evironment\php-8.4*") do if exist "%%d\php.exe" set "PORTABLE_PHP=%%~fd"
 if defined PORTABLE_PHP (
     set "PATH=!PORTABLE_PHP!;!PATH!"
     set "PHPRC=!PORTABLE_PHP!"
@@ -18,7 +18,7 @@ if not exist "%~dp0storage\logs" mkdir "%~dp0storage\logs"
 
 echo =============================================================================== > "%LOG_FILE%"
 echo   PT INDRACO - DOCUMENT MANAGEMENT SYSTEM (DMS) >> "%LOG_FILE%"
-echo   Git Pull & Server Auto-Restart (Option A) >> "%LOG_FILE%"
+echo   Git Pull ^& Server Auto-Restart >> "%LOG_FILE%"
 echo   Timestamp: %date% %time% >> "%LOG_FILE%"
 echo =============================================================================== >> "%LOG_FILE%"
 echo. >> "%LOG_FILE%"
@@ -34,6 +34,16 @@ set "GIT_RES=%ERRORLEVEL%"
 echo [*] Git pull exit code: %GIT_RES% >> "%LOG_FILE%"
 echo. >> "%LOG_FILE%"
 
+echo [*] Memperbarui dependensi PHP (composer install --no-dev)...
+echo [*] composer install --no-dev... >> "%LOG_FILE%"
+if not exist "%~dp0evironment\composer.phar" (
+    powershell -NoProfile -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; $ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri 'https://getcomposer.org/download/latest-stable/composer.phar' -OutFile '%~dp0evironment\composer.phar'" >> "%LOG_FILE%" 2>&1
+)
+if exist "%~dp0evironment\composer.phar" (
+    call php "%~dp0evironment\composer.phar" install --no-dev --optimize-autoloader --no-interaction >> "%LOG_FILE%" 2>&1
+)
+echo. >> "%LOG_FILE%"
+
 echo [*] Membersihkan cache aplikasi (views, routes, config)...
 echo [*] Membersihkan cache aplikasi... >> "%LOG_FILE%"
 call php artisan optimize:clear >> "%LOG_FILE%" 2>&1
@@ -44,26 +54,14 @@ echo [*] Memeriksa migrasi database... >> "%LOG_FILE%"
 call php artisan migrate --force >> "%LOG_FILE%" 2>&1
 echo. >> "%LOG_FILE%"
 
-echo [*] Menghentikan service server lama di port 8000...
-echo [*] Menghentikan service server lama di port 8000... >> "%LOG_FILE%"
-
-taskkill /fi "WINDOWTITLE eq DMS PT INDRACO - Desktop*" /f /t >nul 2>&1
-taskkill /fi "WINDOWTITLE eq DMS Indraco Server*" /f /t >nul 2>&1
-
-for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":8000" ^| findstr "LISTENING"') do (
-    taskkill /f /pid %%a >nul 2>&1
-)
-
+echo [*] Menghentikan server lama di port 8000 (Caddy + PHP)...
+echo [*] Menghentikan server lama di port 8000... >> "%LOG_FILE%"
+call "%~dp0STOP-DMS-INDRACO.bat" >nul 2>&1
 timeout /t 2 /nobreak >nul
 
 echo [*] Menjalankan kembali server DMS PT Indraco...
 echo [*] Menjalankan kembali server DMS PT Indraco... >> "%LOG_FILE%"
-
-if exist "%~dp0START-DMS-INDRACO.bat" (
-    start "" "%~dp0START-DMS-INDRACO.bat"
-) else (
-    start /b "" php artisan serve --host=0.0.0.0 --port=8000 > "storage\logs\http-access.log" 2>&1
-)
+start "" "%~dp0START-DMS-INDRACO.bat"
 
 echo [%date% %time%] Selesai. >> "%LOG_FILE%"
 timeout /t 2 >nul
