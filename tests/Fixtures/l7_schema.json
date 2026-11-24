@@ -1,0 +1,332 @@
+{
+  "source": "Laravel 7 production database.sqlite (sqlite_master, read from a copy 2026-11-24)",
+  "objects": [
+    {
+      "type": "index",
+      "name": "idx_activity_action",
+      "tbl_name": "activity_logs",
+      "sql": "CREATE INDEX \"idx_activity_action\" ON \"activity_logs\" (\"action\")"
+    },
+    {
+      "type": "index",
+      "name": "idx_activity_created_at",
+      "tbl_name": "activity_logs",
+      "sql": "CREATE INDEX \"idx_activity_created_at\" ON \"activity_logs\" (\"created_at\")"
+    },
+    {
+      "type": "index",
+      "name": "idx_activity_department_id",
+      "tbl_name": "activity_logs",
+      "sql": "CREATE INDEX \"idx_activity_department_id\" ON \"activity_logs\" (\"department_id\")"
+    },
+    {
+      "type": "index",
+      "name": "idx_activity_user_id",
+      "tbl_name": "activity_logs",
+      "sql": "CREATE INDEX \"idx_activity_user_id\" ON \"activity_logs\" (\"user_id\")"
+    },
+    {
+      "type": "index",
+      "name": "idx_archive_items_archive_id",
+      "tbl_name": "archive_items",
+      "sql": "CREATE INDEX \"idx_archive_items_archive_id\" ON \"archive_items\" (\"archive_id\")"
+    },
+    {
+      "type": "index",
+      "name": "idx_archives_box_number",
+      "tbl_name": "archives",
+      "sql": "CREATE INDEX \"idx_archives_box_number\" ON \"archives\" (\"box_number\")"
+    },
+    {
+      "type": "index",
+      "name": "idx_archives_box_number_active",
+      "tbl_name": "archives",
+      "sql": "CREATE UNIQUE INDEX idx_archives_box_number_active ON archives (box_number) WHERE box_number IS NOT NULL AND box_number != '' AND status NOT IN ('taken', 'destroyed', 'borrowed')"
+    },
+    {
+      "type": "index",
+      "name": "idx_archives_created_by",
+      "tbl_name": "archives",
+      "sql": "CREATE INDEX \"idx_archives_created_by\" ON \"archives\" (\"created_by_user_id\")"
+    },
+    {
+      "type": "index",
+      "name": "idx_archives_dept_status",
+      "tbl_name": "archives",
+      "sql": "CREATE INDEX \"idx_archives_dept_status\" ON \"archives\" (\"department_id\", \"status\")"
+    },
+    {
+      "type": "index",
+      "name": "idx_archives_location",
+      "tbl_name": "archives",
+      "sql": "CREATE INDEX \"idx_archives_location\" ON \"archives\" (\"warehouse_location_id\")"
+    },
+    {
+      "type": "index",
+      "name": "idx_archives_periode_doc",
+      "tbl_name": "archives",
+      "sql": "CREATE INDEX \"idx_archives_periode_doc\" ON \"archives\" (\"periode_doc\")"
+    },
+    {
+      "type": "index",
+      "name": "idx_archives_rack_slot",
+      "tbl_name": "archives",
+      "sql": "CREATE INDEX \"idx_archives_rack_slot\" ON \"archives\" (\"warehouse_rack_slot_id\")"
+    },
+    {
+      "type": "index",
+      "name": "idx_archives_retention_expiry",
+      "tbl_name": "archives",
+      "sql": "CREATE INDEX \"idx_archives_retention_expiry\" ON \"archives\" (\"retention_expiry_date\")"
+    },
+    {
+      "type": "index",
+      "name": "idx_archives_status",
+      "tbl_name": "archives",
+      "sql": "CREATE INDEX \"idx_archives_status\" ON \"archives\" (\"status\")"
+    },
+    {
+      "type": "index",
+      "name": "idx_archives_sub_dept",
+      "tbl_name": "archives",
+      "sql": "CREATE INDEX \"idx_archives_sub_dept\" ON \"archives\" (\"sub_department_id\")"
+    },
+    {
+      "type": "index",
+      "name": "idx_borrowing_archive_status",
+      "tbl_name": "borrowing_logs",
+      "sql": "CREATE INDEX \"idx_borrowing_archive_status\" ON \"borrowing_logs\" (\"archive_id\", \"status\")"
+    },
+    {
+      "type": "index",
+      "name": "idx_borrowing_borrower",
+      "tbl_name": "borrowing_logs",
+      "sql": "CREATE INDEX \"idx_borrowing_borrower\" ON \"borrowing_logs\" (\"borrower_user_id\")"
+    },
+    {
+      "type": "index",
+      "name": "idx_borrowing_request_date",
+      "tbl_name": "borrowing_logs",
+      "sql": "CREATE INDEX \"idx_borrowing_request_date\" ON \"borrowing_logs\" (\"request_date\")"
+    },
+    {
+      "type": "index",
+      "name": "idx_borrowing_status",
+      "tbl_name": "borrowing_logs",
+      "sql": "CREATE INDEX \"idx_borrowing_status\" ON \"borrowing_logs\" (\"status\")"
+    },
+    {
+      "type": "index",
+      "name": "idx_destruction_approval_status",
+      "tbl_name": "destruction_logs",
+      "sql": "CREATE INDEX \"idx_destruction_approval_status\" ON \"destruction_logs\" (\"approval_status\")"
+    },
+    {
+      "type": "index",
+      "name": "idx_destruction_archive_id",
+      "tbl_name": "destruction_logs",
+      "sql": "CREATE INDEX \"idx_destruction_archive_id\" ON \"destruction_logs\" (\"archive_id\")"
+    },
+    {
+      "type": "index",
+      "name": "idx_events_created_at",
+      "tbl_name": "system_events",
+      "sql": "CREATE INDEX \"idx_events_created_at\" on \"system_events\" (\"created_at\")"
+    },
+    {
+      "type": "index",
+      "name": "idx_events_seq_dept",
+      "tbl_name": "system_events",
+      "sql": "CREATE INDEX \"idx_events_seq_dept\" on \"system_events\" (\"id\", \"department_id\")"
+    },
+    {
+      "type": "index",
+      "name": "idx_ext_logs_archive_id",
+      "tbl_name": "archive_extension_logs",
+      "sql": "CREATE INDEX \"idx_ext_logs_archive_id\" on \"archive_extension_logs\" (\"archive_id\")"
+    },
+    {
+      "type": "index",
+      "name": "idx_ext_logs_created_at",
+      "tbl_name": "archive_extension_logs",
+      "sql": "CREATE INDEX \"idx_ext_logs_created_at\" on \"archive_extension_logs\" (\"created_at\")"
+    },
+    {
+      "type": "index",
+      "name": "idx_ext_logs_proposed_by",
+      "tbl_name": "archive_extension_logs",
+      "sql": "CREATE INDEX \"idx_ext_logs_proposed_by\" on \"archive_extension_logs\" (\"proposed_by_user_id\")"
+    },
+    {
+      "type": "index",
+      "name": "idx_ext_logs_status",
+      "tbl_name": "archive_extension_logs",
+      "sql": "CREATE INDEX \"idx_ext_logs_status\" on \"archive_extension_logs\" (\"approval_status\")"
+    },
+    {
+      "type": "index",
+      "name": "idx_locations_warehouse_id",
+      "tbl_name": "warehouse_locations",
+      "sql": "CREATE INDEX \"idx_locations_warehouse_id\" on \"warehouse_locations\" (\"warehouse_id\")"
+    },
+    {
+      "type": "index",
+      "name": "idx_rack_slots_archive_id",
+      "tbl_name": "warehouse_rack_slots",
+      "sql": "CREATE INDEX \"idx_rack_slots_archive_id\" on \"warehouse_rack_slots\" (\"archive_id\")"
+    },
+    {
+      "type": "index",
+      "name": "idx_rack_slots_location_status",
+      "tbl_name": "warehouse_rack_slots",
+      "sql": "CREATE INDEX \"idx_rack_slots_location_status\" on \"warehouse_rack_slots\" (\"warehouse_location_id\", \"status\")"
+    },
+    {
+      "type": "index",
+      "name": "idx_rack_slots_slot_code",
+      "tbl_name": "warehouse_rack_slots",
+      "sql": "CREATE INDEX \"idx_rack_slots_slot_code\" on \"warehouse_rack_slots\" (\"slot_code\")"
+    },
+    {
+      "type": "table",
+      "name": "activity_logs",
+      "tbl_name": "activity_logs",
+      "sql": "CREATE TABLE \"activity_logs\" (\"id\" integer not null primary key autoincrement, \"user_id\" integer null, \"user_name\" varchar null, \"user_role\" varchar null, \"department_id\" integer null, \"action\" varchar not null, \"module\" varchar not null, \"description\" text not null, \"reference_id\" varchar null, \"ip_address\" varchar null, \"user_agent\" text null, \"properties\" text null, \"created_at\" datetime null, \"updated_at\" datetime null, foreign key(\"user_id\") references \"users\"(\"id\") on delete set null, foreign key(\"department_id\") references \"departments\"(\"id\") on delete set null)"
+    },
+    {
+      "type": "table",
+      "name": "app_settings",
+      "tbl_name": "app_settings",
+      "sql": "CREATE TABLE \"app_settings\" (\"id\" integer not null primary key autoincrement, \"key\" varchar not null, \"value\" text null, \"group\" varchar not null default 'general', \"type\" varchar not null default 'string', \"description\" varchar null, \"created_at\" datetime null, \"updated_at\" datetime null)"
+    },
+    {
+      "type": "table",
+      "name": "archive_extension_logs",
+      "tbl_name": "archive_extension_logs",
+      "sql": "CREATE TABLE \"archive_extension_logs\" (\"id\" integer not null primary key autoincrement, \"archive_id\" integer not null, \"proposed_by_user_id\" integer not null, \"additional_months\" integer not null default '6', \"additional_years\" numeric null, \"previous_expiry_date\" date null, \"new_expiry_date\" date null, \"extension_reason\" text not null, \"scan_extension_form\" varchar null, \"approval_status\" varchar not null default 'pending', \"approved_by_user_id\" integer null, \"approved_at\" datetime null, \"rejection_note\" text null, \"created_at\" datetime null, \"updated_at\" datetime null, foreign key(\"archive_id\") references \"archives\"(\"id\") on delete cascade, foreign key(\"proposed_by_user_id\") references \"users\"(\"id\") on delete cascade, foreign key(\"approved_by_user_id\") references \"users\"(\"id\") on delete set null)"
+    },
+    {
+      "type": "table",
+      "name": "archive_items",
+      "tbl_name": "archive_items",
+      "sql": "CREATE TABLE \"archive_items\" (\"id\" integer not null primary key autoincrement, \"archive_id\" integer not null, \"item_number\" integer not null default '1', \"document_name\" varchar not null, \"period_start\" varchar null, \"period_end\" varchar null, \"period_text\" varchar null, \"notes\" text null, \"created_at\" datetime null, \"updated_at\" datetime null, foreign key(\"archive_id\") references \"archives\"(\"id\") on delete cascade)"
+    },
+    {
+      "type": "table",
+      "name": "archives",
+      "tbl_name": "archives",
+      "sql": "CREATE TABLE \"archives\" (\n                \"id\" integer not null primary key autoincrement, \n                \"box_number\" varchar null, \n                \"department_id\" integer not null, \n                \"created_by_user_id\" integer not null, \n                \"title\" varchar not null, \n                \"period_start_date\" date not null, \n                \"period_end_date\" date not null, \n                \"period_text\" varchar null, \n                \"content_description\" text not null, \n                \"retention_years\" integer not null default '5', \n                \"retention_expiry_date\" date null, \n                \"physical_condition\" varchar not null default 'Baik', \n                \"file_path\" varchar null, \n                \"warehouse_location_id\" integer null, \n                \"status\" varchar check (\"status\" in ('draft', 'pending_verification', 'approved_booked', 'in_warehouse', 'borrowed', 'taken', 'pending_destruction', 'pending_extension', 'destroyed')) not null default 'draft', \n                \"rejection_note\" text null, \n                \"created_at\" datetime null, \n                \"updated_at\" datetime null, \n                \"company_name\" varchar null, \n                \"document_type\" varchar null, \n                \"period_yy_mm\" varchar null, \n                \"scan_input_form\" varchar null, \n                \"scan_approval_input\" varchar null, \n                \"extension_reason\" text null, \n                \"scan_extension_form\" varchar null, \n                \"sub_department_id\" integer null, \n                \"periode_doc\" varchar null, \n                \"tgl_penyerahan\" date null, \n                \"is_custom_doc_name\" tinyint(1) not null default '0', \n                \"custom_doc_name\" varchar null, \n                \"masa_simpan_custom\" integer null, \n                \"warehouse_rack_slot_id\" integer null, \n                \"periode\" varchar(100) null, \n                \"origin_borrowing_log_id\" integer null, \n                \"re_store_snapshot\" text null, \n                foreign key(\"department_id\") references \"departments\"(\"id\") on delete cascade, \n                foreign key(\"created_by_user_id\") references \"users\"(\"id\") on delete cascade, \n                foreign key(\"warehouse_location_id\") references \"warehouse_locations\"(\"id\") on delete set null\n            )"
+    },
+    {
+      "type": "table",
+      "name": "borrowing_logs",
+      "tbl_name": "borrowing_logs",
+      "sql": "CREATE TABLE \"borrowing_logs\" (\n                \"id\" integer not null primary key autoincrement,\n                \"archive_id\" integer not null,\n                \"borrower_user_id\" integer not null,\n                \"pic_gudang_id\" integer null,\n                \"request_date\" datetime not null,\n                \"borrow_date\" datetime null,\n                \"expected_return_date\" date null,\n                \"actual_return_date\" datetime null,\n                \"purpose\" text not null,\n                \"status\" varchar not null default 'requested',\n                \"notes\" text null,\n                \"created_at\" datetime null,\n                \"updated_at\" datetime null,\n                \"department_approval_by\" integer null,\n                \"department_approved_at\" datetime null,\n                \"scan_approval_borrow\" varchar null,\n                \"approval_file\" varchar null,\n                \"is_approval_uploaded\" tinyint(1) not null default '0',\n                \"approval_status\" varchar not null default 'pending',\n                \"approval_notes\" text null, \"snapshot_box_number\" varchar null, \"snapshot_title\" varchar null, \"snapshot_department\" varchar null, \"snapshot_items\" text null, \"active_restore_archive_id\" integer null,\n                foreign key(\"archive_id\") references \"archives\"(\"id\") on delete cascade,\n                foreign key(\"borrower_user_id\") references \"users\"(\"id\") on delete cascade,\n                foreign key(\"pic_gudang_id\") references \"users\"(\"id\") on delete set null\n            )"
+    },
+    {
+      "type": "table",
+      "name": "departments",
+      "tbl_name": "departments",
+      "sql": "CREATE TABLE \"departments\" (\"id\" integer not null primary key autoincrement, \"code\" varchar not null, \"name\" varchar not null, \"description\" text null, \"created_at\" datetime null, \"updated_at\" datetime null, \"sidar_id\" varchar null, \"retention_years\" integer not null default '5', \"is_active\" tinyint(1) not null default '1')"
+    },
+    {
+      "type": "table",
+      "name": "destruction_logs",
+      "tbl_name": "destruction_logs",
+      "sql": "CREATE TABLE \"destruction_logs\" (\"id\" integer not null primary key autoincrement, \"archive_id\" integer not null, \"proposed_by_user_id\" integer not null, \"approved_by_dept_pic_id\" integer null, \"bap_number\" varchar not null, \"destruction_date\" date not null, \"method\" varchar not null default 'Pencacahan / Shading Standard', \"certificate_file\" varchar null, \"notes\" text null, \"created_at\" datetime null, \"updated_at\" datetime null, \"department_approval_by\" integer null, \"department_approved_at\" datetime null, \"scan_approval_destruction\" varchar null, \"extension_reason\" text null, \"scan_extension_form\" varchar null, \"approval_file\" varchar null, \"is_approval_uploaded\" tinyint(1) not null default '0', \"approval_status\" varchar not null default 'pending', \"approval_notes\" text null, foreign key(\"archive_id\") references \"archives\"(\"id\") on delete cascade, foreign key(\"proposed_by_user_id\") references \"users\"(\"id\") on delete cascade, foreign key(\"approved_by_dept_pic_id\") references \"users\"(\"id\") on delete set null)"
+    },
+    {
+      "type": "table",
+      "name": "master_archives",
+      "tbl_name": "master_archives",
+      "sql": "CREATE TABLE \"master_archives\" (\"id\" integer not null primary key autoincrement, \"department_id\" integer not null, \"sub_department_id\" integer null, \"code\" varchar null, \"name\" varchar not null, \"document_type\" varchar null, \"retention_years\" integer null default '5', \"description\" text null, \"is_active\" tinyint(1) not null default '1', \"created_at\" datetime null, \"updated_at\" datetime null, foreign key(\"department_id\") references \"departments\"(\"id\") on delete cascade, foreign key(\"sub_department_id\") references \"sub_departments\"(\"id\") on delete set null)"
+    },
+    {
+      "type": "table",
+      "name": "migrations",
+      "tbl_name": "migrations",
+      "sql": "CREATE TABLE \"migrations\" (\"id\" integer not null primary key autoincrement, \"migration\" varchar not null, \"batch\" integer not null)"
+    },
+    {
+      "type": "table",
+      "name": "numbering_formats",
+      "tbl_name": "numbering_formats",
+      "sql": "CREATE TABLE \"numbering_formats\" (\"id\" integer not null primary key autoincrement, \"name\" varchar not null, \"pattern\" varchar not null, \"current_counter\" integer not null default '0', \"padding\" integer not null default '4', \"is_active\" tinyint(1) not null default '1', \"created_at\" datetime null, \"updated_at\" datetime null)"
+    },
+    {
+      "type": "table",
+      "name": "sub_departments",
+      "tbl_name": "sub_departments",
+      "sql": "CREATE TABLE \"sub_departments\" (\"id\" integer not null primary key autoincrement, \"sidar_id\" varchar null, \"department_id\" integer not null, \"code\" varchar not null, \"name\" varchar not null, \"description\" text null, \"retention_years\" integer null, \"is_active\" tinyint(1) not null default '1', \"created_at\" datetime null, \"updated_at\" datetime null, foreign key(\"department_id\") references \"departments\"(\"id\") on delete cascade)"
+    },
+    {
+      "type": "table",
+      "name": "system_events",
+      "tbl_name": "system_events",
+      "sql": "CREATE TABLE \"system_events\" (\"id\" integer not null primary key autoincrement, \"event_type\" varchar not null, \"entity_type\" varchar null, \"entity_id\" integer null, \"department_id\" integer null, \"payload\" text null, \"created_at\" datetime default CURRENT_TIMESTAMP not null)"
+    },
+    {
+      "type": "table",
+      "name": "users",
+      "tbl_name": "users",
+      "sql": "CREATE TABLE \"users\" (\"id\" integer not null primary key autoincrement, \"name\" varchar not null, \"email\" varchar not null, \"email_verified_at\" datetime null, \"password\" varchar not null, \"remember_token\" varchar null, \"created_at\" datetime null, \"updated_at\" datetime null, \"department_id\" integer null, \"role\" varchar check (\"role\" in ('admin', 'pic_dept', 'pic_gudang')) not null default 'pic_dept', \"phone\" varchar null)"
+    },
+    {
+      "type": "table",
+      "name": "warehouse_entry_logs",
+      "tbl_name": "warehouse_entry_logs",
+      "sql": "CREATE TABLE \"warehouse_entry_logs\" (\"id\" integer not null primary key autoincrement, \"archive_id\" integer not null, \"pic_gudang_id\" integer not null, \"location_id\" integer not null, \"entry_date\" datetime not null, \"notes\" text null, \"created_at\" datetime null, \"updated_at\" datetime null, foreign key(\"archive_id\") references \"archives\"(\"id\") on delete cascade, foreign key(\"pic_gudang_id\") references \"users\"(\"id\") on delete cascade, foreign key(\"location_id\") references \"warehouse_locations\"(\"id\") on delete cascade)"
+    },
+    {
+      "type": "table",
+      "name": "warehouse_locations",
+      "tbl_name": "warehouse_locations",
+      "sql": "CREATE TABLE \"warehouse_locations\" (\"id\" integer not null primary key autoincrement, \"warehouse_id\" integer not null, \"rack_code\" varchar not null, \"shelf_code\" varchar not null, \"box_capacity\" integer not null default '20', \"current_box_count\" integer not null default '0', \"created_at\" datetime null, \"updated_at\" datetime null, \"room_sector\" varchar null, \"location_type\" varchar not null default 'rack', \"canvas_x\" integer not null default '0', \"canvas_y\" integer not null default '0', \"canvas_width\" integer not null default '60', \"canvas_height\" integer not null default '120', \"orientation\" varchar not null default 'vertical', \"rotation_angle\" integer not null default '0', \"is_locked\" tinyint(1) not null default '1', \"custom_color\" varchar null, \"assigned_department_id\" integer null, \"is_booked\" tinyint(1) not null default '0', \"booked_by_user_id\" integer null, \"booking_notes\" text null, \"is_fat_locked\" tinyint(1) not null default '0', \"total_sap\" integer not null default '5', \"boxes_per_sap\" integer not null default '20', \"box_type\" varchar not null default 'TB 30g', \"is_active\" tinyint(1) not null default '1', \"assigned_department_ids\" text null, foreign key(\"warehouse_id\") references \"warehouses\"(\"id\") on delete cascade)"
+    },
+    {
+      "type": "table",
+      "name": "warehouse_rack_slots",
+      "tbl_name": "warehouse_rack_slots",
+      "sql": "CREATE TABLE \"warehouse_rack_slots\" (\"id\" integer not null primary key autoincrement, \"warehouse_location_id\" integer not null, \"sap_level\" integer not null, \"layer\" varchar not null, \"slot_number\" integer not null, \"slot_code\" varchar not null, \"archive_id\" integer null, \"status\" varchar not null default 'empty', \"notes\" text null, \"created_at\" datetime null, \"updated_at\" datetime null, \"is_active\" tinyint(1) not null default '1', foreign key(\"warehouse_location_id\") references \"warehouse_locations\"(\"id\") on delete cascade, foreign key(\"archive_id\") references \"archives\"(\"id\") on delete set null)"
+    },
+    {
+      "type": "table",
+      "name": "warehouses",
+      "tbl_name": "warehouses",
+      "sql": "CREATE TABLE \"warehouses\" (\"id\" integer not null primary key autoincrement, \"code\" varchar not null, \"name\" varchar not null, \"address\" text null, \"created_at\" datetime null, \"updated_at\" datetime null, \"is_fat_locked\" tinyint(1) not null default '0', \"is_active\" tinyint(1) not null default '1')"
+    }
+  ],
+  "l7_migrations": [
+    "2014_10_12_000000_create_users_table",
+    "2026_09_09_000001_create_departments_table",
+    "2026_09_09_000002_add_dms_fields_to_users_table",
+    "2026_09_09_000003_create_warehouses_and_locations_table",
+    "2026_09_09_000004_create_numbering_formats_table",
+    "2026_09_09_000005_create_archives_table",
+    "2026_09_09_000006_create_warehouse_entry_logs_table",
+    "2026_09_09_000007_create_borrowing_logs_table",
+    "2026_09_09_000008_create_destruction_logs_table",
+    "2026_09_10_000001_update_tables_for_revisi_1",
+    "2026_09_10_000002_add_canvas_fields_to_warehouse_locations",
+    "2026_09_22_000001_create_sub_departments_table",
+    "2026_09_22_000002_add_revisi_1_fields_to_archives_table",
+    "2026_09_22_000003_create_warehouse_rack_slots_and_fat_lock_table",
+    "2026_09_22_000004_update_approval_fields_in_transaction_logs",
+    "2026_09_25_000001_create_archive_items_table",
+    "2026_09_29_000001_create_activity_logs_table",
+    "2026_09_29_000002_add_is_active_to_warehouse_rack_slots_table",
+    "2026_09_29_000003_add_is_active_to_warehouses_table",
+    "2026_10_01_000001_create_master_archives_table",
+    "2026_10_01_000002_create_app_settings_table",
+    "2026_10_06_000001_add_periode_to_archives_table",
+    "2026_10_06_000001_add_performance_indexes",
+    "2026_10_06_000002_create_system_events_table",
+    "2026_10_08_000001_make_expected_return_date_nullable_in_borrowing_logs",
+    "2026_10_08_000002_add_taken_to_archives_status_enum",
+    "2026_10_14_132647_add_snapshot_and_restoring_fields_to_tables",
+    "2026_10_15_000001_restore_performance_indexes",
+    "2026_10_15_000002_add_pending_extension_and_create_extension_logs_table",
+    "2026_10_20_000001_add_assigned_department_ids_to_warehouse_locations_table",
+    "2026_10_21_000001_add_active_unique_index_to_archives_box_number"
+  ]
+}

@@ -4,7 +4,7 @@
 - [x] Rencana (`../PLAN-REBUILD-LARAVEL-13.md`) dan aturan `.agents/`
 - [x] Fase 0: inventaris PIC Departemen + triage seluruh project — **ACC pemilik** (ASK diputuskan, lihat decisions)
 - [x] Fase 1: fondasi Laravel 13 + runtime portable + uji beban — selesai & diverifikasi koordinator (commit a4f3abf) — **ACC pemilik 2026-11-24**
-- [ ] Fase 2: skema baseline, model, login user lama — **sedang dikerjakan** — STOP
+- [x] Fase 2: skema baseline (identik L7), 17 model, seeder instalasi baru, AUTH (UI sementara), Laravel Boost — diverifikasi koordinator + uji browser, **menunggu ACC pemilik**
 - [ ] Fase 3: design system, layout, mockup — STOP
 - [ ] Fase 4: modul PIC Departemen (STOP per modul)
 - [ ] Fase 5: modul PIC Gudang dan Admin (STOP per modul)
@@ -19,5 +19,5 @@
 - Cek versi WebView2 dan versi browser (Chrome/Edge/Firefox) yang dipakai di PC klien sebelum Fase 3.
 
 ## Langkah berikutnya
-2. Fase 2: hapus `routes/bench.php` + loader-nya di `bootstrap/app.php`; jalankan `php artisan boost:install`; migrasi baseline yang sama persis dengan skema L7 (migrasi skeleton bentrok dengan tabel lama, mis. `users`); model + login user lama (tanpa rate limit, login gagal dicatat).
-3. Cek versi WebView2/browser klien sebelum Fase 3.
+1. ACC pemilik Fase 2; jawab R4 (UNIQUE email) dan R8 (layout gudang instalasi baru).
+2. Fase 3: design system + layout + login/shell baru + mockup (butuh versi WebView2/browser klien).

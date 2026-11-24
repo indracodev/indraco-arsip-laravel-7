@@ -235,14 +235,19 @@ call :LOG_STEP "cache (optimize bila perlu)"
 :: ===============================================================================
 :: CHECK 4: DATABASE SQLITE
 :: ===============================================================================
+:: Data awal (departemen, user default, layout gudang) hanya untuk database BARU.
+set "SEED_FLAG="
 if not exist "database\database.sqlite" (
     echo [*] Database SQLite belum ada. Membuat database/database.sqlite...
     type nul > "database\database.sqlite"
+    set "SEED_FLAG=--seed"
     echo [OK] File database.sqlite berhasil dibuat.
 )
 echo [*] Memeriksa pembaruan skema database...
-php artisan migrate --force
+php artisan migrate --force !SEED_FLAG!
 if errorlevel 1 (
+    rem Database baru yang gagal disiapkan dihapus agar start berikutnya mengulang dari awal.
+    if defined SEED_FLAG del /f /q "database\database.sqlite" "database\database.sqlite-wal" "database\database.sqlite-shm" >nul 2>&1
     echo [ERROR] Migrasi database gagal. Lihat pesan di atas.
     %PAUSE_CMD%
     exit /b 1

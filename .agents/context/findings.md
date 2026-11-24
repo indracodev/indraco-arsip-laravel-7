@@ -26,7 +26,7 @@ Temuan #1 dan #2 dicek ulang oleh koordinator: 32/32 akun cocok dengan password 
 | 16 | R | Raw SQL hanya `VACUUM INTO` (path internal) dan SHOW CREATE TABLE (cabang MySQL); tidak ada injeksi dari input | SettingController | Tetap binding | SISTEM | terbuka |
 | 17 | R | `{!! json_encode(...) !!}` dalam `<script>` (tidak escape `</script>`) | pic_desktop_scripts:161-163, desktop_layout_scripts:237-239 | `@js()` | SHELL | terbuka |
 | 18 | R | probe-ip `exec(ping)` aman tapi bisa dipakai memindai LAN | HealthController@probeIp | Admin-only + rate limit | SISTEM | terbuka |
-| 19 | S | Middleware menulis DB di setiap request (`UpdateUserPresence`) membebani SQLite multi-user | app/Http/Middleware | Throttle/tulis ke file | SHELL | terbuka |
+| 19 | S | Presence user (`UpdateUserPresence`) ditulis terlalu sering — ternyata ke file cache (bukan SQLite), 3 file tiap 15 dtk | app/Http/Middleware | Throttle 1×/60 dtk | AUTH | diperbaiki (Fase 2) |
 
 ## Bug / data janggal
 | # | Temuan | Bukti | Tindakan | Modul | Status |
@@ -52,3 +52,10 @@ Temuan #1 dan #2 dicek ulang oleh koordinator: 32/32 akun cocok dengan password 
 | R1 | Launcher menyatakan siap saat ping (dijawab Caddy) hidup, padahal PHP belum membalas → user melihat halaman error beberapa detik | ping siap 18,6 dtk, halaman `/` siap 25,3 dtk (laptop 16 core); Chrome via IP LAN menampilkan error page | Cek kesiapan lewat request PHP + pemanasan semua worker sebelum "SIAP"/buka browser | 1 | diperbaiki (a4f3abf): SIAP 1,5 dtk, 6/6 worker hangat |
 | R2 | Log pool php-cgi berisi "The filename, directory name, or volume label syntax is incorrect." | `storage/logs/pool/php-cgi-900N.log` | Perbaiki path/quoting di `evironment/dms-server.cmd` | 1 | diperbaiki (a4f3abf): sisa log dari helper uji lama; log dikosongkan tiap start |
 | R3 | Start butuh 18,6 dtk di laptop cepat; di server 1–2 core bisa > 1 menit | pengukuran STOP→START | Profil tiap langkah START, lewati pekerjaan yang tidak perlu setiap start | 1 | diperbaiki (a4f3abf): `optimize` hanya jika berubah, START→SIAP 1,6–3 dtk (estimasi 6–10 dtk di A9); log per langkah `storage/logs/startup.log` |
+| R4 | S | `users.email` dan `app_settings.key` tidak punya UNIQUE index di DB L7 (hilang saat L7 membangun ulang tabel) | sqlite_master | Validasi unik di modul USER; migrasi UNIQUE setelah cek duplikat (keputusan pemilik) | 2 | terbuka |
+| R5 | T | Config cache produksi membuat `php artisan test` mengabaikan DB `:memory:` → RefreshDatabase bisa menghapus DB asli | phpunit.xml | Path cache tes diarahkan ke file yang tidak ada | 2 | diperbaiki (Fase 2) |
+| R6 | R | Middleware guest L7 mengarahkan user yang sudah login ke `/home` (404) | L7 RedirectIfAuthenticated | Arahkan ke `/` | 2 | diperbaiki (Fase 2) |
+| R7 | R | 2 baris MasterArchiveSeeder memakai kode departemen `FACTORY` (seharusnya `FCT`) sehingga tidak pernah ter-seed | L7 seeder | Dibiarkan seperti L7 | 2 | dicatat |
+| R8 | S | Layout gudang produksi berbeda dari seeder L7 (kode `R1-B`, koordinat, ruang) | DB vs WarehouseLayoutSeeder | ASK pemilik: instalasi baru pakai layout produksi? | 2 | terbuka |
+| R9 | R | DB produksi berbeda dari seeder (dept FAT "FIN, ACC & TAX", DM, TEST_DEPT, user pic_test_scope_check) | DB | Bersihkan saat cutover (sama kelompok B1/ASK 11) | 7 | terbuka |
+| R10 | R | Saat uji browser, klik tombol submit oleh alat otomasi Chrome kadang tidak mengirim form (dialog simpan password Chrome); `button.click()` di halaman bekerja normal | uji koordinator | Bukan bug aplikasi; ulangi uji klik manual oleh pemilik | 2 | dicatat |

@@ -31,7 +31,6 @@ Thumbs.db
 *.sqlite-wal
 *.sqlite-shm
 *.sqlite-journal
-/storage/bench
 /evironment/composer.phar
 /tests/k6/results
 /storage/caddy

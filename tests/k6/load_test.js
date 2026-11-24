@@ -1,4 +1,6 @@
-// DMS PT Indraco - k6 load test (Phase 1, bench routes; needs BENCH_ROUTES=true).
+// DMS PT Indraco - k6 load test (Phase 1).
+// NOTE: the /bench/* routes this script calls were removed in Phase 2 (routes/bench.php +
+// BENCH_ROUTES are gone). Profiles will be re-pointed at real routes once modules exist.
 //
 //   k6 run -e MODE=mixed30 tests/k6/load_test.js
 //   MODE: quick | office | stress | ping | mixed30 | slow   (TARGET_URL default http://127.0.0.1:8000)

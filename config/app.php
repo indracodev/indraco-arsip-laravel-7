@@ -124,11 +124,9 @@ return [
     ],
 
     /*
-    | DMS: log SQL slower than this (ms, 0 = off) and the temporary load-test routes.
+    | DMS: log SQL slower than this (ms, 0 = off).
     */
 
     'slow_query_ms' => (int) env('DB_SLOW_QUERY_MS', 500),
-
-    'bench_routes' => (bool) env('BENCH_ROUTES', false),
 
 ];

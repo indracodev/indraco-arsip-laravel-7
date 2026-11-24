@@ -1,0 +1,16 @@
+{
+    "mcpServers": {
+        "laravel-boost": {
+            "command": "evironment\\php-8.4.28-nts-Win32-vs17-x64\\php.exe",
+            "args": [
+                "artisan",
+                "boost:mcp"
+            ],
+            "env": {
+                "APP_ENV": "local",
+                "APP_CONFIG_CACHE": "bootstrap/cache/boost-mcp-config.php",
+                "BOOST_PHP_EXECUTABLE_PATH": "evironment\\php-8.4.28-nts-Win32-vs17-x64\\php.exe"
+            }
+        }
+    }
+}

@@ -19,4 +19,5 @@ Agent yang menambah/memindah file wajib memperbarui tabel ini.
 ## Modul
 | Modul | Status | Catatan modul | File utama |
 |---|---|---|---|
-| (diisi mulai Fase 2) | | `context/modules/<modul>.md` | |
+| DATA | dibangun (Fase 2) | `context/modules/database.md` | `database/migrations/0001_01_01_000000_baseline_dms_schema.php`, `app/Models/*` (17 model), `database/seeders/*` |
+| AUTH | dibangun (Fase 2, UI sementara) | `context/modules/auth.md` | `AuthController`, `ChangePasswordController`, `EnsureUserHasRole` (`role:`), `UpdateUserPresence`, `Services/ActivityLogger`, `Services/UserPresenceService` |
