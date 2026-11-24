@@ -7,6 +7,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * Document line inside a box. Editing an item must touch() its archive (optimistic lock).
+ *
+ * @property int $item_number
+ * @property string $document_name
+ * @property string|null $period_start
+ * @property string|null $period_end
+ * @property string|null $period_text
+ * @property string|null $notes
  */
 class ArchiveItem extends Model
 {

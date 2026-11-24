@@ -101,12 +101,17 @@
         });
 
         /* "Pengaturan Tampilan" (per browser): font size (Laravel 7 presets, 10-26px slider),
-           theme (Terang / Gelap / Ikuti Sistem) and notification sound (public/js/prefs.js,
+           theme (Terang / Gelap / Ikuti Sistem; default Terang) and notification sound (public/js/prefs.js,
            sound.js). Font and theme apply live; all are stored on "Simpan", reverted on close. */
         window.Alpine.data('displaySettings', function () {
             var prefs = window.dmsPrefs;
             var saved = { size: prefs.font, theme: prefs.theme, sound: window.dmsSound ? window.dmsSound.enabled() : true };
             return {
+                /* Top bar toggle / Alt+T stores the theme at once: keep it (closing must not revert it). */
+                init: function () {
+                    var self = this;
+                    window.addEventListener('dms-theme', function (e) { self.theme = e.detail; self.saved.theme = e.detail; });
+                },
                 size: saved.size,
                 theme: saved.theme,
                 sound: saved.sound,

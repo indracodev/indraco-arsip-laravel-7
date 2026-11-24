@@ -23,7 +23,8 @@
 @endphp
 <tr @class(['table__row--'.$tone => $tone])>
     <td data-label="" class="table__select"><input type="checkbox" value="{{ $archive->id }}" aria-label="Pilih {{ $archive->title }}"
-        @if ($ownsDept && $archive->status === 'draft') name="ids[]" form="batch-delete-drafts" data-draft @endif></td>
+        @if ($ownsDept && $archive->status === 'draft') name="ids[]" form="batch-delete-drafts" data-draft @endif
+        @if ($ownsDept && ! $activeBorrowing && $archive->status === 'in_warehouse') name="archive_ids[]" form="batch-borrow" data-borrowable @endif></td>
     <td data-label="NO. BOX ARSIP" class="table__nowrap mono">
         @if ($marker)<span class="badge badge--{{ $tone }}">{{ $marker }}</span>@endif
         @if ($archive->box_number)

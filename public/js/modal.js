@@ -12,8 +12,17 @@
         modal.hidden = false;
         stack.push({ modal: modal, opener: opener || document.activeElement });
         document.body.classList.add('modal-open');
-        var focus = modal.querySelector('[autofocus], .modal__footer .btn--primary, .modal__footer .btn--danger, input, select, textarea, button');
-        if (focus) { focus.focus(); }
+        /* First VISIBLE target: a hidden button (e.g. the alert's cancel) cannot take focus, and
+           querySelector on a selector list returns the first match in document order. */
+        var focus = ['[autofocus]', '.modal__footer .btn--primary', '.modal__footer .btn--danger', 'input, select, textarea, button']
+            .map(function (selector) { return focusables(modal, selector)[0]; }).filter(Boolean)[0];
+        if (focus) { focus.focus(); } else { modal.querySelector('.modal__dialog').focus(); }
+    }
+
+    function focusables(modal, selector) {
+        return Array.prototype.filter.call(modal.querySelectorAll(selector || 'a[href], input, select, textarea, button, [tabindex]:not([tabindex="-1"])'), function (el) {
+            return !el.disabled && el.getClientRects().length > 0;
+        });
     }
 
     function close(modal) {
@@ -36,10 +45,19 @@
     });
 
     document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape' && stack.length) {
+        if (!stack.length) { return; }
+        var modal = stack[stack.length - 1].modal;
+        if (e.key === 'Escape') {
             e.preventDefault();
-            close(stack[stack.length - 1].modal);
+            close(modal);
+            return;
         }
+        /* Focus trap: Tab / Shift+Tab cycle inside the top modal (also pulls focus back in). */
+        if (e.key !== 'Tab') { return; }
+        var items = focusables(modal);
+        if (!items.length) { e.preventDefault(); return; }
+        var first = items[0], last = items[items.length - 1];
+        if (!modal.contains(document.activeElement)) { e.preventDefault(); first.focus(); } else if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); } else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
     });
 
     var pending = null;

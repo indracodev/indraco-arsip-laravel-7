@@ -40,6 +40,7 @@
     --color-warning: #8a5a00;
     --color-warning-soft: #fbf0d6;
     --color-danger: #b42318;
+    --color-danger-hover: #921c13;   /* danger button hover: darker, white text stays >= 4.5:1 */
     --color-danger-soft: #fbe9e7;
     --color-info: #1d4ed8;
     --color-info-soft: #e5ecfc;
@@ -140,6 +141,7 @@
         --color-warning: #e5b143;
         --color-warning-soft: #33270c;
         --color-danger: #f28b80;
+        --color-danger-hover: #f6aaa2;
         --color-danger-soft: #3b1915;
         --color-info: #86aef5;
         --color-info-soft: #162847;

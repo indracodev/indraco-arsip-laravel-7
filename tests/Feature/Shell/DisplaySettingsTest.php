@@ -29,6 +29,23 @@ class DisplaySettingsTest extends TestCase
         $this->assertLessThan(strpos($html, 'js/vendor/alpine.min.js'), strpos($html, 'js/sound.js'));
     }
 
+    /** Owner request: default light, one-click toggle in the top bar (+ Alt+T like Laravel 7). */
+    public function test_theme_defaults_to_light_and_the_top_bar_has_a_toggle(): void
+    {
+        $html = $this->actingAs(User::factory()->create(['role' => 'admin']))->get('/')->assertOk()->getContent();
+
+        $this->assertMatchesRegularExpression('/<button type="button" class="btn btn--ghost btn--icon theme-toggle" data-theme-toggle="data-theme-toggle" aria-label="Ganti ke mode gelap \(Alt\+T\)"/', $html);
+        $this->assertStringContainsString('theme-toggle__moon', $html);
+        $this->assertStringContainsString('theme-toggle__sun', $html);
+        $this->assertStringContainsString("['system', 'Ikuti Sistem']", (string) file_get_contents(public_path('js/app.js')));
+
+        $prefs = (string) file_get_contents(public_path('js/prefs.js'));
+        $this->assertStringContainsString("theme: 'light',", $prefs);
+        $this->assertStringContainsString("localStorage.getItem('theme')", $prefs);
+        $this->assertStringContainsString('e.altKey', $prefs);
+        $this->assertStringContainsString("'dms-theme'", $prefs);
+    }
+
     public function test_theme_tokens_cover_dark_mode_and_print_stays_light(): void
     {
         $tokens = (string) file_get_contents(public_path('css/tokens.css'));

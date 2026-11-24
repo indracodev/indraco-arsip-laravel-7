@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Archive;
+use App\Models\BorrowingLog;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -45,6 +46,44 @@ class SystemEventStream
                 'created_at' => now(),
             ];
         }
+        self::insert($eventType, $rows);
+    }
+
+    /**
+     * Penarikan events `borrowing_created` / `borrowing_updated` (Laravel 7 BorrowingLog model
+     * events, same payload). The single call point for realtime notifications of this module.
+     * Needs `archive.department` and `borrower` loaded.
+     *
+     * @param  iterable<BorrowingLog>  $logs
+     */
+    public static function borrowings(string $eventType, iterable $logs, int $actionByUserId): void
+    {
+        $rows = [];
+        foreach ($logs as $log) {
+            $archive = $log->archive;
+            $rows[] = [
+                'event_type' => $eventType,
+                'entity_type' => 'BorrowingLog',
+                'entity_id' => $log->id,
+                'department_id' => $archive?->department_id,
+                'payload' => json_encode([
+                    'status' => $log->status,
+                    'box_number' => $archive->box_number ?? '',
+                    'title' => $archive->title ?? '',
+                    'dept_code' => $archive->department->code ?? '',
+                    'borrower' => $log->borrower->name ?? '',
+                    'borrower_user_id' => (int) $log->borrower_user_id,
+                    'action_by_user_id' => $actionByUserId,
+                ]),
+                'created_at' => now(),
+            ];
+        }
+        self::insert($eventType, $rows);
+    }
+
+    /** @param list<array<string, mixed>> $rows */
+    private static function insert(string $eventType, array $rows): void
+    {
         if ($rows === []) {
             return;
         }

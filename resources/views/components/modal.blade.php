@@ -4,7 +4,7 @@
 --}}
 @props(['id', 'title'])
 <div class="modal" id="{{ $id }}" role="dialog" aria-modal="true" aria-labelledby="{{ $id }}-title" hidden {{ $attributes }}>
-    <div class="modal__dialog">
+    <div class="modal__dialog" tabindex="-1">
         <div class="modal__header">
             <h2 class="modal__title" id="{{ $id }}-title">{{ $title }}</h2>
             <x-button variant="ghost" size="sm" class="btn--icon" data-modal-close aria-label="Tutup"><x-icon name="x" /></x-button>

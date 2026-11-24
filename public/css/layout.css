@@ -41,6 +41,9 @@
 .topbar__user-name { font-weight: var(--weight-medium); }
 .topbar__user-role { font-size: var(--text-xs); color: var(--color-text-muted); }
 .topbar__actions { display: flex; align-items: center; gap: var(--space-1); margin-left: auto; }
+/* Theme toggle: moon in light theme (go dark), sun in dark theme (go light). */
+.theme-toggle__sun, [data-theme="dark"] .theme-toggle__moon { display: none; }
+[data-theme="dark"] .theme-toggle__sun { display: block; }
 
 /* LAN status dot (polls /api/health/ping) */
 .lan { display: flex; align-items: center; gap: var(--space-1); font-size: var(--text-xs); color: var(--color-text-muted); }

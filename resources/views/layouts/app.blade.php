@@ -42,6 +42,8 @@
             <span class="topbar__user-role">{{ $user->roleLabel() }}</span>
         </span>
         <div class="topbar__actions">
+            {{-- One-click light/dark (also Alt+T, like Laravel 7); label/title set by public/js/prefs.js. --}}
+            <x-button variant="ghost" class="btn--icon theme-toggle" data-theme-toggle aria-label="Ganti ke mode gelap (Alt+T)" title="Ganti ke mode gelap (Alt+T)"><x-icon name="moon" class="theme-toggle__moon" /><x-icon name="sun" class="theme-toggle__sun" /></x-button>
             <x-button variant="ghost" class="btn--icon" data-modal-open="settings-modal" title="Pengaturan Tampilan" aria-label="Pengaturan Tampilan"><x-icon name="settings" /></x-button>
             <x-link-button :href="route('profile.password')" variant="ghost" class="btn--icon" title="Ganti Password Saya" aria-label="Ganti Password Saya"><x-icon name="key" /></x-link-button>
             <form method="POST" action="{{ route('logout') }}">

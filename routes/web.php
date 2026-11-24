@@ -6,6 +6,8 @@ use App\Http\Controllers\ArchiveFormPrintController;
 use App\Http\Controllers\ArchiveSimilarityController;
 use App\Http\Controllers\ArchiveSubmissionController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BorrowingApprovalController;
+use App\Http\Controllers\BorrowingController;
 use App\Http\Controllers\ChangePasswordController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FontSizeController;
@@ -46,9 +48,17 @@ Route::middleware('auth')->group(function () {
     Route::get('/files/{source}/{id}/{field}', ArchiveFileController::class)->name('files.preview')->where($fileRoute);
     Route::get('/files/{source}/{id}/{field}/download', ArchiveFileController::class)->name('files.download')->where($fileRoute);
 
+    // PENARIKAN (Laravel 7 URLs and names). Access: BorrowingLogPolicy (create: admin + PIC Departemen
+    // of the box's department; dispatch/reject: PIC Gudang + admin). Not built (decisions ASK 2-4,
+    // triage): dept-approve, approve, return, update.
+    Route::get('/borrowings', [BorrowingController::class, 'index'])->name('borrowings.index');
+    Route::get('/borrowings/create', [BorrowingController::class, 'create'])->name('borrowings.create');
+    Route::post('/borrowings', [BorrowingController::class, 'store'])->name('borrowings.store');
+    Route::get('/borrowings/form-penarikan', [BorrowingController::class, 'printForm'])->name('borrowings.form_print');
+    Route::post('/borrowings/{borrowing}/dispatch', [BorrowingApprovalController::class, 'dispatch'])->name('borrowings.dispatch')->whereNumber('borrowing');
+    Route::post('/borrowings/{borrowing}/reject', [BorrowingApprovalController::class, 'reject'])->name('borrowings.reject')->whereNumber('borrowing');
+
     // Modules not rebuilt yet: Laravel 7 URL, name and role check, "Sedang dibangun ulang" page.
-    Route::get('/borrowings', PlaceholderController::class)->name('borrowings.index')->defaults('title', 'Penarikan Berkas');
-    Route::get('/borrowings/create', PlaceholderController::class)->name('borrowings.create')->defaults('title', 'Penarikan Berkas')->middleware('role:pic_dept');
     Route::get('/destructions', PlaceholderController::class)->name('destructions.index')->defaults('title', 'Pemusnahan & Retensi');
     Route::get('/logs', PlaceholderController::class)->name('logs.index')->defaults('title', 'Log History')->middleware('role:admin');
     Route::get('/reports', PlaceholderController::class)->name('reports.index')->defaults('title', 'Report')->middleware('role:admin');

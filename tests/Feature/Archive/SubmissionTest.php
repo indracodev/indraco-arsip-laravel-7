@@ -99,6 +99,15 @@ class SubmissionTest extends TestCase
         $this->assertSame('archive_draft_created', DB::table('system_events')->value('event_type'));
     }
 
+    /** R24: duplicate badge/message exist only for a real twin (x-if), so no hidden "null" text. */
+    public function test_duplicate_row_label_is_only_rendered_for_a_real_twin(): void
+    {
+        $html = $this->actingAs($this->picHcs)->get('/archives/create')->assertOk()->getContent();
+
+        $this->assertStringContainsString('<template x-if="duplicateInfo(box, item, iIdx)"><span class="badge badge--danger"', $html);
+        $this->assertStringNotContainsString('x-show="duplicateInfo(box, item, iIdx)"', $html);
+    }
+
     public function test_draft_requires_nothing(): void
     {
         $this->actingAs($this->picHcs)->post('/archives', ['submit_action' => 'draft'])->assertRedirect('/archives')->assertSessionHasNoErrors();

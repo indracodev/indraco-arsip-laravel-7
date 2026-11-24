@@ -57,12 +57,19 @@
         </x-card>
     @else
         {{-- Laravel 7 catalog_batch_ribbon: shown when rows are ticked; "Hapus Draft (n)" only for ticked drafts. --}}
-        <div class="stack" x-data="{ selected: 0, drafts: 0 }"
-            @change="selected = $el.querySelectorAll('.table__select input:checked').length; drafts = $el.querySelectorAll('input[data-draft]:checked').length">
+        <div class="stack" x-data="{ selected: 0, drafts: 0, borrowable: 0 }"
+            @change="selected = $el.querySelectorAll('.table__select input:checked').length; drafts = $el.querySelectorAll('input[data-draft]:checked').length; borrowable = $el.querySelectorAll('input[data-borrowable]:checked').length">
         <div class="notice" x-show="selected > 0" x-cloak>
             <span>Terpilih: <strong x-text="selected"></strong> box berkas arsip.</span>
             <span class="topbar__spacer"></span>
             @if ($canSubmit)
+                {{-- Laravel 7 "Tarik Berkas (n Box)": only ticked boxes in the warehouse without an active penarikan. --}}
+                <form method="GET" action="{{ route('borrowings.create') }}" id="batch-borrow" x-show="borrowable > 0" data-no-lock>
+                    <input type="hidden" name="from" value="archives">
+                    <x-button type="submit" variant="primary" size="sm" title="Ajukan penarikan untuk box arsip yang memenuhi syarat penarikan (tersimpan di gudang & belum ditarik)">
+                        Tarik Berkas (<span x-text="borrowable"></span> Box)
+                    </x-button>
+                </form>
                 <form method="POST" action="{{ route('archives.batch_delete_drafts') }}" id="batch-delete-drafts" x-show="drafts > 0">
                     @csrf
                     <x-button type="submit" variant="danger" size="sm" title="Hapus draft yang dipilih"

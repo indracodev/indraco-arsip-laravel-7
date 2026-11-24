@@ -23,7 +23,7 @@ class ContrastTest extends TestCase
         ['text', 'ambient', 4.5], ['text-muted', 'ambient', 4.5], ['accent', 'ambient', 4.5], ['text-subtle', 'ambient', 3.0],
         ['focus', 'ambient', 3.0],
         ['accent', 'surface', 4.5], ['accent', 'bg', 4.5], ['accent', 'accent-soft', 4.5],
-        ['on-accent', 'accent', 4.5], ['on-accent', 'accent-hover', 4.5], ['on-accent', 'danger', 4.5],
+        ['on-accent', 'accent', 4.5], ['on-accent', 'accent-hover', 4.5], ['on-accent', 'danger', 4.5], ['on-accent', 'danger-hover', 4.5],
         ['nav-text', 'nav-bg', 4.5], ['nav-text', 'nav-hover', 4.5], ['nav-text', 'nav-active', 4.5], ['nav-text-muted', 'nav-bg', 4.5],
         ['success', 'success-soft', 4.5], ['warning', 'warning-soft', 4.5], ['danger', 'danger-soft', 4.5], ['info', 'info-soft', 4.5],
         ['success', 'surface', 4.5], ['warning', 'surface', 4.5], ['danger', 'surface', 4.5], ['info', 'surface', 4.5],

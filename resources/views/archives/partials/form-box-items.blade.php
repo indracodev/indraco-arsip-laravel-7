@@ -22,7 +22,7 @@
             <tbody>
                 <template x-for="(item, iIdx) in box.items" :key="item.id">
                     <tr :class="{ 'table__row--danger': duplicateInfo(box, item, iIdx) }">
-                        <td data-label="NO"><span x-text="iIdx + 1"></span> <span class="badge badge--danger" x-show="duplicateInfo(box, item, iIdx)" title="Data kembar identik dengan baris lain di box ini">DUPLIKAT</span></td>
+                        <td data-label="NO"><span x-text="iIdx + 1"></span> <template x-if="duplicateInfo(box, item, iIdx)"><span class="badge badge--danger" title="Data kembar identik dengan baris lain di box ini">DUPLIKAT</span></template></td>
                         <td data-label="NAMA DOKUMEN" class="table__wide">
                             <select class="control" :id="item.custom ? null : 'item_name_' + bIdx + '_' + iIdx" :name="'boxes[' + bIdx + '][items][' + iIdx + '][document_name]'"
                                 x-show="!item.custom" :disabled="item.custom" x-model="item.document_name" @change="onMasterDocChange(box, item, $event)" aria-label="Nama dokumen">
@@ -50,7 +50,9 @@
                         <td data-label="PERIODE SELESAI"><input type="month" class="control" :id="'item_end_' + bIdx + '_' + iIdx" :name="'boxes[' + bIdx + '][items][' + iIdx + '][period_end]'" x-model="item.period_end" :max="currentMonth" :min="item.period_start || null" @change="validatePeriod(item)" aria-label="Periode selesai"></td>
                         <td data-label="KETERANGAN">
                             <textarea class="control" rows="1" maxlength="255" :id="'item_notes_' + bIdx + '_' + iIdx" :name="'boxes[' + bIdx + '][items][' + iIdx + '][notes]'" x-model="item.notes" placeholder="No. berkas fisik / catatan" aria-label="Keterangan"></textarea>
-                            <span class="field__error" x-show="duplicateInfo(box, item, iIdx)" x-text="'Kembar identik dgn ' + duplicateInfo(box, item, iIdx) + ' (Nama, Periode & Ket. sama)'"></span>
+                            <template x-if="duplicateInfo(box, item, iIdx)">
+                                <span class="field__error" x-text="'Kembar identik dgn ' + duplicateInfo(box, item, iIdx) + ' (Nama, Periode & Ket. sama)'"></span>
+                            </template>
                         </td>
                         <td data-label="" class="table__actions">
                             <x-button size="sm" variant="ghost" @click="duplicateItem(bIdx, iIdx)" title="Salin baris ini">Salin</x-button>

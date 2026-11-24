@@ -100,7 +100,7 @@ class LayoutTest extends TestCase
         $gudang = $this->user('pic_gudang');
         $admin = $this->user('admin');
 
-        foreach (['/borrowings', '/destructions'] as $url) {
+        foreach (['/destructions'] as $url) { // /borrowings: built (tests/Feature/Borrowing)
             $this->actingAs($pic)->get($url)->assertOk()->assertSee('Sedang dibangun ulang');
         }
         foreach (['/master/departments', '/master/numbering', '/master/users', '/logs', '/reports', '/diagnostics'] as $url) {
@@ -124,6 +124,40 @@ class LayoutTest extends TestCase
         $this->assertStringNotContainsString('/build/', $html);
         $this->assertDoesNotMatchRegularExpression('/(src|href)="(https?:)?\/\/(?!localhost)/', $html);
         $this->assertStringNotContainsString('confirm(', $html);
+    }
+
+    /**
+     * Every window.showAlertModal / showConfirmModal (public/js/modal.js) needs this markup: the one
+     * alertdialog, hidden until opened, a focusable dialog box (fallback focus) and the OK/cancel
+     * hooks; modal.js moves focus to the first VISIBLE button and traps Tab (R22: the hidden cancel
+     * button of an alert was picked first, focus stayed behind the overlay).
+     * Manual browser check: /archives/create -> "Simpan Sementara (Draft)" on an empty form ->
+     * "Peringatan Form Wajib" visible, "Mengerti" focused, Tab/Shift+Tab stay in the dialog, Enter
+     * closes and focuses the first empty field.
+     */
+    public function test_alert_and_confirm_modal_markup_is_on_every_page(): void
+    {
+        $pages = [
+            $this->actingAs($this->user('pic_dept', 'HCS'))->get('/archives/create')->assertOk()->getContent(),
+            $this->actingAs($this->user('admin'))->get('/')->assertOk()->getContent(),
+        ];
+        auth()->logout();
+        $pages[] = $this->get('/login')->assertOk()->getContent();
+
+        foreach ($pages as $html) {
+            $this->assertSame(1, substr_count($html, 'id="confirm-modal"'));
+            $this->assertMatchesRegularExpression('/<div class="modal modal--danger" id="confirm-modal" role="alertdialog" aria-modal="true"[^>]* hidden>/', $html);
+            $this->assertStringContainsString('<div class="modal__dialog" tabindex="-1">', $html);
+            foreach (['data-confirm-title', 'data-confirm-message', 'data-confirm-ok', 'data-confirm-cancel'] as $hook) {
+                $this->assertStringContainsString($hook, $html);
+            }
+            $this->assertMatchesRegularExpression('#<script src="[^"]+/js/modal\.js\?v=[0-9a-f]{10}" defer></script>#', $html);
+        }
+
+        $js = (string) file_get_contents(public_path('js/modal.js'));
+        $this->assertStringContainsString('window.showAlertModal', $js);
+        $this->assertStringContainsString("e.key !== 'Tab'", $js);
+        $this->assertStringContainsString('getClientRects().length', $js);
     }
 
     public function test_login_and_change_password_pages_use_the_design_system_with_laravel7_labels(): void

@@ -4,16 +4,34 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * Penarikan (withdrawal) request. `status` and `approval_status` are not fillable:
  * transitions are set explicitly by Actions.
  *
  * @property int $id
+ * @property int|null $archive_id
+ * @property int $borrower_user_id
+ * @property int|null $pic_gudang_id
+ * @property int|null $department_approval_by
  * @property string $status
+ * @property string $approval_status
+ * @property string|null $purpose
+ * @property string|null $notes
  * @property string|null $approval_file
  * @property string|null $scan_approval_borrow
  * @property string|null $approval_notes
+ * @property string|null $snapshot_box_number
+ * @property string|null $snapshot_title
+ * @property string|null $snapshot_department
+ * @property array<int, array<string, mixed>>|null $snapshot_items
+ * @property Carbon|null $request_date
+ * @property Carbon|null $borrow_date
+ * @property Carbon|null $department_approved_at
+ * @property Carbon|null $expected_return_date
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
  */
 class BorrowingLog extends Model
 {

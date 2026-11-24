@@ -36,6 +36,8 @@ use Illuminate\Support\Carbon;
  * @property int|null $masa_simpan_custom
  * @property string|null $physical_condition
  * @property string|null $rejection_note
+ * @property int|null $warehouse_location_id
+ * @property int|null $warehouse_rack_slot_id
  * @property string|null $file_path
  * @property string|null $scan_input_form
  * @property string|null $scan_approval_input

@@ -3,7 +3,7 @@
     data-confirm* attributes or window.showConfirmModal({...}) - see public/js/modal.js.
 --}}
 <div class="modal modal--danger" id="confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="confirm-modal-title" aria-describedby="confirm-modal-message" hidden>
-    <div class="modal__dialog">
+    <div class="modal__dialog" tabindex="-1">
         <div class="modal__header">
             <div class="cluster">
                 <span class="modal__icon"><x-icon name="alert" /></span>
