@@ -15,6 +15,8 @@ description: Saat mengubah launcher .bat/.vbs, Caddyfile, php-cgi pool, endpoint
 - Worker php-cgi diawasi dan dinyalakan ulang otomatis (php-cgi Windows berhenti setelah `PHP_FCGI_MAX_REQUESTS`). Pengawas **tidak boleh** polling sibuk (CPU idle ~0%).
 - Menutup jendela launcher atau `STOP-DMS-INDRACO.bat` mematikan Caddy, semua php-cgi, dan pengawasnya.
 - **DILARANG** bind ke `127.0.0.1` saja di launcher produksi.
+- **HTTPS LAN**: `https://:8443` dengan `tls internal` Caddy (SAN: localhost, 127.0.0.1, hostname, IP LAN saat start); `http://:8000` tetap ada sampai semua klien memercayai root CA. Root CA di `storage/caddy/` (persisten, di-ignore git, ikut di-backup), sertifikat publiknya bisa diunduh klien; kunci privat tidak pernah disajikan. Klien memasang lewat `INSTALL-SERTIFIKAT-KLIEN.bat`.
+- URL dan aset mengikuti skema/host request (tanpa mixed content).
 
 ### 4.2. Kontrak `GET /api/health/ping`
 - Target **< 2 ms**. **Zero-DB**, **zero-session** (tanpa middleware session/cookie).
@@ -36,6 +38,11 @@ description: Saat mengubah launcher .bat/.vbs, Caddyfile, php-cgi pool, endpoint
 - Aset di-build **Vite** di laptop developer (Tailwind 4 terkompilasi, bukan Tailwind Play JS 440 KB seperti L7), hasil build ber-hash di `public/build` ikut di-commit. Font dan ikon lokal (SVG, hanya ikon yang dipakai).
 - Satu titik penyertaan aset di layout (`@vite([...])`).
 - Library JS hanya yang lolos triage; target ukuran di `PROJECT_RULES.md` §1.1. Ringan untuk PC klien low-spec: tanpa animasi berat, tanpa library besar untuk hal yang bisa dikerjakan HTML/CSS/Alpine.
+
+### 6.2. PWA
+- `manifest.webmanifest` + ikon lokal; service worker **hanya** meng-cache aset statis ber-hash dari `public/build` dan ikon. **DILARANG** meng-cache halaman dinamis, respons API, data arsip, atau file scan.
+- Versi cache mengikuti hash build; cache lama dihapus saat aktivasi.
+- Halaman offline sederhana: "Server DMS tidak terjangkau" (sama tujuan dengan pengecekan ping di klien exe).
 
 ### 6.3. Modal konfirmasi (tanpa popup native)
 - **DILARANG** `confirm()`/`window.confirm()`/`alert()`.
