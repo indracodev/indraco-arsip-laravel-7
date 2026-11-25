@@ -109,6 +109,7 @@ Ditutup: #5 (semua: archives.show, bap, extend_print, api/departments/*, api/sub
 | R47 | S | `POST /borrowings/{id}/dispatch` lolos tanpa centang `confirm_file_checked` (hanya `required` HTML, sama L7) | diperbaiki: validasi server `accepted` + pesan Indonesia di `BorrowingApprovalController@dispatch` |
 | R48 | S | Penyelesaian pemusnahan menerima tanggal masa depan (sama L7) | diperbaiki: `before_or_equal:today` di `DestructionApprovalController@complete`; pengajuan tetap boleh dijadwalkan ke depan |
 | R49 | R | `method` pemusnahan menerima teks bebas (UI select, server `string\|max:100`, output di-escape) | dicatat, sama L7 |
+| R50 | S | Halaman HTML login-only dikirim `Cache-Control: no-cache, private`: browser tetap menyimpan (bfcache), setelah logout di PC bersama tombol Back menampilkan data arsip; menu basi setelah deploy | diperbaiki: `SetCacheHeaders::using('no_store;private')` di grup `web` (`bootstrap/app.php`) → semua respons 2xx web `no-store, private` (termasuk login, unduhan file); `sw.js` hanya cache file statis `?v=` + `offline.html`, tidak pernah HTML; tes `Shell/NoStoreCacheTest` |
 | Q1 | - | Nomor BAP yang sama diterima untuk log/departemen berbeda (mungkin sengaja: satu BAP untuk beberapa box) | ditanyakan ke pemilik |
 | Q2 | - | Pemusnahan bisa diajukan untuk box `in_warehouse` mana pun sebelum masa retensi habis (sama L7) | ditanyakan ke pemilik |
 | U1 | R | Sesi diakhiri di tab lain → submit berikutnya mendarat di login tanpa pesan "sesi berakhir" | dicatat (UX rendah), tidak diperbaiki |

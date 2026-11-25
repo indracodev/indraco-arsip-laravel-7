@@ -62,7 +62,7 @@ class ArchiveFileController extends Controller
             'Content-Type' => FileStorage::MIME[$file['extension']],
             'Content-Disposition' => HeaderUtils::makeDisposition($request->routeIs('files.download') ? 'attachment' : 'inline', $name),
             'X-Content-Type-Options' => 'nosniff',
-            'Cache-Control' => 'private, no-cache',
+            'Cache-Control' => 'no-store, private', // R50; X-Accel body is empty so SetCacheHeaders skips it
         ];
 
         if ($request->routeIs('files.preview_data')) {
