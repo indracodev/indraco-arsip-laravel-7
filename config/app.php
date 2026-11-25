@@ -132,4 +132,13 @@ return [
     // DMS: asset version manifest (App\Support\Asset); tests point it elsewhere.
     'assets_cache' => env('APP_ASSETS_CACHE'),
 
+    // DMS (S3): Host header names this server answers to (bootstrap/app.php trustHosts); any other
+    // Host gets 400. Same names as the HTTPS certificate (evironment/dms-server.cmd) except the
+    // auto-detected IPs: add another IP (e.g. a dev PC) to DMS_ALLOWED_HOSTS, comma separated.
+    'allowed_hosts' => array_values(array_filter(array_map('trim', [
+        'localhost', '127.0.0.1', '[::1]', (string) gethostname(),
+        (string) env('SERVER_LAN_IP', ''),
+        ...explode(',', (string) env('DMS_ALLOWED_HOSTS', '')),
+    ]))),
+
 ];

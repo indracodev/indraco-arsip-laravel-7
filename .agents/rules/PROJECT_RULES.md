@@ -65,8 +65,8 @@ max_execution_time = 120
 expose_php = Off
 display_errors = Off
 log_errors = On
-upload_max_filesize = 64M
-post_max_size = 64M
+upload_max_filesize = 20M      ; S5: impor maks 5 MB + scan 500 KB; Caddy request_body 24MB sedikit di atasnya
+post_max_size = 20M
 date.timezone = Asia/Jakarta
 
 [opcache]

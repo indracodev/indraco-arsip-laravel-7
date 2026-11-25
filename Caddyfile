@@ -65,6 +65,17 @@
 
 	encode zstd gzip
 
+	# S5: largest legitimate body is an Excel import (5 MB) + scan form (500 KB). php-dms.ini
+	# post_max_size 20M answers above that with an Indonesian page (Laravel PostTooLargeException);
+	# anything above 24MB is cut here before it reaches a php-cgi worker.
+	request_body {
+		max_size 24MB
+	}
+	handle_errors 413 {
+		header Content-Type "text/html; charset=utf-8"
+		respond `<!DOCTYPE html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Data Terlalu Besar</title></head><body style="font-family:sans-serif;max-width:40rem;margin:3rem auto;padding:0 1rem"><h1>Data terlalu besar</h1><p>Ukuran data yang dikirim melebihi batas server (maksimal 20 MB per pengiriman). Kurangi jumlah atau ukuran file lalu coba lagi.</p><p><a href="javascript:history.back()">Kembali</a></p></body></html>` 413
+	}
+
 	# LAN heartbeat answered by Caddy itself: no PHP, no DB, no session (~1 ms).
 	# Same contract as the Laravel route (kept for `php artisan serve` in development).
 	# CORS "*" like Laravel 7: the desktop client (DMS-Indraco-Client.exe, page origin

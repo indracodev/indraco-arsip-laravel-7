@@ -5,7 +5,8 @@ IP server saat ini: **`192.168.2.180`** (tetap, di-set pemilik). Jika pemilik me
 ## Server (Laravel 13, folder ini)
 | Tempat | Isi | Catatan |
 |---|---|---|
-| `SERVER_LAN_IP` di `.env` (default di `.env.example`) | IP baru | dibaca `evironment/dms-server.cmd` → `DMS_TLS_SITES` di Caddyfile |
+| `SERVER_LAN_IP` di `.env` (default di `.env.example`) | IP baru | dibaca `evironment/dms-server.cmd` → `DMS_TLS_SITES` di Caddyfile, **dan** daftar Host yang dilayani Laravel (S3, `config('app.allowed_hosts')`) — otomatis; launcher membuat ulang cache config karena `.env` berubah. Host di luar daftar → 400 |
+| `DMS_ALLOWED_HOSTS` di `.env` (opsional, koma) | alamat tambahan selain `SERVER_LAN_IP`, nama PC, localhost, 127.0.0.1 (mis. IP kedua server, IP laptop dev) | tanpa ini, membuka aplikasi lewat IP lain PC server (walau ada di sertifikat) → 400 |
 | Sertifikat HTTPS | otomatis dibuat ulang saat `START-DMS-INDRACO.bat` dijalankan (SAN memuat IP baru) | Root CA di `storage/caddy/` **tidak berubah**, jadi klien **tidak perlu** memasang ulang sertifikat |
 | `APP_URL` di `.env` | `https://<ip-baru>:8443` jika dipakai | URL di halaman mengikuti request, jadi ini hanya untuk link di luar request (mis. log) |
 | `.agents/context/project-overview.md`, file ini | IP baru | dokumentasi |

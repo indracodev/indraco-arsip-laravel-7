@@ -2,7 +2,7 @@
 
 Audit: 2026-11-25, branch `laravel-13-rebuild`, server hidup `http://127.0.0.1:8000` / `https://127.0.0.1:8443` (Caddy 2.11.9, PHP 8.4.28, Laravel 13.43.0).
 Status: **OK** | **temuan Sx** (lihat `findings.md` → "Audit keamanan (2026-11-25)") | **diterima pemilik** | **ditunda (decisions)**.
-Temuan critical/high: **0**. Temuan baru: S1 (diperbaiki), S2–S5 (rendah, perlu keputusan / catatan).
+Temuan critical/high: **0**. Temuan baru: S1, S2, S3, S5 (diperbaiki), S4 (ditunda).
 
 ## Risiko diterima pemilik (tidak diubah)
 | Risiko | Sumber |
@@ -53,24 +53,24 @@ Bukti otomatis: `SecurityAuditTest::test_every_route_except_login_and_health_req
 ## A04 Insecure Design — OK
 - Status workflow dicek di dalam `DB::transaction` (28 Action), optimistic lock form, nomor box atomik. Tes: `SubmissionAccessTest::test_the_same_submission_sent_twice_creates_the_boxes_once`, `…draft_twice_is_refused`, `…optimistic_lock_refuses_a_stale_form`, `BorrowingProcessTest::test_dispatch_is_refused_twice_and_after_reject`, `DestructionProposalTest::test_double_submit_creates_one_log`, `CheckinTest::test_slots_are_never_double_booked` (R34, R35).
 
-## A05 Security Misconfiguration — OK (S3, S4, S5 catatan)
+## A05 Security Misconfiguration — OK (S3, S5 diperbaiki; S4 ditunda)
 - `.env`: `APP_DEBUG=false`; `php-dms.ini`: `expose_php=Off`, `display_errors=Off`. 404 memakai halaman aplikasi tanpa trace; tanpa `X-Powered-By`/`Server`.
 - Header (curl `/login` :8000 dan :8443): `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()`, `Cache-Control: no-store, private` (R50), CSP **Report-Only** (S4).
 - File sensitif lewat HTTP (curl, semua **404**): `/.env`, `/.git/HEAD`, `/.git/config`, `/composer.json`, `/composer.lock`, `/artisan`, `/storage`, `/storage/logs/laravel.log`, `/storage/app/private`, `/vendor/autoload.php`, `/database/database.sqlite`, `/evironment/php-dms.ini`, `/.agents/AGENTS.md`, `/AGENTS.md`, `/Caddyfile`, `/routes/web.php`, `/server.php`, `/phpinfo.php`, `/.htaccess`, `/private/archive_scans/x.pdf`, `/legacy-public/x.pdf`, `/%2e%2e/.env`, `/css/..%2f..%2f.env`, `/index.php/../.env`. Directory listing `/css/`, `/js/`, `/images/` → 404.
 - PHP hanya `public/index.php` (Caddy root `public`, `php_fastcgi` → index.php). Upload di `storage/app/private`, nama acak + ekstensi dari isi; disajikan Caddy `X-Accel-Redirect` (hanya header respons upstream) dengan `Content-Type` dari whitelist, `nosniff`, `Content-Disposition` inline/attachment (`ArchiveFileController`). Logo di `public/uploads/logo` hanya png/jpg dari isi file (#12).
-- **S3**: header `Host` tidak divalidasi → `curl -H "Host: evil.example:8000" /` = `302 http://evil.example:8000/login`.
-- **S5**: `post_max_size/upload_max_filesize=64M` (PROJECT_RULES) tanpa `request_body max_size` di Caddy; klien tanpa login bisa mengirim body besar ke worker.
+- **S3** (diperbaiki): Host divalidasi `trustHosts` (bootstrap/app.php, `config('app.allowed_hosts')`: localhost, 127.0.0.1, [::1], nama PC, `SERVER_LAN_IP`, `DMS_ALLOWED_HOSTS`). curl :8000 `-H "Host: evil.example:8000" /` → **400** (sebelumnya `302 http://evil.example:8000/login`); `127.0.0.1`, `192.168.3.49` (DMS_ALLOWED_HOSTS laptop dev) → 302 ke `/login` host sendiri; `/api/health/ping` dengan Host asing → 200 (dijawab Caddy). Tes `SessionSecurityTest::test_only_the_servers_own_host_names_are_answered`.
+- **S5** (diperbaiki): body terbesar sah = impor Excel 5 MB + scan 500 KB. `post_max_size`/`upload_max_filesize=20M` (php-dms.ini, PROJECT_RULES) → Laravel `PostTooLargeException` = halaman `errors/413` / JSON `message` bahasa Indonesia; Caddy `request_body max_size 24MB` + `handle_errors 413` halaman HTML Indonesia. Diuji Caddy+php-cgi terpisah (port uji): POST 22 MB → 413 halaman Laravel / JSON, 30 MB → 413 halaman Caddy, kecil → 419 (CSRF, normal). Tes `SessionSecurityTest::test_body_above_post_max_size_gets_an_indonesian_413`.
 
 ## A06 Vulnerable Components — OK
 - `composer audit` (evironment/composer.phar): "No security vulnerability advisories found". Laravel 13.43.0.
 - Alpine.js 3.17.5 lokal (`public/js/vendor/alpine.min.js`), qrcode lokal; tanpa CDN, tanpa npm di server. Caddy v2.11.9, PHP 8.4.28.
 
-## A07 Identification & Authentication Failures — OK (S2)
+## A07 Identification & Authentication Failures — OK (S2 diperbaiki)
 - Session fixation: `session()->regenerate()` saat login (`LoginTest::test_laravel7_user_can_log_in_and_the_session_is_regenerated`) dan setiap impersonate/leave. Logout: `invalidate()` + `regenerateToken()` (`LoginTest::test_logout_ends_the_session`).
 - Pesan login sama untuk email ada/tidak (`…unknown_email_gets_the_same_error`); form tanpa prefill (`…no_prefilled_credentials`). Tanpa remember-me.
 - CSRF: Laravel 13 `PreventRequestForgery` di grup web; curl `POST /login` tanpa token → **419**, `Sec-Fetch-Site: cross-site` / `same-site` → **419**, `same-origin` → lolos (header hanya diset browser). Semua POST ada di grup web (api.php hanya GET health).
 - Sesi: file, `SESSION_LIFETIME=120` menit (geser), cookie terenkripsi.
-- **S2**: ganti/reset password tidak mengakhiri sesi lain akun itu (tanpa `AuthenticateSession`).
+- **S2** (diperbaiki): `AuthenticateSession` di grup web (sesi file; hash password di sesi). Ganti password sendiri → sesi itu tetap masuk, sesi lain akun itu ke `/login` pada request berikutnya; reset admin → semua sesi akun itu berakhir. Presence (`UpdateUserPresence`) berjalan sesudahnya, tidak berubah (`PresenceThrottleTest`). Tes `SessionSecurityTest` (3 tes S2, gagal tanpa middleware).
 
 ## A08 Software & Data Integrity Failures — OK
 - Upload: `FileStorage::rules()` `mimes` + `extensions` pdf/jpg/jpeg/png + `max:500`; `store()` cek ulang MIME dari isi (finfo), ekstensi klien, ukuran; nama server acak (`SubmissionUploadTest`: php, `scan.pdf.php`, php sebagai pdf, html sebagai png ditolak; > 500 KB ditolak). Tanpa SVG/HTML.
@@ -97,5 +97,5 @@ Bukti otomatis: `SecurityAuditTest::test_every_route_except_login_and_health_req
 | Diagnostik | OK | admin-only, token `?token=` dihapus (#10) |
 
 ## Tindak lanjut
-- S2–S5: menunggu keputusan pemilik (lihat findings). Perubahan audit ini hanya PHP (tanpa view/config/Caddyfile) — tidak perlu restart; OPcache memuat ulang dalam ≤ 60 dtk.
+- S2/S3/S5 diperbaiki 2026-11-25. Perubahan `Caddyfile` dan `php-dms.ini` (S5) baru berlaku setelah server di-restart (`START-DMS-INDRACO.bat`); S2/S3 (PHP + .env) langsung berlaku. S4 ditunda (decisions).
 - Catatan uji: probe CSRF `POST /login` dengan `Sec-Fetch-Site: same-origin` menulis satu baris `LOGIN_FAILED` (email `x@x`) di DB server uji.
