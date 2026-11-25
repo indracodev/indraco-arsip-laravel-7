@@ -10,7 +10,7 @@
    - LAN alert toast when the admin enabled it and the LAN dot turns slow/down (lan.js). */
 (function () {
     var INTERVAL = 15000, JITTER = 2000, KEEP = 25, HOUR = 3600 * 1000;
-    var timer = null, busy = false, prefix = 'dms_notify_';
+    var timer = null, busy = false, stopped = false, prefix = 'dms_notify_';
     var store = {
         get: function (key, fallback) { try { var v = sessionStorage.getItem(prefix + key); return v === null ? fallback : JSON.parse(v); } catch (e) { return fallback; } },
         set: function (key, value) { try { sessionStorage.setItem(prefix + key, JSON.stringify(value)); } catch (e) { /* blocked */ } }
@@ -39,6 +39,25 @@
         t.appendChild(close);
         toastBox().appendChild(t);
         setTimeout(hide, 9000);
+    }
+
+    /* 401/419: the session ended (logout in another tab, password reset, expiry). Stop polling and say so once;
+       no auto-reload, that would throw away what the user typed. */
+    function sessionEnded(res) {
+        if (res.status !== 401 && res.status !== 419) { return false; }
+        if (stopped) { return true; }
+        stopped = true;
+        if (timer) { clearTimeout(timer); timer = null; }
+        var t = el('div', 'toast toast--danger');
+        t.setAttribute('role', 'alert');
+        var body = el('div', 'toast__text');
+        body.appendChild(el('strong', '', 'Sesi Anda telah berakhir. Silakan login kembali.'));
+        t.appendChild(body);
+        var login = el('a', 'btn btn--primary btn--sm', 'Login');
+        login.href = '/login';
+        t.appendChild(login);
+        toastBox().appendChild(t);
+        return true;
     }
 
     function lines(n) { return [[n.dept, n.box].filter(Boolean).join(' • '), 'Oleh: ' + n.by + (n.status ? ' — ' + n.status : '')]; }
@@ -85,18 +104,18 @@
 
     function poll() {
         timer = null;
-        if (document.hidden || busy) { return; }
+        if (document.hidden || busy || stopped) { return; }
         busy = true;
         var seq = store.get('seq', null);
         fetch('/api/realtime/check?' + (seq === null ? 'initial=1' : 'since_seq=' + seq), { headers: { 'Accept': 'application/json' }, cache: 'no-store' })
-            .then(function (res) { if (!res.ok) { throw new Error('HTTP ' + res.status); } return res.json(); })
-            .then(handle)
+            .then(function (res) { if (sessionEnded(res)) { return null; } if (!res.ok) { throw new Error('HTTP ' + res.status); } return res.json(); })
+            .then(function (data) { if (data) { handle(data); } })
             .catch(function () { /* offline or logged out: try again later */ })
             .then(function () { busy = false; schedule(); });
     }
 
     function schedule(delay) {
-        if (!timer && !document.hidden) { timer = setTimeout(poll, delay === undefined ? INTERVAL - JITTER + Math.random() * 2 * JITTER : delay); }
+        if (!timer && !document.hidden && !stopped) { timer = setTimeout(poll, delay === undefined ? INTERVAL - JITTER + Math.random() * 2 * JITTER : delay); }
     }
 
     /* Expiry popup: shown once per login session, then again after an hour (Laravel 7). */
@@ -105,10 +124,11 @@
         if (!modal || !window.dmsModal) { return; }
         var last = 0, shown = false;
         try { last = Number(localStorage.getItem('dms_last_expiry_popup_ts')) || 0; shown = !!sessionStorage.getItem('dms_session_expiry_shown'); } catch (e) { /* blocked */ }
-        if (!force && shown && Date.now() - last < HOUR) { return; }
+        if (stopped || (!force && shown && Date.now() - last < HOUR)) { return; }
         fetch('/api/archives/expiring-list', { headers: { 'Accept': 'application/json' }, cache: 'no-store' })
-            .then(function (res) { return res.ok ? res.json() : { count: 0, items: [] }; })
+            .then(function (res) { return sessionEnded(res) ? null : (res.ok ? res.json() : { count: 0, items: [] }); })
             .then(function (data) {
+                if (!data) { return; }
                 try { sessionStorage.setItem('dms_session_expiry_shown', '1'); localStorage.setItem('dms_last_expiry_popup_ts', String(Date.now())); } catch (e) { /* blocked */ }
                 if (!data.count || document.body.classList.contains('modal-open')) { return; }
                 modal.querySelector('[data-expiry-count]').textContent = data.count + ' Box Jatuh Tempo';
