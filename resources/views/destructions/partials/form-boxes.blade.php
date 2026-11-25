@@ -17,6 +17,7 @@
                         <span class="mono" x-text="arc.box_number || 'NO-BOX'"></span>
                         <span class="badge badge--outline" x-text="arc.dept_code"></span>
                         <span class="badge badge--success" x-show="isSelected(arc.id)">Sudah di List</span>
+                        @unless ($isExtension)<span class="badge badge--warning" x-show="arc.early" x-text="arc.early"></span>@endunless
                     </div>
                     <div class="file-card__name" x-text="arc.title"></div>
                     <div class="text-sm text-muted" x-text="'Masa Simpan: ' + arc.retention + ' (Expiry: ' + arc.expiry + ') • ' + arc.location"></div>
@@ -39,6 +40,7 @@
                     <strong x-text="arc.title"></strong>
                 </x-button>
                 <span class="mono text-sm" x-text="arc.box_number || 'PENOMORAN PENDING'"></span>
+                @unless ($isExtension)<span class="badge badge--warning" x-show="arc.early" x-text="arc.early"></span>@endunless
                 <span class="text-sm text-muted" x-text="arc.location"></span>
                 <span class="text-sm text-muted" x-text="{{ $isExtension ? "'Expiry: ' + arc.expiry" : 'arc.period' }}"></span>
             </div>

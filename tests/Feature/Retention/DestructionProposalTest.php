@@ -210,4 +210,25 @@ class DestructionProposalTest extends TestCase
         $this->assertSame(['Pemusnahan', 'Usulan pemusnahan fisik berkas arsip. Catatan: Rusak'], [$response->viewData('fields')['tipe'], $response->viewData('fields')['catatan']]);
         $this->actingAs($this->gudang)->get('/destructions/form-pemusnahan')->assertForbidden();
     }
+
+    public function test_not_yet_due_boxes_carry_a_warning_badge(): void
+    {
+        $early = $this->expiringBox($this->hcs, 'HCS-EARLY', '2027-01-15');
+        $this->expiringBox($this->hcs, 'HCS-DUE', '2026-10-31');
+
+        $archives = collect($this->actingAs($this->picHcs)->get('/destructions/propose')->assertOk()->assertSee('arc.early', false)->viewData('archives'))->keyBy('title');
+        $this->assertSame(['Belum jatuh tempo (sisa 68 hari)', null], [$archives['HCS-EARLY']['early'], $archives['HCS-DUE']['early']]);
+
+        $this->proposed([$early]);
+        $this->actingAs($this->gudang)->get('/destructions?tab=destructions')->assertOk()
+            ->assertSee('Belum jatuh tempo (sisa 68 hari)')->assertSee('Perhatian: box ini belum jatuh tempo (sisa 68 hari).');
+        $this->actingAs($this->gudang)->post('/destructions/'.DB::table('destruction_logs')->max('id').'/approve');
+        $this->actingAs($this->gudang)->get('/destructions?tab=destructions')->assertSee('Belum jatuh tempo (sisa 68 hari)');
+    }
+
+    public function test_expired_box_has_no_warning_badge_in_the_gudang_list(): void
+    {
+        $this->proposed([$this->expiringBox($this->hcs, 'HCS-DUE', '2026-10-31')]);
+        $this->actingAs($this->gudang)->get('/destructions?tab=destructions')->assertOk()->assertSee('HCS-DUE')->assertDontSee('Belum jatuh tempo');
+    }
 }

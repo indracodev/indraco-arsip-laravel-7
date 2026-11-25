@@ -25,6 +25,7 @@
                     $approval = $fileIndex(\App\Services\RetentionList::file('Approval Pemusnahan - '.$boxName, 'destruction', $log->id, $approvalField, $log->getAttribute($approvalField)));
                     $certificate = $fileIndex(\App\Services\RetentionList::file('BAP - '.$boxName, 'destruction', $log->id, 'certificate_file', $log->certificate_file));
                     $executor = $log->proposedBy->name ?? 'Gudang Specialist';
+                    $early = in_array($log->approval_status, ['pending', 'approved'], true) ? app(\App\Services\RetentionCalculator::class)->earlyNote($archive) : null;
                 @endphp
                 <tr class="table__row--{{ $tone }}" data-search="{{ mb_strtolower($log->bap_number.' '.$archive->title.' '.$archive->box_number.' '.$label.' '.$log->method.' '.$executor) }}">
                     <td data-label="NOMOR BAP" class="table__nowrap">
@@ -36,6 +37,7 @@
                     </td>
                     <td data-label="STATUS ALUR">
                         <span class="badge badge--{{ $tone }}" data-status="{{ $log->approval_status }}">{{ $label }}</span>
+                        @if ($early)<span class="badge badge--warning">{{ $early }}</span>@endif
                         @if ($log->approval_status === 'rejected' && $log->approval_notes)<p class="table__note"><strong>Alasan:</strong> {{ $log->approval_notes }}</p>@endif
                     </td>
                     <td data-label="TANGGAL EKSEKUSI" class="table__nowrap">{{ $log->destruction_date?->format('d M Y') ?? '-' }}</td>
@@ -57,7 +59,7 @@
                                 <form method="POST" action="{{ route('destructions.approve', $log) }}">
                                     @csrf
                                     <x-button type="submit" size="sm" variant="primary" title="Setujui Pengajuan Masuk Antrean Gudang"
-                                        data-confirm="Apakah Anda yakin menyetujui usulan pengajuan pemusnahan ini untuk masuk ke Antrean Pemusnahan Gudang?"
+                                        data-confirm="Apakah Anda yakin menyetujui usulan pengajuan pemusnahan ini untuk masuk ke Antrean Pemusnahan Gudang?{{ $early ? ' Perhatian: box ini '.mb_strtolower($early).'.' : '' }}"
                                         data-confirm-title="Persetujuan Pemusnahan" data-confirm-type="warning" data-confirm-btn="Ya, Setujui"><x-icon name="check" />Setujui</x-button>
                                 </form>
                             @elseif ($log->approval_status === 'approved')

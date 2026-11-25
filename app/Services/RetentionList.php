@@ -168,6 +168,7 @@ final class RetentionList
             'retention' => RetentionCalculator::archiveDuration($archive),
             'expiry' => $end?->format('M Y') ?? '-',
             'expiry_ym' => ($archive->retention_expiry_date ?? $archive->period_end_date)?->format('Y-m'),
+            'early' => $this->calculator->earlyNote($archive),
             'items' => $archive->items->map(fn ($item): array => [
                 'number' => $item->item_number, 'name' => $item->document_name ?: '-',
                 'period' => $item->period_text ?: ($item->period_start ? trim($item->period_start.' s/d '.$item->period_end) : '-'),

@@ -137,4 +137,37 @@ class DestructionProcessTest extends TestCase
         $this->actingAs($this->picHcs)->get("/files/destruction/{$log}/certificate_file")->assertForbidden();
         $this->actingAs($this->picFat)->get("/files/destruction/{$log}/certificate_file/preview-data")->assertOk()->assertJsonPath('mime', 'application/pdf');
     }
+
+    public function test_bap_number_of_another_department_is_rejected(): void
+    {
+        $fatLog = $this->proposed([$this->expiringBox($this->fat, 'FAT-01')], $this->picFat);
+        $hcsLog = $this->proposed([$this->expiringBox($this->hcs, 'HCS-01')]);
+        foreach ([$fatLog, $hcsLog] as $log) {
+            $this->actingAs($this->gudang)->post("/destructions/{$log}/approve");
+        }
+        $this->actingAs($this->gudang)->post("/destructions/{$fatLog}/complete", ['bap_number' => 'BAP/IND/2026/00010', 'destruction_date' => '2026-11-24'])->assertSessionHas('success');
+
+        $this->actingAs($this->gudang)->post("/destructions/{$hcsLog}/complete", ['bap_number' => ' bap/ind/2026/00010 ', 'destruction_date' => '2026-11-24'])
+            ->assertSessionHas('error', 'No. BAP bap/ind/2026/00010 sudah dipakai oleh departemen FAT - Finance. Gunakan nomor BAP lain.');
+        $this->assertSame('approved', DB::table('destruction_logs')->where('id', $hcsLog)->value('approval_status'));
+
+        $box = $this->expiringBox($this->hcs, 'HCS-02');
+        $this->actingAs($this->admin)->post('/destructions/propose', $this->proposal([$box], ['bap_number' => 'BAP/IND/2026/00010']))
+            ->assertSessionHasErrors(['archive_ids' => 'No. BAP BAP/IND/2026/00010 sudah dipakai oleh departemen FAT - Finance. Gunakan nomor BAP lain.']);
+        $this->assertSame('in_warehouse', DB::table('archives')->where('id', $box)->value('status'));
+    }
+
+    public function test_bap_number_reused_in_the_same_department_is_allowed_with_a_note(): void
+    {
+        $first = $this->proposed([$this->expiringBox($this->hcs, 'HCS-01')]);
+        $second = $this->proposed([$this->expiringBox($this->hcs, 'HCS-02')]);
+        foreach ([$first, $second] as $log) {
+            $this->actingAs($this->gudang)->post("/destructions/{$log}/approve");
+        }
+        $this->actingAs($this->gudang)->post("/destructions/{$first}/complete", ['bap_number' => 'BAP/IND/2026/00011', 'destruction_date' => '2026-11-24'])
+            ->assertSessionHas('success', 'Pemusnahan berkas (HCS-01) telah selesai dieksekusi dengan No. BAP BAP/IND/2026/00011. Slot rak telah dikosongkan dan BAP siap dicetak.');
+        $this->actingAs($this->gudang)->post("/destructions/{$second}/complete", ['bap_number' => 'BAP/IND/2026/00011', 'destruction_date' => '2026-11-24'])
+            ->assertSessionHas('success', 'Pemusnahan berkas (HCS-02) telah selesai dieksekusi dengan No. BAP BAP/IND/2026/00011. Slot rak telah dikosongkan dan BAP siap dicetak. No. BAP ini juga dipakai untuk 1 box lain di departemen yang sama.');
+        $this->assertSame('completed', DB::table('destruction_logs')->where('id', $second)->value('approval_status'));
+    }
 }

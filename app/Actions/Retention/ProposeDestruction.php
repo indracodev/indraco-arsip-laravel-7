@@ -41,9 +41,11 @@ final class ProposeDestruction
 
         $approvalPath = $this->files->store($approval, 'destruction_approvals');
         $certificatePath = $certificate ? $this->files->store($certificate, 'bap_certificates') : null;
+        $note = '';
         try {
-            $archives = DB::transaction(function () use ($user, $ids, $data, $immediate, $bap, $status, $approvalPath, $certificatePath) {
+            $archives = DB::transaction(function () use ($user, $ids, $data, $immediate, $bap, $status, $approvalPath, $certificatePath, &$note) {
                 $archives = $this->list->pick($user, $ids);
+                $note = $immediate ? CompleteDestruction::checkBapNumber($bap, $archives->pluck('department_id')->all()) : '';
                 $logs = [];
                 foreach ($archives as $archive) {
                     $log = new DestructionLog([
@@ -87,7 +89,7 @@ final class ProposeDestruction
         $boxes = $archives->pluck('box_number')->filter()->implode(', ') ?: "{$count} Box";
 
         return $immediate
-            ? "Proses pemusnahan {$count} box berkas ({$boxes}) berhasil disahkan dengan No. BAP {$bap}."
+            ? "Proses pemusnahan {$count} box berkas ({$boxes}) berhasil disahkan dengan No. BAP {$bap}.{$note}"
             : "Pengajuan pemusnahan {$count} box berkas ({$boxes}) berhasil dikirim. Menunggu verifikasi dan persetujuan dari PIC Gudang.";
     }
 }

@@ -60,6 +60,18 @@ final class RetentionCalculator
         return (int) Carbon::today()->diffInDays($expiryEnd, false);
     }
 
+    /**
+     * Q2 (owner 2026-11-25): destruction before the retention end stays allowed but is flagged,
+     * e.g. "Belum jatuh tempo (sisa 12 hari)"; null when due/passed or no expiry is known.
+     */
+    public function earlyNote(Archive $archive): ?string
+    {
+        $end = $this->expiryEnd($archive);
+        $days = $end ? $this->daysLeft($end) : 0;
+
+        return $days > 0 ? "Belum jatuh tempo (sisa {$days} hari)" : null;
+    }
+
     public function isDue(Carbon $expiryEnd): bool
     {
         return Carbon::today()->gte($expiryEnd->copy()->subDays(self::NOTICE_DAYS)->startOfDay());
