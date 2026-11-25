@@ -62,6 +62,10 @@
 	@pwa path /sw.js /manifest.webmanifest /offline.html
 	header @pwa Cache-Control "no-cache"
 	header /manifest.webmanifest Content-Type "application/manifest+json"
+	# pdf.js ES modules (public/js/vendor/pdfjs): module scripts need a JavaScript MIME (nosniff);
+	# set explicitly so a Windows registry entry for .mjs on the server PC cannot change it.
+	@mjs path *.mjs
+	header @mjs Content-Type "text/javascript; charset=utf-8"
 
 	encode zstd gzip
 
