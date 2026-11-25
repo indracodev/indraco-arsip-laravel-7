@@ -8,7 +8,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
- * Polled by public/js/pages/notifications.js (every page, >= 5 s, paused while the tab is hidden):
+ * Polled by public/js/pages/notifications.js (every page, 15 s ± 2 s with a random first delay, paused while the tab is hidden):
  * toasts + bell list, menu badges and the expiry popup. Laravel 7 URLs:
  * /api/realtime/check (?since_seq=, ?initial=1) and /api/archives/expiring-list.
  */

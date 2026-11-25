@@ -11,6 +11,7 @@ use App\Support\StatusLabel;
 use DomainException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -28,6 +29,12 @@ final class RetentionList
      * approving an extension then put it back to `in_warehouse`.
      */
     public const CANDIDATE_STATUS = 'in_warehouse';
+
+    /** Rows per page of each [Form 3] tab (P1, PROJECT_RULES_SQLITE 3.3). */
+    public const PER_PAGE = 50;
+
+    /** SQL: last day of the stored expiry month (Y-m-d), the end RetentionCalculator::expiryEnd() uses. */
+    private const EXPIRY_END_SQL = "date(archives.retention_expiry_date, 'start of month', '+1 month', '-1 day')";
 
     /** destruction_logs.approval_status => [label, tone] (Laravel 7 index). */
     public const DESTRUCTION = [
@@ -87,66 +94,161 @@ final class RetentionList
     }
 
     /**
-     * Tab "Berkas Jatuh Tempo (H-30)": candidates whose retention ends within 30 days or passed.
+     * Tab "Berkas Jatuh Tempo (H-30)": candidates whose retention ends within 30 days or passed,
+     * one page, filtered / searched / sorted in SQL (P1). Days and badge per row: RetentionCalculator.
      *
-     * @return Collection<int, array{archive: Archive, expiry: Carbon, days: int, expired: bool, badge: string}>
+     * @return LengthAwarePaginator<int, array{archive: Archive, expiry: Carbon, days: int, expired: bool, badge: string}>
      */
-    public function expiring(User $user): Collection
+    public function expiring(User $user, string $search = '', string $sort = '', bool $desc = false): LengthAwarePaginator
     {
-        return $this->candidates($user)->with(['department', 'location.warehouse', 'rackSlot'])->get()
-            ->map(function (Archive $archive): ?array {
-                $end = $this->calculator->expiryEnd($archive);
-                if (! $end || ! $this->calculator->isDue($end)) {
-                    return null;
-                }
-                $days = $this->calculator->daysLeft($end);
+        $direction = $desc ? 'desc' : 'asc';
+        $query = $this->due($user)->with(['department', 'location.warehouse', 'rackSlot'])
+            ->when($search !== '', fn (Builder $q) => $q->where(fn (Builder $w) => $w->where('box_number', 'like', "%{$search}%")
+                ->orWhere('title', 'like', "%{$search}%")->orWhereHas('department', fn (Builder $d) => $d->where('code', 'like', "%{$search}%"))));
+        if (in_array($sort, ['box_number', 'title'], true)) {
+            $query->orderByRaw("lower(archives.{$sort}) {$direction}")->orderBy('expiry_end');
+        } else {
+            $query->orderBy('expiry_end', $direction);
+        }
 
-                return [
-                    'archive' => $archive, 'expiry' => $end, 'days' => $days, 'expired' => $days < 0,
-                    'badge' => $days < 0 ? 'Lewat '.abs($days).' Hari' : ($days === 0 ? 'Hari Ini Jatuh Tempo' : "Jatuh Tempo Bulan Ini (Sisa {$days} Hari)"),
-                ];
-            })->filter()->sortBy('days')->values();
+        return $query->orderBy('archives.id')->paginate(self::PER_PAGE)->through(function (Archive $archive): array {
+            /** @var Carbon $end due() only returns boxes with a known end */
+            $end = $this->calculator->expiryEnd($archive);
+            $days = $this->calculator->daysLeft($end);
+
+            return [
+                'archive' => $archive, 'expiry' => $end, 'days' => $days, 'expired' => $days < 0,
+                'badge' => $days < 0 ? 'Lewat '.abs($days).' Hari' : ($days === 0 ? 'Hari Ini Jatuh Tempo' : "Jatuh Tempo Bulan Ini (Sisa {$days} Hari)"),
+            ];
+        });
     }
 
-    /** @return Collection<int, ArchiveExtensionLog> */
-    public function extensions(User $user): Collection
+    /**
+     * Due candidates (H-30) with `expiry_end` (Y-m-d). Stored expiry: SQL form of
+     * RetentionCalculator::isDue() (end of the expiry month <= today + 30 days, as NotificationFeed);
+     * boxes without one (legacy rows) go through the PHP rule itself.
+     *
+     * @return Builder<Archive>
+     */
+    public function due(User $user): Builder
     {
-        return ArchiveExtensionLog::query()->with(['archive.department', 'proposedBy', 'approvedBy'])
-            ->whereHas('archive', fn (Builder $q) => $q->visibleTo($user))->latest()->orderByDesc('id')->get();
+        $legacy = $this->legacyDueEnds($user);
+        $end = self::EXPIRY_END_SQL;
+        $bindings = [];
+        if ($legacy !== []) {
+            $end = "COALESCE({$end}, CASE archives.id".str_repeat(' WHEN ? THEN ?', count($legacy)).' END)';
+            foreach ($legacy as $id => $date) {
+                array_push($bindings, $id, $date);
+            }
+        }
+        $limit = Carbon::today()->addDays(RetentionCalculator::NOTICE_DAYS)->toDateString();
+
+        return $this->candidates($user)
+            ->where(fn (Builder $q) => $q->whereRaw(self::EXPIRY_END_SQL.' <= ?', [$limit])->orWhereIn('archives.id', array_keys($legacy)))
+            ->select('archives.*')->selectRaw("{$end} as expiry_end", $bindings);
+    }
+
+    /**
+     * id => end of retention (Y-m-d) of the due candidates without a stored expiry.
+     * ponytail: evaluated in PHP (period / "N bulan" rules); fine while such legacy rows are few (real data: 1).
+     *
+     * @return array<int, string>
+     */
+    private function legacyDueEnds(User $user): array
+    {
+        return $this->candidates($user)->whereNull('retention_expiry_date')
+            ->get(['id', 'retention_expiry_date', 'period_end_date', 'periode_doc', 'tgl_penyerahan', 'created_at', 'retention_years'])
+            ->mapWithKeys(fn (Archive $archive): array => [$archive->id => $this->calculator->expiryEnd($archive)])
+            ->filter(fn (?Carbon $end): bool => $end !== null && $this->calculator->isDue($end))
+            ->map(fn (Carbon $end): string => $end->toDateString())->all();
+    }
+
+    /**
+     * Tab badges with COUNT queries only (P1); `legacy` = no extension log yet, so the old-code
+     * history is shown instead (Laravel 7).
+     *
+     * @return array{h30: int, extensions: int, destructions: int, legacy: bool}
+     */
+    public function counts(User $user): array
+    {
+        $extensions = $this->extensionQuery($user)->count();
+
+        return [
+            'h30' => $this->due($user)->count(),
+            'extensions' => $extensions ?: $this->legacyQuery($user)->count(),
+            'destructions' => $this->destructionQuery($user)->count(),
+            'legacy' => $extensions === 0,
+        ];
+    }
+
+    /** @return LengthAwarePaginator<int, ArchiveExtensionLog> */
+    public function extensions(User $user, string $search = ''): LengthAwarePaginator
+    {
+        $like = "%{$search}%";
+
+        return $this->extensionQuery($user)->with(['archive.department', 'proposedBy', 'approvedBy'])
+            ->when($search !== '', fn (Builder $q) => $q->where(fn (Builder $w) => $w->where('extension_reason', 'like', $like)
+                ->orWhereHas('archive', fn (Builder $a) => $a->where('box_number', 'like', $like)->orWhere('title', 'like', $like))
+                ->orWhereHas('proposedBy', fn (Builder $u) => $u->where('name', 'like', $like))))
+            ->latest()->orderByDesc('id')->paginate(self::PER_PAGE);
     }
 
     /**
      * Laravel 7 showed extensions made by the old code (activity log RETENTION_EXTEND, before
-     * archive_extension_logs existed) when there is no extension log yet. Read only.
+     * archive_extension_logs existed) when there is no extension log yet. Read only, not paged.
      *
      * @return Collection<int, array{box: string, title: string, dept: string, months: int, expiry: string, reason: string, user: string, date: string}>
      */
-    public function legacyExtensions(User $user): Collection
+    public function legacyExtensions(User $user, string $search = ''): Collection
     {
-        return ActivityLog::query()->where('action', 'RETENTION_EXTEND')
-            ->when($user->role === User::ROLE_PIC_DEPT, fn ($q) => $q->where('department_id', $user->department_id))
-            ->latest()->get()->map(function (ActivityLog $log): array {
-                $props = (array) $log->getAttribute('properties');
-                $archive = isset($props['archive_id']) ? Archive::query()->with('department')->find($props['archive_id']) : null;
+        return $this->legacyQuery($user)->latest()->get()->map(function (ActivityLog $log): array {
+            $props = (array) $log->getAttribute('properties');
+            $archive = isset($props['archive_id']) ? Archive::query()->with('department')->find($props['archive_id']) : null;
 
-                return [
-                    'box' => (string) ($log->getAttribute('reference_id') ?? $archive->box_number ?? '-'),
-                    'title' => (string) ($archive->title ?? $log->getAttribute('description')),
-                    'dept' => (string) ($archive->department->code ?? $log->getAttribute('user_role') ?? '-'),
-                    'months' => (int) ($props['additional_months'] ?? 0),
-                    'expiry' => isset($props['new_expiry_date']) ? Carbon::parse($props['new_expiry_date'])->format('M Y') : '-',
-                    'reason' => (string) ($props['extension_reason'] ?? '-'),
-                    'user' => (string) ($log->getAttribute('user_name') ?? 'PIC'),
-                    'date' => (string) $log->getAttribute('created_at')?->format('d M Y H:i'),
-                ];
-            });
+            return [
+                'box' => (string) ($log->getAttribute('reference_id') ?? $archive->box_number ?? '-'),
+                'title' => (string) ($archive->title ?? $log->getAttribute('description')),
+                'dept' => (string) ($archive->department->code ?? $log->getAttribute('user_role') ?? '-'),
+                'months' => (int) ($props['additional_months'] ?? 0),
+                'expiry' => isset($props['new_expiry_date']) ? Carbon::parse($props['new_expiry_date'])->format('M Y') : '-',
+                'reason' => (string) ($props['extension_reason'] ?? '-'),
+                'user' => (string) ($log->getAttribute('user_name') ?? 'PIC'),
+                'date' => (string) $log->getAttribute('created_at')?->format('d M Y H:i'),
+            ];
+        })->filter(fn (array $row): bool => $search === '' || str_contains(mb_strtolower($row['box'].' '.$row['title'].' '.$row['user'].' '.$row['reason']), mb_strtolower($search)))->values();
     }
 
-    /** @return Collection<int, DestructionLog> */
-    public function destructions(User $user): Collection
+    /** @return LengthAwarePaginator<int, DestructionLog> */
+    public function destructions(User $user, string $search = ''): LengthAwarePaginator
     {
-        return DestructionLog::query()->with(['archive.department', 'proposedBy'])
-            ->whereHas('archive', fn (Builder $q) => $q->visibleTo($user))->latest()->orderByDesc('id')->get();
+        $like = "%{$search}%";
+        $statuses = array_keys(array_filter(self::DESTRUCTION, fn (array $status): bool => str_contains(mb_strtolower($status[0]), mb_strtolower($search))));
+
+        return $this->destructionQuery($user)->with(['archive.department', 'proposedBy'])
+            ->when($search !== '', fn (Builder $q) => $q->where(fn (Builder $w) => $w->where('bap_number', 'like', $like)->orWhere('method', 'like', $like)
+                ->orWhereIn('approval_status', $statuses)
+                ->orWhereHas('archive', fn (Builder $a) => $a->where('box_number', 'like', $like)->orWhere('title', 'like', $like))
+                ->orWhereHas('proposedBy', fn (Builder $u) => $u->where('name', 'like', $like))))
+            ->latest()->orderByDesc('id')->paginate(self::PER_PAGE);
+    }
+
+    /** @return Builder<ArchiveExtensionLog> */
+    private function extensionQuery(User $user): Builder
+    {
+        return ArchiveExtensionLog::query()->whereHas('archive', fn (Builder $q) => $q->visibleTo($user));
+    }
+
+    /** @return Builder<DestructionLog> */
+    private function destructionQuery(User $user): Builder
+    {
+        return DestructionLog::query()->whereHas('archive', fn (Builder $q) => $q->visibleTo($user));
+    }
+
+    /** @return Builder<ActivityLog> */
+    private function legacyQuery(User $user): Builder
+    {
+        return ActivityLog::query()->where('action', 'RETENTION_EXTEND')
+            ->when($user->role === User::ROLE_PIC_DEPT, fn ($q) => $q->where('department_id', $user->department_id));
     }
 
     /**

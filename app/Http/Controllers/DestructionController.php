@@ -33,14 +33,21 @@ class DestructionController extends Controller
             'expiry' => 'h30',
             default => in_array($request->query('tab'), self::TABS, true) ? $request->query('tab') : session('active_tab', 'h30'),
         };
-        $extensions = $list->extensions($user);
+        $tab = in_array($tab, self::TABS, true) ? $tab : 'h30';
+        $search = mb_substr(trim((string) $request->query('q', '')), 0, 100);
+        $counts = $list->counts($user);
+        // P1: only the active tab is built, one page; page links keep the tab (also when it came from the session).
+        $rows = match ($tab) {
+            'h30' => $list->expiring($user, $search, (string) $request->query('sort', ''), $request->query('direction') === 'desc'),
+            'extensions' => $list->extensions($user, $search),
+            default => $list->destructions($user, $search),
+        };
 
         return view('destructions.index', [
-            'tab' => in_array($tab, self::TABS, true) ? $tab : 'h30',
-            'expiring' => $list->expiring($user),
-            'extensions' => $extensions,
-            'legacyExtensions' => $extensions->isEmpty() ? $list->legacyExtensions($user) : collect(),
-            'destructions' => $list->destructions($user),
+            'tab' => $tab,
+            'counts' => $counts,
+            'rows' => $rows->withQueryString()->appends('tab', $tab),
+            'legacyExtensions' => $tab === 'extensions' && $counts['legacy'] ? $list->legacyExtensions($user, $search) : collect(),
         ]);
     }
 

@@ -23,7 +23,7 @@ Tidak dibangun: `/reports/data/{type}` (halaman dirender server), `/api/settings
 - JS: `public/js/pages/notifications.js` (semua halaman app), `diagnostics.js`, `reports-print.js`. CSS: `components/stat.css`, `components/notify.css`.
 
 ## Aturan
-- Notifikasi: poll 5 dtk, berhenti saat tab tersembunyi; kursor + daftar bel di `sessionStorage` per user (`dms_notify_<userId>_*`). Server yang memfilter: PIC hanya event dept sendiri (event tanpa dept tidak dikirim ke PIC); tidak pernah untuk aksi sendiri; `borrowing_created` hanya gudang/admin; `archive_submitted` (bukan draft) dari user lain. Poll idle = 1 query `MAX(id)`. Event `dms:realtime-sync` di window saat ada perubahan.
+- Notifikasi: poll 15 dtk ± 2 dtk (jitter), poll pertama setelah acak 0–15 dtk (P3, 2026-11-25; dulu 5 dtk), berhenti saat tab tersembunyi dan langsung poll saat tab terlihat lagi; kursor + daftar bel di `sessionStorage` per user (`dms_notify_<userId>_*`). Server yang memfilter: PIC hanya event dept sendiri (event tanpa dept tidak dikirim ke PIC); tidak pernah untuk aksi sendiri; `borrowing_created` hanya gudang/admin; `archive_submitted` (bukan draft) dari user lain. Poll idle = 1 query `MAX(id)`. Event `dms:realtime-sync` di window saat ada perubahan.
 - Badge: `archives.index` = pending_verification (scope dept PIC), `borrowings.index` = requested/approved (+dept_approved gudang), `destructions.index` = jumlah Form 3 H-30.
 - Popup jatuh tempo: aturan L7 **H-30 dari akhir bulan expiry** (bukan 90 hari), sekali per sesi lalu tiap 1 jam.
 - B10: `system_events` dipangkas di `SystemEventStream::insert` (simpan 2000 terakhir, tiap kelipatan 200) — diuji.

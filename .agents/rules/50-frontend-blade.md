@@ -25,7 +25,7 @@ globs: resources/views/**, resources/css/**, resources/js/**, public/**
   - Warna: primer **slate gelap** `#262f3b`, aksen **oranye logo** `#fd4f00` hanya untuk penanda menu aktif/garis atas/sorotan kecil, fokus `#d04100`; netral bernuansa slate. Semua pasangan token wajib WCAG AA (dijaga `tests/Unit/ContrastTest.php`).
   - Font sistem (`system-ui, Segoe UI, ...`), tanpa web font. Ikon SVG kecil, hanya yang dipakai.
   - Anggaran per halaman: JS ≤ 150 KB, CSS ≤ 60 KB (gzip), total transfer awal ≤ 300 KB, elemen DOM ≤ 1.500, tabel maksimal 50 baris per halaman (pagination).
-  - Polling (widget LAN ping) berhenti saat tab tidak terlihat (`visibilitychange`), interval ≥ 5 dtk; tidak ada polling lain di halaman biasa.
+  - Polling berhenti saat tab tidak terlihat (`visibilitychange`): widget LAN ping (Caddy, tanpa PHP) interval ≥ 5 dtk; poll notifikasi (PHP) 15 dtk ± jitter dengan jeda awal acak (P3); tidak ada polling lain di halaman biasa.
   - Gambar/scan: thumbnail kecil atau ikon di daftar; file asli hanya saat dibuka. `loading="lazy"`.
   - Pencarian/filter dikirim ke server (debounce ≥ 300 ms), bukan menyaring ribuan baris di browser.
   - Uji di browser dengan CPU throttling 4× (Chrome DevTools) dan lebar 1366 px: interaksi (klik, buka modal, ketik) terasa < 200 ms.

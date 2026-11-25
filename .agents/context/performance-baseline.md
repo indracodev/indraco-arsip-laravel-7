@@ -27,7 +27,7 @@ Laptop 16 core (lebih cepat per core dari AMD A9; perkirakan 2–4× lebih lamba
 
 **Skrip:** `tests/k6/route_matrix.js` (hanya GET, aman untuk server live) + `tests/k6/sample-resources.ps1` (RAM/CPU Caddy + php-cgi tiap detik). Login sekali per peran di `setup()` (admin, gudang, fin = PIC FAT), 3 sesi untuk semua VU, tanpa login per VU.
 - Mode default: tiap VU memutar semua rute perannya **tanpa jeda** → "N VU" = N request bersamaan terus-menerus (jauh lebih berat dari N orang).
-- `MODE=human`: 1 VU = 1 orang dengan aplikasi terbuka: poll notifikasi + ping LAN tiap 5 dtk (sama seperti `notifications.js`/`lan.js`), rata-rata 1 halaman tiap 20 dtk.
+- `MODE=human`: 1 VU = 1 orang dengan aplikasi terbuka: ping LAN tiap 5 dtk (`lan.js`), poll notifikasi tiap `POLL_S` dtk ± 2 dtk dengan jeda awal acak (`notifications.js`, default 15; angka di bawah bagian ini diukur saat poll masih 5 dtk serentak), rata-rata 1 halaman tiap 20 dtk.
 - Rute: dashboard admin/gudang (PIC Departemen di-redirect ke katalog), `/archives` (polos, `search=box`, `status+sort+per_page=50`), `/archives/117`, `/borrowings`, `/destructions` tab h30/extensions/destructions, `/api/realtime/check` (`since_seq`/`initial`), `/api/warehouse/layout-search?q=IND` (admin/gudang), `/files/archive/117/scan_input_form` (X-Accel, Caddy yang streaming), `/api/health/ping` (Caddy).
 - Data: salinan data asli (68 arsip, 943 item, 8.001 slot rak). Instans uji terpisah memakai salinan `VACUUM INTO` di scratchpad, port 8100, worker 9101+, cache config/route sendiri (`APP_CONFIG_CACHE` dll. **harus path relatif**: path absolut Windows dianggap relatif oleh Laravel), affinity diset per proses. Server live :8000 tidak diubah/di-restart.
 
@@ -79,10 +79,47 @@ Muat pertama ±50–56 KB terkompresi (aset `?v=` di-cache 1 tahun → kunjungan
 - RAM bukan masalah: 4 worker + Caddy ±130 MB private / ±255 MB working set.
 - Bottleneck: (1) CPU boot framework per request (poll 20 ms CPU hanya untuk JSON kecil), (2) poll 5 dtk per tab = beban dominan saat ramai, (3) halaman retensi memuat semua kandidat (P1), (4) antrean Caddy tidak adil saat jenuh (p99 ≫ p50).
 
+### P1/P3 sesudah perbaikan (2026-11-25)
+
+Salinan data ×150 (`VACUUM INTO` + skrip skala, 10.200 arsip), instans uji terpisah :8100 (2 E-core mask 0x3000, 4 worker, cache config/route), dimulai/dihentikan sendiri lewat PID; live :8000 tidak diukur/di-restart. Sebelum = kode `67d41a2`, sesudah = commit ini; data & mesin sama.
+
+**In-process (render penuh 1 request, admin / gudang / PIC FAT):**
+
+| Rute | sebelum ms · query · HTML | sesudah ms · query · HTML |
+|---|---|---|
+| `/destructions?tab=h30` admin | 653 · 14 q · 1.393.973 B | **71 · 11 q · 111.493 B** (50 baris) |
+| `?tab=h30` gudang | 295 | 48 |
+| `?tab=extensions` admin/gudang | 207 / 212 | 25 / 24 |
+| `?tab=destructions` admin/gudang | 210 / 231 | 34 / 32 |
+| PIC FAT (3 tab) | 34–38 | 15–17 |
+| `?tab=h30&page=2`, `&q=HRD` admin | — | 67–69 |
+
+SQL tab H-30 sesudah: 7–8 ms (COUNT + 1 halaman + kandidat tanpa expiry tersimpan).
+
+**k6 `route_matrix.js` closed loop (semua rute peran, p50/p95 ms):**
+
+| Rute | 1 VU sebelum → sesudah | 10 VU sebelum → sesudah |
+|---|---|---|
+| destr_h30 | 936/959 → **129/148** | 1.225/2.363 → **229/1.822** |
+| destr_ext | 525/549 → **73/76** | 633/1.936 → **147/702** |
+| destr_bap | 536/579 → **82/102** | 564/1.257 → **152/779** |
+| poll | 40/44 → 41/44 | 151/2.451 → 100/744 |
+| req/s total | 5,6 → **15,4** | 20,0 → **36,0** |
+
+**k6 `MODE=human`, 50 orang, 40 dtk** (skrip kini: ping 5 dtk, poll `POLL_S` dtk ± 2 dtk dengan jeda awal acak, default 15):
+
+| Varian | poll req/s · p95 ms | tab H-30 p95 | req/s total (PHP tanpa ping) |
+|---|---|---|---|
+| sebelum (poll 5 dtk serentak, P1 belum) | 9,8 · 3.504 | 2.330 | 22,9 (13,1) |
+| P1 saja (`POLL_S=5` + jitter) | 6,3 · 69 | 361 | 19,0 (8,8) |
+| **P1 + P3 (15 dtk)** | **2,8 · 68** | **206** | **15,9 (5,3)** |
+
+Catatan: 40 dtk termasuk jeda awal acak, jadi poll 15 dtk tunak = 50/15 ≈ 3,3 req/s (−67 % dari 10). Ekor poll lama terutama karena request retensi yang berat + gerombolan serentak; P1 sudah memangkas p95, P3 memangkas jumlah request PHP. Hasil mentah (`P1-*.md/json`, `P3-*.md/json`, `p1-inproc-*.txt`) di scratchpad sesi, tidak di-commit.
+
 ### Rekomendasi (belum dikerjakan)
 1. **Pastikan cache produksi aktif**: saat diukur, live :8000 jalan **tanpa** `bootstrap/cache/config.php` + `routes-v7.php` (file tidak ada saat diukur; kemungkinan terhapus oleh tes/`optimize:clear` sesudah START). Tanpa cache: poll 42 vs 21 ms, jenuh 32 vs 45 req/s (−30 %). Setelah `php artisan test`/`optimize:clear` di PC server, jalankan `php artisan optimize` atau START ulang.
-2. Poll notifikasi: interval 5 dtk → 15–30 dtk, atau jitter awal acak 0–5 dtk; paling hemat: Caddy menyajikan file `seq` statis (tanpa PHP) dan PHP hanya dipanggil bila seq berubah.
-3. P1 retensi: hitung hanya tab aktif, saring jatuh tempo di SQL (`COALESCE(retention_expiry_date, …)`), paginasi.
+2. ~~Poll notifikasi 5 dtk → 15 dtk + jitter~~ **dikerjakan (P3)**; sisa opsi: atau jitter awal acak 0–5 dtk; paling hemat: Caddy menyajikan file `seq` statis (tanpa PHP) dan PHP hanya dipanggil bila seq berubah.
+3. ~~P1 retensi~~ **dikerjakan**: hitung hanya tab aktif, saring jatuh tempo di SQL (`COALESCE(retention_expiry_date, …)`), paginasi.
 4. Index kecil bila data tumbuh: `archives(created_at, id)` (dashboard `latest()`), `archive_extension_logs(archive_id, approval_status)` (lihat P2). Dampak sekarang < 10 ms pada 10 rb arsip.
 5. Worker 4 untuk 2 core tetap (Fase 1); jangan naikkan worker di 1–2 core (hanya menambah antrean CPU).
 6. **Ulangi di PC server asli** (`k6 run -e TARGET_URL=http://<ip>:8000 -e MODE=human -e LEVELS=10,30,50 -e HOLD=40 tests/k6/route_matrix.js`).

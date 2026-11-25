@@ -1,7 +1,8 @@
 {{-- Tab "Alur & Riwayat Pemusnahan" (Laravel 7 destructions/index:477-699 + destruction_modals). --}}
 <x-card title="Alur & Antrean Pemusnahan Berkas (BAP)">
     <p class="text-sm text-muted">Daftar usulan pengajuan dari departemen, antrean pemusnahan gudang, dan riwayat berkas yang telah resmi dimusnahkan.</p>
-    <input class="control" type="search" data-table-search="dest-table" placeholder="Cari BAP, judul, metode..." aria-label="Cari BAP, judul, metode">
+    @include('destructions.partials.search-form', ['id' => 'dest-search'])
+    <input class="control" type="search" name="q" value="{{ request('q') }}" form="dest-search" data-table-search="dest-table" placeholder="Cari BAP, judul, metode..." aria-label="Cari BAP, judul, metode">
 
     <x-table id="dest-table">
         <thead>
@@ -16,7 +17,7 @@
             </tr>
         </thead>
         <tbody>
-            @forelse ($destructions as $log)
+            @forelse ($rows as $log)
                 @php
                     $archive = $log->archive;
                     [$label, $tone] = \App\Services\RetentionList::DESTRUCTION[$log->approval_status] ?? ['Pengajuan Pemusnahan', 'warning'];
@@ -76,10 +77,11 @@
             @endforelse
         </tbody>
     </x-table>
+    <x-pagination :paginator="$rows" noun="pengajuan pemusnahan" />
 </x-card>
 
 @if ($canProcess)
-    @foreach ($destructions as $log)
+    @foreach ($rows as $log)
         @if (in_array($log->approval_status, ['pending', 'approved'], true))
             @include('destructions.partials.reject-modal', ['id' => 'dest-reject-'.$log->id, 'action' => route('destructions.reject', $log), 'archive' => $log->archive,
                 'title' => 'Tolak Pengajuan Pemusnahan', 'hint' => 'Berikan alasan penolakan usulan pemusnahan berkas arsip.', 'placeholder' => 'Jelaskan alasan pengajuan pemusnahan ditolak...'])

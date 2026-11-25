@@ -93,9 +93,12 @@ function hit(sessions, role, name, path) {
     if (!good && __ITER < 2) console.warn(`${role} ${name} -> ${res.status} ${res.headers.Location || ''}`);
 }
 
-// MODE=human: one VU = one person with the app open. Like the browser: notification poll +
-// LAN ping every 5 s (notifications.js, lan.js) and on average one page every 20 s.
+// MODE=human: one VU = one person with the app open. Like the browser: LAN ping every 5 s (lan.js),
+// notification poll every POLL_S s ± 2 s after a random first delay (notifications.js, default 15;
+// -e POLL_S=5 = before P3) and on average one page every 20 s.
 const HUMAN = __ENV.MODE === 'human';
+const POLL_MS = parseFloat(__ENV.POLL_S || '15') * 1000;
+let nextPoll = null; // per VU
 const PAGES = Object.fromEntries(Object.entries(routesFor).map(([role, r]) => [role,
     Object.entries(r).filter(([n]) => !['poll', 'poll_initial', 'ping'].includes(n))]));
 
@@ -103,7 +106,12 @@ export function run(sessions) {
     const roles = Object.keys(ROLES);
     const role = roles[(__VU - 1) % roles.length];
     if (HUMAN) {
-        hit(sessions, role, 'poll', common.poll);
+        const now = Date.now();
+        if (nextPoll === null) nextPoll = now + Math.random() * POLL_MS;
+        if (now >= nextPoll) {
+            hit(sessions, role, 'poll', common.poll);
+            nextPoll = now + POLL_MS - 2000 + Math.random() * 4000;
+        }
         hit(sessions, role, 'ping', common.ping);
         if (Math.random() < 0.25) {
             const [name, path] = PAGES[role][Math.floor(Math.random() * PAGES[role].length)];

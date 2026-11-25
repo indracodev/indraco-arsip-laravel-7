@@ -1,5 +1,5 @@
 {{-- [Form 3] Pengajuan Perpanjangan & Pemusnahan (Laravel 7 destructions/index + tab_extensions +
-     destruction_modals): three tabs (?tab=), per-row modals rendered on the server, file viewer of archives/show. --}}
+     destruction_modals): three tabs (?tab=), only the active one is built, 50 rows per page + ?q= search (P1), per-row modals rendered on the server, file viewer of archives/show. --}}
 @extends('layouts.app')
 
 @section('title', 'Pengajuan Perpanjangan & Pemusnahan')
@@ -16,9 +16,9 @@
         $canPropose = $user->can('create', \App\Models\DestructionLog::class);
         $canProcess = $user->can('process', \App\Models\DestructionLog::class);
         $tabs = [
-            'h30' => ['Berkas Jatuh Tempo (H-30)', $expiring->count()],
-            'extensions' => ['Riwayat Perpanjangan', $extensions->count() ?: $legacyExtensions->count()],
-            'destructions' => ['Alur & Riwayat Pemusnahan', $destructions->count()],
+            'h30' => ['Berkas Jatuh Tempo (H-30)', $counts['h30']],
+            'extensions' => ['Riwayat Perpanjangan', $counts['extensions']],
+            'destructions' => ['Alur & Riwayat Pemusnahan', $counts['destructions']],
         ];
         // One viewer for the page (#file-viewer): every file in one list, buttons point at an index.
         $allFiles = [];

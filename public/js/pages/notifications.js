@@ -1,5 +1,6 @@
 /* Realtime notifications on every app page (Laravel 7 desktop_realtime_scripts / pic_realtime_scripts):
-   - polls /api/realtime/check?since_seq= every 5 s (stops while the tab is hidden); the cursor and the
+   - polls /api/realtime/check?since_seq= every 15 s ± 2 s, first poll after a random 0-15 s so many
+     clients do not poll in step (P3); stops while the tab is hidden, polls at once when it is shown again; the cursor and the
      bell list live in sessionStorage, so moving to another page misses nothing;
    - toasts (9 s) + bell list (max 25) + window.dmsSound.play() for new notifications (the server only
      sends what this user may see, Laravel 7 alert rules applied there);
@@ -8,7 +9,7 @@
    - expiry popup (#expiry-modal) after login and then at most once an hour (Laravel 7 rule);
    - LAN alert toast when the admin enabled it and the LAN dot turns slow/down (lan.js). */
 (function () {
-    var INTERVAL = 5000, KEEP = 25, HOUR = 3600 * 1000;
+    var INTERVAL = 15000, JITTER = 2000, KEEP = 25, HOUR = 3600 * 1000;
     var timer = null, busy = false, prefix = 'dms_notify_';
     var store = {
         get: function (key, fallback) { try { var v = sessionStorage.getItem(prefix + key); return v === null ? fallback : JSON.parse(v); } catch (e) { return fallback; } },
@@ -94,7 +95,9 @@
             .then(function () { busy = false; schedule(); });
     }
 
-    function schedule() { if (!timer && !document.hidden) { timer = setTimeout(poll, INTERVAL); } }
+    function schedule(delay) {
+        if (!timer && !document.hidden) { timer = setTimeout(poll, delay === undefined ? INTERVAL - JITTER + Math.random() * 2 * JITTER : delay); }
+    }
 
     /* Expiry popup: shown once per login session, then again after an hour (Laravel 7). */
     function checkExpiry(force) {
@@ -158,7 +161,7 @@
         renderBell();
         renderBadges(store.get('badges', {}));
         watchLan();
-        poll();
+        schedule(Math.random() * INTERVAL);
         setTimeout(function () { checkExpiry(false); }, 800);
         setInterval(function () { if (!document.hidden) { checkExpiry(false); } }, 60000);
         document.addEventListener('visibilitychange', function () {

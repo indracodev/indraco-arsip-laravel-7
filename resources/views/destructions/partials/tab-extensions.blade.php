@@ -1,7 +1,8 @@
 {{-- Tab "Riwayat Perpanjangan" (Laravel 7 destructions/partials/tab_extensions + reject modal). --}}
 <x-card title="Riwayat & Log Pengajuan Perpanjangan Masa Simpan">
     <p class="text-sm text-muted">Catatan arsip yang telah disetujui perpanjangan masa retensinya beserta lampiran dokumen pendukung.</p>
-    <input class="control" type="search" data-table-search="ext-table" placeholder="Cari Box, judul, pemohon..." aria-label="Cari Box, judul, pemohon">
+    @include('destructions.partials.search-form', ['id' => 'ext-search'])
+    <input class="control" type="search" name="q" value="{{ request('q') }}" form="ext-search" data-table-search="ext-table" placeholder="Cari Box, judul, pemohon..." aria-label="Cari Box, judul, pemohon">
 
     <x-table id="ext-table">
         <thead>
@@ -18,7 +19,7 @@
             </tr>
         </thead>
         <tbody>
-            @foreach ($extensions as $ext)
+            @foreach ($rows as $ext)
                 @php
                     $archive = $ext->archive;
                     [$label, $tone] = \App\Services\RetentionList::EXTENSION[$ext->approval_status] ?? ['Unknown', 'neutral'];
@@ -71,15 +72,16 @@
                     <td data-label="" class="table__actions"></td>
                 </tr>
             @endforeach
-            @if ($extensions->isEmpty() && $legacyExtensions->isEmpty())
+            @if ($rows->isEmpty() && $legacyExtensions->isEmpty())
                 <tr><td colspan="9"><x-empty-state title="Belum Ada Riwayat Perpanjangan" message="Belum ada berkas arsip yang diajukan atau disetujui perpanjangan masa simpannya." /></td></tr>
             @endif
         </tbody>
     </x-table>
+    <x-pagination :paginator="$rows" noun="pengajuan perpanjangan" />
 </x-card>
 
 @if ($canProcess)
-    @foreach ($extensions->where('approval_status', 'pending') as $ext)
+    @foreach (collect($rows->items())->where('approval_status', 'pending') as $ext)
         @include('destructions.partials.reject-modal', ['id' => 'ext-reject-'.$ext->id, 'action' => route('destructions.extensions.reject', $ext), 'archive' => $ext->archive,
             'title' => 'Tolak Pengajuan Perpanjangan', 'hint' => 'Berikan alasan penolakan perpanjangan masa retensi berkas arsip.', 'placeholder' => 'Jelaskan alasan pengajuan perpanjangan ditolak...'])
     @endforeach

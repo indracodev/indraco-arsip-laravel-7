@@ -1,20 +1,13 @@
 {{-- Tab "Berkas Jatuh Tempo (H-30)" (Laravel 7 destructions/index:289-469). Boxes chosen with the
      checkboxes go to the extend / propose form (GET archive_ids[], buttons with formaction). --}}
-@php
-    $sort = in_array(request('sort'), ['box_number', 'title', 'retention_expiry_date'], true) ? request('sort') : 'retention_expiry_date';
-    $rows = $expiring->sortBy(fn ($row) => match ($sort) {
-        'box_number' => strtolower((string) $row['archive']->box_number),
-        'title' => strtolower((string) $row['archive']->title),
-        default => $row['expiry']->timestamp,
-    }, SORT_REGULAR, request('direction') === 'desc')->values();
-@endphp
+@include('destructions.partials.search-form', ['id' => 'h30-search'])
 <x-card title="Daftar Berkas Mendekati Jatuh Tempo (Batas Waktu ≤ 30 Hari)">
     <p class="text-sm text-muted">Hanya menampilkan arsip yang telah mencapai atau berada dalam rentang H-30 sebelum masa simpan habis.</p>
 
     <form method="GET" action="{{ route('destructions.extend_form') }}" class="stack" x-data="{ n: 0 }"
         @change="n = $el.querySelectorAll('input[name=\'archive_ids[]\']:checked').length">
         <div class="cluster">
-            <input class="control" type="search" data-table-search="h30-table" placeholder="Cari No. Box, judul berkas..." aria-label="Cari No. Box, judul berkas">
+            <input class="control" type="search" name="q" value="{{ request('q') }}" form="h30-search" data-table-search="h30-table" placeholder="Cari No. Box, judul berkas..." aria-label="Cari No. Box, judul berkas">
             @if ($canPropose)
                 <span class="cluster" x-show="n > 0" x-cloak>
                     <x-button type="submit" size="sm" title="Ajukan perpanjangan masa simpan untuk box terpilih"><span x-text="'Perpanjangan (' + n + ' Box)'"></span></x-button>
@@ -78,5 +71,6 @@
                 @endforelse
             </tbody>
         </x-table>
+        <x-pagination :paginator="$rows" noun="berkas jatuh tempo" />
     </form>
 </x-card>
