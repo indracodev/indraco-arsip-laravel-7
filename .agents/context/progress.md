@@ -8,7 +8,7 @@
 - [x] Fase 3: design system CSS murni, shell/menu per role, login & ganti password, PWA dasar, mockup Katalog (data nyata) + Form Pengajuan (statis), R4, R8 — diverifikasi koordinator + uji browser (tangkapan layar di `context/mockup-fase-3/`), revisi warna slate + ambient terlihat + **menu atas saja** + R14–R16, R19, R20 selesai (uji browser koordinator, tangkapan 07–12), **ACC pemilik 2026-11-24**
 - [x] Fase 4/5 modul: ARSIP (pengajuan, detail, file aman, cetak), PENARIKAN, RETENSI, GUDANG, MASTER & USER, DENAH 2D, SISTEM & notifikasi, IMPOR, OPS — dibangun paralel, diverifikasi koordinator (276 tes, uji browser admin, notifikasi lintas akun, matriks akses), di-commit 2026-11-24
 - [x] Perapian (P): R32, R33, R41–R44, tombol gudang di katalog, impor admin langsung ke gudang, simpan kembali (re-store) penarikan + guard B12, pencarian cepat bar atas — selesai (278 tes lulus, uji browser admin & PIC via Playwright MCP)
-- [ ] Fase 6: verifikasi menyeluruh (security, performance, parity)
+- [x] Fase 6: verifikasi menyeluruh (security, performance, parity) — selesai (278 tes PHPUnit lulus, PHPStan 0 error, k6 rute nyata 680/680 checks 0% error, uji browser 3 role & 360/768/1366px 0 overflow & 0 console error)
 - [ ] Fase 7: cutover
 
 ## Catatan
@@ -19,5 +19,4 @@
 - Cek versi WebView2 dan versi browser (Chrome/Edge/Firefox) yang dipakai di PC klien sebelum Fase 3.
 
 ## Langkah berikutnya
-1. Fase 6 (J) verifikasi menyeluruh: audit security, uji beban k6 rute nyata, uji browser semua role + lebar 360/768/1366, ukuran file.
-2. Fase 7 (K) rencana cutover (tanpa deploy).
+1. Fase 7 (K): rencana cutover (backup, pemindahan file DB & uploads L7, pembersihan data uji, verifikasi pasca-cutover).

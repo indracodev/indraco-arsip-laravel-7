@@ -27,6 +27,8 @@ use Illuminate\Support\Carbon;
  * @property string|null $custom_doc_name
  * @property string $status
  * @property string|null $box_number
+ * @property int|null $origin_borrowing_log_id
+ * @property string|null $re_store_snapshot
  * @property string|null $document_type
  * @property string|null $periode
  * @property string|null $periode_doc

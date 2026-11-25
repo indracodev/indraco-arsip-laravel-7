@@ -153,7 +153,7 @@ final class SubmitArchiveBoxes
             $originLog = null;
             $originId = $box['attributes']['origin_borrowing_log_id'] ?? null;
             if ($originId !== null) {
-                $originLog = BorrowingLog::query()->with('archive')->findOrFail($originId);
+                $originLog = BorrowingLog::query()->with('archive')->findOrFail((int) $originId);
                 if ($originLog->status !== 'dispatched' || $originLog->active_restore_archive_id !== null || (int) $originLog->archive?->department_id !== (int) $department->id) {
                     throw new DomainException('Box penarikan ini sudah memiliki pengajuan penyimpanan kembali yang aktif atau tidak valid.');
                 }

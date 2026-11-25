@@ -15,6 +15,7 @@ use Illuminate\Support\Carbon;
  * @property int $borrower_user_id
  * @property int|null $pic_gudang_id
  * @property int|null $department_approval_by
+ * @property int|null $active_restore_archive_id
  * @property string $status
  * @property string $approval_status
  * @property string|null $purpose
