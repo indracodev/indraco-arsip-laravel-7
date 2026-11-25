@@ -49,7 +49,7 @@ final class Menu
     }
 
     /**
-     * The same items cut into consecutive groups for the top menu bar (dropdowns).
+     * The same items cut into consecutive groups (top bar separators, drawer headings).
      * The groups follow the Laravel 7 order, so flattening gives back exactly self::for().
      * PIC Departemen items have no group (3 items inline).
      *

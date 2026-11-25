@@ -13,6 +13,7 @@
 
 ## Catatan
 - 2026-11-24: subagent Fase 1 tidak sengaja menghapus `.agents/` dan `template-import-master/` (loop `rm` dari output `ls`). File ter-commit dipulihkan dari git, aturan baru ditulis ulang. Aturan pencegahan ditambahkan di `rules/10-safety.md`.
+- 2026-11-25: menu atas tanpa dropdown (permintaan pemilik). Layar lebar (`.bp-lg`, >= 1024 rem): semua item langsung tampil, eks-grup dipisah garis tipis, badge per item tetap; menu admin (12 item, ~1850 px) tidak muat 1 baris di 1366 px sehingga membungkus per grup jadi 2 baris (1 baris mulai ~1900 px). Sempit / font besar (`.bp-lt-lg`): hamburger membuka drawer berjudul grup (aria-expanded/controls, Esc menutup + fokus kembali ke tombol, fokus ke link pertama saat buka, Tab keluar menutup, link tersembunyi tidak ter-Tab). Kode dropdown (`data-nav-group`, `.nav__group-toggle`, `data-badge-sum`) dihapus.
 
 ## Catatan tambahan
 - Folder `desktop/` (klien Tauri) dan `.github/workflows/build-clients.yml` belum ada di worktree L13 (ikut terhapus saat skeleton dipasang). Bawa di modul OPS dari branch `danu-revisi-4`; pastikan klien lama tetap bisa tersambung ke server L13.

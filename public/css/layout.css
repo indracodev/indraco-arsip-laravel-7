@@ -54,12 +54,12 @@
 .lan--slow .lan__dot { background: var(--color-warning); }
 .lan--down .lan__dot { background: var(--color-danger); }
 
-/* Menu: dark slate, orange indicator on the active item. Wide screens: a bar under the top bar,
-   groups as click/keyboard dropdowns. Below 1024px: a drawer with a vertical list. */
+/* Menu: dark slate, orange indicator on the active item, no dropdowns. Wide screens: every item
+   in a bar under the top bar, former groups split by a subtle line. Below 1024px: a drawer. */
 .topnav { background: var(--color-nav-bg); color: var(--color-nav-text); }
 .nav, .nav__sub { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 0; list-style: none; }
 .nav__link { display: block; padding: var(--space-2) var(--space-3); border-radius: var(--radius); color: var(--color-nav-text); }
-.nav__link:hover, .nav__group-toggle:hover { background: var(--color-nav-hover); text-decoration: none; }
+.nav__link:hover { background: var(--color-nav-hover); text-decoration: none; }
 .nav__link.is-active { background: var(--color-nav-active); font-weight: var(--weight-bold); }
 .backdrop { display: none; }
 
@@ -67,48 +67,25 @@
 .main { padding: var(--space-6); min-width: 0; background: var(--ambient); background-repeat: no-repeat; }
 .main > * + * { margin-top: var(--space-4); }
 
-/* Top menu bar (rem width >= 1024px at 14px, see the breakpoint note at the top). */
+/* Top menu bar (rem width >= 1024px at 14px, see the breakpoint note at the top). A group wraps
+   as a whole (admin's 12 items take 2 rows at 1366px), its own items wrap only if wider than a row. */
 .bp-lg .app { grid-template-rows: auto auto minmax(0, 1fr); }
 .bp-lg .topnav { position: sticky; top: var(--size-topbar); z-index: calc(var(--z-topbar) - 1); padding: 0 var(--space-4); }
-.bp-lg .nav { flex-direction: row; flex-wrap: wrap; gap: var(--space-1); }
-.bp-lg .nav > li { position: relative; }
-.bp-lg .nav > li > .nav__link,
-.bp-lg .nav__group-toggle {
+.bp-lg .nav, .bp-lg .nav__sub { flex-direction: row; flex-wrap: wrap; gap: var(--space-1); }
+.bp-lg .nav__group { padding-left: var(--space-1); border-left: 1px solid var(--color-nav-border); }
+.bp-lg .nav__heading { display: none; }
+.bp-lg .nav__link {
     display: flex;
     align-items: center;
-    gap: var(--space-1);
     height: var(--size-topnav);
     padding: 0 var(--space-3);
-    border: 0;
     border-bottom: 3px solid transparent;
     border-radius: 0;
-    background: transparent;
-    color: var(--color-nav-text);
-    font: inherit;
     white-space: nowrap;
-    cursor: pointer;
 }
-.bp-lg .nav > li > .nav__link.is-active,
-.bp-lg .nav__group-toggle.is-active { border-bottom-color: var(--color-brand); background: var(--color-nav-active); font-weight: var(--weight-bold); }
-.bp-lg .nav__group-toggle::after { content: ""; border: 0.2857em solid transparent; border-top-color: currentColor; margin-top: 0.2857em; }
-.bp-lg .nav__sub {
-    display: none;
-    position: absolute;
-    top: 100%;
-    left: 0;
-    min-width: 15rem;
-    padding: var(--space-1);
-    background: var(--color-nav-bg);
-    border: 1px solid var(--color-nav-border);
-    border-radius: 0 0 var(--radius) var(--radius);
-    box-shadow: var(--shadow-modal);
-}
-.bp-lg .nav > li:last-child > .nav__sub { left: auto; right: 0; } /* last group: open leftwards, never past the edge */
-.bp-lg .nav__sub .nav__link { border-left: 3px solid transparent; }
-.bp-lg .nav__sub .nav__link.is-active { border-left-color: var(--color-brand); }
-.bp-lg .nav__group-toggle[aria-expanded="true"] + .nav__sub { display: flex; }
+.bp-lg .nav__link.is-active { border-bottom-color: var(--color-brand); }
 
-/* Drawer below 1024px (rem). */
+/* Drawer below 1024px (rem). Hidden (not only moved) when closed, so its links are not tabbable. */
 .bp-lt-lg .topbar__menu { display: inline-flex; }
 .bp-lt-lg .topnav {
     position: fixed;
@@ -119,13 +96,14 @@
     width: min(var(--size-drawer), 85vw);
     overflow-y: auto;
     padding: var(--space-3) var(--space-2);
+    visibility: hidden;
     transform: translateX(-100%);
     transition: transform var(--duration) ease-out;
 }
-.bp-lt-lg .nav__group-toggle { display: none; }
+.bp-lt-lg .nav__heading { display: block; margin-top: var(--space-3); padding: 0 var(--space-3) var(--space-1); font-size: var(--text-xs); font-weight: var(--weight-bold); text-transform: uppercase; color: var(--color-nav-text-muted); }
 .bp-lt-lg .nav__link { border-left: 3px solid transparent; }
 .bp-lt-lg .nav__link.is-active { border-left-color: var(--color-brand); }
-.bp-lt-lg .is-drawer-open .topnav { transform: none; box-shadow: var(--shadow-modal); }
+.bp-lt-lg .is-drawer-open .topnav { visibility: visible; transform: none; box-shadow: var(--shadow-modal); }
 .bp-lt-lg .is-drawer-open .backdrop { display: block; position: fixed; inset: 0; z-index: calc(var(--z-drawer) - 1); background: var(--color-overlay); }
 .bp-lt-lg .main { padding: var(--space-4); }
 .bp-lt-md .topbar { padding: var(--space-1) var(--space-2); column-gap: var(--space-2); }

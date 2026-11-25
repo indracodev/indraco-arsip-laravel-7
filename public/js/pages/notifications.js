@@ -3,7 +3,7 @@
      bell list live in sessionStorage, so moving to another page misses nothing;
    - toasts (9 s) + bell list (max 25) + window.dmsSound.play() for new notifications (the server only
      sends what this user may see, Laravel 7 alert rules applied there);
-   - menu badge counts ([data-nav-badge="<route>"], group buttons show the sum);
+   - menu badge counts ([data-nav-badge="<route>"]);
    - "dms:realtime-sync" event on window when anything changed (pages may refresh themselves);
    - expiry popup (#expiry-modal) after login and then at most once an hour (Laravel 7 rule);
    - LAN alert toast when the admin enabled it and the LAN dot turns slow/down (lan.js). */
@@ -66,11 +66,6 @@
         document.querySelectorAll('[data-nav-badge]').forEach(function (link) {
             var n = badges[link.getAttribute('data-nav-badge')] || 0;
             if (n > 0) { link.setAttribute('data-count', n > 99 ? '99+' : n); } else { link.removeAttribute('data-count'); }
-        });
-        document.querySelectorAll('[data-badge-sum]').forEach(function (button) {
-            var sum = 0, sub = document.getElementById(button.getAttribute('aria-controls'));
-            if (sub) { sub.querySelectorAll('[data-nav-badge]').forEach(function (link) { sum += badges[link.getAttribute('data-nav-badge')] || 0; }); }
-            if (sum > 0) { button.setAttribute('data-count', sum > 99 ? '99+' : sum); } else { button.removeAttribute('data-count'); }
         });
     }
 

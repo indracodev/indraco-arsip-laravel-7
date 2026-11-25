@@ -78,8 +78,9 @@ class LayoutTest extends TestCase
         $this->assertSame([null, null, null], array_column(Menu::grouped($this->user('pic_dept', 'HCS')), 'label'));
 
         $html = $this->actingAs($admin)->get('/')->assertOk()->getContent();
-        $this->assertSame(3, substr_count($html, 'data-nav-group'));
-        $this->assertStringContainsString('aria-expanded="false" aria-controls="nav-group-1"', $html);
+        // No dropdowns: former groups are headings (drawer) / separators (bar), items always rendered.
+        $this->assertSame(3, substr_count($html, 'class="nav__heading"'));
+        $this->assertStringContainsString('<ul class="nav__sub" aria-label="Laporan &amp; Sistem">', $html);
         // Font size is applied in <head> before the stylesheets render.
         $this->assertMatchesRegularExpression('/<head>.*js\/prefs\.js\?v=[0-9a-f]{10}"><\/script>.*<\/head>/s', $html);
         // Top menu only (owner decision): no sidebar markup and no layout choice.
@@ -87,6 +88,18 @@ class LayoutTest extends TestCase
         $this->assertStringNotContainsString('sidebar', $html);
         $this->assertStringNotContainsString('Tata Letak Menu', $html);
         $this->assertStringNotContainsString('data-layout', $html);
+    }
+
+    public function test_every_role_gets_a_flat_menu_with_the_hamburger_and_no_dropdown(): void
+    {
+        foreach ([['admin', null, '/'], ['pic_gudang', null, '/'], ['pic_dept', 'HCS', '/archives']] as [$role, $dept, $url]) {
+            $html = $this->actingAs($this->user($role, $dept))->get($url)->assertOk()->getContent();
+
+            $this->assertStringNotContainsString('data-nav-group', $html, $role);
+            $this->assertStringNotContainsString('nav__group-toggle', $html, $role);
+            $this->assertStringContainsString('aria-controls="main-nav"', $html, $role);
+            $this->assertMatchesRegularExpression('/class="[^"]*topbar__menu[^"]*"/', $html, $role);
+        }
     }
 
     public function test_pic_dept_home_opens_the_catalog(): void

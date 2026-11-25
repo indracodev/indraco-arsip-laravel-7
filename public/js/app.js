@@ -45,7 +45,7 @@
         var target = document.querySelector('[data-shortcut="' + e.key + '"]');
         if (!target) { return; }
         var typing = /^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement && document.activeElement.tagName);
-        if (e.key === 'Escape' && (typing || document.querySelector('[data-nav-group][aria-expanded="true"]'))) { return; }
+        if (e.key === 'Escape' && (typing || document.body.classList.contains('is-drawer-open'))) { return; }
         e.preventDefault();
         target.click();
     });
@@ -56,27 +56,6 @@
         if (!toggle) { return; }
         var input = document.getElementById(toggle.getAttribute('data-toggle-password'));
         if (input) { input.type = input.type === 'password' ? 'text' : 'password'; }
-    });
-
-    /* Top menu bar groups (keyboard accessible, no hover menus). */
-    function closeGroups(except) {
-        document.querySelectorAll('[data-nav-group][aria-expanded="true"]').forEach(function (button) {
-            if (button !== except) { button.setAttribute('aria-expanded', 'false'); }
-        });
-    }
-    document.addEventListener('click', function (e) {
-        var toggle = e.target.closest('[data-nav-group]');
-        if (toggle) {
-            closeGroups(toggle);
-            toggle.setAttribute('aria-expanded', toggle.getAttribute('aria-expanded') === 'true' ? 'false' : 'true');
-            return;
-        }
-        if (!e.target.closest('.nav__sub')) { closeGroups(null); }
-    });
-    document.addEventListener('keydown', function (e) {
-        if (e.key !== 'Escape') { return; }
-        var open = document.querySelector('[data-nav-group][aria-expanded="true"]');
-        if (open) { open.setAttribute('aria-expanded', 'false'); open.focus(); }
     });
 
     document.addEventListener('DOMContentLoaded', function () {
@@ -100,12 +79,29 @@
     }
 
     document.addEventListener('alpine:init', function () {
-        /* Menu drawer below 1024px. */
+        /* Menu drawer below 1024px (rem): focus moves to the first link on open and back to the
+           hamburger on Esc / backdrop; tabbing out of the drawer closes it (no focus trap). */
         window.Alpine.data('shell', function () {
             return {
                 drawer: false,
-                toggleDrawer: function () { this.drawer = !this.drawer; },
-                closeDrawer: function () { this.drawer = false; }
+                toggleDrawer: function () { if (this.drawer) { this.closeDrawer(); } else { this.openDrawer(); } },
+                openDrawer: function () {
+                    this.drawer = true;
+                    this.$nextTick(function () {
+                        var link = document.querySelector('#main-nav .nav__link');
+                        if (link) { link.focus(); }
+                    });
+                },
+                closeDrawer: function (keepFocus) {
+                    if (!this.drawer) { return; }
+                    this.drawer = false;
+                    var button = document.querySelector('.topbar__menu');
+                    if (!keepFocus && button) { button.focus(); }
+                },
+                leaveDrawer: function (e) {
+                    var to = e.relatedTarget;
+                    if (to && !to.closest('#main-nav, .topbar__menu')) { this.closeDrawer(true); }
+                }
             };
         });
 

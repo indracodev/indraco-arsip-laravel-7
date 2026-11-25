@@ -238,7 +238,7 @@
    list, and the monospace log viewer (<pre class="log-view">) of Log History / settings / monitor. */
 .notify { position: relative; }
 .notify__toggle { position: relative; }
-.notify__count, .nav__link[data-count]::after, .nav__group-toggle[data-count]::after {
+.notify__count, .nav__link[data-count]::after {
     min-width: 1.2857rem;
     padding: 0 var(--space-1);
     border-radius: var(--radius-pill);
@@ -250,7 +250,7 @@
     text-align: center;
 }
 .notify__count { position: absolute; top: 0; right: 0; }
-.nav__link[data-count]::after, .nav__group-toggle[data-count]::after { content: attr(data-count); display: inline-block; margin-left: var(--space-1); }
+.nav__link[data-count]::after { content: attr(data-count); display: inline-block; margin-left: var(--space-1); }
 .notify__panel {
     position: absolute;
     top: 100%;
