@@ -74,10 +74,7 @@
             <span x-text="busy === 'form' ? 'Memuat Form...' : 'Lanjutkan ke Form Pengajuan'">Lanjutkan ke Form Pengajuan</span>
         </x-button>
         <x-button variant="primary" @click="commit()" ::disabled="!ready() || busy !== ''" title="Simpan hasil impor dengan status yang dipilih">
-            <span x-text="busy === 'commit' ? 'Mengimpor...' : (status === 'draft' ? 'Simpan sebagai Draft' : 'Simpan & Ajukan ke Gudang')">Simpan sebagai Draft</span>
+            <span x-text="busy === 'commit' ? 'Mengimpor...' : (status === 'draft' ? 'Simpan sebagai Draft' : (status === 'in_warehouse' ? 'Simpan Langsung ke Gudang' : 'Simpan & Ajukan ke Gudang'))">Simpan sebagai Draft</span>
         </x-button>
-        @unless ($isPic)
-            <x-button disabled title="Khusus data arsip fisik yang sudah ada di rak gudang sebelumnya — menunggu jalur check-in rak modul GUDANG">Simpan Langsung ke Gudang</x-button>
-        @endunless
     </x-slot:footer>
 </x-modal>

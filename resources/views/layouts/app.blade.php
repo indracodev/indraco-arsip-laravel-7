@@ -35,6 +35,12 @@
             </x-link-button>
         @endif
         <span class="topbar__spacer"></span>
+        <form method="GET" action="{{ route('archives.index') }}" class="topbar__search" role="search" data-no-lock>
+            <label class="sr-only" for="topbar-search">Cari cepat arsip</label>
+            <input id="topbar-search" name="search" type="search" class="input topbar__search-input"
+                value="{{ request()->routeIs('archives.index') ? request('search') : '' }}"
+                placeholder="Cari box / arsip… (Ctrl+K)" autocomplete="off">
+        </form>
         <span class="lan" data-lan data-threshold="{{ (int) \App\Support\AppSettings::get('ping_alert_threshold_ms', '500') }}" @if (\App\Support\AppSettings::get('ping_alert_enabled') === '1') data-alert @endif title="Koneksi server">
             <span class="lan__dot"></span><span class="lan__text">LAN</span>
         </span>

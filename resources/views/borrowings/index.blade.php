@@ -58,9 +58,21 @@
     @if ($borrowings->isEmpty())
         <x-card><x-empty-state title="Belum ada riwayat pengajuan penarikan berkas arsip." /></x-card>
     @else
+        <div class="stack" x-data="{ selectedRestore: 0 }" @change="selectedRestore = $el.querySelectorAll('input[data-restore]:checked').length">
+        <div class="notice" x-show="selectedRestore > 0" x-cloak>
+            <span>Terpilih: <strong x-text="selectedRestore"></strong> box untuk disimpan kembali.</span>
+            <span class="topbar__spacer"></span>
+            <form method="GET" action="{{ route('archives.create') }}" id="batch-restore" data-no-lock>
+                <input type="hidden" name="re_store" value="1">
+                <x-button type="submit" variant="primary" size="sm" title="Ajukan penyimpanan kembali box yang sudah ditarik ke gudang">
+                    Ajukan Penyimpanan Kembali (<span x-text="selectedRestore"></span> Box)
+                </x-button>
+            </form>
+        </div>
         <x-table>
             <thead>
                 <tr>
+                    <th><span class="sr-only">Pilih</span></th>
                     <th>NO. BOX & JUDUL BERKAS</th>
                     <th>LOKASI POSISI RAK</th>
                     <th>PEMOHON PENARIKAN</th>
@@ -77,6 +89,7 @@
                 @endforeach
             </tbody>
         </x-table>
+        </div>
         @foreach ($borrowings as $log)
             @include('borrowings.partials.row-modals', ['log' => $log, 'files' => $fileSets[$log->id], 'firstFile' => $fileStart[$log->id]])
         @endforeach

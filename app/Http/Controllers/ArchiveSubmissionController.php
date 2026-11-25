@@ -22,11 +22,21 @@ use Illuminate\View\View;
  */
 class ArchiveSubmissionController extends Controller
 {
-    public function create(Request $request, ArchiveFormData $form): View
+    public function create(Request $request, ArchiveFormData $form): View|RedirectResponse
     {
         Gate::authorize('create', Archive::class);
+        $old = $this->oldBoxes($request);
+        $extra = [];
+        if ($old === null && $request->boolean('re_store')) {
+            $restore = $form->reStoreBoxes($this->user($request), (array) $request->input('borrowing_ids', []));
+            if ($restore['boxes'] === []) {
+                return redirect()->route('borrowings.index')->with('error', 'Tidak ada box penarikan yang memenuhi syarat untuk disimpan kembali.');
+            }
+            $old = $restore['boxes'];
+            $extra['restoreDepartmentId'] = $restore['department_id'];
+        }
 
-        return view('archives.form', ['archive' => null] + $form->for($this->user($request), null, $this->oldBoxes($request)));
+        return view('archives.form', ['archive' => null] + $extra + $form->for($this->user($request), null, $old));
     }
 
     public function store(ArchiveSubmissionRequest $request, SaveArchiveDraft $draft, SubmitArchiveBoxes $submit): RedirectResponse

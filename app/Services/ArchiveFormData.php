@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Archive;
+use App\Models\BorrowingLog;
 use App\Models\Department;
 use App\Models\MasterArchive;
 use App\Models\SubDepartment;
@@ -103,7 +104,66 @@ final class ArchiveFormData
             'document_type' => (string) ($box['document_type'] ?? ''),
             'physical_condition' => (string) (($box['physical_condition'] ?? '') ?: ArchiveBoxBuilder::DEFAULT_CONDITION),
             'periode_bulan' => preg_match('/\d+/', (string) ($box['periode'] ?? ''), $m) ? $m[0] : '1',
+            'origin_borrowing_log_id' => isset($box['origin_borrowing_log_id']) ? (string) $box['origin_borrowing_log_id'] : '',
             'items' => $items ?: [['document_name' => '', 'period_start' => $month, 'period_end' => $month, 'notes' => '']],
         ];
+    }
+
+    /**
+     * Build pre-filled boxes from eligible dispatched borrowing logs (`re_store=1`).
+     *
+     * @param  list<int|string>  $borrowingIds
+     * @return array{department_id: int|null, boxes: list<array<string, mixed>>}
+     */
+    public function reStoreBoxes(User $user, array $borrowingIds): array
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $borrowingIds), fn (int $id): bool => $id > 0)));
+        if ($ids === []) {
+            return ['department_id' => null, 'boxes' => []];
+        }
+
+        $logs = BorrowingLog::query()->with(['archive.items'])
+            ->whereIn('id', $ids)
+            ->where('status', 'dispatched')
+            ->whereNull('active_restore_archive_id')
+            ->get()
+            ->filter(function (BorrowingLog $log) use ($user): bool {
+                $archive = $log->archive;
+                if (! $archive || $archive->status !== 'taken') {
+                    return false;
+                }
+
+                return $user->isAdmin() || ($user->department_id !== null && (int) $archive->department_id === (int) $user->department_id);
+            })->values();
+
+        if ($logs->isEmpty()) {
+            return ['department_id' => null, 'boxes' => []];
+        }
+
+        $deptId = (int) $logs->first()->archive->department_id;
+        $boxes = $logs->filter(fn (BorrowingLog $log): bool => (int) $log->archive->department_id === $deptId)
+            ->map(function (BorrowingLog $log): array {
+                $archive = $log->archive;
+                $items = is_array($log->snapshot_items) && $log->snapshot_items !== []
+                    ? array_map(fn (array $it): array => [
+                        'document_name' => (string) ($it['name'] ?? $it['document_name'] ?? ''),
+                        'period_start' => '',
+                        'period_end' => '',
+                        'notes' => (string) ($it['notes'] ?? ''),
+                    ], $log->snapshot_items)
+                    : $archive->items->map->only(['document_name', 'period_start', 'period_end', 'notes'])->all();
+
+                return [
+                    'title' => ($log->snapshot_title ?: $archive->title).' (Simpan Kembali)',
+                    'sub_department_id' => $archive->sub_department_id,
+                    'document_type' => $archive->document_type,
+                    'physical_condition' => $archive->physical_condition,
+                    'periode' => $archive->periode ?: $archive->periode_doc,
+                    'origin_borrowing_log_id' => $log->id,
+                    'items' => $items,
+                ];
+            })->values()->all();
+
+        return ['department_id' => $deptId, 'boxes' => $boxes];
     }
 }

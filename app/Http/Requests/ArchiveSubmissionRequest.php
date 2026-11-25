@@ -76,6 +76,7 @@ class ArchiveSubmissionRequest extends FormRequest
             'boxes.*.periode' => ['nullable', 'string', 'max:100'],
             'boxes.*.physical_condition' => [$required, 'string', 'max:100'],
             'boxes.*.retention_years' => ['nullable', 'integer', 'min:1', 'max:30'],
+            'boxes.*.origin_borrowing_log_id' => ['nullable', 'integer', 'exists:borrowing_logs,id'],
             'boxes.*.items' => $this->isDraft() ? ['nullable', 'array'] : ['required', 'array', 'min:1'],
             'boxes.*.items.*.document_name' => [$required, 'string', 'max:255'],
             'boxes.*.items.*.period_start' => [$required, 'string', 'max:50'],
@@ -103,7 +104,7 @@ class ArchiveSubmissionRequest extends FormRequest
             /** @var Archive|null $archive */
             $archive = $this->route('archive');
             $keepsScan = $archive?->scan_input_form && ! $this->boolean('remove_scan_input_form');
-            if (! $this->isDraft() && ! $this->hasFile('scan_input_form') && ! $keepsScan) {
+            if (! $this->isDraft() && ! $this->attributes->get('skip_scan_check') && ! $this->hasFile('scan_input_form') && ! $keepsScan) {
                 $validator->errors()->add('scan_input_form', 'Scan Formulir Input wajib diunggah sebelum mengajukan verifikasi box arsip.');
             }
         }];

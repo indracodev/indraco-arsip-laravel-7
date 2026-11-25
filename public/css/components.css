@@ -227,6 +227,8 @@
 .modal--success .modal__icon { background: var(--color-success-soft); color: var(--color-success); }
 .modal--info .modal__icon { background: var(--color-info-soft); color: var(--color-info); }
 .modal__message { white-space: pre-line; color: var(--color-text-muted); }
+.modal--wide .modal__dialog { max-width: 48rem; }
+.modal--lg .modal__dialog,
 #archive-import-modal .modal__dialog { max-width: 64rem; }
 .modal-open { overflow: hidden; }
 

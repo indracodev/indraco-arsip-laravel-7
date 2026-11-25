@@ -4,6 +4,7 @@ namespace App\Actions\Archive;
 
 use App\Models\Archive;
 use App\Models\ArchiveItem;
+use App\Models\BorrowingLog;
 use App\Models\Department;
 use App\Models\User;
 use App\Services\ActivityLogger;
@@ -36,6 +37,20 @@ final class SubmitArchiveBoxes
      * @return string success message
      */
     public function handle(User $user, Department $department, array $data, array $uploads, ?Archive $archive = null, ?string $originalUpdatedAt = null): string
+    {
+        $saved = $this->createAndReturn($user, $department, $data, $uploads, $archive, $originalUpdatedAt);
+        $count = count($saved);
+        $itemCount = array_sum(array_map(fn (Archive $box): int => $box->items()->count(), $saved));
+
+        return "Pengajuan {$count} box arsip ({$itemCount} butir dokumen) berhasil disubmit untuk diverifikasi PIC Gudang.";
+    }
+
+    /**
+     * @param  array<string, mixed>  $data  validated input
+     * @param  array{scan: UploadedFile|null, file: UploadedFile|null, remove_scan: bool, remove_file: bool}  $uploads
+     * @return list<Archive>
+     */
+    public function createAndReturn(User $user, Department $department, array $data, array $uploads, ?Archive $archive = null, ?string $originalUpdatedAt = null): array
     {
         $keepStatus = $archive && $archive->status !== 'draft';
         $boxes = $this->boxes(array_values($data['boxes']), $department, Carbon::parse($data['tgl_penyerahan']), $data);
@@ -70,7 +85,7 @@ final class SubmitArchiveBoxes
                 'DOKUMEN_ARSIP', $properties, $user->name, $user);
         }
 
-        return "Pengajuan {$count} box arsip ({$itemCount} butir dokumen) berhasil disubmit untuk diverifikasi PIC Gudang.";
+        return $saved;
     }
 
     /**
@@ -96,6 +111,7 @@ final class SubmitArchiveBoxes
                 'physical_condition' => ($box['physical_condition'] ?? null) ?: ArchiveBoxBuilder::DEFAULT_CONDITION,
                 'company_name' => ($data['company_name'] ?? null) ?: ArchiveBoxBuilder::DEFAULT_COMPANY,
                 'tgl_penyerahan' => $handover->format('Y-m-d'),
+                'origin_borrowing_log_id' => ! empty($box['origin_borrowing_log_id']) ? (int) $box['origin_borrowing_log_id'] : null,
             ]];
         }
 
@@ -134,14 +150,34 @@ final class SubmitArchiveBoxes
         $now = now();
         $saved = [];
         foreach ($boxes as $index => $box) {
+            $originLog = null;
+            $originId = $box['attributes']['origin_borrowing_log_id'] ?? null;
+            if ($originId !== null) {
+                $originLog = BorrowingLog::query()->with('archive')->findOrFail($originId);
+                if ($originLog->status !== 'dispatched' || $originLog->active_restore_archive_id !== null || (int) $originLog->archive?->department_id !== (int) $department->id) {
+                    throw new DomainException('Box penarikan ini sudah memiliki pengajuan penyimpanan kembali yang aktif atau tidak valid.');
+                }
+            }
+
             $row = $index === 0 && $archive ? $archive : new Archive;
             $row->fill($box['attributes'] + ['scan_input_form' => $files['scan_input_form'], 'file_path' => $files['file_path']]);
             $row->department_id = $department->id;
             $row->created_by_user_id = $user->id;
             $row->status = $keepStatus ? $row->status : 'pending_verification';
+            if ($originLog) {
+                $row->re_store_snapshot = json_encode([
+                    'borrowing_log_id' => $originLog->id,
+                    'box_number' => $originLog->snapshot_box_number,
+                    'title' => $originLog->snapshot_title,
+                ]);
+            }
             $row->created_at = $row->updated_at = $now->copy()->addSeconds($index);
             $isNew = ! $row->exists;
             $row->save();
+            if ($originLog) {
+                $originLog->active_restore_archive_id = $row->id;
+                $originLog->save();
+            }
             $row->setRelation('department', $department);
             ArchiveItem::query()->where('archive_id', $row->id)->delete();
             foreach (array_chunk($box['items'], 250) as $chunk) {

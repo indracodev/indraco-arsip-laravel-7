@@ -30,8 +30,17 @@
         });
     });
 
-    /* Keyboard shortcuts kept from Laravel 7: an element with data-shortcut="F2" is clicked on F2. */
+    /* Keyboard shortcuts kept from Laravel 7: an element with data-shortcut="F2" is clicked on F2; Ctrl+K focuses topbar search. */
     document.addEventListener('keydown', function (e) {
+        if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === 'k') {
+            var search = document.getElementById('topbar-search');
+            if (search && search.offsetParent !== null) {
+                e.preventDefault();
+                search.focus();
+                search.select();
+            }
+            return;
+        }
         if (document.body.classList.contains('modal-open') || e.ctrlKey || e.altKey || e.metaKey) { return; }
         var target = document.querySelector('[data-shortcut="' + e.key + '"]');
         if (!target) { return; }

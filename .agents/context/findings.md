@@ -86,8 +86,8 @@ Ditutup: #5 (semua: archives.show, bap, extend_print, api/departments/*, api/sub
 | R29 | S | Edit departemen L7 mereset retensi ke 5 | diperbaiki (E) |
 | R30 | S | Hapus gudang menghapus rak & slot berisi box | diperbaiki (E) |
 | R31 | R | Assign PIC bisa menurunkan admin; impersonate admin lain | diperbaiki (E) |
-| R32 | R | `ArchiveFixtures` jalan dua kali (setUp<Trait> otomatis + manual) | terbuka (perapian) |
-| R33 | R | Pesan validasi bawaan berbahasa Inggris (L7 juga `en`) | terbuka (perapian: terjemahan id) |
+| R32 | R | `ArchiveFixtures` jalan dua kali (setUp<Trait> otomatis + manual) | diperbaiki (P): guard idempoten di `ArchiveFixtures` & `BorrowingFixtures` |
+| R33 | R | Pesan validasi bawaan berbahasa Inggris (L7 juga `en`) | diperbaiki (P): `lang/id/validation.php` |
 | R34 | S | Verifikasi/check-in L7 tidak cek status asal → klik ganda memproses dua kali | diperbaiki (D) |
 | R35 | S | ACC perpanjangan/pemusnahan L7 menerima status apa pun → perpanjang dua kali | diperbaiki (C) |
 | R36 | R | Perpanjangan L7 `addMonths` overflow (31 Okt + 1 bln → 31 Des) | diperbaiki (C) |
@@ -95,8 +95,8 @@ Ditutup: #5 (semua: archives.show, bap, extend_print, api/departments/*, api/sub
 | R38 | R | Log History L7: filter modul tak pernah cocok; pencarian pemusnahan `orWhere` mengabaikan filter; laporan "Box Expired" selalu 0 | diperbaiki (G) |
 | R39 | T | Ping Caddy tanpa `Access-Control-Allow-Origin` → exe klien lama melihat server offline | diperbaiki (I), diuji: header ada setelah restart |
 | R40 | R | Klien Tauri memasukkan data rilis GitHub via innerHTML | diperbaiki di sumber (I), perlu build ulang exe |
-| R41 | R | `x-modal class=` menghasilkan dua atribut class (lebar modal tidak berlaku) | terbuka (perapian) |
-| R42 | R | Rak baru dari Master Gudang tidak punya slot (L7 via model booted) | sementara dibuat saat grid dibuka (F); perapian: panggil ensureSlots saat simpan |
-| R43 | R | Katalog yang terbuka tidak memuat ulang saat notifikasi masuk | terbuka (perapian) |
-| R44 | R | Tombol "Proses Pemusnahan" tampil untuk gudang tapi 403 (sama L7) | terbuka (perapian: sembunyikan) |
+| R41 | R | `x-modal class=` menghasilkan dua atribut class (lebar modal tidak berlaku) | diperbaiki (P): `$attributes->class(['modal'])` + `.modal--wide/.modal--lg` |
+| R42 | R | Rak baru dari Master Gudang tidak punya slot (L7 via model booted) | diperbaiki (P): `WarehouseLayout::ensureSlots($location)` di `WarehouseLocationController@store` |
+| R43 | R | Katalog yang terbuka tidak memuat ulang saat notifikasi masuk | diperbaiki (P): `[data-realtime-reload]` di katalog mendengarkan `dms:realtime-sync` |
+| R44 | R | Tombol "Proses Pemusnahan" tampil untuk gudang tapi 403 (sama L7) | diperbaiki (P): tampil hanya untuk admin (`$user->isAdmin()`) |
 

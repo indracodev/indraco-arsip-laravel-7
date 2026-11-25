@@ -131,6 +131,34 @@ class ImportCommitTest extends TestCase
         $this->actingAs($this->picHcs)->post('/archives/import/load-to-form', ['file' => $this->xlsxFile($rows)])->assertStatus(422);
     }
 
+    public function test_admin_can_import_directly_into_warehouse_with_rack_and_slot(): void
+    {
+        $wh = DB::table('warehouses')->insertGetId(['code' => 'G1', 'name' => 'Gudang Utama']);
+        $rack = DB::table('warehouse_locations')->insertGetId(['warehouse_id' => $wh, 'location_type' => 'rack', 'room_sector' => 'G1', 'rack_code' => 'R1', 'shelf_code' => 'S1', 'box_capacity' => 10, 'is_active' => 1]);
+        $slot = DB::table('warehouse_rack_slots')->insertGetId(['warehouse_location_id' => $rack, 'sap_level' => 1, 'layer' => 'bottom', 'slot_number' => 1, 'slot_code' => 'R1-01', 'status' => 'empty']);
+        DB::table('numbering_formats')->insert(['name' => 'Box', 'pattern' => '{COMPANY}/{DEPT}/{YEAR}/{COUNTER}', 'padding' => 4, 'current_counter' => 0, 'is_active' => 1]);
+
+        $rows = [
+            ['JUDUL_BOX', 'DEPARTEMEN', 'SUB_DEPARTEMEN', 'NAMA_DOKUMEN', 'PERIODE_DOK_MULAI', 'PERIODE_DOK_SELESAI', 'KETERANGAN_DOKUMEN', 'MASA_SIMPAN_BULAN', 'NO_BOX', 'LOKASI_RUANG', 'LOKASI_RAK', 'NO_SLOT'],
+            ['Box Lama Gudang', 'HCS', '', 'Kontrak Kerja', '2025-01', '2025-06', 'Data existing', '36', 'PT/HCS/2025/0099', 'G1', 'R1', 'R1-01'],
+        ];
+
+        // Missing rack is refused
+        $noRack = $rows;
+        $noRack[1][10] = '';
+        $this->actingAs($this->admin)->post('/archives/import/commit', ['file' => $this->xlsxFile($noRack), 'status' => 'in_warehouse'])
+            ->assertStatus(422);
+        $this->assertSame(0, DB::table('archives')->count());
+
+        $this->actingAs($this->admin)->post('/archives/import/commit', ['file' => $this->xlsxFile($rows), 'status' => 'in_warehouse'])
+            ->assertOk()->assertJson(['success' => true]);
+
+        $archive = DB::table('archives')->sole();
+        $this->assertSame(['in_warehouse', 'PT/HCS/2025/0099', $rack, $slot], [$archive->status, $archive->box_number, $archive->warehouse_location_id, $archive->warehouse_rack_slot_id]);
+        $this->assertSame('filled', DB::table('warehouse_rack_slots')->where('id', $slot)->value('status'));
+        $this->assertSame(1, DB::table('warehouse_entry_logs')->where('archive_id', $archive->id)->count());
+    }
+
     /** @return list<array<string, mixed>> */
     private function storedBoxes(): array
     {

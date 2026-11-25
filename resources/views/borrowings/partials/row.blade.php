@@ -6,8 +6,17 @@
     $isActive = in_array($log->status, \App\Services\BorrowingList::ACTIVE, true);
     $rejections = $archive ? $archive->borrowingLogs->where('id', '!=', $log->id) : collect();
     $canRetry = $log->status === 'rejected' && $archive?->status === 'in_warehouse' && auth()->user()->can('create', [\App\Models\BorrowingLog::class, $archive]);
+    $user = auth()->user();
+    $canRestore = $log->status === 'dispatched' && $log->active_restore_archive_id === null && $archive?->status === 'taken'
+        && $user->can('create', \App\Models\Archive::class)
+        && ($user->isAdmin() || (int) $archive->department_id === (int) $user->department_id);
 @endphp
 <tr @class(['table__row--'.$tone => $log->status !== 'returned'])>
+    <td data-label="" class="table__select">
+        @if ($canRestore)
+            <input type="checkbox" name="borrowing_ids[]" value="{{ $log->id }}" form="batch-restore" data-restore aria-label="Pilih penyimpanan kembali {{ $log->snapshot_title ?: $archive->title }}">
+        @endif
+    </td>
     <td data-label="NO. BOX & JUDUL BERKAS" class="table__wide">
         <div class="cluster">
             @if ($marker)<span class="badge badge--{{ $tone }}">{{ $marker }}</span>@endif

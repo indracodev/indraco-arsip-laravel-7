@@ -79,7 +79,7 @@ class ImportPreviewTest extends TestCase
         $rows[1][1] = 'HCS';
         $json = $this->actingAs($this->admin)->post('/archives/import/preview', ['file' => $this->xlsxFile($rows)])->assertOk()->json();
         $this->assertTrue($json['success']);
-        $this->assertContains('Belum lengkap untuk Verifikasi Gudang: Baris 2: The KETERANGAN_DOKUMEN field is required.', $json['warnings']);
+        $this->assertContains('Belum lengkap untuk Verifikasi Gudang: Baris 2: KETERANGAN_DOKUMEN wajib diisi.', $json['warnings']);
     }
 
     public function test_malformed_files_are_refused(): void

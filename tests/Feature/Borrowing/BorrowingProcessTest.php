@@ -154,4 +154,42 @@ class BorrowingProcessTest extends TestCase
         $this->assertContains($this->actingAs($this->admin)->put("/borrowings/{$log}", ['purpose' => 'x'])->status(), [404, 405]);
         $this->assertSame('requested', DB::table('borrowing_logs')->where('id', $log)->value('status'));
     }
+
+    public function test_dispatched_box_can_be_restored_once_with_guard(): void
+    {
+        $box = $this->storedBox($this->hcs, 'HCS-RESTORE');
+        $log = $this->requested([$box]);
+        $this->actingAs($this->gudang)->from('/borrowings')->post("/borrowings/{$log}/dispatch", ['confirm_file_checked' => 'on'])->assertRedirect('/borrowings');
+
+        // Re-store form pre-fills from borrowing snapshot
+        $this->actingAs($this->picHcs)->get("/archives/create?re_store=1&borrowing_ids[]={$log}")
+            ->assertOk()->assertSee('HCS-RESTORE (Simpan Kembali)')->assertSee((string) $log);
+
+        $payload = [
+            'submit_action' => 'submit',
+            'tgl_penyerahan' => '2026-11-24',
+            'scan_input_form' => $this->pdf('restore.pdf'),
+            'boxes' => [[
+                'title' => 'HCS-RESTORE (Simpan Kembali)',
+                'physical_condition' => 'Baik / Box Karton Standar TB 30g',
+                'periode' => '12 Bulan',
+                'origin_borrowing_log_id' => $log,
+                'items' => [['document_name' => 'Kontrak Kerja', 'period_start' => '2026-01', 'period_end' => '2026-01', 'notes' => 'Re-store']],
+            ]],
+        ];
+
+        $this->actingAs($this->picHcs)->post('/archives', $payload)->assertRedirect('/archives')->assertSessionHasNoErrors();
+        $restoredId = (int) DB::table('borrowing_logs')->where('id', $log)->value('active_restore_archive_id');
+        $this->assertGreaterThan(0, $restoredId);
+        $this->assertSame('taken', DB::table('archives')->where('id', $box)->value('status'));
+        $this->assertSame($log, (int) DB::table('archives')->where('id', $restoredId)->value('origin_borrowing_log_id'));
+
+        // Guard B5/B12: a second re-store of the same borrowing log is refused
+        $payload['boxes'][0]['title'] = 'HCS-RESTORE (Simpan Kembali 2)';
+        $this->actingAs($this->picHcs)->from('/archives/create')->post('/archives', $payload)
+            ->assertRedirect('/archives/create')->assertSessionHas('error');
+        $this->actingAs($this->picHcs)->get('/archives/create')->assertOk(); // consume flashed old input
+        $this->actingAs($this->picHcs)->get("/archives/create?re_store=1&borrowing_ids[]={$log}")
+            ->assertRedirect('/borrowings')->assertSessionHas('error');
+    }
 }

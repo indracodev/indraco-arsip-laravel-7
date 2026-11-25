@@ -78,7 +78,8 @@ class ArchiveDetailTest extends TestCase
         // Expiry 2026-06-30 is within 90 days of today (2026-11-24)? No: 147 days -> no button.
         $this->actingAs($this->gudang)->get("/archives/{$pending}")->assertDontSee('Proses Pemusnahan');
         $soon = $this->archive($this->hcs, 'in_warehouse', ['retention_expiry_date' => '2026-12-31']);
-        $this->actingAs($this->gudang)->get("/archives/{$soon}")->assertSee('Proses Pemusnahan');
+        $this->actingAs($this->gudang)->get("/archives/{$soon}")->assertDontSee('Proses Pemusnahan');
+        $this->actingAs($this->admin)->get("/archives/{$soon}")->assertSee('Proses Pemusnahan');
         $this->actingAs($this->picHcs)->get("/archives/{$soon}")->assertDontSee('Proses Pemusnahan');
     }
 

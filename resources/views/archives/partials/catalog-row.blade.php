@@ -7,6 +7,7 @@
     $isOut = in_array($archive->status, ['borrowed', 'taken'], true);
     $hasRevision = $archive->status === 'draft' && filled($archive->rejection_note);
     $isPic = $user->role === \App\Models\User::ROLE_PIC_DEPT;
+    $isWarehouse = $user->isAdmin() || $user->role === \App\Models\User::ROLE_PIC_GUDANG;
     $ownsDept = $user->isAdmin() || ($isPic && (int) $archive->department_id === (int) $user->department_id);
     [$tone, $marker] = match (true) {
         $hasRevision => ['danger', null],
@@ -75,6 +76,13 @@
         @endif
     </td>
     <td data-label="" class="table__actions">
+            @if ($isWarehouse && $archive->status === 'pending_verification')
+                <x-link-button size="sm" variant="primary" :href="route('archives.show', $archive)" title="Verifikasi &amp; Penomoran Box Gudang">Verifikasi</x-link-button>
+            @elseif ($isWarehouse && $archive->status === 'approved_booked')
+                <x-link-button size="sm" variant="primary" :href="route('archives.show', $archive)" title="Check-In &amp; Penempatan Slot Rak">Check-In Rak</x-link-button>
+            @elseif ($isWarehouse && in_array($archive->status, ['in_warehouse', 'pending_extension'], true) && $archive->warehouse_location_id)
+                <x-link-button size="sm" :href="route('archives.print_sticker', $archive)" title="Cetak Stiker Label Box">Label</x-link-button>
+            @endif
             @if ($ownsDept && ! $activeBorrowing && $archive->status === 'in_warehouse')
                 <x-link-button size="sm" :href="route('borrowings.create', ['archive_ids' => $archive->id, 'from' => 'archives'])">{{ $rejectedBorrowing ? 'Tarik Ulang' : 'Tarik' }}</x-link-button>
             @elseif ($activeBorrowing && $isPic && $ownsDept)

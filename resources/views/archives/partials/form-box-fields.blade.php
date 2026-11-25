@@ -1,5 +1,6 @@
 {{-- Identity of one box (inside x-for "box, bIdx"): title + similarity check, sub-department, category, condition, period. --}}
 <div class="form-grid form-grid--2">
+    <input type="hidden" :name="'boxes[' + bIdx + '][origin_borrowing_log_id]'" :value="box.origin_borrowing_log_id || ''">
     <div class="field">
         <label class="field__label" :for="'box_title_' + bIdx">NAMA / JUDUL BOX <span class="field__required" aria-hidden="true">*</span></label>
         <input type="text" class="control" :id="'box_title_' + bIdx" :name="'boxes[' + bIdx + '][title]'" x-model="box.title" @input="checkSimilarity(bIdx)"

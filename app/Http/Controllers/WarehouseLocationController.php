@@ -6,6 +6,7 @@ use App\Http\Requests\WarehouseLocationRequest;
 use App\Models\Warehouse;
 use App\Models\WarehouseLocation;
 use App\Services\ActivityLogger;
+use App\Support\WarehouseLayout;
 use App\Support\WarehouseMaster;
 use Illuminate\Http\RedirectResponse;
 
@@ -24,6 +25,7 @@ class WarehouseLocationController extends Controller
             'location_type' => 'rack', 'room_sector' => $sector, 'canvas_x' => 400, 'canvas_y' => 300,
             'canvas_width' => 40, 'canvas_height' => 120, 'orientation' => 'horizontal',
         ]);
+        WarehouseLayout::ensureSlots($location);
 
         ActivityLogger::log('MASTER_RACK_CREATE', "Menambahkan rak penyimpanan baru {$location->rack_code} di {$sector}", 'warehouse',
             $location->only(['id', 'rack_code', 'shelf_code', 'box_capacity']), (string) $location->id);

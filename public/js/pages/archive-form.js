@@ -48,6 +48,7 @@
                         id: nextId(), title: from.title || '', sub_department_id: from.sub_department_id ? String(from.sub_department_id) : '',
                         document_type: from.document_type || '', physical_condition: from.physical_condition || DEFAULT_CONDITION,
                         periode_bulan: String(from.periode_bulan || '1'), follow_previous: !!from.follow_previous, similarity: null,
+                        origin_borrowing_log_id: from.origin_borrowing_log_id ? String(from.origin_borrowing_log_id) : '',
                         items: items.length ? items.map(copyItem) : [blankItem()]
                     };
                 },

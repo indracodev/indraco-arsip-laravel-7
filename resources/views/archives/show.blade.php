@@ -34,7 +34,7 @@
                         : 'Cetak label tidak tersedia'">Cetak Label</x-button>
                 @endif
             @endunless
-            @if ($isWarehouseStaff && \App\Support\ArchiveDetail::canProposeDestruction($archive))
+            @if ($user->isAdmin() && \App\Support\ArchiveDetail::canProposeDestruction($archive))
                 <x-link-button variant="danger" :href="\App\Support\ArchiveDetail::moduleUrl('destructions.propose.archive', $archive, 'destructions.index')">Proses Pemusnahan</x-link-button>
             @endif
             <x-link-button :href="\App\Support\ArchiveDetail::backUrl(request('from'), $user)" data-back data-shortcut="Escape" title="Kembali ke Daftar (Esc)">Kembali</x-link-button>

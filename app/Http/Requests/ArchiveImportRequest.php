@@ -26,10 +26,11 @@ class ArchiveImportRequest extends FormRequest
     public function rules(): array
     {
         $isCommit = $this->routeIs('archives.import.commit');
+        $allowedStatuses = $this->user()?->isAdmin() ? 'in:draft,pending_verification,in_warehouse' : 'in:draft,pending_verification';
 
         return [
             'file' => ['required', 'file', 'max:5120', 'extensions:xlsx,xlsm,csv', $this->readable(...)],
-            'status' => $isCommit ? ['required', 'in:draft,pending_verification'] : ['exclude'],
+            'status' => $isCommit ? ['required', $allowedStatuses] : ['exclude'],
             'scan_input_form' => $isCommit ? FileStorage::rules() : ['exclude'],
         ];
     }

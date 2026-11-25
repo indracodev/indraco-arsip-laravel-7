@@ -4,9 +4,13 @@ namespace App\Services;
 
 use App\Actions\Archive\SaveArchiveDraft;
 use App\Actions\Archive\SubmitArchiveBoxes;
+use App\Actions\Warehouse\CheckinArchive;
 use App\Http\Requests\ArchiveSubmissionRequest;
+use App\Models\Archive;
 use App\Models\Department;
 use App\Models\User;
+use App\Models\WarehouseLocation;
+use App\Models\WarehouseRackSlot;
 use DomainException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -36,6 +40,7 @@ final class ArchiveImport
         private ArchiveBoxBuilder $builder,
         private SaveArchiveDraft $draft,
         private SubmitArchiveBoxes $submit,
+        private CheckinArchive $checkin,
     ) {}
 
     /**
@@ -70,27 +75,36 @@ final class ArchiveImport
      */
     public function commit(UploadedFile $file, User $user, string $status, ?UploadedFile $scan): array
     {
+        if ($status === 'in_warehouse' && ! $user->isAdmin()) {
+            return ['errors' => ['Hanya Admin yang dapat mengimpor langsung ke gudang.'], 'message' => ''];
+        }
         $isDraft = $status === 'draft';
+        $isWarehouse = $status === 'in_warehouse';
         $parsed = $this->parser->parse($file, $user);
         $groups = $this->groups($parsed['boxes']);
         $errors = $parsed['errors'];
         foreach ($groups as $key => $group) {
-            [$messages, $groups[$key]['data']] = $this->check($user, $group, $isDraft, $scan);
+            [$messages, $groups[$key]['data']] = $this->check($user, $group, $isDraft, $isWarehouse ? null : $scan, $isWarehouse);
             $errors = [...$errors, ...array_values($messages)];
         }
         if ($errors !== [] || $groups === []) {
             return ['errors' => $errors ?: ['File tidak berisi box arsip yang dapat diimpor.'], 'message' => ''];
         }
 
-        $uploads = ['scan' => $isDraft ? null : $scan, 'file' => null, 'remove_scan' => false, 'remove_file' => false];
+        $uploads = ['scan' => ($isDraft || $isWarehouse) ? null : $scan, 'file' => null, 'remove_scan' => false, 'remove_file' => false];
         try {
             // ponytail: one transaction over the per-department Actions; if a later department fails, a scan
             // already stored for an earlier one stays on disk unreferenced (admin multi-department files only).
-            DB::transaction(function () use ($groups, $user, $uploads, $isDraft): void {
+            DB::transaction(function () use ($groups, $user, $uploads, $isDraft, $isWarehouse): void {
                 foreach ($groups as $group) {
-                    $isDraft
-                        ? $this->draft->handle($user, $group['department'], $group['data'], $uploads)
-                        : $this->submit->handle($user, $group['department'], $group['data'], $uploads);
+                    if ($isDraft) {
+                        $this->draft->handle($user, $group['department'], $group['data'], $uploads);
+                    } elseif ($isWarehouse) {
+                        $saved = $this->submit->createAndReturn($user, $group['department'], $group['data'], $uploads);
+                        $this->checkinImportedBoxes($user, $saved, $group['boxes']);
+                    } else {
+                        $this->submit->handle($user, $group['department'], $group['data'], $uploads);
+                    }
                 }
             });
         } catch (DomainException $e) {
@@ -99,7 +113,12 @@ final class ArchiveImport
 
         $boxCount = count($parsed['boxes']);
         $itemCount = array_sum(array_map(fn (array $b): int => count($b['items']), $parsed['boxes']));
-        ActivityLogger::log('ARCHIVE_BATCH_IMPORT', "Mengimpor massal {$itemCount} butir dokumen ke dalam {$boxCount} box arsip (Status: ".($isDraft ? 'Draft Sementara' : 'Antrean Verifikasi Gudang').") oleh {$user->name}.",
+        $statusLabel = match ($status) {
+            'draft' => 'Draft Sementara',
+            'in_warehouse' => 'Tersimpan di Gudang',
+            default => 'Antrean Verifikasi Gudang',
+        };
+        ActivityLogger::log('ARCHIVE_BATCH_IMPORT', "Mengimpor massal {$itemCount} butir dokumen ke dalam {$boxCount} box arsip (Status: {$statusLabel}) oleh {$user->name}.",
             'IMPORT_EXCEL', ['boxes_count' => $boxCount, 'items_count' => $itemCount, 'status' => $status], "{$boxCount} Box Arsip", $user);
 
         return ['errors' => [], 'message' => "Berhasil mengimpor {$boxCount} box arsip dengan {$itemCount} butir dokumen."];
@@ -126,12 +145,15 @@ final class ArchiveImport
      * @param  array{department: Department, boxes: list<array<string, mixed>>}  $group
      * @return array{0: array<string, string>, 1: array<string, mixed>} [messages by field key, validated data]
      */
-    private function check(User $user, array $group, bool $isDraft, ?UploadedFile $scan): array
+    private function check(User $user, array $group, bool $isDraft, ?UploadedFile $scan, bool $allowNoScan = false): array
     {
         $payload = ['submit_action' => $isDraft ? 'draft' : 'submit', 'department_id' => $group['department']->id,
             'tgl_penyerahan' => now()->format('Y-m-d'), 'boxes' => $this->formBoxes($group['boxes'])];
         $form = ArchiveSubmissionRequest::create('/archives', 'POST', $payload, [], $scan ? ['scan_input_form' => $scan] : []);
         $form->setUserResolver(fn (): User => $user);
+        if ($allowNoScan) {
+            $form->attributes->set('skip_scan_check', true);
+        }
         $validator = Validator::make($form->all(), $form->rules(), [], self::ATTRIBUTES)->after($form->after());
 
         $messages = [];
@@ -140,6 +162,59 @@ final class ArchiveImport
         }
 
         return [$messages, $messages === [] ? $validator->validated() : []];
+    }
+
+    /**
+     * Check-in imported admin boxes directly to the specified rack & optional slot.
+     *
+     * @param  list<Archive>  $saved
+     * @param  list<array<string, mixed>>  $boxes
+     */
+    private function checkinImportedBoxes(User $user, array $saved, array $boxes): void
+    {
+        foreach ($saved as $index => $archive) {
+            $meta = $boxes[$index] ?? null;
+            $rackCode = trim((string) ($meta['raw_rack'] ?? ''));
+            if ($rackCode === '') {
+                throw new DomainException("Baris {$meta['row']}: Kolom LOKASI_RAK wajib diisi untuk status Tersimpan di Gudang.");
+            }
+            $room = trim((string) ($meta['raw_room'] ?? ''));
+            $rack = WarehouseLocation::query()->with('warehouse')
+                ->where('location_type', 'rack')->where('is_active', true)
+                ->whereRaw('upper(rack_code) = ?', [strtoupper($rackCode)])
+                ->when($room !== '', fn ($q) => $q->where(function ($q) use ($room): void {
+                    $q->whereRaw('upper(room_sector) = ?', [strtoupper($room)])
+                        ->orWhereHas('warehouse', fn ($w) => $w->whereRaw('upper(code) = ?', [strtoupper($room)]));
+                }))
+                ->first();
+            if (! $rack) {
+                throw new DomainException("Baris {$meta['row']}: Lokasi rak '{$rackCode}' tidak ditemukan atau tidak aktif.");
+            }
+
+            $slotId = null;
+            $slotRaw = trim((string) ($meta['raw_slot'] ?? ''));
+            if ($slotRaw !== '') {
+                $slot = WarehouseRackSlot::query()->where('warehouse_location_id', $rack->id)
+                    ->where(fn ($q) => $q->whereRaw('upper(slot_code) = ?', [strtoupper($slotRaw)])->orWhere('slot_number', ctype_digit($slotRaw) ? (int) $slotRaw : -1))
+                    ->first();
+                if (! $slot) {
+                    throw new DomainException("Baris {$meta['row']}: Slot '{$slotRaw}' tidak ditemukan di rak {$rack->rack_code}.");
+                }
+                $slotId = $slot->id;
+            }
+
+            $rawBox = trim((string) ($meta['raw_box'] ?? ''));
+            if ($rawBox !== '' && str_contains($rawBox, '/')) {
+                if (Archive::query()->where('box_number', $rawBox)->exists()) {
+                    throw new DomainException("Baris {$meta['row']}: Nomor box '{$rawBox}' sudah digunakan.");
+                }
+                $archive->box_number = $rawBox;
+            }
+            $archive->status = 'approved_booked';
+            $archive->save();
+
+            $this->checkin->handle($user, $archive, $rack->id, 'Impor massal data existing ke gudang.', $slotId);
+        }
     }
 
     /**

@@ -212,7 +212,7 @@ final class ArchiveImportParser
                 $warnings[] = "Box '{$box['temp_box_id']}': Masa simpan {$months} bulan. Dibatasi otomatis ke batas maksimal {$limit} bulan sesuai standar kearsipan.";
                 $months = $limit;
             }
-            if (array_intersect_key($box['raw'], array_flip(['room', 'rack', 'slot']))) {
+            if (! $context['user']->isAdmin() && array_intersect_key($box['raw'], array_flip(['room', 'rack', 'slot']))) {
                 $warnings[] = "Box '{$box['temp_box_id']}': Kolom lokasi rak diabaikan; penempatan rak dilakukan PIC Gudang saat verifikasi.";
             }
             $firstName = $box['items'][0]['document_name'];
@@ -226,6 +226,10 @@ final class ArchiveImportParser
                 'document_type' => $this->values->matchMaster($firstName, $dept->id, $context['masters'])->document_type ?? $box['document_type'] ?? null,
                 'physical_condition' => $box['raw']['condition'] ?? ArchiveBoxBuilder::DEFAULT_CONDITION,
                 'periode' => "{$months} Bulan",
+                'raw_box' => trim((string) ($box['temp_box_id'] ?? '')),
+                'raw_room' => trim((string) ($box['raw']['room'] ?? '')),
+                'raw_rack' => trim((string) ($box['raw']['rack'] ?? '')),
+                'raw_slot' => trim((string) ($box['raw']['slot'] ?? '')),
                 'items' => $box['items'],
             ];
         }

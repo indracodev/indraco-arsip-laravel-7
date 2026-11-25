@@ -169,5 +169,10 @@
         document.addEventListener('visibilitychange', function () {
             if (document.hidden) { if (timer) { clearTimeout(timer); timer = null; } } else if (!timer) { poll(); }
         });
+        window.addEventListener('dms:realtime-sync', function () {
+            if (!document.querySelector('[data-realtime-reload]')) { return; }
+            if (document.querySelector('.modal:not([hidden])') || document.querySelector('.table__select input:checked')) { return; }
+            window.location.reload();
+        });
     });
 })();

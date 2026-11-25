@@ -3,7 +3,7 @@
     Open with any element [data-modal-open="settings-modal"]; [data-modal-close] closes (public/js/modal.js).
 --}}
 @props(['id', 'title'])
-<div class="modal" id="{{ $id }}" role="dialog" aria-modal="true" aria-labelledby="{{ $id }}-title" hidden {{ $attributes }}>
+<div {{ $attributes->class(['modal']) }} id="{{ $id }}" role="dialog" aria-modal="true" aria-labelledby="{{ $id }}-title" hidden>
     <div class="modal__dialog" tabindex="-1">
         <div class="modal__header">
             <h2 class="modal__title" id="{{ $id }}-title">{{ $title }}</h2>

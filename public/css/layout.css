@@ -36,6 +36,8 @@
 .topbar__logo { height: 1.7143rem; width: auto; min-width: 0; }
 .topbar__name { font-weight: var(--weight-bold); color: var(--color-accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .topbar__spacer { flex: 1; }
+.topbar__search { display: flex; align-items: center; }
+.topbar__search-input { width: 15rem; padding: 0.2857rem 0.6429rem; font-size: var(--text-sm); }
 .topbar__user { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; text-align: right; }
 .topbar__user > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .topbar__user-name { font-weight: var(--weight-medium); }
@@ -127,7 +129,7 @@
 .bp-lt-lg .is-drawer-open .backdrop { display: block; position: fixed; inset: 0; z-index: calc(var(--z-drawer) - 1); background: var(--color-overlay); }
 .bp-lt-lg .main { padding: var(--space-4); }
 .bp-lt-md .topbar { padding: var(--space-1) var(--space-2); column-gap: var(--space-2); }
-.bp-lt-md .topbar__user, .bp-lt-md .topbar__name, .bp-lt-md .lan__text, .bp-lt-md .hide-sm { display: none; }
+.bp-lt-md .topbar__user, .bp-lt-md .topbar__name, .bp-lt-md .topbar__search, .bp-lt-md .lan__text, .bp-lt-md .hide-sm { display: none; }
 
 /* Guest pages (login) */
 .guest { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: var(--space-4); background: var(--ambient); background-repeat: no-repeat; }

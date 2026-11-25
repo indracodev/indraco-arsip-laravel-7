@@ -101,15 +101,19 @@
                 commit: function () {
                     var self = this;
                     var pending = this.status === 'pending_verification';
+                    var existing = this.status === 'in_warehouse';
                     if (pending && !this.scan) {
                         window.showAlertModal('Scan Formulir Input wajib diunggah sebelum mengajukan verifikasi box arsip.', 'Data Belum Lengkap');
                         return;
                     }
+                    var title = existing ? 'Konfirmasi Impor Langsung ke Gudang' : (pending ? 'Konfirmasi Impor & Ajukan ke Gudang' : 'Konfirmasi Impor sebagai Draft');
+                    var statusLabel = existing ? 'Tersimpan di Gudang' : (pending ? 'Verifikasi Gudang' : 'Draft Sementara');
+                    var confirmText = existing ? 'Ya, Simpan ke Gudang' : (pending ? 'Ya, Simpan & Ajukan' : 'Ya, Simpan Draft');
                     window.showConfirmModal({
-                        title: pending ? 'Konfirmasi Impor & Ajukan ke Gudang' : 'Konfirmasi Impor sebagai Draft',
-                        message: this.result.total_boxes + ' Box, ' + this.result.total_items + ' Berkas Dokumen akan disimpan dengan status "' + (pending ? 'Verifikasi Gudang' : 'Draft Sementara') + '". Lanjutkan?',
+                        title: title,
+                        message: this.result.total_boxes + ' Box, ' + this.result.total_items + ' Berkas Dokumen akan disimpan dengan status "' + statusLabel + '". Lanjutkan?',
                         type: 'info',
-                        confirmText: pending ? 'Ya, Simpan & Ajukan' : 'Ya, Simpan Draft'
+                        confirmText: confirmText
                     }).then(function (ok) {
                         if (!ok) { return; }
                         self.run('commit', config.commitUrl, self.formData({ status: self.status, scan_input_form: pending ? self.scan : null })).then(function (json) {

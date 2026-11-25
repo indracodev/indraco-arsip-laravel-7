@@ -12,7 +12,7 @@
         $hasFilters = request()->hasAny(['search', 'department_id', 'sub_department_id', 'document_type', 'status', 'expiry_filter']);
     @endphp
 
-    <x-page-header title="Katalog Arsip & Pengajuan Storage" subtitle="Cari, ajukan booking gudang, dan kelola masa simpan dokumen fisik & digital PT Indraco.">
+    <x-page-header data-realtime-reload title="Katalog Arsip & Pengajuan Storage" subtitle="Cari, ajukan booking gudang, dan kelola masa simpan dokumen fisik & digital PT Indraco.">
         <x-slot:actions>
             <x-link-button :href="request()->fullUrl()" title="Refresh (F5)"><x-icon name="refresh" />Refresh (F5)</x-link-button>
             @if ($canSubmit)

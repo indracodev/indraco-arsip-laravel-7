@@ -16,8 +16,14 @@ trait BorrowingFixtures
 
     protected int $location;
 
+    private bool $borrowingFixturesReady = false;
+
     protected function setUpBorrowingFixtures(): void
     {
+        if ($this->borrowingFixturesReady) {
+            return;
+        }
+        $this->borrowingFixturesReady = true;
         $this->setUpArchiveFixtures();
         $warehouse = DB::table('warehouses')->insertGetId(['code' => 'G1', 'name' => 'Gudang Utama']);
         $this->location = DB::table('warehouse_locations')->insertGetId(['warehouse_id' => $warehouse, 'rack_code' => 'R01', 'shelf_code' => 'S1', 'current_box_count' => 2]);

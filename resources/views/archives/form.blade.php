@@ -15,14 +15,14 @@
     $config = [
         'departments' => $departments,
         'boxes' => $boxes,
-        'deptId' => old('department_id', $archive->department_id ?? ($user->department_id ?? ($departments[0]['id'] ?? ''))),
+        'deptId' => old('department_id', $archive->department_id ?? ($restoreDepartmentId ?? ($user->department_id ?? ($departments[0]['id'] ?? '')))),
         'subDeptId' => (string) old('sub_department_id', $archive->sub_department_id ?? ''),
         'tglPenyerahan' => old('tgl_penyerahan', $archive?->tgl_penyerahan?->format('Y-m-d') ?? now()->format('Y-m-d')),
         'currentMonth' => now()->format('Y-m'),
         'userId' => $user->id,
         'archiveId' => $archive?->id,
         'hasExistingScan' => filled($archive?->scan_input_form),
-        'autosave' => ! $isEdit && old('boxes') === null,
+        'autosave' => ! $isEdit && old('boxes') === null && ! request()->boolean('re_store'),
         'similarityUrl' => route('api.archives.check_similarity'),
     ];
 @endphp

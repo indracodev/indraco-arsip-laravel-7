@@ -29,8 +29,14 @@ trait ArchiveFixtures
 
     protected User $gudang;
 
+    private bool $archiveFixturesReady = false;
+
     protected function setUpArchiveFixtures(): void
     {
+        if ($this->archiveFixturesReady) {
+            return;
+        }
+        $this->archiveFixturesReady = true;
         $this->travelTo(Carbon::parse('2026-11-24 10:00:00'));
         Storage::fake('local');
         $this->hcs = DB::table('departments')->insertGetId(['code' => 'HCS', 'name' => 'Human Capital', 'retention_years' => 3, 'is_active' => 1]);

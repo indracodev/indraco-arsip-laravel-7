@@ -6,7 +6,7 @@
         <label class="checkbox"><input type="radio" name="import_status" value="draft" x-model="status">Draft Sementara</label>
         <label class="checkbox"><input type="radio" name="import_status" value="pending_verification" x-model="status">Verifikasi Gudang</label>
         @unless ($isPic)
-            <label class="checkbox" title="Menunggu jalur check-in rak modul GUDANG"><input type="radio" name="import_status" value="in_warehouse" disabled>Tersimpan di Gudang (Data Existing)</label>
+            <label class="checkbox"><input type="radio" name="import_status" value="in_warehouse" x-model="status">Tersimpan di Gudang (Data Existing)</label>
         @endunless
     </div>
 
