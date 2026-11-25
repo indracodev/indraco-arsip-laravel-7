@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\EnsureUserHasRole;
 use App\Http\Middleware\UpdateUserPresence;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -9,6 +10,8 @@ use Illuminate\Http\Exceptions\PostTooLargeException;
 use Illuminate\Http\Middleware\SetCacheHeaders;
 use Illuminate\Http\Request;
 use Illuminate\Session\Middleware\AuthenticateSession;
+use Illuminate\Session\TokenMismatchException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -38,6 +41,31 @@ return Application::configure(basePath: dirname(__DIR__))
             return $request->is('api/*') || $request->expectsJson()
                 ? response()->json(['message' => $message], 413)
                 : response()->view('errors.413', ['message' => $message], 413);
+        });
+        // U1: a page/form reached after the session ended (logout in another tab, password reset via
+        // AuthenticateSession, expiry) says so on the login page. JSON/AJAX keeps the plain 401/419.
+        $sessionEnded = 'Sesi Anda telah berakhir. Silakan login kembali.';
+        $exceptions->render(function (AuthenticationException $e, Request $request) use ($sessionEnded) {
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return null;
+            }
+            $redirect = redirect()->guest($e->redirectTo($request) ?? route('login'));
+            // A first visit carries neither a session cookie nor a link from one of our own pages.
+            $hadSession = $request->hasCookie((string) config('session.cookie'))
+                || str_starts_with((string) $request->headers->get('referer'), $request->getSchemeAndHttpHost().'/');
+
+            return $hadSession ? $redirect->with('warning', $sessionEnded) : $redirect;
+        });
+        $exceptions->render(function (HttpException $e, Request $request) use ($sessionEnded) {
+            if (! $e->getPrevious() instanceof TokenMismatchException || $request->is('api/*') || $request->expectsJson()) {
+                return null;
+            }
+            if ($request->user() !== null) { // token rotated by a login/logout in another tab
+                return back()->withInput($request->except(['_token', 'password', 'password_confirmation', 'current_password']))
+                    ->with('error', 'Halaman sudah kedaluwarsa. Silakan kirim ulang.');
+            }
+
+            return redirect()->route('login')->withInput($request->only('email'))->with('warning', $sessionEnded);
         });
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),

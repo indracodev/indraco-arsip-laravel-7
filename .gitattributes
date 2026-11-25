@@ -7,3 +7,5 @@
 CHANGELOG.md export-ignore
 *.vbs text eol=crlf
 *.ps1 text eol=crlf
+# Vendored minified JS (pdf.js, Alpine, qrcode): byte-exact so SHA-256 in decisions.md stays valid on checkout.
+public/js/vendor/** binary
