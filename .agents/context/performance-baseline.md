@@ -20,3 +20,70 @@ Laptop 16 core (lebih cepat per core dari AMD A9; perkirakan 2–4× lebih lamba
 - START→SIAP (PHP membalas, semua worker hangat): 1,6–3,0 dtk (16 core), 2,1–2,8 dtk (2 core). Koordinator: 1,5 dtk.
 - Idle: CPU 0 ms/20 dtk; 6 worker ≈ 137 MB private + 25 MB loop cmd + Caddy ≈ 60 MB.
 - **Wajib diulang di PC server asli** sebelum cutover.
+
+## Fase 6 / rute nyata (2026-11-25)
+
+**Mesin uji:** laptop i7-13620H (10 core fisik = 6 P + 4 E, 16 logical, P-core ±2× lebih cepat per thread dari E-core: loop PHP 30 jt iterasi 0,39–0,42 dtk P vs 0,74–0,80 dtk E), RAM 24 GB, Windows 11, power plan *Balanced*. k6 1.7.1 jalan di laptop yang sama (ikut makan CPU). Laptop juga dipakai IDE/Chrome → angka bisa bergeser ±30 % antar-run.
+
+**Skrip:** `tests/k6/route_matrix.js` (hanya GET, aman untuk server live) + `tests/k6/sample-resources.ps1` (RAM/CPU Caddy + php-cgi tiap detik). Login sekali per peran di `setup()` (admin, gudang, fin = PIC FAT), 3 sesi untuk semua VU, tanpa login per VU.
+- Mode default: tiap VU memutar semua rute perannya **tanpa jeda** → "N VU" = N request bersamaan terus-menerus (jauh lebih berat dari N orang).
+- `MODE=human`: 1 VU = 1 orang dengan aplikasi terbuka: poll notifikasi + ping LAN tiap 5 dtk (sama seperti `notifications.js`/`lan.js`), rata-rata 1 halaman tiap 20 dtk.
+- Rute: dashboard admin/gudang (PIC Departemen di-redirect ke katalog), `/archives` (polos, `search=box`, `status+sort+per_page=50`), `/archives/117`, `/borrowings`, `/destructions` tab h30/extensions/destructions, `/api/realtime/check` (`since_seq`/`initial`), `/api/warehouse/layout-search?q=IND` (admin/gudang), `/files/archive/117/scan_input_form` (X-Accel, Caddy yang streaming), `/api/health/ping` (Caddy).
+- Data: salinan data asli (68 arsip, 943 item, 8.001 slot rak). Instans uji terpisah memakai salinan `VACUUM INTO` di scratchpad, port 8100, worker 9101+, cache config/route sendiri (`APP_CONFIG_CACHE` dll. **harus path relatif**: path absolut Windows dianggap relatif oleh Laravel), affinity diset per proses. Server live :8000 tidak diubah/di-restart.
+
+### Ringkasan (closed loop, tanpa jeda; p50/p95 ms; req/s total semua rute)
+
+| Konfigurasi | 1 VU: katalog / poll | 10 VU: katalog / poll | 30 VU: katalog / poll | jenuh req/s | error |
+|---|---|---|---|---|---|
+| A2 live :8000 — 16 logical, 6 worker, **tanpa** cache config/route | 77/85 · 36/42 | 87/475 · 39/232 | 161/1.459 · 43/971 | 104–112 | 0 |
+| A live (run 14:51, sebelum commit keamanan `efcd5d8` 15:10: AuthenticateSession, trustHosts; A2 sesudahnya ±15:20) | 36/41 · 19/20 | 53/139 · 24/200 | 74/1.216 · 33/798 | 150–154 | 0 |
+| B 1 P-core + HT (mask 0x3), 4 worker, cache | 41/46 · 13/15 | 125/980 · 38/475 | 136/3.469 · 41/2.301 | 58–66 | 0 |
+| **C 2 E-core (mask 0x3000), 4 worker, cache** | 67/73 · 23/27 | 212/1.102 · 72/902 | 178/3.525 · 70/2.713 | **45** | 0 |
+| D 1 E-core (mask 0x1000), 4 worker, cache | 51/59 · 17/18 | 328/1.741 · 83/736 | 432/4.491 · 24/1.434 | 33 | 0 |
+| E 2 E-core, 4 worker, **tanpa** cache | 82/102 · 42/48 | 243/1.561 · 142/1.316 | — | 32 | 0 |
+
+Per rute pada C (2 E-core, cache), 1 VU p50 ms: dashboard gudang 52, katalog 67, cari 69, filter 50 baris 80, detail 50, penarikan 72, retensi 52–60, poll 21–23, preview file 20, quick search 27, ping 0,5. 50 VU closed loop: tetap 0 error, p95 4–15 dtk (antrean Caddy `lb_try_duration 30s`). Tabel lengkap tiap level/rute (p50/p95/p99/max, req/s, error) ada di output k6 (`OUT=…json/.md`); hasil mentah di scratchpad sesi ini, tidak di-commit.
+
+### Mode human (realistis) — p95 ms
+
+| Konfigurasi | 10 orang | 30 orang | 50 orang | req/s total (PHP) | CPU pool |
+|---|---|---|---|---|---|
+| **C 2 E-core, 4 worker** | halaman ≤ 64 · poll 89 | halaman ≤ 234 · poll 301 | halaman ≤ 107 · poll 409 | 4,8 / 13,9 / 23,2 (≈ separuh ping Caddy) | rata 16 %, puncak 133 % dari 1 core |
+| D 1 E-core, 4 worker | — | halaman ≤ 322 · poll **8.034** | halaman ≤ 1.464 · poll 987 | 12,2 / 23,1 | puncak ±100 % |
+
+- Ekor poll: semua VU mulai serentak → poll datang bergerombol tiap 5 dtk; worker yang sibuk membuat request menunggu dengan retry 25 ms (bukan antrean FIFO), sehingga sebagian kecil request menunggu lama. Di 1 core gerombolan pertama 30 orang = p95 8 dtk.
+
+### Sumber daya server
+- Live (6 worker, 16 logical, closed loop 1→50 VU): RAM private Caddy+php-cgi 166 → 178 MB, working set 248 → 278 MB, CPU puncak 623 % (= 6 worker penuh: pool yang membatasi, bukan CPU).
+- 4 worker + Caddy (C/D/H): private 110 → 131 MB, working set ±255 MB. CPU C puncak 203 % (2 core jenuh), D 103 %.
+- **SQLite:** WAL 0 byte sebelum/sesudah (semua GET; file `-wal` hilang saat koneksi terakhir tutup). **0 `database is locked` / SQLITE_BUSY** di `storage/logs`. Satu-satunya error baru di log hari ini = 5× `tempnam()` dari percobaan `config:cache` instans uji (path absolut, lihat atas), bukan dari aplikasi.
+
+### SQL per halaman (in-process, salinan data asli & salinan ×150 = 10.200 arsip / 141.450 item)
+- Semua halaman 1–15 query, tanpa N+1 (duplikat yang terlihat = eager-load relasi berbeda dengan `IN (...)`). Waktu SQL data asli 0,3–1,5 ms per halaman; render PHP/Blade 20–60 ms (E-core lebih lama) → **CPU PHP adalah bottleneck, bukan SQLite**.
+- Data ×150: SQL dashboard 12–14 ms (count `strftime(retention_expiry_date)` SCAN 8,8 ms; `latest()` SCAN + temp B-tree 2–7 ms), katalog 6–12 ms (urutan default `CASE status='draft'` SCAN + sort 4–10 ms), poll 4,5 ms. **Retensi 264–721 ms dan HTML tab H-30 1,39 MB** → temuan P1.
+
+### TTFB + berat halaman pertama (instans C 2 E-core, cache, admin, median 5×)
+
+| Halaman | TTFB ms | HTML KB (gzip) | CSS/JS: file, KB (gzip) |
+|---|---|---|---|
+| `/` dashboard | 81 | 41,1 (6,4) | 11, 128 (43) |
+| `/archives` | 78 | 56,9 (11,0) | 12, 134 (45) |
+| `/archives/117` | 56 | 31,9 (7,2) | 13, 133 (45) |
+| `/borrowings` | 87 | 72,2 (10,0) | 12, 132 (45) |
+| `/destructions` | 56 | 27,6 (5,6) | 13, 133 (45) |
+
+Muat pertama ±50–56 KB terkompresi (aset `?v=` di-cache 1 tahun → kunjungan berikut hanya HTML 6–11 KB). Ringan untuk klien 4 GB; beban klien lebih ke rendering tabel, bukan jaringan.
+
+### Kesimpulan untuk server 2 core / 4 GB
+- **Nyaman: ±40–50 pengguna bersamaan** dengan aplikasi terbuka (2 E-core: 50 orang = ±13 request PHP/dtk ≈ 30 % kapasitas jenuh 45 req/s, halaman p95 ≤ 110–230 ms). CPU server asli (kelas AMD A9/Celeron) mungkin setara atau lebih lambat dari E-core ini → anggap 40 sebagai batas nyaman, ±80–100 batas atas sebelum antre terasa. 1 core: 30 orang masih jalan tetapi ekor poll 1–8 dtk.
+- RAM bukan masalah: 4 worker + Caddy ±130 MB private / ±255 MB working set.
+- Bottleneck: (1) CPU boot framework per request (poll 20 ms CPU hanya untuk JSON kecil), (2) poll 5 dtk per tab = beban dominan saat ramai, (3) halaman retensi memuat semua kandidat (P1), (4) antrean Caddy tidak adil saat jenuh (p99 ≫ p50).
+
+### Rekomendasi (belum dikerjakan)
+1. **Pastikan cache produksi aktif**: saat diukur, live :8000 jalan **tanpa** `bootstrap/cache/config.php` + `routes-v7.php` (file tidak ada saat diukur; kemungkinan terhapus oleh tes/`optimize:clear` sesudah START). Tanpa cache: poll 42 vs 21 ms, jenuh 32 vs 45 req/s (−30 %). Setelah `php artisan test`/`optimize:clear` di PC server, jalankan `php artisan optimize` atau START ulang.
+2. Poll notifikasi: interval 5 dtk → 15–30 dtk, atau jitter awal acak 0–5 dtk; paling hemat: Caddy menyajikan file `seq` statis (tanpa PHP) dan PHP hanya dipanggil bila seq berubah.
+3. P1 retensi: hitung hanya tab aktif, saring jatuh tempo di SQL (`COALESCE(retention_expiry_date, …)`), paginasi.
+4. Index kecil bila data tumbuh: `archives(created_at, id)` (dashboard `latest()`), `archive_extension_logs(archive_id, approval_status)` (lihat P2). Dampak sekarang < 10 ms pada 10 rb arsip.
+5. Worker 4 untuk 2 core tetap (Fase 1); jangan naikkan worker di 1–2 core (hanya menambah antrean CPU).
+6. **Ulangi di PC server asli** (`k6 run -e TARGET_URL=http://<ip>:8000 -e MODE=human -e LEVELS=10,30,50 -e HOLD=40 tests/k6/route_matrix.js`).
+- Beban tulis (submit arsip, verifikasi nomor box bersamaan) **tidak** diukur ulang di fase ini; acuan tetap Fase 1 mixed30 (15 % tulis, 0 locked) + tes konkurensi `sqlite-concurrency`.
