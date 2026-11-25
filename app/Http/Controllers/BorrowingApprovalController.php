@@ -23,7 +23,11 @@ class BorrowingApprovalController extends Controller
     {
         Gate::authorize('process', $borrowing);
         // Laravel 7 accepted the receipt scan as `scan_approval_borrow` (modal) or `approval_file`.
-        $request->validate(['scan_approval_borrow' => FileStorage::rules(), 'approval_file' => FileStorage::rules()]);
+        $request->validate([
+            'confirm_file_checked' => ['accepted'],
+            'scan_approval_borrow' => FileStorage::rules(),
+            'approval_file' => FileStorage::rules(),
+        ], ['confirm_file_checked.accepted' => 'Centang konfirmasi bahwa berkas form pengajuan sudah diperiksa sebelum mengeluarkan box.']);
         $receipt = $request->file('scan_approval_borrow') ?? $request->file('approval_file');
 
         return $this->run(fn () => $action->handle($this->user($request), $borrowing, $receipt));
@@ -32,7 +36,7 @@ class BorrowingApprovalController extends Controller
     public function reject(Request $request, BorrowingLog $borrowing, RejectBorrowing $action): RedirectResponse
     {
         Gate::authorize('process', $borrowing);
-        $reason = (string) $request->validate(['reason' => ['required', 'string', 'max:500']])['reason'];
+        $reason = (string) $request->validate(['reason' => ['required', 'string', 'max:500']], [], ['reason' => 'Alasan Penolakan'])['reason'];
 
         return $this->run(fn () => $action->handle($this->user($request), $borrowing, $reason));
     }

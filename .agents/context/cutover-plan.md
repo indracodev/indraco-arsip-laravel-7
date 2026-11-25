@@ -17,7 +17,7 @@ Dokumen ini adalah panduan pelaksanaan migrasi dari `indraco-arsip-laravel-7` ke
 1. Salin `database.sqlite` hasil backup ke `indraco-arsip-laravel-13\database\database.sqlite`.
 2. Salin isi folder upload L7:
    - `storage/app/public/*` → `indraco-arsip-laravel-13\storage\app\public\` (folder allow-list: `archive_scans`, `archive_scan_inputs`, `archive_files`, `archive_approvals`, `archive_extensions`, `borrowing_approvals`, `destruction_approvals`, `bap_certificates`).
-   - `public/storage/*` → `indraco-arsip-laravel-13\public\storage\` (disk `legacy_public` tetap terbaca otomatis oleh `FileStorage::locate()` sesuai temuan B11).
+   - `public/storage/*` (file lama yang tersimpan langsung di `public\storage` L7) → `indraco-arsip-laravel-13\storagepp\legacy-public\` (root disk `legacy_public`, dibaca otomatis oleh `FileStorage::locate()` sesuai temuan B11). **Jangan** taruh di `public\storage\` L13: folder itu tidak dibaca dan berada di jangkauan web.
 3. Pastikan file `.env` di `indraco-arsip-laravel-13` sudah siap:
    - `APP_ENV=production`
    - `APP_DEBUG=false`

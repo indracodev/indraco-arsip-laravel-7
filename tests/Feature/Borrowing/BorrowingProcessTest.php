@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Borrowing;
 
+use App\Services\ArchiveFormData;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -58,9 +59,9 @@ class BorrowingProcessTest extends TestCase
     {
         $box = $this->storedBox($this->hcs, 'HCS-01');
         $log = $this->requested([$box]);
-        $this->actingAs($this->gudang)->post("/borrowings/{$log}/dispatch")->assertSessionHas('success');
+        $this->actingAs($this->gudang)->post("/borrowings/{$log}/dispatch", ['confirm_file_checked' => 'on'])->assertSessionHas('success');
 
-        $this->actingAs($this->gudang)->post("/borrowings/{$log}/dispatch")
+        $this->actingAs($this->gudang)->post("/borrowings/{$log}/dispatch", ['confirm_file_checked' => 'on'])
             ->assertSessionHas('error', 'Pengajuan penarikan ini sudah diproses (status: Sudah Ditarik). Muat ulang halaman.');
         $this->actingAs($this->gudang)->post("/borrowings/{$log}/reject", ['reason' => 'x'])
             ->assertSessionHas('error', 'Pengajuan penarikan ini sudah diproses (status: Sudah Ditarik). Muat ulang halaman.');
@@ -69,8 +70,17 @@ class BorrowingProcessTest extends TestCase
         $other = $this->storedBox($this->hcs, 'HCS-02');
         $rejected = $this->requested([$other]);
         $this->actingAs($this->admin)->post("/borrowings/{$rejected}/reject", ['reason' => 'Form kurang'])->assertSessionHas('success');
-        $this->actingAs($this->admin)->post("/borrowings/{$rejected}/dispatch")->assertSessionHas('error');
+        $this->actingAs($this->admin)->post("/borrowings/{$rejected}/dispatch", ['confirm_file_checked' => 'on'])->assertSessionHas('error');
         $this->assertSame('in_warehouse', DB::table('archives')->where('id', $other)->value('status'));
+    }
+
+    public function test_dispatch_needs_the_file_check_confirmation(): void
+    {
+        $log = $this->requested([$this->storedBox($this->hcs, 'HCS-01')]);
+
+        $this->actingAs($this->gudang)->post("/borrowings/{$log}/dispatch")
+            ->assertSessionHasErrors(['confirm_file_checked' => 'Centang konfirmasi bahwa berkas form pengajuan sudah diperiksa sebelum mengeluarkan box.']);
+        $this->assertSame('requested', DB::table('borrowing_logs')->where('id', $log)->value('status'));
     }
 
     public function test_dispatch_is_refused_when_the_box_left_the_warehouse(): void
@@ -79,7 +89,7 @@ class BorrowingProcessTest extends TestCase
         $log = $this->requested([$box]);
         DB::table('archives')->where('id', $box)->update(['status' => 'pending_destruction']);
 
-        $this->actingAs($this->gudang)->post("/borrowings/{$log}/dispatch")->assertSessionHas('error');
+        $this->actingAs($this->gudang)->post("/borrowings/{$log}/dispatch", ['confirm_file_checked' => 'on'])->assertSessionHas('error');
         $this->assertSame('requested', DB::table('borrowing_logs')->where('id', $log)->value('status'));
     }
 
@@ -191,5 +201,20 @@ class BorrowingProcessTest extends TestCase
         $this->actingAs($this->picHcs)->get('/archives/create')->assertOk(); // consume flashed old input
         $this->actingAs($this->picHcs)->get("/archives/create?re_store=1&borrowing_ids[]={$log}")
             ->assertRedirect('/borrowings')->assertSessionHas('error');
+    }
+
+    public function test_re_store_prefill_keeps_item_periods_like_laravel_7(): void
+    {
+        $log = $this->requested([$this->storedBox($this->hcs, 'HCS-PERIOD')]);
+        $this->actingAs($this->gudang)->post("/borrowings/{$log}/dispatch", ['confirm_file_checked' => 'on']);
+        DB::table('borrowing_logs')->where('id', $log)->update(['snapshot_items' => json_encode([
+            ['number' => 1, 'name' => 'A', 'period' => '2026-07', 'notes' => 'x'],
+            ['number' => 2, 'name' => 'B', 'period' => '2026-03 s/d 2026-05', 'notes' => 'y'],
+            ['number' => 3, 'name' => 'C', 'period' => 'Jan 2026', 'notes' => 'z'],
+        ])]);
+
+        $items = app(ArchiveFormData::class)->reStoreBoxes($this->picHcs, [$log])['boxes'][0]['items'];
+        $this->assertSame([['2026-07', '2026-07'], ['2026-03', '2026-05'], ['2026-01', '2026-06']],
+            array_map(fn (array $it): array => [$it['period_start'], $it['period_end']], $items));
     }
 }

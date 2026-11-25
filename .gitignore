@@ -35,3 +35,4 @@ Thumbs.db
 /evironment/composer.phar
 /tests/k6/results
 /storage/caddy
+/graphify-out/

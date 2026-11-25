@@ -33,10 +33,10 @@ class DestructionProcessTest extends TestCase
         $this->assertSame('pending_destruction', DB::table('archives')->where('id', $box)->value('status'));
         $this->assertSame("Pengajuan pemusnahan berkas 'HCS-01' disetujui oleh {$this->gudang->name} dan dimasukkan ke Antrean Pemusnahan.", DB::table('activity_logs')->where('action', 'DESTRUCTION_APPROVE')->value('description'));
 
-        $this->actingAs($this->gudang)->post("/destructions/{$log}/complete", ['bap_number' => 'BAP/IND/2026/00001', 'destruction_date' => '2026-11-25', 'notes' => 'Disaksikan HRD', 'certificate_file' => $this->pdf('bap.pdf')])
+        $this->actingAs($this->gudang)->post("/destructions/{$log}/complete", ['bap_number' => 'BAP/IND/2026/00001', 'destruction_date' => '2026-11-24', 'notes' => 'Disaksikan HRD', 'certificate_file' => $this->pdf('bap.pdf')])
             ->assertSessionHas('success', 'Pemusnahan berkas (HCS-01) telah selesai dieksekusi dengan No. BAP BAP/IND/2026/00001. Slot rak telah dikosongkan dan BAP siap dicetak.');
         $row = DB::table('destruction_logs')->find($log);
-        $this->assertSame(['completed', 'BAP/IND/2026/00001', '2026-11-25 00:00:00', 'Disaksikan HRD'], [$row->approval_status, $row->bap_number, $row->destruction_date, $row->notes]);
+        $this->assertSame(['completed', 'BAP/IND/2026/00001', '2026-11-24 00:00:00', 'Disaksikan HRD'], [$row->approval_status, $row->bap_number, $row->destruction_date, $row->notes]);
         Storage::disk('local')->assertExists($row->certificate_file);
         $archive = DB::table('archives')->find($box);
         $this->assertSame(['destroyed', null, null], [$archive->status, $archive->warehouse_location_id, $archive->warehouse_rack_slot_id]);
@@ -50,13 +50,13 @@ class DestructionProcessTest extends TestCase
     {
         $box = $this->expiringBox($this->hcs, 'HCS-01');
         $log = $this->proposed([$box]);
-        $this->actingAs($this->admin)->post("/destructions/{$log}/complete", ['bap_number' => 'B1', 'destruction_date' => '2026-11-25'])
+        $this->actingAs($this->admin)->post("/destructions/{$log}/complete", ['bap_number' => 'B1', 'destruction_date' => '2026-11-24'])
             ->assertSessionHas('error', 'Pengajuan pemusnahan ini sudah diproses (status: Pengajuan Pemusnahan). Muat ulang halaman.');
         $this->actingAs($this->admin)->post("/destructions/{$log}/upload-bap", ['certificate_file' => $this->pdf()])->assertSessionHas('error');
         $this->actingAs($this->admin)->post("/destructions/{$log}/approve")->assertSessionHas('success');
         $this->actingAs($this->admin)->post("/destructions/{$log}/approve")
             ->assertSessionHas('error', 'Pengajuan pemusnahan ini sudah diproses (status: Antrean Pemusnahan). Muat ulang halaman.');
-        $this->actingAs($this->admin)->post("/destructions/{$log}/complete", ['bap_number' => 'B1', 'destruction_date' => '2026-11-25'])->assertSessionHas('success');
+        $this->actingAs($this->admin)->post("/destructions/{$log}/complete", ['bap_number' => 'B1', 'destruction_date' => '2026-11-24'])->assertSessionHas('success');
         $this->actingAs($this->admin)->post("/destructions/{$log}/reject", ['rejection_note' => 'x'])
             ->assertSessionHas('error', 'Pengajuan pemusnahan ini sudah diproses (status: Telah Dimusnahkan). Muat ulang halaman.');
         $this->assertSame('destroyed', DB::table('archives')->where('id', $box)->value('status'));
@@ -85,8 +85,10 @@ class DestructionProcessTest extends TestCase
         $this->actingAs($this->admin)->post("/destructions/{$log}/approve");
         $this->actingAs($this->admin)->post("/destructions/{$log}/complete", ['bap_number' => '', 'destruction_date' => '', 'certificate_file' => $this->pdf('big.pdf', 501)])
             ->assertSessionHasErrors(['bap_number' => 'Nomor BAP resmi wajib diisi oleh Gudang.', 'destruction_date' => 'Tanggal pelaksanaan fisik pemusnahan wajib diisi.', 'certificate_file' => 'Ukuran berkas sertifikat BAP maksimal 500 KB.']);
-        $this->actingAs($this->admin)->post("/destructions/{$log}/complete", ['bap_number' => 'B1', 'destruction_date' => '2026-11-25', 'certificate_file' => $this->upload('bap.php', '<?php echo 1;', 'application/x-php')])
+        $this->actingAs($this->admin)->post("/destructions/{$log}/complete", ['bap_number' => 'B1', 'destruction_date' => '2026-11-24', 'certificate_file' => $this->upload('bap.php', '<?php echo 1;', 'application/x-php')])
             ->assertSessionHasErrors('certificate_file');
+        $this->actingAs($this->admin)->post("/destructions/{$log}/complete", ['bap_number' => 'B1', 'destruction_date' => now()->addDay()->toDateString()])
+            ->assertSessionHasErrors(['destruction_date' => 'Tanggal pelaksanaan pemusnahan tidak boleh melewati hari ini.']);
         $this->assertSame('approved', DB::table('destruction_logs')->where('id', $log)->value('approval_status'));
     }
 
@@ -94,7 +96,7 @@ class DestructionProcessTest extends TestCase
     {
         $log = $this->proposed([$this->expiringBox($this->hcs, 'HCS-01')]);
         $this->actingAs($this->admin)->post("/destructions/{$log}/approve");
-        $this->actingAs($this->admin)->post("/destructions/{$log}/complete", ['bap_number' => 'BAP/1', 'destruction_date' => '2026-11-25']);
+        $this->actingAs($this->admin)->post("/destructions/{$log}/complete", ['bap_number' => 'BAP/1', 'destruction_date' => '2026-11-24']);
         $this->actingAs($this->gudang)->post("/destructions/{$log}/upload-bap", [])->assertSessionHasErrors(['certificate_file' => 'Wajib memilih file sertifikat BAP resmi.']);
         $this->actingAs($this->gudang)->post("/destructions/{$log}/upload-bap", ['certificate_file' => $this->pdf('bap.pdf')])
             ->assertSessionHas('success', 'Berkas sertifikat BAP resmi (No: BAP/1) berhasil diunggah. Departemen kini dapat mengunduh dan mencetak dokumen BAP.');
@@ -106,7 +108,7 @@ class DestructionProcessTest extends TestCase
     {
         $log = $this->proposed([$this->expiringBox($this->hcs, 'HCS-01')]);
         foreach (['approve', 'reject', 'complete', 'upload-bap'] as $action) {
-            $this->actingAs($this->picHcs)->post("/destructions/{$log}/{$action}", ['rejection_note' => 'x', 'bap_number' => 'B', 'destruction_date' => '2026-11-25'])->assertForbidden();
+            $this->actingAs($this->picHcs)->post("/destructions/{$log}/{$action}", ['rejection_note' => 'x', 'bap_number' => 'B', 'destruction_date' => '2026-11-24'])->assertForbidden();
         }
         $this->assertSame('pending', DB::table('destruction_logs')->where('id', $log)->value('approval_status'));
     }

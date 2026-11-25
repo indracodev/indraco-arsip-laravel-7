@@ -46,12 +46,13 @@ class DestructionApprovalController extends Controller
         /** @var array{bap_number: string, destruction_date: string, notes?: string|null} $data */
         $data = $request->validate([
             'bap_number' => ['required', 'string', 'max:100'],
-            'destruction_date' => ['required', 'date'],
+            'destruction_date' => ['required', 'date', 'before_or_equal:today'],
             'certificate_file' => FileStorage::rules(),
             'notes' => ['nullable', 'string', 'max:1000'],
         ], [
             'bap_number.required' => 'Nomor BAP resmi wajib diisi oleh Gudang.',
             'destruction_date.required' => 'Tanggal pelaksanaan fisik pemusnahan wajib diisi.',
+            'destruction_date.before_or_equal' => 'Tanggal pelaksanaan pemusnahan tidak boleh melewati hari ini.',
             'certificate_file.max' => 'Ukuran berkas sertifikat BAP maksimal 500 KB.',
         ]);
         $file = $request->file('certificate_file');

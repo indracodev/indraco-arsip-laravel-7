@@ -150,12 +150,14 @@ class SubmissionTest extends TestCase
 
         $box = ['title' => '', 'physical_condition' => '', 'periode' => '1 Bulan', 'items' => [['document_name' => '', 'period_start' => '', 'period_end' => '', 'notes' => '']]];
         $this->actingAs($this->picHcs)->post('/archives', $this->submission(['boxes' => [$box]]))
-            ->assertSessionHasErrors(['boxes.0.title', 'boxes.0.physical_condition', 'boxes.0.items.0.document_name', 'boxes.0.items.0.period_start', 'boxes.0.items.0.period_end', 'boxes.0.items.0.notes'])
+            ->assertSessionHasErrors(['boxes.0.physical_condition', 'boxes.0.items.0.document_name', 'boxes.0.items.0.period_start', 'boxes.0.items.0.period_end',
+                'boxes.0.title' => 'Nama / Judul Box wajib diisi.', 'boxes.0.items.0.notes' => 'Keterangan Berkas wajib diisi.'])
             ->assertSessionDoesntHaveErrors(['boxes.0.sub_department_id', 'boxes.0.document_type', 'company_name', 'file']);
 
         $this->actingAs($this->picHcs)->post('/archives', $this->submission(['scan_input_form' => null]))
             ->assertSessionHasErrors(['scan_input_form' => 'Scan Formulir Input wajib diunggah sebelum mengajukan verifikasi box arsip.']);
-        $this->actingAs($this->picHcs)->post('/archives', $this->submission(['tgl_penyerahan' => '2026-11-25']))->assertSessionHasErrors('tgl_penyerahan');
+        $this->actingAs($this->picHcs)->post('/archives', $this->submission(['tgl_penyerahan' => '2026-11-25']))
+            ->assertSessionHasErrors(['tgl_penyerahan' => 'Tgl. Serah Terima harus berisi tanggal sebelum atau sama dengan hari ini.']);
         $this->assertSame(0, DB::table('archives')->count());
     }
 

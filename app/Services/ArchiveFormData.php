@@ -144,13 +144,21 @@ final class ArchiveFormData
         $boxes = $logs->filter(fn (BorrowingLog $log): bool => (int) $log->archive->department_id === $deptId)
             ->map(function (BorrowingLog $log): array {
                 $archive = $log->archive;
+                // Laravel 7: the item's own period (Y-m), else the box period, else this month.
+                // A range text "2026-07 s/d 2026-09" keeps its end (Laravel 7 took the start twice).
+                $start = $archive->period_start_date?->format('Y-m') ?? now()->format('Y-m');
+                $end = $archive->period_end_date?->format('Y-m') ?? now()->format('Y-m');
                 $items = is_array($log->snapshot_items) && $log->snapshot_items !== []
-                    ? array_map(fn (array $it): array => [
-                        'document_name' => (string) ($it['name'] ?? $it['document_name'] ?? ''),
-                        'period_start' => '',
-                        'period_end' => '',
-                        'notes' => (string) ($it['notes'] ?? ''),
-                    ], $log->snapshot_items)
+                    ? array_map(function (array $it) use ($start, $end): array {
+                        $months = preg_match_all('/\d{4}-\d{2}/', (string) ($it['period'] ?? ''), $m) ? $m[0] : [$start, $end];
+
+                        return [
+                            'document_name' => (string) ($it['name'] ?? $it['document_name'] ?? ''),
+                            'period_start' => $months[0],
+                            'period_end' => $months[count($months) - 1],
+                            'notes' => (string) ($it['notes'] ?? ''),
+                        ];
+                    }, $log->snapshot_items)
                     : $archive->items->map->only(['document_name', 'period_start', 'period_end', 'notes'])->all();
 
                 return [

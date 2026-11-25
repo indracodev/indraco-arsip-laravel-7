@@ -100,3 +100,17 @@ Ditutup: #5 (semua: archives.show, bap, extend_print, api/departments/*, api/sub
 | R43 | R | Katalog yang terbuka tidak memuat ulang saat notifikasi masuk | diperbaiki (P): `[data-realtime-reload]` di katalog mendengarkan `dms:realtime-sync` |
 | R44 | R | Tombol "Proses Pemusnahan" tampil untuk gudang tapi 403 (sama L7) | diperbaiki (P): tampil hanya untuk admin (`$user->isAdmin()`) |
 
+## E2E skenario PIC+Gudang (2026-11-25)
+
+| # | R | Temuan | Status |
+|---|---|---|---|
+| R45 | R | Prefill "Ajukan Penyimpanan Kembali" mengosongkan periode berkas (regresi vs L7) | diperbaiki: `ArchiveFormData::reStoreBoxes` ambil `Y-m` dari `period` snapshot (rentang "A s/d B" → awal/akhir), fallback periode box lalu bulan ini (L7) |
+| R46 | R | Pesan validasi menampilkan kunci mentah (`boxes.0.title`, `purpose`, `today`, ...) | diperbaiki: `attributes` (termasuk wildcard `boxes.*...`) + `values` `today` → "hari ini" di `lang/id/validation.php`; `reason` penarikan = "Alasan Penolakan" di controller |
+| R47 | S | `POST /borrowings/{id}/dispatch` lolos tanpa centang `confirm_file_checked` (hanya `required` HTML, sama L7) | diperbaiki: validasi server `accepted` + pesan Indonesia di `BorrowingApprovalController@dispatch` |
+| R48 | S | Penyelesaian pemusnahan menerima tanggal masa depan (sama L7) | diperbaiki: `before_or_equal:today` di `DestructionApprovalController@complete`; pengajuan tetap boleh dijadwalkan ke depan |
+| R49 | R | `method` pemusnahan menerima teks bebas (UI select, server `string\|max:100`, output di-escape) | dicatat, sama L7 |
+| Q1 | - | Nomor BAP yang sama diterima untuk log/departemen berbeda (mungkin sengaja: satu BAP untuk beberapa box) | ditanyakan ke pemilik |
+| Q2 | - | Pemusnahan bisa diajukan untuk box `in_warehouse` mana pun sebelum masa retensi habis (sama L7) | ditanyakan ke pemilik |
+| U1 | R | Sesi diakhiri di tab lain → submit berikutnya mendarat di login tanpa pesan "sesi berakhir" | dicatat (UX rendah), tidak diperbaiki |
+| U2 | R | Approve + reject bersamaan: satu respons tanpa flash message (data tetap benar) | dicatat (UX rendah), tidak diperbaiki |
+
