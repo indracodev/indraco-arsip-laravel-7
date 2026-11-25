@@ -9,7 +9,7 @@
 - [x] Fase 4/5 modul: ARSIP (pengajuan, detail, file aman, cetak), PENARIKAN, RETENSI, GUDANG, MASTER & USER, DENAH 2D, SISTEM & notifikasi, IMPOR, OPS — dibangun paralel, diverifikasi koordinator (276 tes, uji browser admin, notifikasi lintas akun, matriks akses), di-commit 2026-11-24
 - [x] Perapian (P): R32, R33, R41–R44, tombol gudang di katalog, impor admin langsung ke gudang, simpan kembali (re-store) penarikan + guard B12, pencarian cepat bar atas — selesai (278 tes lulus, uji browser admin & PIC via Playwright MCP)
 - [x] Fase 6: verifikasi menyeluruh (security, performance, parity) — selesai (278 tes PHPUnit lulus, PHPStan 0 error, k6 rute nyata 680/680 checks 0% error, uji browser 3 role & 360/768/1366px 0 overflow & 0 console error)
-- [ ] Fase 7: cutover
+- [x] Fase 7: rencana cutover (`context/cutover-plan.md`) siap (menunggu jadwal eksekusi pemilik)
 
 ## Catatan
 - 2026-11-24: subagent Fase 1 tidak sengaja menghapus `.agents/` dan `template-import-master/` (loop `rm` dari output `ls`). File ter-commit dipulihkan dari git, aturan baru ditulis ulang. Aturan pencegahan ditambahkan di `rules/10-safety.md`.
@@ -19,4 +19,4 @@
 - Cek versi WebView2 dan versi browser (Chrome/Edge/Firefox) yang dipakai di PC klien sebelum Fase 3.
 
 ## Langkah berikutnya
-1. Fase 7 (K): rencana cutover (backup, pemindahan file DB & uploads L7, pembersihan data uji, verifikasi pasca-cutover).
+1. Eksekusi cutover sesuai [cutover-plan.md](cutover-plan.md) saat pemilik siap memindahkan server dari L7 ke L13.
