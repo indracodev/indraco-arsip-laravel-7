@@ -141,7 +141,7 @@ class SystemEventStream
     {
         return DB::table('system_events')
             ->where('id', '>', $afterId)
-            ->when($user->role === User::ROLE_PIC_DEPT, fn ($query) => $query->where('department_id', $user->department_id))
+            ->when($user->role === User::ROLE_PIC_DEPT, fn ($query) => $query->where('department_id', $user->department_id ?? 0)) // S1: never whereNull
             ->orderBy('id')
             ->limit($limit)
             ->get(['id', 'event_type', 'entity_id', 'department_id', 'payload', 'created_at'])

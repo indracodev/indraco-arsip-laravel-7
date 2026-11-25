@@ -85,7 +85,9 @@ class Archive extends Model
 
     /**
      * Archives a user may see in lists (IDOR rule): PIC Departemen only their own department;
-     * admin and PIC Gudang everything (Laravel 7 ArchiveController@index).
+     * admin and PIC Gudang everything (Laravel 7 ArchiveController@index). A PIC without a
+     * department (PIC released / department deleted) sees nothing: `where(col, null)` would
+     * become `whereNull` (finding S1).
      *
      * @param  Builder<Archive>  $query
      */
@@ -93,7 +95,7 @@ class Archive extends Model
     protected function visibleTo(Builder $query, User $user): void
     {
         if ($user->role === User::ROLE_PIC_DEPT) {
-            $query->where('department_id', $user->department_id);
+            $query->where('department_id', $user->department_id ?? 0);
         }
     }
 
