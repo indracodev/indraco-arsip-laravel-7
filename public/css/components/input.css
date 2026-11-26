@@ -26,3 +26,6 @@
     color: var(--color-text-muted);
     font-size: var(--text-sm);
 }
+button.input-group__addon:hover { background: var(--color-hover); color: var(--color-text); }
+.password-toggle__hide, .password-toggle.is-shown .password-toggle__show { display: none; }
+.password-toggle.is-shown .password-toggle__hide { display: block; }

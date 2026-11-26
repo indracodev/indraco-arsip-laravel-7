@@ -45,6 +45,35 @@ class DisplaySettingsTest extends TestCase
         $this->assertStringContainsString("localStorage.getItem('theme')", $prefs);
         $this->assertStringContainsString('e.altKey', $prefs);
         $this->assertStringContainsString("'dms-theme'", $prefs);
+        $this->assertStringContainsString('data-img-src-dark', $prefs);
+    }
+
+    public function test_login_page_has_theme_toggle_adaptive_logo_and_background_image(): void
+    {
+        $loginHtml = $this->get('/login')->assertOk()->getContent();
+
+        $this->assertStringContainsString('data-theme-toggle="data-theme-toggle"', $loginHtml);
+        $this->assertStringContainsString('guest__theme-toggle', $loginHtml);
+        $this->assertMatchesRegularExpression('/data-img-src-light="[^"]*images\/logo-indraco\.png\?v=[0-9a-f]{10}"/', $loginHtml);
+        $this->assertMatchesRegularExpression('/data-img-src-dark="[^"]*images\/logo-indraco-invert\.png\?v=[0-9a-f]{10}"/', $loginHtml);
+        $this->assertMatchesRegularExpression('/--guest-bg-image:\s*url\(\'[^\']*images\/indraco-bg\.jpg\?v=[0-9a-f]{10}\'\)/', $loginHtml);
+        $this->assertMatchesRegularExpression('/<section class="card">.*guest__brand--card.*data-img-src-light.*<\/section>/s', $loginHtml);
+        $this->assertMatchesRegularExpression('/<\/section>\s*<footer class="guest__footer">Developed by Tim WEBDEV\. Copyright &copy; 2026 INDRACO\. All rights reserved<\/footer>/s', $loginHtml);
+
+        $appHtml = $this->actingAs(User::factory()->create(['role' => 'admin']))->get('/')->assertOk()->getContent();
+        $this->assertMatchesRegularExpression('/data-img-src-light="[^"]*images\/logo-indraco\.png\?v=[0-9a-f]{10}"/', $appHtml);
+        $this->assertMatchesRegularExpression('/data-img-src-dark="[^"]*images\/logo-indraco-invert\.png\?v=[0-9a-f]{10}"/', $appHtml);
+    }
+
+    public function test_desktop_canvas_minimum_is_1024x720(): void
+    {
+        $tokens = (string) file_get_contents(public_path('css/tokens.css'));
+        $layout = (string) file_get_contents(public_path('css/layout.css'));
+
+        $this->assertStringContainsString('--canvas-min-w: 1024px;', $tokens);
+        $this->assertStringContainsString('--canvas-min-h: 720px;', $tokens);
+        $this->assertStringContainsString('min-width: var(--canvas-min-w);', $layout);
+        $this->assertStringContainsString('min-height: max(100vh, var(--canvas-min-h));', $layout);
     }
 
     public function test_theme_tokens_cover_dark_mode_and_print_stays_light(): void

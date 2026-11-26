@@ -175,10 +175,15 @@ class LayoutTest extends TestCase
     {
         $this->get('/login')->assertOk()
             ->assertSee('NAMA PENGGUNA / EMAIL')->assertSee('KATA SANDI / PASSWORD')
+            ->assertSee('data-toggle-password="password"', false)
+            ->assertSee('password-toggle__show', false)->assertSee('password-toggle__hide', false)
             ->assertSee('css/components.css?v=', false)->assertSee('id="confirm-modal"', false);
 
         $this->actingAs($this->user('pic_dept', 'HCS'))->get('/profile/password')->assertOk()
-            ->assertSee('PASSWORD SAAT INI')->assertSee('PASSWORD BARU')->assertSee('(Min. 6 Karakter)')->assertSee('ULANGI PASSWORD BARU');
+            ->assertSee('PASSWORD SAAT INI')->assertSee('PASSWORD BARU')->assertSee('(Min. 6 Karakter)')->assertSee('ULANGI PASSWORD BARU')
+            ->assertSee('data-toggle-password="current_password"', false)
+            ->assertSee('data-toggle-password="password"', false)
+            ->assertSee('data-toggle-password="password_confirmation"', false);
     }
 
     public function test_no_view_uses_vite(): void

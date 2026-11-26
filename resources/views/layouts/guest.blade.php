@@ -9,12 +9,18 @@
     @include('layouts.partials.head-assets')
 </head>
 <body>
-<main class="guest">
+<main class="guest" style="--guest-bg-image: url('{{ \App\Support\Asset::url('images/indraco-bg.jpg') }}')">
+    <div class="guest__toolbar">
+        <x-theme-toggle class="guest__theme-toggle" />
+    </div>
     <div class="guest__box">
-        <div class="guest__brand">
-            <img class="guest__logo" src="{{ asset(\App\Support\AppSettings::get('app_logo')) }}" alt="Logo {{ $appName }}" width="161" height="32">
-        </div>
+        @section('guest-brand')
+            <div class="guest__brand">
+                <x-brand-logo class="guest__logo" width="161" height="32" />
+            </div>
+        @show
         @yield('content')
+        <footer class="guest__footer">Developed by Tim WEBDEV. Copyright &copy; 2026 INDRACO. All rights reserved</footer>
     </div>
 </main>
 <x-toast />

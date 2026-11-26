@@ -25,7 +25,7 @@
     <header class="topbar">
         <x-button variant="ghost" class="btn--icon topbar__menu" @click="toggleDrawer()" aria-label="Menu" aria-controls="main-nav" ::aria-expanded="drawer"><x-icon name="menu" /></x-button>
         <a href="{{ route('dashboard') }}" class="topbar__brand" title="{{ $appName }}">
-            <img class="topbar__logo" src="{{ asset(\App\Support\AppSettings::get('app_logo')) }}" alt="Logo {{ $appName }}" width="121" height="24">
+            <x-brand-logo class="topbar__logo" width="121" height="24" />
             <span class="topbar__name">{{ $appName }}</span>
         </a>
         @if ($user->role === \App\Models\User::ROLE_PIC_DEPT)
@@ -50,8 +50,7 @@
         </span>
         <div class="topbar__actions">
             @include('layouts.partials.notifications')
-            {{-- One-click light/dark (also Alt+T, like Laravel 7); label/title set by public/js/prefs.js. --}}
-            <x-button variant="ghost" class="btn--icon theme-toggle" data-theme-toggle aria-label="Ganti ke mode gelap (Alt+T)" title="Ganti ke mode gelap (Alt+T)"><x-icon name="moon" class="theme-toggle__moon" /><x-icon name="sun" class="theme-toggle__sun" /></x-button>
+            <x-theme-toggle />
             <x-button variant="ghost" class="btn--icon" data-modal-open="settings-modal" title="Pengaturan Tampilan" aria-label="Pengaturan Tampilan"><x-icon name="settings" /></x-button>
             <x-link-button :href="route('profile.password')" variant="ghost" class="btn--icon" title="Ganti Password Saya" aria-label="Ganti Password Saya"><x-icon name="key" /></x-link-button>
             <form method="POST" action="{{ route('logout') }}">

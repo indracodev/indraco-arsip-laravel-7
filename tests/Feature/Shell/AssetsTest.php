@@ -80,7 +80,7 @@ class AssetsTest extends TestCase
             $this->assertDoesNotMatchRegularExpression('/@media[^{]*width/', $css, "{$path}: use the .bp-* classes instead of a width media query");
             preg_match_all('/([a-z-]+)\s*:\s*([^;{}]*\d+(?:\.\d+)?px[^;{}]*)/', $css, $declarations, PREG_SET_ORDER);
             foreach ($declarations as [$declaration, $property, $value]) {
-                if ($declaration === 'font-size: 14px' || preg_match('/^(border|outline|box-shadow|--radius|--shadow)/', $property)) {
+                if ($declaration === 'font-size: 14px' || preg_match('/^(border|outline|box-shadow|--radius|--shadow|--canvas-min-)/', $property)) {
                     continue;
                 }
                 preg_match_all('/(\d+(?:\.\d+)?)px/', $value, $px);

@@ -12,7 +12,7 @@
         @csrf
         <x-card title="1. Kustomisasi Logo Aplikasi (Header & Laporan)">
             <div class="cluster">
-                <img class="settings-logo" src="{{ asset($logo) }}" alt="Logo aktif" height="48">
+                <x-brand-logo :src="$logo" class="settings-logo" alt="Logo aktif" height="48" />
                 <span class="badge">Logo Aktif</span>
             </div>
             <x-field label="Pilih File Gambar Logo Baru" for="logo" error="logo" hint="Format: PNG, JPG (Maks. 2MB). Rekomendasi background transparan.">

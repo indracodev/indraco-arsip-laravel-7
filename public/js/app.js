@@ -50,12 +50,19 @@
         target.click();
     });
 
-    /* Show / hide a password field (Laravel 7 login had the same toggle). */
+    /* Show / hide a password field (login, change password). */
     document.addEventListener('click', function (e) {
         var toggle = e.target.closest('[data-toggle-password]');
         if (!toggle) { return; }
         var input = document.getElementById(toggle.getAttribute('data-toggle-password'));
-        if (input) { input.type = input.type === 'password' ? 'text' : 'password'; }
+        if (!input) { return; }
+        var shown = input.type === 'password';
+        input.type = shown ? 'text' : 'password';
+        toggle.classList.toggle('is-shown', shown);
+        toggle.setAttribute('aria-pressed', shown ? 'true' : 'false');
+        var label = shown ? 'Sembunyikan password' : 'Lihat password';
+        toggle.setAttribute('title', label);
+        toggle.setAttribute('aria-label', label);
     });
 
     document.addEventListener('DOMContentLoaded', function () {

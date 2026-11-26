@@ -1,6 +1,5 @@
-/* Archive detail page (archives/show): two columns from 1024px (rem), data grid, files, timeline, file viewer. */
-.detail-grid { display: grid; gap: var(--space-4); align-items: start; }
-.bp-lg .detail-grid { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+/* Archive detail page (archives/show): two-column desktop grid, data grid, files, timeline, file viewer. */
+.detail-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: var(--space-4); align-items: start; }
 .detail-grid > .stack { min-width: 0; }
 .notice__body { flex: 1; min-width: 0; }
 .notice .btn { flex: none; }

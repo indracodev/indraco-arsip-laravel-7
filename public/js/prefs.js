@@ -40,8 +40,9 @@
             var dark = prefs.theme === 'dark' || (prefs.theme === 'system' && !!system && system.matches);
             root.setAttribute('data-theme', dark ? 'dark' : 'light');
             prefs.label();
+            prefs.syncImages();
         },
-        /* Top bar button / Alt+T: the opposite of what is shown now, stored immediately. */
+        /* Top bar / login button / Alt+T: the opposite of what is shown now, stored immediately. */
         toggleTheme: function () {
             var choice = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
             prefs.setTheme(choice);
@@ -55,12 +56,18 @@
                 button.setAttribute('title', text);
             });
         },
-        fit: function () {
-            var width = window.innerWidth * 14 / prefs.font;
-            [['sm', 320], ['md', 768], ['lg', 1024]].forEach(function (bp) {
-                root.classList.toggle('bp-' + bp[0], width >= bp[1]);
-                root.classList.toggle('bp-lt-' + bp[0], width < bp[1]);
+        /* Swap theme-aware images (<img data-img-src-light="..." data-img-src-dark="...">). */
+        syncImages: function () {
+            var attr = root.getAttribute('data-theme') === 'dark' ? 'data-img-src-dark' : 'data-img-src-light';
+            document.querySelectorAll('img[data-img-src-light][data-img-src-dark]').forEach(function (img) {
+                var next = img.getAttribute(attr);
+                if (next && img.getAttribute('src') !== next) { img.setAttribute('src', next); }
             });
+        },
+        /* Desktop-first canvas (min 1024x720, owner decision): keep desktop layout active. */
+        fit: function () {
+            root.classList.add('bp-sm', 'bp-md', 'bp-lg');
+            root.classList.remove('bp-lt-sm', 'bp-lt-md', 'bp-lt-lg');
         }
     };
 
@@ -68,8 +75,10 @@
     prefs.setFont(stored.font);
     prefs.fit();
     prefs.setTheme(stored.theme || 'light'); /* nothing stored = light (owner decision), not the OS theme */
-    window.addEventListener('resize', prefs.fit);
-    document.addEventListener('DOMContentLoaded', prefs.label);
+    document.addEventListener('DOMContentLoaded', function () {
+        prefs.label();
+        prefs.syncImages();
+    });
     document.addEventListener('click', function (e) {
         if (e.target.closest('[data-theme-toggle]')) { prefs.toggleTheme(); }
     });
