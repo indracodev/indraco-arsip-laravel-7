@@ -151,3 +151,39 @@ Catatan: 40 dtk termasuk jeda awal acak, jadi poll 15 dtk tunak = 50/15 ≈ 3,3 
 - Bacaan: 5 VU tulis tanpa jeda (≈ 25–50 orang yang benar-benar menulis) p95 ≤ 200 ms. 20 VU tanpa jeda menjenuhkan 2 core: p50 tetap < 200 ms, ekor p95 1–3 dtk = antre CPU (bukan kunci SQLite; tidak ada error/timeout). Tulis tidak lebih berat dari baca: CPU render halaman tetap bottleneck.
 
 **Restore (bukti):** `dms:restore-snapshot --port=8100` saat instans masih jalan → ditolak (`port 8100 masih dipakai`, exit 1). Sesudah STOP: selesai 2 dtk, 1.278 file upload uji dipindah ke `storage/app/snapshots-sebelum-restore/<waktu>/removed-files`, 142 sesi uji dihapus, jumlah baris **semua** tabel = manifest (archives 69, archive_items 946, borrowing_logs 7, destruction_logs 3, archive_extension_logs 1, activity_logs 593), counter penomoran kembali 14, slot terisi 18, `dms:loadtest-verify` → `Arsip LOADTEST-%: 0`, 16 file upload asli tetap. SHA-256 file database dicek sama dengan snapshot sebelum dibuka pertama kali (sesudah dibuka Laravel, header berubah ke mode WAL → hash file berubah, isi sama).
+
+## PC server asli (2026-11-26)
+
+**Kondisi:** PC server `192.168.2.180:8000` (Windows, 2 core), L13 salinan folder laptop (database uji laptop), cache produksi dibuat ulang oleh launcher (folder dipindah → `ca056ef`). k6 dari laptop lewat LAN. Belum diterima: CSV CPU/RAM server, `storage\logs`, layar VERIFIKASI/RESTORE.
+
+**Baca closed loop** (`LEVELS=1,10,30 HOLD=25`, p50 / p95 ms):
+
+| Rute | 1 VU | 10 VU | 30 VU |
+|---|---|---|---|
+| archives | 63 / 66 | 145 / 267 | 181 / 1.652 |
+| archives_filter | 53 / 56 | 165 / 273 | 180 / 1.707 |
+| destr_h30 | 39 / 42 | 103 / 192 | 118 / 1.408 |
+| dashboard_admin | — | 107 / 228 | 140 / 2.093 |
+| poll | 23 / 24 | 62 / 143 | 71 / 1.004 |
+| ping | 3 / 4 | 18 / 49 | 20 / 51 |
+| **req/s total** | **25,2** (laptop 15,4) | **93,8** (laptop 36,0) | **103,6** (jenuh) |
+
+0 % error semua rute. Jenuh ±100 req/s di 30 VU tanpa jeda: p50 tetap < 200 ms, p95 1–2 dtk = antre CPU.
+
+**Baca `MODE=human`** (`LEVELS=10,30,50 HOLD=40`): 50 orang → p95 semua rute ≤ 315 ms (poll 315, tab H-30 173, dashboard_gudang 307, lainnya < 180), 16,2 req/s total, 0 error. Laptop P1+P3: poll p95 68, H-30 206.
+
+**Tulis** (`write_flow.js`, `LEVELS=5,10,20 HOLD=45`, RUN_ID `rmwwyp2v2`, p50 / p95 ms):
+
+| Langkah | 5 VU | 10 VU | 20 VU |
+|---|---|---|---|
+| ajukan 2 box + PDF | 82 / 710 | 150 / 262 | 263 / 1.281 |
+| verifikasi + nomor box | 49 / 74 | 98 / 234 | 148 / 924 |
+| check-in rak | 55 / 82 | 112 / 286 | 143 / 1.133 |
+| ajukan penarikan | 79 / 117 | 135 / 300 | 325 / 1.026 |
+| ajukan / ACC perpanjangan | 85 / 145 · 51 / 114 | 144 / 238 · 101 / 278 | 202 / 1.197 · 114 / 1.116 |
+| usul / setujui / eksekusi BAP | 82 / 197 · 48 / 92 · 78 / 120 | 142 / 303 · 117 / 247 · 118 / 311 | 143 / 793 · 87 / 399 · 140 / 834 |
+
+- Total: 6.342 request, 835 baris dibuat (box + log), **sukses 100 % semua langkah, 0 HTTP 5xx, 0 HTTP 419, 0 cek gagal**. Max terburuk 3,4 dtk (submit 20 VU).
+- `submit` 5 VU p95 710 ms sementara langkah lain < 200: dugaan pemanasan awal (OPcache/upload pertama); 10 VU hanya 262. Konfirmasi dari log server.
+- Bacaan: server ±1,6–2,6× laptop uji (2 E-core). Pemakaian nyata (50 orang dengan jeda) nyaman; batas ±100 req/s PHP.
+- Sisa: VERIFIKASI `rmwwyp2v2` (nomor box unik tanpa lompatan), RESTORE, CSV sumber daya.
