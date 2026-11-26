@@ -35,7 +35,7 @@
     <template x-for="(arc, idx) in selected" :key="arc.id">
         <div class="file-card">
             <div class="cluster">
-                <x-button size="sm" variant="ghost" @click="openIndex = openIndex === idx ? null : idx" ::aria-expanded="openIndex === idx">
+                <x-button size="sm" @click="openIndex = openIndex === idx ? null : idx" ::aria-expanded="openIndex === idx">
                     <span class="badge" x-text="idx + 1"></span>
                     <strong x-text="arc.title"></strong>
                 </x-button>
@@ -44,7 +44,7 @@
                 <span class="text-sm text-muted" x-text="arc.location"></span>
                 <span class="text-sm text-muted" x-text="{{ $isExtension ? "'Expiry: ' + arc.expiry" : 'arc.period' }}"></span>
             </div>
-            <x-button size="sm" variant="ghost" class="tone--danger" @click="remove(idx)" :title="'Hapus box ini dari daftar '.($isExtension ? 'perpanjangan' : 'pemusnahan')">Hapus</x-button>
+            <x-button size="sm" class="tone--danger" @click="remove(idx)" :title="'Hapus box ini dari daftar '.($isExtension ? 'perpanjangan' : 'pemusnahan')">Hapus</x-button>
 
             <div class="stack" x-show="openIndex === idx" x-cloak>
                 <dl class="meta-grid">

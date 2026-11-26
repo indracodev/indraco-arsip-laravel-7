@@ -39,7 +39,7 @@
         @if ($isAdmin)
             <x-field label="Departemen yang Diizinkan Menempatkan Box" hint="Pilih satu atau beberapa departemen jika rak ini dikhususkan (misal: FAT dan HRD). Jika tidak ada departemen yang dipilih, box dari semua departemen boleh ditempatkan di sini.">
                 <div class="wl-depts" data-depts="edit"></div>
-                <span class="text-sm">Terpilih: <strong data-f="edit-dept-count"></strong> <button type="button" class="btn btn--ghost btn--sm" data-act="edit-dept-reset">Reset ke Bebas (Semua Dept)</button></span>
+                <span class="text-sm">Terpilih: <strong data-f="edit-dept-count"></strong> <button type="button" class="btn btn--sm" data-act="edit-dept-reset">Reset ke Bebas (Semua Dept)</button></span>
             </x-field>
         @endif
     </form>

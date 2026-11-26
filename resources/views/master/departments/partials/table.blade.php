@@ -85,7 +85,7 @@
             </template>
             <template x-if="expanded[dept.id] && !dept.sub_departments.length && !(dept.unassigned_archives_count > 0)">
                 <tr>
-                    <td colspan="7" data-label="" class="text-sm text-muted">Belum ada sub-departemen terdaftar untuk departemen ini. <x-button size="sm" variant="ghost" @click="openSub(null, dept.id)">+ Tambah Sekarang</x-button></td>
+                    <td colspan="7" data-label="" class="text-sm text-muted">Belum ada sub-departemen terdaftar untuk departemen ini. <x-button size="sm" @click="openSub(null, dept.id)">+ Tambah Sekarang</x-button></td>
                 </tr>
             </template>
         </tbody>

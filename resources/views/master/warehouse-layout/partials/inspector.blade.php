@@ -45,7 +45,7 @@
             <span class="text-muted">Izin Penempatan Box:</span>
             <span class="wl-chips" data-f="allowed"></span>
             @if ($isAdmin)
-                <x-button size="sm" variant="ghost" data-act="edit">Atur Dept</x-button>
+                <x-button size="sm" data-act="edit">Atur Dept</x-button>
             @endif
         </div>
 

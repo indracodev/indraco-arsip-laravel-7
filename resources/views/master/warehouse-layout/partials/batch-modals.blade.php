@@ -27,7 +27,7 @@
             <p class="text-sm">Ubah alokasi departemen secara serentak untuk <strong data-f="batch-count"></strong>:</p>
             <x-field label="Pilih Satu atau Lebih Departemen yang Diizinkan:">
                 <div class="wl-depts" data-depts="batch"></div>
-                <span class="text-sm">Terpilih: <strong data-f="batch-dept-count"></strong> <button type="button" class="btn btn--ghost btn--sm" data-act="batch-dept-reset">Reset ke Bebas</button></span>
+                <span class="text-sm">Terpilih: <strong data-f="batch-dept-count"></strong> <button type="button" class="btn btn--sm" data-act="batch-dept-reset">Reset ke Bebas</button></span>
             </x-field>
         </form>
         <x-slot:footer>

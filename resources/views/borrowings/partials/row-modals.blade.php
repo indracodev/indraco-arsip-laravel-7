@@ -125,7 +125,7 @@
                     <x-file-input name="scan_approval_borrow" :id="'scan_approval_borrow_'.$log->id" accept=".pdf,.jpg,.jpeg,.png" />
                 </x-field>
                 <div class="cluster">
-                    <x-button variant="ghost" class="tone--danger" data-modal-open="borrow-reject-{{ $log->id }}">Tolak Pengajuan</x-button>
+                    <x-button class="tone--danger" data-modal-open="borrow-reject-{{ $log->id }}">Tolak Pengajuan</x-button>
                     <span class="topbar__spacer"></span>
                     <x-button data-modal-close>Batal</x-button>
                     <x-button type="submit" variant="primary">Keluarkan Arsip</x-button>

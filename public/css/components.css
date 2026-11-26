@@ -52,6 +52,8 @@
 .btn--danger { background: var(--color-danger); border-color: var(--color-danger); color: var(--color-on-accent); }
 .btn--danger:hover { background: var(--color-danger-hover); border-color: var(--color-danger-hover); }
 .btn--ghost { border-color: transparent; background: transparent; }
+/* Text actions are always bordered buttons; a destructive one keeps the border in red (.tone--danger). */
+.btn.tone--danger { border-color: var(--color-danger); }
 /* Disabled / loading: dimmed, no hover change (the state must not look clickable). */
 .btn:disabled, .btn[aria-disabled="true"] { opacity: 0.55; cursor: not-allowed; }
 .btn--primary:disabled:hover, .btn--primary[aria-disabled="true"]:hover { background: var(--color-accent); border-color: var(--color-accent); }
