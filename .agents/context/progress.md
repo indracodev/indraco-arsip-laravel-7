@@ -20,4 +20,5 @@
 - Cek versi WebView2 dan versi browser (Chrome/Edge/Firefox) yang dipakai di PC klien sebelum Fase 3.
 
 ## Langkah berikutnya
+0. Uji beban baca + tulis di PC server asli (jam pemeliharaan) sesuai [runbook-uji-beban-server.md](runbook-uji-beban-server.md): SNAPSHOT → k6 dari laptop → VERIFIKASI → STOP → RESTORE → L7 start lagi. Alat siap 2026-11-26 (`dms:snapshot`, `dms:restore-snapshot`, `dms:loadtest-verify`, `tests/k6/write_flow.js`, `UJI-BEBAN-*.bat`); hasil laptop di `performance-baseline.md`.
 1. Eksekusi cutover sesuai [cutover-plan.md](cutover-plan.md) saat pemilik siap memindahkan server dari L7 ke L13.

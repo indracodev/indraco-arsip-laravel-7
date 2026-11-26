@@ -25,7 +25,8 @@ final class DatabaseBackup
         return $this->snapshot(storage_path('app/backups/backup_indraco_'.date('Y_m_d_His').'_'.$reason.'_'.Str::random(4).'.sqlite'));
     }
 
-    private function snapshot(string $path): string
+    /** Consistent copy of the live database into a new file (also used by DatabaseSnapshot). */
+    public function snapshot(string $path): string
     {
         File::ensureDirectoryExists(dirname($path));
         DB::statement('VACUUM INTO ?', [str_replace('\\', '/', $path)]);

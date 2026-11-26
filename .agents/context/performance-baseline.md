@@ -124,3 +124,30 @@ Catatan: 40 dtk termasuk jeda awal acak, jadi poll 15 dtk tunak = 50/15 ≈ 3,3 
 5. Worker 4 untuk 2 core tetap (Fase 1); jangan naikkan worker di 1–2 core (hanya menambah antrean CPU).
 6. **Ulangi di PC server asli** (`k6 run -e TARGET_URL=http://<ip>:8000 -e MODE=human -e LEVELS=10,30,50 -e HOLD=40 tests/k6/route_matrix.js`).
 - Beban tulis (submit arsip, verifikasi nomor box bersamaan) **tidak** diukur ulang di fase ini; acuan tetap Fase 1 mixed30 (15 % tulis, 0 locked) + tes konkurensi `sqlite-concurrency`.
+
+## Uji beban tulis (2026-11-26)
+
+**Skrip:** `tests/k6/write_flow.js` (MENULIS data, judul `LOADTEST-<RUN_ID>-...`) + `php artisan dms:loadtest-verify [run]` + snapshot/restore `dms:snapshot` / `dms:restore-snapshot` (`UJI-BEBAN-1/2/3-*.bat`). Runbook server: `runbook-uji-beban-server.md` (termasuk uji dari 2 PC).
+- 1 VU = 1 PIC Departemen (fin, hrd, hcs, dm, mkt bergiliran) + 1 PIC Gudang, masing-masing login sendiri (sesi per VU, bukan sesi bersama: flash/toast per sesi). Per iterasi: ajukan 2 box × 2 butir + scan PDF 50–200 KB → verifikasi + nomor box (counter global, rebutan) → check-in rak acak yang tersedia → box A: penarikan → keluarkan (2/3) / tolak (1/3) → box B: perpanjangan + ACC → usul pemusnahan + setujui + eksekusi BAP (+ sertifikat PDF). ±32 request/iterasi. Waktu langkah = POST saja (`redirects: 0`); sukses = halaman tujuan redirect menampilkan toast sukses.
+- Instans uji terpisah :8100 (bukan live :8000): salinan `VACUUM INTO` data laptop (69 arsip) **dan** salinan `storage/` sendiri (`LARAVEL_STORAGE_PATH` + cache config/route sendiri → upload, sesi, log uji tidak menyentuh storage project), 2 E-core (mask 0x3000), 4 worker, cache config/route/view. k6 di laptop yang sama.
+
+**Run w2 (closed loop, tiap level 30 dtk; p50 / p95 ms per langkah tulis):**
+
+| Langkah | 5 VU | 10 VU | 20 VU |
+|---|---|---|---|
+| ajukan 2 box + PDF | 88 / 171 | 126 / 868 | 153 / 2.707 |
+| verifikasi + nomor box | 59 / 145 | 67 / 411 | 94 / 3.310 |
+| check-in rak | 65 / 156 | 90 / 665 | 92 / 2.376 |
+| ajukan penarikan | 64 / 193 | 101 / 421 | 152 / 1.859 |
+| keluarkan / tolak penarikan | 71 / 150 · 64 / 194 | 77 / 250 · 97 / 554 | 167 / 1.881 · 192 / 1.952 |
+| ajukan / ACC perpanjangan | 74 / 138 · 60 / 142 | 114 / 825 · 71 / 592 | 127 / 1.067 · 76 / 675 |
+| usul / setujui / eksekusi BAP | 78 / 193 · 58 / 148 · 73 / 159 | 113 / 976 · 80 / 576 · 81 / 639 | 117 / 1.032 · 118 / 1.999 · 85 / 1.089 |
+| iterasi selesai (×2 box) | 33 | 33 | 40 |
+
+- Total w2: 4.085 request, 530 baris dibuat (box + log), **sukses 100 % semua langkah, 0 HTTP 5xx, 0 HTTP 419, 0 cek gagal**. Run w1 (sama, waktu = halaman sesudah redirect) dan 2 proses k6 bersamaan (`RUN_ID=pc1` + `pc2`, 5 VU masing-masing, simulasi 2 PC) juga 100 % / 0 error.
+- `dms:loadtest-verify` (semua run: smoke1, smoke2, w1, w2, pc1, pc2): 512 box uji, counter 15–526 **unik dan tanpa lompatan**, 0 baris yatim, 0 slot ganda, box `destroyed`/`taken` tidak memegang slot.
+- `storage/logs` instans uji: **kosong** (0 error, 0 `database is locked` / SQLITE_BUSY). Tidak ada file `-wal` tersisa sesudah run.
+- Sumber daya (Caddy + 4 php-cgi): CPU rata 86 %, puncak 200 % (2 core jenuh di 20 VU), RAM private 129–139 MB, working set ≤ 274 MB.
+- Bacaan: 5 VU tulis tanpa jeda (≈ 25–50 orang yang benar-benar menulis) p95 ≤ 200 ms. 20 VU tanpa jeda menjenuhkan 2 core: p50 tetap < 200 ms, ekor p95 1–3 dtk = antre CPU (bukan kunci SQLite; tidak ada error/timeout). Tulis tidak lebih berat dari baca: CPU render halaman tetap bottleneck.
+
+**Restore (bukti):** `dms:restore-snapshot --port=8100` saat instans masih jalan → ditolak (`port 8100 masih dipakai`, exit 1). Sesudah STOP: selesai 2 dtk, 1.278 file upload uji dipindah ke `storage/app/snapshots-sebelum-restore/<waktu>/removed-files`, 142 sesi uji dihapus, jumlah baris **semua** tabel = manifest (archives 69, archive_items 946, borrowing_logs 7, destruction_logs 3, archive_extension_logs 1, activity_logs 593), counter penomoran kembali 14, slot terisi 18, `dms:loadtest-verify` → `Arsip LOADTEST-%: 0`, 16 file upload asli tetap. SHA-256 file database dicek sama dengan snapshot sebelum dibuka pertama kali (sesudah dibuka Laravel, header berubah ke mode WAL → hash file berubah, isi sama).

@@ -138,3 +138,14 @@ Ukur + angka: `performance-baseline.md` bagian "Fase 6 / rute nyata". Tidak ada 
 | P2 | R | Index yang tidak optimal saat data tumbuh: `archive_extension_logs` NOT EXISTS memakai `idx_ext_logs_status` (tanpa ANALYZE) → per box memindai semua log pending; dashboard `latest()` dan count `strftime(retention_expiry_date)` SCAN `archives` | EXPLAIN pada data ×150: SCAN + temp B-tree 2–7 ms, count 8,8–12,5 ms | dicatat: tambah `archive_extension_logs(archive_id, approval_status)` dan `archives(created_at, id)` bila arsip > ±20 rb; sekarang < 10 ms, tidak diubah |
 | P3 | R | Poll notifikasi tiap 5 dtk per tab memboot Laravel penuh (20–40 ms CPU untuk JSON ±130 B) = beban dominan saat ramai; mulai serentak → gerombolan request | mode human 50 orang 2 E-core: poll p95 409 ms vs halaman ≤ 107 ms; 1 core 30 orang: poll p95 8 dtk | **diperbaiki** (ACC pemilik 2026-11-25): 15 dtk ± 2 dtk, poll pertama acak 0–15 dtk, tetap berhenti saat tab tersembunyi + langsung poll saat terlihat lagi. Mode human 50 orang: poll 9,8 → 2,8 req/s, request PHP total 13,1 → 5,3 req/s (`seq` statis via Caddy belum, bila masih perlu) |
 | P4 | R | Live :8000 berjalan tanpa `bootstrap/cache/config.php` + `routes-v7.php` (launcher hanya `optimize` saat START) | tanpa cache: poll 42 vs 21 ms, jenuh 32 vs 45 req/s (2 E-core) | dicatat (operasional): `php artisan optimize` / START ulang setelah tes atau `optimize:clear` di PC server |
+
+## Uji beban tulis (2026-11-26)
+
+Angka + restore: `performance-baseline.md` "Uji beban tulis (2026-11-26)". 0 bug aplikasi ditemukan (100 % langkah sukses, 0 5xx/419, nomor box unik tanpa lompatan, 0 locked).
+
+| # | Tingkat | Temuan | Bukti | Status |
+|---|---|---|---|---|
+| W1 | R | Data salinan laptop: arsip 96 (LOGISTIC, `in_warehouse`) memegang **2 slot** rak: 8101 (`A1`, rak R1-A) dan 16001 (`GUDANG R11`, lokasi 91 bertipe `room`); `archives.warehouse_rack_slot_id` = 8101. Diperbarui 2026-10-21 = data era L7, bukan dari uji | query `warehouse_rack_slots GROUP BY archive_id HAVING COUNT(*) > 1` pada snapshot sebelum uji | dicatat: cek di DB L7 terbaru sebelum cutover; perbaikan data (kosongkan slot 16001) hanya dengan keputusan pemilik. `dms:loadtest-verify` hanya menilai slot milik arsip LOADTEST |
+| W2 | R | Waktu per langkah k6 bisa menyesatkan bila POST mengikuti redirect: `res.timings` = halaman sesudah redirect, bukan penulisan | run w1 vs w2 | ditangani di skrip: POST `redirects: 0`, halaman tujuan diambil terpisah (`<langkah>_page`) |
+| W3 | R | Ekor latensi di 20 VU tulis tanpa jeda (2 core): p95 1–3 dtk, maks 6 dtk | CPU pool 200 % | dicatat: antre CPU, sama sifatnya dengan baca (P4/Fase 6); tidak ada error. Ulangi di server asli (runbook) |
+
