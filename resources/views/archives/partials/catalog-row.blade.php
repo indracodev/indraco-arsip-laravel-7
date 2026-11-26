@@ -96,7 +96,7 @@
                 <form method="POST" action="{{ route('archives.destroy', $archive) }}">
                     @csrf
                     @method('DELETE')
-                    <x-button type="submit" size="sm" variant="ghost" class="tone--danger"
+                    <x-button type="submit" size="sm" class="tone--danger"
                         data-confirm="Apakah Anda yakin ingin menghapus data draft arsip [{{ $archive->title }}]?"
                         data-confirm-title="Hapus Draft Berkas Arsip" data-confirm-type="danger" data-confirm-btn="Ya, Hapus">Hapus</x-button>
                 </form>

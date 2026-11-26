@@ -7,7 +7,7 @@
         <x-slot:actions>
             <x-button size="sm" variant="primary" @click="addBox()" title="Tambah Box Arsip Baru"><x-icon name="plus" />Tambah Box</x-button>
             <x-button size="sm" @click="openDuplicate(activeBox)" title="Duplikasi Box dengan Pilihan Granular (Semua Berkas / Metadata Saja / Berkas Terpilih)">Duplikat Box...</x-button>
-            <x-button size="sm" variant="ghost" class="tone--danger" x-show="boxes.length > 1" @click="removeBox(activeBox)" title="Hapus Box yang Sedang Aktif">Hapus Box</x-button>
+            <x-button size="sm" class="tone--danger" x-show="boxes.length > 1" @click="removeBox(activeBox)" title="Hapus Box yang Sedang Aktif">Hapus Box</x-button>
         </x-slot:actions>
     @endif
 

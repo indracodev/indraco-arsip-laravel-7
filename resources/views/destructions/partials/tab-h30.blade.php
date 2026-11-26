@@ -45,7 +45,7 @@
                         <td data-label="JUDUL BERKAS & DEPT" class="table__wide">
                             <a class="table__title" href="{{ route('archives.show', ['archive' => $archive, 'from' => 'destructions']) }}">{{ $archive->title }}</a>
                             @if ($file !== null)
-                                <x-button size="sm" variant="ghost" data-modal-open="file-viewer" data-file-index="{{ $file }}" title="Pratinjau Berkas Digital"><x-icon name="eye" /></x-button>
+                                <x-button size="sm" class="btn--icon" data-modal-open="file-viewer" data-file-index="{{ $file }}" title="Pratinjau Berkas Digital"><x-icon name="eye" /></x-button>
                             @endif
                             <div class="table__meta">{{ $archive->department->code ?? 'Dept' }} • Periode: {{ $archive->period_text ?: ($archive->periode_doc ?: '-') }}</div>
                         </td>

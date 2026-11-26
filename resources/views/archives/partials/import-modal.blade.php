@@ -37,7 +37,7 @@
 
         <div class="notice notice--success" x-show="downloaded" x-cloak>
             <p class="notice__body text-sm" x-text="'Berkas Template Berhasil Diunduh! Berkas: ' + downloaded + ' (Tersimpan di: Folder Downloads Komputer, %USERPROFILE%\\Downloads\\)'"></p>
-            <x-button variant="ghost" size="sm" @click="downloaded = ''" title="Tutup Notifikasi">Tutup</x-button>
+            <x-button size="sm" @click="downloaded = ''" title="Tutup Notifikasi">Tutup</x-button>
         </div>
 
         <x-field label="Pilih File Spreadsheet (.xlsx / .csv)" for="archive_import_file">

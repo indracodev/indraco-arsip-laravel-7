@@ -20,7 +20,7 @@
                     <div class="cluster text-sm">
                         <span x-show="!{{ $upload['remove'] }}"><x-icon name="check" /> {{ $upload['saved'] }}</span>
                         <span class="tone--danger" x-show="{{ $upload['remove'] }}" x-cloak>File tersimpan dihapus. Silakan pilih berkas baru di bawah.</span>
-                        <x-button size="sm" variant="ghost" @click="{{ $upload['name'] === 'file' ? 'removeFile = !removeFile' : 'toggleRemoveScan()' }}" x-text="{{ $upload['remove'] }} ? 'Batal Hapus' : 'Hapus / Ganti'" title="Hapus file ini untuk diganti dengan file baru">Hapus / Ganti</x-button>
+                        <x-button size="sm" @click="{{ $upload['name'] === 'file' ? 'removeFile = !removeFile' : 'toggleRemoveScan()' }}" x-text="{{ $upload['remove'] }} ? 'Batal Hapus' : 'Hapus / Ganti'" title="Hapus file ini untuk diganti dengan file baru">Hapus / Ganti</x-button>
                     </div>
                 @endif
                 <x-file-input :name="$upload['name']" accept=".pdf,.jpg,.jpeg,.png" :badge="$upload['badge']" @change="onFileChange($event, '{{ $upload['name'] }}')" />

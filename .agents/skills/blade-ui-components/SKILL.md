@@ -19,6 +19,7 @@ Status → label/warna: satu peta di PHP (`App\Support\StatusLabel` atau enum) d
 
 ## Pola halaman
 - **Daftar**: `page-header` → `filter-bar` → `table` → `pagination`. Aksi baris maksimal 2 tombol terlihat, sisanya menu.
+- **Tombol**: aksi berteks selalu tombol bergaris (`<x-button>` default / `primary` / `danger`); aksi hapus sekunder = default + `class="tone--danger"` (teks + garis merah). `variant="ghost"` **hanya** untuk tombol ikon (`btn--icon`: tutup ×, menu, tema) dan judul kolom tabel yang bisa diurutkan. Item menu klik-kanan/daftar hasil cari boleh tanpa garis (memang menu).
 - **Form**: satu kolom di mobile, dua kolom di ≥ 1024px; urutan dan jumlah field **sama dengan L7**; tombol simpan di bawah + disable saat submit.
 - **Detail**: ringkasan (badge status + data kunci) → tab/seksi → riwayat log.
 - Modal konfirmasi: atribut `data-confirm*` / `window.showConfirmModal()`; tanpa `confirm()` native.

@@ -42,7 +42,7 @@
                                 <div class="cluster" x-show="item.custom" x-cloak>
                                     <input type="text" class="control" maxlength="255" :id="item.custom ? 'item_name_' + bIdx + '_' + iIdx : null" :name="'boxes[' + bIdx + '][items][' + iIdx + '][document_name]'"
                                         :disabled="!item.custom" x-model="item.document_name" placeholder="Ketik nama berkas khusus..." aria-label="Nama dokumen (ketik nama berkas khusus)">
-                                    <x-button size="sm" variant="ghost" @click="item.custom = false" title="Kembali memilih dari Master Berkas Arsip">Pilih dari Master</x-button>
+                                    <x-button size="sm" @click="item.custom = false" title="Kembali memilih dari Master Berkas Arsip">Pilih dari Master</x-button>
                                 </div>
                             @endif
                         </td>
@@ -55,8 +55,8 @@
                             </template>
                         </td>
                         <td data-label="" class="table__actions">
-                            <x-button size="sm" variant="ghost" @click="duplicateItem(bIdx, iIdx)" title="Salin baris ini">Salin</x-button>
-                            <x-button size="sm" variant="ghost" class="tone--danger" @click="removeItem(bIdx, iIdx)" title="Hapus baris dokumen ini">Hapus</x-button>
+                            <x-button size="sm" @click="duplicateItem(bIdx, iIdx)" title="Salin baris ini">Salin</x-button>
+                            <x-button size="sm" class="tone--danger" @click="removeItem(bIdx, iIdx)" title="Hapus baris dokumen ini">Hapus</x-button>
                         </td>
                     </tr>
                 </template>

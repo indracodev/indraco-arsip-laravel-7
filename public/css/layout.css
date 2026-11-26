@@ -111,3 +111,28 @@
 .guest__logo { height: 2.5714rem; width: auto; object-position: center; }
 .guest__footer { margin-top: var(--space-4); font-size: var(--text-xs); color: var(--color-text); text-align: center; }
 
+/* Page-load bar (app.js): shown while the browser waits for the next page. */
+html.is-navigating body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: calc(var(--z-toast) + 1);
+    height: 3px;
+    width: 90%;
+    background: var(--color-accent);
+    animation: nav-progress 8s cubic-bezier(0.1, 0.7, 0.3, 1) both;
+    pointer-events: none;
+}
+@keyframes nav-progress { from { width: 0; } }
+html.is-navigating body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-toast);
+    cursor: progress;
+    background: var(--color-text);
+    opacity: 0;
+    animation: nav-dim 0.2s ease-out 0.4s forwards;
+}
+@keyframes nav-dim { to { opacity: 0.06; } }

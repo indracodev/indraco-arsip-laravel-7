@@ -77,7 +77,7 @@
             <p class="text-sm">Data pengisian (<span x-text="boxes.length + ' Box, ' + totalItems() + ' Berkas'"></span>) dipulihkan dari sesi sebelum terputus/refresh (Tersimpan: <span x-text="restored"></span>).</p>
             <div class="cluster">
                 <x-button size="sm" variant="primary" @click="restored = null">Lanjutkan Mengisi</x-button>
-                <x-button size="sm" variant="ghost" class="tone--danger" @click="clearSavedDraft()" title="Hapus draft tersimpan dan kembali ke form kosong awal">Kosongkan Form</x-button>
+                <x-button size="sm" class="tone--danger" @click="clearSavedDraft()" title="Hapus draft tersimpan dan kembali ke form kosong awal">Kosongkan Form</x-button>
             </div>
         </div>
     </div>
