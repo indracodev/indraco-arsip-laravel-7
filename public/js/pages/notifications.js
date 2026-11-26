@@ -187,10 +187,28 @@
         document.addEventListener('visibilitychange', function () {
             if (document.hidden) { if (timer) { clearTimeout(timer); timer = null; } } else if (!timer) { poll(); }
         });
+        /* Pages with [data-realtime-reload] refresh on changes only while the user is idle (no typing, clicking or
+           scrolling for IDLE ms, no open modal/selection/focused field); otherwise a sticky "Muat ulang" toast. */
+        var IDLE = 60000, lastActive = Date.now(), staleToast = null;
+        ['keydown', 'pointerdown', 'wheel', 'touchstart', 'input'].forEach(function (type) {
+            document.addEventListener(type, function () { lastActive = Date.now(); }, { passive: true, capture: true });
+        });
         window.addEventListener('dms:realtime-sync', function () {
             if (!document.querySelector('[data-realtime-reload]')) { return; }
-            if (document.querySelector('.modal:not([hidden])') || document.querySelector('.table__select input:checked')) { return; }
-            window.location.reload();
+            var field = document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+            var busyUi = field || document.querySelector('.modal:not([hidden])') || document.querySelector('.table__select input:checked') || String(window.getSelection()) !== '';
+            if (!busyUi && Date.now() - lastActive >= IDLE) { window.location.reload(); return; }
+            if (staleToast && staleToast.isConnected) { return; }
+            staleToast = el('div', 'toast toast--info');
+            staleToast.setAttribute('role', 'status');
+            var body = el('div', 'toast__text');
+            body.appendChild(el('strong', '', 'Ada data baru di halaman ini.'));
+            staleToast.appendChild(body);
+            var reload = el('button', 'btn btn--primary btn--sm', 'Muat ulang');
+            reload.type = 'button';
+            reload.addEventListener('click', function () { window.location.reload(); });
+            staleToast.appendChild(reload);
+            toastBox().appendChild(staleToast);
         });
     });
 })();

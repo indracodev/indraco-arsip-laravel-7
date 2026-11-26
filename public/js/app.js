@@ -21,8 +21,26 @@
         if (submitter) { submitter.classList.add('is-loading'); }
     });
 
+    /* Page-load state (layout.css html.is-navigating): bar + progress cursor + a layer that blocks further clicks
+       while the browser waits for the next page (links, GET filters, form posts, reloads all fire beforeunload).
+       Downloads keep the page, so they are skipped; anything else unexpected clears itself after 8 s. */
+    var navTimer = null, downloading = false;
+    var isDownload = function (url) { return /\/download(\?|$)|\/template(\?|$)|\/export-csv\/|\/backup-database(\?|$)/.test(url || ''); };
+    document.addEventListener('click', function (e) {
+        var link = e.target.closest && e.target.closest('a[href]');
+        downloading = !!link && (link.hasAttribute('download') || isDownload(link.href));
+    }, true);
+    document.addEventListener('submit', function (e) { downloading = isDownload(e.target.action); }, true);
+    window.addEventListener('beforeunload', function () {
+        if (downloading) { downloading = false; return; }
+        document.documentElement.classList.add('is-navigating');
+        clearTimeout(navTimer);
+        navTimer = setTimeout(function () { document.documentElement.classList.remove('is-navigating'); }, 8000);
+    });
+
     /* Back/forward cache: a page restored from history must not keep locked buttons. */
     window.addEventListener('pageshow', function (e) {
+        document.documentElement.classList.remove('is-navigating');
         if (!e.persisted) { return; }
         document.querySelectorAll('form [type="submit"]').forEach(function (button) {
             button.disabled = false;
