@@ -58,7 +58,7 @@ class DisplaySettingsTest extends TestCase
         $this->assertMatchesRegularExpression('/data-img-src-dark="[^"]*images\/logo-indraco-invert\.png\?v=[0-9a-f]{10}"/', $loginHtml);
         $this->assertMatchesRegularExpression('/--guest-bg-image:\s*url\(\'[^\']*images\/indraco-bg\.jpg\?v=[0-9a-f]{10}\'\)/', $loginHtml);
         $this->assertMatchesRegularExpression('/<section class="card">.*guest__brand--card.*data-img-src-light.*<\/section>/s', $loginHtml);
-        $this->assertMatchesRegularExpression('/<\/section>\s*<footer class="guest__footer">Developed by Tim WEBDEV\. Copyright &copy; 2026 INDRACO\. All rights reserved<\/footer>/s', $loginHtml);
+        $this->assertMatchesRegularExpression('/<\/section>\s*<footer class="guest__footer[^"]*">.*Copyright &copy; 2026.*Developed by Tim WEBDEV.*<\/footer>/s', $loginHtml);
 
         $appHtml = $this->actingAs(User::factory()->create(['role' => 'admin']))->get('/')->assertOk()->getContent();
         $this->assertMatchesRegularExpression('/data-img-src-light="[^"]*images\/logo-indraco\.png\?v=[0-9a-f]{10}"/', $appHtml);

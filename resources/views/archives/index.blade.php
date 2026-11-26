@@ -17,7 +17,7 @@
             <x-link-button :href="request()->fullUrl()" title="Refresh (F5)"><x-icon name="refresh" />Refresh (F5)</x-link-button>
             @if ($canSubmit)
                 <x-button data-modal-open="archive-import-modal" title="Impor Massal Multi-Box & Butir Dokumen via Excel / CSV"><x-icon name="upload" />Impor Multi-Box (Excel)</x-button>
-                <x-link-button :href="route('archives.create')" variant="primary" title="Buat Draft Pengajuan Box Baru (F2)"><x-icon name="plus" />Buat Draft (F2)</x-link-button>
+                <x-link-button :href="route('archives.create')" variant="primary" data-shortcut="F2" title="Buat Draft Pengajuan Box Baru (F2)"><x-icon name="plus" />Buat Draft (F2)</x-link-button>
             @endif
         </x-slot:actions>
     </x-page-header>

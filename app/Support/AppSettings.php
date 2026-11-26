@@ -13,6 +13,7 @@ final class AppSettings
     private const DEFAULTS = [
         'app_name' => 'DMS PT INDRACO',
         'app_logo' => 'images/logo-indraco.png',
+        'app_logo_dark' => 'images/logo-indraco-invert.png',
         'app_font_size' => '14px',
     ];
 

@@ -45,7 +45,7 @@
         var target = document.querySelector('[data-shortcut="' + e.key + '"]');
         if (!target) { return; }
         var typing = /^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement && document.activeElement.tagName);
-        if (e.key === 'Escape' && (typing || document.body.classList.contains('is-drawer-open'))) { return; }
+        if (e.key === 'Escape' && typing) { return; }
         e.preventDefault();
         target.click();
     });
@@ -86,32 +86,6 @@
     }
 
     document.addEventListener('alpine:init', function () {
-        /* Menu drawer below 1024px (rem): focus moves to the first link on open and back to the
-           hamburger on Esc / backdrop; tabbing out of the drawer closes it (no focus trap). */
-        window.Alpine.data('shell', function () {
-            return {
-                drawer: false,
-                toggleDrawer: function () { if (this.drawer) { this.closeDrawer(); } else { this.openDrawer(); } },
-                openDrawer: function () {
-                    this.drawer = true;
-                    this.$nextTick(function () {
-                        var link = document.querySelector('#main-nav .nav__link');
-                        if (link) { link.focus(); }
-                    });
-                },
-                closeDrawer: function (keepFocus) {
-                    if (!this.drawer) { return; }
-                    this.drawer = false;
-                    var button = document.querySelector('.topbar__menu');
-                    if (!keepFocus && button) { button.focus(); }
-                },
-                leaveDrawer: function (e) {
-                    var to = e.relatedTarget;
-                    if (to && !to.closest('#main-nav, .topbar__menu')) { this.closeDrawer(true); }
-                }
-            };
-        });
-
         /* "Pengaturan Tampilan" (per browser): font size (Laravel 7 presets, 10-26px slider),
            theme (Terang / Gelap / Ikuti Sistem; default Terang) and notification sound (public/js/prefs.js,
            sound.js). Font and theme apply live; all are stored on "Simpan", reverted on close. */

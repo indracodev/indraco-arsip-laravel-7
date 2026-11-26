@@ -380,9 +380,9 @@ select.control {
 .maint { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); padding-bottom: var(--space-3); border-bottom: 1px solid var(--color-border); }
 .maint > div { flex: 1 1 18rem; min-width: 0; }
 .maint .field { min-width: 0; }
-.settings-logo { height: 3.4286rem; width: auto; padding: var(--space-1); border: 1px solid var(--color-border); border-radius: var(--radius); }
-.settings-logo.brand-logo--adaptive { padding: var(--space-1); background: var(--color-surface-alt); }
-.settings-logo.brand-logo--custom { background: var(--color-logo-chip); }
+.settings-logo { height: 3.4286rem; width: auto; padding: var(--space-2) var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius); object-fit: contain; }
+.settings-logo--light { background: var(--color-paper); }
+.settings-logo--dark { background: var(--color-nav-bg); border-color: var(--color-nav-border); }
 
 /* table.css */
 /* <x-table>: desktop table layout inside scrollable wrapper. */

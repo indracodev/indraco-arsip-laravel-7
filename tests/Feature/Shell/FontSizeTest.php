@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Shell;
 
+use App\Models\AppSetting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -46,5 +47,16 @@ class FontSizeTest extends TestCase
     {
         $this->post('/profile/font-size', ['font_size' => 20])->assertRedirect('/login');
         $this->get('/login')->assertOk()->assertDontSee('data-user-font-size', false);
+    }
+
+    public function test_default_font_size_is_always_14px_regardless_of_legacy_app_setting(): void
+    {
+        AppSetting::query()->updateOrCreate(['key' => 'app_font_size'], ['value' => '17px']);
+
+        $this->get('/login')->assertOk()->assertSee('data-font-size="14px"', false);
+        $this->actingAs(User::factory()->create(['role' => 'pic_dept']))
+            ->get('/profile/password')->assertOk()
+            ->assertSee('data-font-size="14px"', false)
+            ->assertDontSee('data-user-font-size', false);
     }
 }

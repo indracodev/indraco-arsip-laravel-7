@@ -10,7 +10,7 @@
          @csrf
          <div class="guest__brand guest__brand--card">
             <x-brand-logo class="guest__logo" width="161" height="32" />
-            <h1>DOCUMENT MANAGEMENT SYSTEM</h1>
+            <h1 class="fs-2">DOCUMENT MANAGEMENT SYSTEM</h1>
          </div>
 
          {{-- No prefilled credentials (finding #1). Alt+E / Alt+P as in Laravel 7. --}}

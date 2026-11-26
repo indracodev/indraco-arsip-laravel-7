@@ -1,16 +1,14 @@
 {{--
-    Main menu (App\Support\Menu::grouped), no dropdowns:
-    - wide (.bp-lg): every item directly in the bar; a former group is one flex block with a
-      subtle left separator, so a long menu (admin at 1366px) wraps whole groups to a 2nd row;
-    - narrow (.bp-lt-lg, rem so a large font switches earlier): drawer opened by the topbar
-      hamburger, items listed under their group heading (layouts/app, public/js/app.js shell).
+    Main desktop menu (App\Support\Menu::grouped), no dropdowns:
+    every item sits directly in the top bar; a former group is one flex block with a subtle
+    left separator, so a long menu wraps whole groups cleanly.
     "*.index" items stay highlighted on the other pages of the same module (archives.*).
     data-nav-badge: badge counts set by public/js/pages/notifications.js (CSS ::after, no extra markup).
 --}}
 @php
     $isActive = fn (array $item): bool => request()->routeIs($item['route'], str_ends_with($item['route'], '.index') ? substr($item['route'], 0, -5).'*' : $item['route']);
 @endphp
-<nav class="topnav" id="main-nav" aria-label="Menu utama" @focusout="leaveDrawer($event)">
+<nav class="topnav" id="main-nav" aria-label="Menu utama">
     <ul class="nav">
         @foreach ($groups as $group)
             @if ($group['label'] === null)

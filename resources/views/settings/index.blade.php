@@ -11,18 +11,31 @@
     <form method="POST" action="{{ route('master.settings.update') }}" enctype="multipart/form-data" class="stack" id="settings-form">
         @csrf
         <x-card title="1. Kustomisasi Logo Aplikasi (Header & Laporan)">
-            <div class="cluster">
-                <x-brand-logo :src="$logo" class="settings-logo" alt="Logo aktif" height="48" />
-                <span class="badge">Logo Aktif</span>
+            <div class="form-grid form-grid--2">
+                <div class="stack">
+                    <div class="cluster">
+                        <img class="settings-logo settings-logo--light" src="{{ $logoUrl }}" alt="Logo mode terang aktif" height="48">
+                        <span class="badge">Logo Mode Terang</span>
+                    </div>
+                    <x-field label="Logo Mode Terang" for="logo" error="logo" hint="PNG / JPG (Maks. 2 MB). Dipakai di mode terang & dokumen cetak.">
+                        <x-file-input name="logo" accept=".png,.jpg,.jpeg" />
+                    </x-field>
+                </div>
+                <div class="stack">
+                    <div class="cluster">
+                        <img class="settings-logo {{ $darkFallsBackToLight ? 'settings-logo--light' : 'settings-logo--dark' }}" src="{{ $logoDarkUrl }}" alt="Logo mode gelap aktif" height="48">
+                        <span class="badge">{{ $darkFallsBackToLight ? 'Mengikuti Logo Terang' : 'Logo Mode Gelap' }}</span>
+                    </div>
+                    <x-field label="Logo Mode Gelap" for="logo_dark" optional error="logo_dark" hint="PNG / JPG (Maks. 2 MB). Rekomendasi teks terang/putih dengan latar transparan.">
+                        <x-file-input name="logo_dark" accept=".png,.jpg,.jpeg" />
+                    </x-field>
+                </div>
             </div>
-            <x-field label="Pilih File Gambar Logo Baru" for="logo" error="logo" hint="Format: PNG, JPG (Maks. 2MB). Rekomendasi background transparan.">
-                <x-file-input name="logo" accept=".png,.jpg,.jpeg" />
-            </x-field>
             <x-field label="Nama Aplikasi" for="app_name" error="app_name">
                 <x-input name="app_name" :value="old('app_name', $appName)" maxlength="100" />
             </x-field>
             <x-slot:footer>
-                <x-button type="submit" form="reset-logo-form" data-confirm="Kembalikan logo sistem ke default PT Indraco?" data-confirm-title="Reset Logo Sistem" data-confirm-type="warning" data-confirm-btn="Ya, Reset Logo"><x-icon name="refresh" />Reset Logo Default</x-button>
+                <x-button type="submit" form="reset-logo-form" data-confirm="Kembalikan logo terang & gelap sistem ke default PT Indraco?" data-confirm-title="Reset Logo Sistem" data-confirm-type="warning" data-confirm-btn="Ya, Reset Logo"><x-icon name="refresh" />Reset Logo Default</x-button>
             </x-slot:footer>
         </x-card>
 

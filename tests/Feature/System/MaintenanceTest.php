@@ -126,21 +126,52 @@ class MaintenanceTest extends TestCase
     {
         $svg = UploadedFile::fake()->createWithContent('logo.svg', '<svg xmlns="http://www.w3.org/2000/svg"><circle r="5"/></svg>');
         $this->actingAs($this->admin)->post('/settings/update', ['logo' => $svg])->assertSessionHasErrors('logo');
+        $this->actingAs($this->admin)->post('/settings/update', ['logo_dark' => $svg])->assertSessionHasErrors('logo_dark');
         $this->assertNull(DB::table('app_settings')->where('key', 'app_logo')->value('value'));
+        $this->assertNull(DB::table('app_settings')->where('key', 'app_logo_dark')->value('value'));
 
-        $png = UploadedFile::fake()->createWithContent('logo.png', (string) base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='));
-        $this->actingAs($this->admin)->post('/settings/update', ['logo' => $png, 'app_name' => 'DMS Uji', 'ping_alert_enabled' => '1', 'ping_alert_threshold_ms' => 1000])
-            ->assertRedirect(route('settings.index'));
+        $pngBytes = (string) base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==');
+        $png = UploadedFile::fake()->createWithContent('logo.png', $pngBytes);
+        $pngDark = UploadedFile::fake()->createWithContent('logo-dark.png', $pngBytes);
+        $this->actingAs($this->admin)->post('/settings/update', [
+            'logo' => $png,
+            'logo_dark' => $pngDark,
+            'app_name' => 'DMS Uji',
+            'ping_alert_enabled' => '1',
+            'ping_alert_threshold_ms' => 1000,
+        ])->assertRedirect(route('settings.index'));
+
         $logo = (string) DB::table('app_settings')->where('key', 'app_logo')->value('value');
+        $logoDark = (string) DB::table('app_settings')->where('key', 'app_logo_dark')->value('value');
         $this->assertMatchesRegularExpression('#^uploads/logo/logo_\d+_[a-z0-9]{6}\.png$#', $logo);
+        $this->assertMatchesRegularExpression('#^uploads/logo/logo_dark_\d+_[a-z0-9]{6}\.png$#', $logoDark);
         $this->assertFileExists($this->temp.'/public/'.$logo);
+        $this->assertFileExists($this->temp.'/public/'.$logoDark);
         $this->assertSame(['1', '1000', 'DMS Uji'], [
             DB::table('app_settings')->where('key', 'ping_alert_enabled')->value('value'),
             DB::table('app_settings')->where('key', 'ping_alert_threshold_ms')->value('value'),
             DB::table('app_settings')->where('key', 'app_name')->value('value'),
         ]);
 
+        // Both custom logos render as an adaptive light/dark pair without a background chip.
+        $html = $this->actingAs($this->admin)->get('/')->assertOk()->getContent();
+        $this->assertStringContainsString('data-img-src-light="'.asset($logo).'"', $html);
+        $this->assertStringContainsString('data-img-src-dark="'.asset($logoDark).'"', $html);
+        $this->assertStringContainsString('brand-logo--adaptive', $html);
+
+        // Reset restores both light and dark logos to defaults.
         $this->actingAs($this->admin)->post('/settings/reset-logo')->assertRedirect(route('settings.index'));
         $this->assertNull(DB::table('app_settings')->where('key', 'app_logo')->value('value'));
+        $this->assertNull(DB::table('app_settings')->where('key', 'app_logo_dark')->value('value'));
+    }
+
+    public function test_custom_light_logo_without_dark_variant_reuses_custom_logo_safely(): void
+    {
+        DB::table('app_settings')->insert(['key' => 'app_logo', 'value' => 'uploads/logo/custom.png', 'group' => 'appearance', 'type' => 'image']);
+
+        $html = $this->actingAs($this->admin)->get('/')->assertOk()->getContent();
+        $this->assertStringContainsString('uploads/logo/custom.png', $html);
+        $this->assertStringContainsString('brand-logo--custom', $html);
+        $this->assertStringNotContainsString('logo-indraco-invert.png', $html);
     }
 }

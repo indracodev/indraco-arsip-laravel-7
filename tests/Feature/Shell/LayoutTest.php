@@ -50,7 +50,17 @@ class LayoutTest extends TestCase
         $this->assertSame([
             '[Form 1] Katalog Arsip HCS', '[Form 2] Penarikan Berkas', '[Form 3] Pengajuan Perpanjangan &amp; Pemusnahan',
         ], $this->menuLabels($response->getContent()));
-        $response->assertSee('Baru (F2)')->assertSee('data-shortcut="F2"', false);
+        $response->assertSee('Buat Draft (F2)')->assertSee('data-shortcut="F2"', false);
+    }
+
+    public function test_topbar_uses_three_column_layout_with_app_search_and_account_zones(): void
+    {
+        $html = $this->actingAs($this->user('admin'))->get('/')->assertOk()->getContent();
+
+        $this->assertMatchesRegularExpression(
+            '/<header class="topbar">.*topbar__col--app.*topbar__brand.*topbar__divider.*settings-modal.*data-theme-toggle.*data-lan.*topbar__col--search.*id="topbar-search".*topbar__col--account.*topbar__user.*topbar__divider.*data-notify-toggle.*profile\/password.*logout.*<\/header>/s',
+            $html,
+        );
     }
 
     public function test_admin_gets_the_full_laravel7_desktop_menu_in_order(): void
@@ -90,15 +100,16 @@ class LayoutTest extends TestCase
         $this->assertStringNotContainsString('data-layout', $html);
     }
 
-    public function test_every_role_gets_a_flat_menu_with_the_hamburger_and_no_dropdown(): void
+    public function test_every_role_gets_a_flat_desktop_menu_without_dropdown_or_mobile_drawer(): void
     {
         foreach ([['admin', null, '/'], ['pic_gudang', null, '/'], ['pic_dept', 'HCS', '/archives']] as [$role, $dept, $url]) {
             $html = $this->actingAs($this->user($role, $dept))->get($url)->assertOk()->getContent();
 
             $this->assertStringNotContainsString('data-nav-group', $html, $role);
             $this->assertStringNotContainsString('nav__group-toggle', $html, $role);
-            $this->assertStringContainsString('aria-controls="main-nav"', $html, $role);
-            $this->assertMatchesRegularExpression('/class="[^"]*topbar__menu[^"]*"/', $html, $role);
+            $this->assertStringNotContainsString('topbar__menu', $html, $role);
+            $this->assertStringNotContainsString('toggleDrawer', $html, $role);
+            $this->assertStringContainsString('id="main-nav"', $html, $role);
         }
     }
 

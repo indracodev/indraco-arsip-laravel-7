@@ -9,45 +9,49 @@
     min-height: max(100vh, var(--canvas-min-h));
 }
 
-/* Top bar: near-white in light theme, dark slate surface in dark theme; orange brand line on top. */
+/* Top bar: 3 semantic columns (app info | quick search | account info); orange brand line on top. */
 .topbar {
     grid-column: 1 / -1;
     position: sticky;
     top: 0;
     z-index: var(--z-topbar);
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(15rem, 22rem) minmax(0, 1fr);
     align-items: center;
-    gap: var(--space-1) var(--space-3);
+    gap: var(--space-3);
     min-height: var(--size-topbar);
     padding: var(--space-1) var(--space-4);
     background: var(--color-surface);
     border-top: 3px solid var(--color-brand);
     border-bottom: 1px solid var(--color-border);
 }
-.topbar__menu { display: none; }
-.topbar__brand { display: flex; flex: 99 1 0; max-width: max-content; align-items: center; gap: var(--space-2); color: var(--color-text); min-width: 0; }
+.topbar__col { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
+.topbar__col--app { justify-content: flex-start; }
+.topbar__col--search { justify-content: center; }
+.topbar__col--account { justify-content: flex-end; }
+.topbar__divider { width: 1px; height: 1.5rem; flex: none; background: var(--color-border); }
+.topbar__brand { display: flex; flex: 0 1 auto; align-items: center; gap: var(--space-2); color: var(--color-text); min-width: 0; }
 .topbar__brand:hover { text-decoration: none; }
 /* Adaptive Indraco logo swaps PNG per theme (transparent); custom uploaded logo uses --color-logo-chip in dark mode. */
 .topbar__logo, .guest__logo { object-fit: contain; object-position: left center; }
 .brand-logo--custom { padding: 0.1429rem 0.2857rem; border-radius: var(--radius-sm); background: var(--color-logo-chip); }
 .brand-logo--adaptive { padding: 0; background: transparent; }
-.topbar__logo { height: 1.7143rem; width: auto; min-width: 0; }
+.topbar__logo { height: 1.7143rem; width: auto; flex: none; }
 .topbar__name { font-weight: var(--weight-bold); color: var(--color-accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.topbar__spacer { flex: 1; }
-.topbar__search { display: flex; align-items: center; }
-.topbar__search-input { width: 15rem; padding: 0.2857rem 0.6429rem; font-size: var(--text-sm); }
+.topbar__tools { display: flex; align-items: center; gap: var(--space-1); flex: none; }
+.topbar__search { display: flex; align-items: center; width: 100%; }
+.topbar__search-input { width: 100%; height: var(--size-control-sm); padding: 0 var(--space-3); font-size: var(--text-sm); }
 .topbar__user { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; text-align: right; }
 .topbar__user > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .topbar__user-name { font-weight: var(--weight-medium); }
 .topbar__user-role { font-size: var(--text-xs); color: var(--color-text-muted); }
-.topbar__actions { display: flex; align-items: center; gap: var(--space-1); margin-left: auto; }
+.topbar__actions { display: flex; align-items: center; gap: var(--space-1); flex: none; }
 /* Theme toggle: moon in light theme (go dark), sun in dark theme (go light). */
 .theme-toggle__sun, [data-theme="dark"] .theme-toggle__moon { display: none; }
 [data-theme="dark"] .theme-toggle__sun { display: block; }
 
 /* LAN status dot (polls /api/health/ping) */
-.lan { display: flex; align-items: center; gap: var(--space-1); font-size: var(--text-xs); color: var(--color-text-muted); }
+.lan { display: flex; align-items: center; gap: var(--space-1); padding: 0 var(--space-1); font-size: var(--text-xs); color: var(--color-text-muted); white-space: nowrap; }
 .lan__dot { width: 0.5714rem; height: 0.5714rem; border-radius: var(--radius-pill); background: var(--color-border-strong); }
 .lan--ok .lan__dot { background: var(--color-success); }
 .lan--slow .lan__dot { background: var(--color-warning); }
@@ -78,7 +82,6 @@
 }
 .nav__link:hover { background: var(--color-nav-hover); text-decoration: none; }
 .nav__link.is-active { background: var(--color-nav-active); border-bottom-color: var(--color-brand); font-weight: var(--weight-bold); }
-.backdrop { display: none; }
 
 /* Content area carries the one static ambient background (>= viewport height below the menu). */
 .main { padding: var(--space-6); min-width: 0; background: var(--ambient); background-repeat: no-repeat; }
